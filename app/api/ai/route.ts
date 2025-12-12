@@ -6,10 +6,16 @@ import { join } from 'path';
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 // Read the prompt template once at module load time
-const promptTemplate = readFileSync(
-  join(process.cwd(), 'lib', 'prompts', 'data-extraction.md'),
-  'utf-8'
-);
+let promptTemplate: string;
+try {
+  promptTemplate = readFileSync(
+    join(process.cwd(), 'lib', 'prompts', 'data-extraction.md'),
+    'utf-8'
+  );
+} catch (error) {
+  console.error('Failed to load prompt template:', error);
+  throw new Error('Prompt template file not found');
+}
 
 export async function POST(request: NextRequest) {
   try {
