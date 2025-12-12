@@ -47,7 +47,7 @@ ${sanitizedMessage}`;
 
     // Make request to Gemini API
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
+      model: process.env.GOOGLE_AI_MODEL || 'gemini-2.0-flash-exp',
       contents: prompt,
     });
     const responseText = response.text || '';
