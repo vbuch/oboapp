@@ -7,14 +7,14 @@ export default function Header() {
 
   return (
     <>
-      {/* Top Header - Dark Blue */}
-      <header className="bg-[#2c3e50] text-white relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Top Header - Dark Blue - max 60px visible height */}
+      <header className="bg-[#2c3e50] text-white relative h-[60px]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           {/* Main Header with Logo */}
-          <div className="flex items-center py-4 relative">
+          <div className="flex items-center h-full relative">
             {/* Logo - overlaps into content area */}
             <div className="relative z-10">
-              <div className="w-32 h-40 -mb-8">
+              <div className="w-28 h-36 -mb-20">
                 {!logoError ? (
                   <img 
                     src="/logo.png" 
@@ -23,7 +23,7 @@ export default function Header() {
                     onError={() => setLogoError(true)}
                   />
                 ) : (
-                  <div className="w-32 h-40 bg-white rounded-lg flex items-center justify-center shadow-lg border-4 border-yellow-400">
+                  <div className="w-28 h-36 bg-white rounded-lg flex items-center justify-center shadow-lg border-4 border-yellow-400">
                     <span className="text-[#2c3e50] font-bold text-sm text-center leading-tight">
                       <span className="block">СО</span>
                       <span className="block">Оборище</span>
@@ -33,7 +33,7 @@ export default function Header() {
               </div>
             </div>
             <div className="ml-6">
-              <h1 className="text-xl font-bold">Район Оборище</h1>
+              <h1 className="text-lg font-bold">Район Оборище</h1>
             </div>
           </div>
         </div>
