@@ -60,12 +60,40 @@ export async function extractAddresses(text: string): Promise<ExtractedData | nu
       try {
         const parsedResponse = JSON.parse(jsonMatch[0]);
         
+        // Validate and filter pins array
+        const validPins = Array.isArray(parsedResponse.pins) 
+          ? parsedResponse.pins.filter((addr: any) => 
+              typeof addr === 'string' && addr.trim().length > 0
+            )
+          : [];
+        
+        // Validate and filter streets array
+        const validStreets = Array.isArray(parsedResponse.streets)
+          ? parsedResponse.streets.filter((street: any) =>
+              street &&
+              typeof street === 'object' &&
+              typeof street.street === 'string' &&
+              typeof street.from === 'string' &&
+              typeof street.to === 'string'
+            )
+          : [];
+        
+        // Validate and filter timespan array
+        const validTimespan = Array.isArray(parsedResponse.timespan)
+          ? parsedResponse.timespan.filter((time: any) =>
+              time &&
+              typeof time === 'object' &&
+              typeof time.start === 'string' &&
+              typeof time.end === 'string'
+            )
+          : [];
+        
         // Return the full structured data
         const extractedData: ExtractedData = {
           responsible_entity: parsedResponse.responsible_entity || '',
-          pins: Array.isArray(parsedResponse.pins) ? parsedResponse.pins.filter((addr: any) => typeof addr === 'string' && addr.trim().length > 0) : [],
-          streets: Array.isArray(parsedResponse.streets) ? parsedResponse.streets : [],
-          timespan: Array.isArray(parsedResponse.timespan) ? parsedResponse.timespan : [],
+          pins: validPins,
+          streets: validStreets,
+          timespan: validTimespan,
         };
         
         return extractedData;
