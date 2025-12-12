@@ -1,6 +1,10 @@
 'use client';
 
+import { useState } from 'react';
+
 export default function Header() {
+  const [logoError, setLogoError] = useState(false);
+
   return (
     <>
       {/* Top Header - Dark Blue */}
@@ -11,24 +15,21 @@ export default function Header() {
             {/* Logo - overlaps into content area */}
             <div className="relative z-10">
               <div className="w-32 h-40 -mb-8">
-                {/* Replace this placeholder with actual logo from /public/logo.png */}
-                <img 
-                  src="/logo.png" 
-                  alt="СО Оборище" 
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    // Fallback if logo.png doesn't exist
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                  }}
-                />
-                {/* Fallback placeholder - hidden by default, shown if image fails */}
-                <div className="hidden w-32 h-40 bg-white rounded-lg flex items-center justify-center shadow-lg border-4 border-yellow-400">
-                  <span className="text-[#2c3e50] font-bold text-sm text-center leading-tight">
-                    <span className="block">СО</span>
-                    <span className="block">Оборище</span>
-                  </span>
-                </div>
+                {!logoError ? (
+                  <img 
+                    src="/logo.png" 
+                    alt="СО Оборище" 
+                    className="w-full h-full object-contain"
+                    onError={() => setLogoError(true)}
+                  />
+                ) : (
+                  <div className="w-32 h-40 bg-white rounded-lg flex items-center justify-center shadow-lg border-4 border-yellow-400">
+                    <span className="text-[#2c3e50] font-bold text-sm text-center leading-tight">
+                      <span className="block">СО</span>
+                      <span className="block">Оборище</span>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="ml-6">
