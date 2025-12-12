@@ -43,7 +43,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* Add padding-top to account for overlapping logo */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
         <MessageForm onMessageSubmit={handleMessageSubmit} />
 
         {error && (
