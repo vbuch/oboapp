@@ -36,9 +36,16 @@ export async function extractAddresses(text: string): Promise<string[]> {
     // Construct the prompt by appending the sanitized message to the template
     const prompt = promptTemplate + sanitizedText;
 
+    // Validate required environment variable
+    const model = process.env.GOOGLE_AI_MODEL;
+    if (!model) {
+      console.error('GOOGLE_AI_MODEL environment variable is not set');
+      return [];
+    }
+
     // Make request to Gemini API
     const response = await ai.models.generateContent({
-      model: process.env.GOOGLE_AI_MODEL!,
+      model: model,
       contents: prompt,
     });
     const responseText = response.text || '';
@@ -49,10 +56,16 @@ export async function extractAddresses(text: string): Promise<string[]> {
     // Parse the JSON response to extract pins array
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      const parsedResponse = JSON.parse(jsonMatch[0]);
-      // Extract pins array from the structured response
-      const pins = parsedResponse.pins || [];
-      return pins.filter((addr: string) => addr && addr.trim().length > 0);
+      try {
+        const parsedResponse = JSON.parse(jsonMatch[0]);
+        // Extract pins array from the structured response
+        const pins = parsedResponse.pins || [];
+        // Filter to ensure all elements are strings
+        return pins.filter((addr: any) => typeof addr === 'string' && addr.trim().length > 0);
+      } catch (parseError) {
+        console.error('Failed to parse JSON response from AI:', parseError);
+        return [];
+      }
     }
 
     return [];
