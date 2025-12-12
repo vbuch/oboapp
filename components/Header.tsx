@@ -18,7 +18,10 @@ export default function Header() {
             <div className="flex items-center gap-4">
               {/* Logo placeholder - you can replace with actual logo */}
               <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center">
-                <span className="text-[#2c3e50] font-bold text-xs text-center">СО<br/>Оборище</span>
+                <span className="text-[#2c3e50] font-bold text-xs text-center leading-tight">
+                  <span className="block">СО</span>
+                  <span className="block">Оборище</span>
+                </span>
               </div>
               <div>
                 <h1 className="text-xl font-bold">Район Оборище</h1>

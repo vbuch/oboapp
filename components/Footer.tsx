@@ -7,9 +7,9 @@ export default function Footer() {
           <div>
             <h3 className="font-bold text-lg mb-4 text-gray-900">За контакти</h3>
             <div className="space-y-2 text-sm text-gray-700">
-              <p>📍 Адрес: гр. София 1505, бул. "Мадрид" № 1</p>
-              <p>📞 Телефон (централа): 02/ 943-18-40</p>
-              <p>✉️ E-mail: oborishte@rayon-oborishte.bg</p>
+              <p><span aria-label="Адрес">📍</span> Адрес: гр. София 1505, бул. "Мадрид" № 1</p>
+              <p><span aria-label="Телефон">📞</span> Телефон (централа): 02/ 943-18-40</p>
+              <p><span aria-label="Имейл">✉️</span> E-mail: oborishte@rayon-oborishte.bg</p>
             </div>
           </div>
 
