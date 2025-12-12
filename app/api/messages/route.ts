@@ -25,6 +25,7 @@ export async function GET() {
         id: doc.id,
         text: data.text,
         addresses: data.addresses || [],
+        extractedData: data.extractedData || undefined,
         createdAt: convertTimestamp(data.createdAt),
       });
     });
@@ -58,8 +59,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract addresses using Google AI
-    const addressTexts = await extractAddresses(text);
+    // Extract structured data using Google AI
+    const extractedData = await extractAddresses(text);
+
+    // Get all address texts from pins array for geocoding
+    const addressTexts = extractedData?.pins || [];
 
     // Geocode the extracted addresses
     const addresses = await geocodeAddresses(addressTexts);
@@ -69,6 +73,7 @@ export async function POST(request: NextRequest) {
     const docRef = await addDoc(messagesRef, {
       text,
       addresses,
+      extractedData,
       createdAt: Timestamp.now(),
     });
 
@@ -76,6 +81,7 @@ export async function POST(request: NextRequest) {
       id: docRef.id,
       text,
       addresses,
+      extractedData: extractedData || undefined,
       createdAt: new Date().toISOString(),
     };
 

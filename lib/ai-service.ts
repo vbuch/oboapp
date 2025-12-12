@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { ExtractedData } from './types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
@@ -16,18 +17,18 @@ try {
   throw new Error('Prompt template file not found');
 }
 
-export async function extractAddresses(text: string): Promise<string[]> {
+export async function extractAddresses(text: string): Promise<ExtractedData | null> {
   try {
     // Validate message
     if (!text || typeof text !== 'string') {
       console.error('Invalid text parameter for address extraction');
-      return [];
+      return null;
     }
 
     // Validate message length
     if (text.length > 5000) {
       console.error('Text is too long for address extraction (max 5000 characters)');
-      return [];
+      return null;
     }
 
     // Sanitize input to prevent prompt injection
@@ -40,7 +41,7 @@ export async function extractAddresses(text: string): Promise<string[]> {
     const model = process.env.GOOGLE_AI_MODEL;
     if (!model) {
       console.error('GOOGLE_AI_MODEL environment variable is not set');
-      return [];
+      return null;
     }
 
     // Make request to Gemini API
@@ -53,24 +54,30 @@ export async function extractAddresses(text: string): Promise<string[]> {
     // Log the response from Gemini API after address extraction
     console.log('Address extraction completed. AI Response:', responseText);
 
-    // Parse the JSON response to extract pins array
+    // Parse the JSON response to extract the full structured data
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
         const parsedResponse = JSON.parse(jsonMatch[0]);
-        // Extract pins array from the structured response
-        const pins = parsedResponse.pins || [];
-        // Filter to ensure all elements are strings
-        return pins.filter((addr: any) => typeof addr === 'string' && addr.trim().length > 0);
+        
+        // Return the full structured data
+        const extractedData: ExtractedData = {
+          responsible_entity: parsedResponse.responsible_entity || '',
+          pins: Array.isArray(parsedResponse.pins) ? parsedResponse.pins.filter((addr: any) => typeof addr === 'string' && addr.trim().length > 0) : [],
+          streets: Array.isArray(parsedResponse.streets) ? parsedResponse.streets : [],
+          timespan: Array.isArray(parsedResponse.timespan) ? parsedResponse.timespan : [],
+        };
+        
+        return extractedData;
       } catch (parseError) {
         console.error('Failed to parse JSON response from AI:', parseError);
-        return [];
+        return null;
       }
     }
 
-    return [];
+    return null;
   } catch (error) {
     console.error('Error extracting addresses:', error);
-    return [];
+    return null;
   }
 }
