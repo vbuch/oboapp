@@ -42,10 +42,28 @@ export function normalizeAddress(address: string): string {
 }
 
 // Step 2 — PIN / Address Geocoding (Points)
-async function geocodePin(pin: string): Promise<GeoJSONFeature | null> {
+async function geocodePin(pin: string, preGeocodedAddresses?: Map<string, IntersectionCoordinates>): Promise<GeoJSONFeature | null> {
   const normalizedPin = normalizeAddress(pin);
 
-  // Check cache first
+  // Check if we have a pre-geocoded address first
+  if (preGeocodedAddresses?.has(pin)) {
+    const coords = preGeocodedAddresses.get(pin)!;
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [coords.lng, coords.lat],
+      },
+      properties: {
+        feature_type: 'pin',
+        original_text: pin,
+        normalized_text: normalizedPin,
+        is_intersection: normalizedPin.includes('and'),
+      },
+    };
+  }
+
+  // Check cache
   if (geocodingCache.has(normalizedPin)) {
     const cached = geocodingCache.get(normalizedPin);
     if (!cached) return null;
@@ -408,19 +426,22 @@ async function createClosureFeature(
 
 // Step 7 — Feature Collection Assembly
 export async function convertToGeoJSON(
-  extractedData: ExtractedData
+  extractedData: ExtractedData,
+  preGeocodedAddresses?: Map<string, IntersectionCoordinates>
 ): Promise<GeoJSONFeatureCollection> {
   const features: GeoJSONFeature[] = [];
 
   // Process all pins
   console.log('Processing pins:', extractedData.pins.length);
   for (const pin of extractedData.pins) {
-    const feature = await geocodePin(pin);
+    const feature = await geocodePin(pin, preGeocodedAddresses);
     if (feature) {
       features.push(feature);
     }
-    // Add delay to respect API quotas
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Add delay only if we're actually geocoding (not using pre-geocoded data)
+    if (!preGeocodedAddresses?.has(pin)) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
   }
 
   // Process all street closures

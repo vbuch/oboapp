@@ -1,10 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { collection, addDoc, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { extractAddresses } from '@/lib/ai-service';
-import { geocodeAddresses } from '@/lib/geocoding-service';
-import { convertToGeoJSON } from '@/lib/geojson-service';
-import { Message } from '@/lib/types';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { extractAddresses } from "@/lib/ai-service";
+import { geocodeAddresses } from "@/lib/geocoding-service";
+import { convertToGeoJSON } from "@/lib/geojson-service";
+import { Message } from "@/lib/types";
 
 function convertTimestamp(timestamp: any): string {
   if (timestamp?.toDate) {
@@ -15,8 +22,8 @@ function convertTimestamp(timestamp: any): string {
 
 export async function GET() {
   try {
-    const messagesRef = collection(db, 'messages');
-    const q = query(messagesRef, orderBy('createdAt', 'desc'));
+    const messagesRef = collection(db, "messages");
+    const q = query(messagesRef, orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
 
     const messages: Message[] = [];
@@ -34,9 +41,9 @@ export async function GET() {
 
     return NextResponse.json({ messages });
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    console.error("Error fetching messages:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch messages' },
+      { error: "Failed to fetch messages" },
       { status: 500 }
     );
   }
@@ -46,9 +53,9 @@ export async function POST(request: NextRequest) {
   try {
     const { text } = await request.json();
 
-    if (!text || typeof text !== 'string') {
+    if (!text || typeof text !== "string") {
       return NextResponse.json(
-        { error: 'Invalid message text' },
+        { error: "Invalid message text" },
         { status: 400 }
       );
     }
@@ -56,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Validate text length
     if (text.length > 5000) {
       return NextResponse.json(
-        { error: 'Message text is too long (max 5000 characters)' },
+        { error: "Message text is too long (max 5000 characters)" },
         { status: 400 }
       );
     }
@@ -69,20 +76,30 @@ export async function POST(request: NextRequest) {
 
     // Geocode the extracted addresses
     const addresses = await geocodeAddresses(addressTexts);
+    console.log("Geocoded addresses:", addresses);
 
     // Convert to GeoJSON if we have extracted data
+    // Pass the geocoded addresses to avoid duplicate geocoding
     let geoJson = undefined;
     if (extractedData) {
       try {
-        geoJson = await convertToGeoJSON(extractedData);
+        // Create a map of original text to coordinates for efficient lookup
+        const geocodedMap = new Map(
+          addresses.map((addr) => [
+            addr.originalText,
+            { lat: addr.coordinates.lat, lng: addr.coordinates.lng },
+          ])
+        );
+        geoJson = await convertToGeoJSON(extractedData, geocodedMap);
+        console.log("Generated GeoJSON:", geoJson);
       } catch (error) {
-        console.error('Error converting to GeoJSON:', error);
+        console.error("Error converting to GeoJSON:", error);
         // Continue without GeoJSON if conversion fails
       }
     }
 
     // Store the message in Firestore
-    const messagesRef = collection(db, 'messages');
+    const messagesRef = collection(db, "messages");
     const docRef = await addDoc(messagesRef, {
       text,
       addresses,
@@ -102,11 +119,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ message: newMessage }, { status: 201 });
   } catch (error) {
-    console.error('Error creating message:', error);
+    console.error("Error creating message:", error);
     return NextResponse.json(
-      { error: 'Failed to create message' },
+      { error: "Failed to create message" },
       { status: 500 }
     );
   }
 }
-
