@@ -242,19 +242,67 @@ export async function convertToGeoJSON(
   preGeocodedAddresses: Map<string, IntersectionCoordinates>
 ): Promise<GeoJSONFeatureCollection> {
   const features: GeoJSONFeature[] = [];
+  const fallbackPins: typeof extractedData.pins = [];
 
-  // Process all pins
-  console.log(`Processing ${extractedData.pins.length} pins...`);
-  for (const pin of extractedData.pins) {
-    const feature = createPinFeature(pin, preGeocodedAddresses);
-    features.push(feature);
-  }
-
-  // Process all street closures
+  // Process all street closures first
   console.log(`Processing ${extractedData.streets.length} street closures...`);
   for (const street of extractedData.streets) {
-    const feature = await createClosureFeature(street, preGeocodedAddresses);
-    features.push(feature);
+    try {
+      const feature = await createClosureFeature(street, preGeocodedAddresses);
+      features.push(feature);
+    } catch (error) {
+      // If street section creation fails, convert endpoints to pins as fallback
+      console.warn(
+        `⚠️  Failed to create street section for "${street.street}" from "${
+          street.from
+        }" to "${street.to}": ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+
+      const startCoords = preGeocodedAddresses.get(street.from);
+      const endCoords = preGeocodedAddresses.get(street.to);
+
+      if (startCoords && endCoords) {
+        console.log(
+          `   ✅ Converting to 2 pins instead (both endpoints have coordinates)`
+        );
+
+        // Create two pins from the street endpoints
+        fallbackPins.push(
+          {
+            address: street.from,
+            timespans: street.timespans,
+          },
+          {
+            address: street.to,
+            timespans: street.timespans,
+          }
+        );
+      } else {
+        console.error(
+          `   ❌ Cannot create fallback pins (missing coordinates): from=${!!startCoords}, to=${!!endCoords}`
+        );
+      }
+    }
+  }
+
+  // Process all pins (including fallback pins from failed streets)
+  const allPins = [...extractedData.pins, ...fallbackPins];
+  console.log(
+    `Processing ${allPins.length} pins (${extractedData.pins.length} original + ${fallbackPins.length} from failed streets)...`
+  );
+  for (const pin of allPins) {
+    try {
+      const feature = createPinFeature(pin, preGeocodedAddresses);
+      features.push(feature);
+    } catch (error) {
+      console.error(
+        `Failed to create pin for "${pin.address}": ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
   }
 
   console.log(`✅ Created ${features.length} total features`);

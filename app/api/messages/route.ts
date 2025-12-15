@@ -130,10 +130,35 @@ export async function POST(request: NextRequest) {
         const streetGeocodedMap = await geocodeIntersectionsForStreets(
           extractedData.streets
         );
+
         // Merge into preGeocodedMap
         streetGeocodedMap.forEach((coords, key) => {
           preGeocodedMap.set(key, coords);
         });
+
+        // Check which street endpoints are still missing and try fallback geocoding
+        const missingEndpoints: string[] = [];
+        extractedData.streets.forEach((street) => {
+          if (!preGeocodedMap.has(street.from)) {
+            missingEndpoints.push(street.from);
+          }
+          if (!preGeocodedMap.has(street.to)) {
+            missingEndpoints.push(street.to);
+          }
+        });
+
+        if (missingEndpoints.length > 0) {
+          console.log(
+            `⚠️  ${missingEndpoints.length} street endpoints not found via ${STREET_GEOCODING_ALGO}, trying fallback geocoding...`
+          );
+          const fallbackGeocoded = await geocodeAddresses(missingEndpoints);
+          fallbackGeocoded.forEach((addr) => {
+            preGeocodedMap.set(addr.originalText, addr.coordinates);
+            console.log(
+              `   ✅ Fallback geocoded: "${addr.originalText}" → [${addr.coordinates.lat}, ${addr.coordinates.lng}]`
+            );
+          });
+        }
       }
     } else {
       // Traditional approach: collect all addresses and geocode
