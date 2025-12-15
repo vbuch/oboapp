@@ -2,22 +2,17 @@ import { GoogleGenAI } from "@google/genai";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ExtractedData } from "./types";
-import { GEOCODING_ALGO } from "./config";
+import { GEOCODING_ALGO, getDataExtractionPromptPath } from "./config";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || "" });
 
 // Read the appropriate prompt template based on geocoding algorithm
 let systemInstruction: string;
 try {
-  const promptFile =
-    GEOCODING_ALGO === "google_directions"
-      ? "data-extraction-directions.md"
-      : "data-extraction.md";
+  const promptPath = getDataExtractionPromptPath();
+  const promptFile = promptPath.split("/").pop() || "data-extraction.md";
 
-  systemInstruction = readFileSync(
-    join(process.cwd(), "lib", "prompts", promptFile),
-    "utf-8"
-  );
+  systemInstruction = readFileSync(join(process.cwd(), promptPath), "utf-8");
 
   console.log(`Loaded prompt template: ${promptFile} (for ${GEOCODING_ALGO})`);
 } catch (error) {

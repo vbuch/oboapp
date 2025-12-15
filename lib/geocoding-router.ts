@@ -11,6 +11,10 @@ import {
   geocodeStreetSections,
   geocodeAddress as geocodeAddressDirections,
 } from "./directions-geocoding-service";
+import {
+  mapboxGeocodeAddresses,
+  mapboxGeocodeIntersections,
+} from "./mapbox-geocoding-service";
 
 /**
  * Geocode a list of addresses using the configured algorithm
@@ -18,7 +22,10 @@ import {
 export async function geocodeAddresses(
   addresses: string[]
 ): Promise<Address[]> {
-  if (GEOCODING_ALGO === "google_directions") {
+  if (GEOCODING_ALGO === "mapbox_geocoding") {
+    // Use Mapbox for all geocoding
+    return mapboxGeocodeAddresses(addresses);
+  } else if (GEOCODING_ALGO === "google_directions") {
     // For directions mode, we need to handle addresses differently
     // For now, use the traditional method for simple addresses
     const results: Address[] = [];
@@ -43,7 +50,11 @@ export async function geocodeAddresses(
 export async function geocodeStreets(
   streets: StreetSection[]
 ): Promise<Address[]> {
-  if (GEOCODING_ALGO === "google_directions") {
+  if (GEOCODING_ALGO === "mapbox_geocoding") {
+    // For Mapbox, geocode endpoints
+    const endpointAddresses = streets.flatMap((s) => [s.from, s.to]);
+    return mapboxGeocodeAddresses(endpointAddresses);
+  } else if (GEOCODING_ALGO === "google_directions") {
     // Use directions-based approach for street sections
     const sections: [string, string, string][] = streets.map((s) => [
       s.street,
@@ -67,7 +78,38 @@ export async function geocodeIntersectionsForStreets(
 ): Promise<Map<string, { lat: number; lng: number }>> {
   const geocodedMap = new Map<string, { lat: number; lng: number }>();
 
-  if (GEOCODING_ALGO === "google_directions") {
+  if (GEOCODING_ALGO === "mapbox_geocoding") {
+    // Extract unique intersections
+    const intersectionSet = new Set<string>();
+    const intersectionPairs: [string, string, string][] = [];
+
+    streets.forEach((street) => {
+      const fromKey = `${street.street}||${street.from}`;
+      if (!intersectionSet.has(fromKey)) {
+        intersectionSet.add(fromKey);
+        intersectionPairs.push([street.street, street.from, street.from]);
+      }
+
+      const toKey = `${street.street}||${street.to}`;
+      if (!intersectionSet.has(toKey)) {
+        intersectionSet.add(toKey);
+        intersectionPairs.push([street.street, street.to, street.to]);
+      }
+    });
+
+    console.log(
+      `Geocoding ${intersectionPairs.length} unique intersections using Mapbox`
+    );
+
+    const pairsForGeocoding: [string, string][] = intersectionPairs.map(
+      ([street, cross]) => [street, cross]
+    );
+    const geocoded = await mapboxGeocodeIntersections(pairsForGeocoding);
+
+    geocoded.forEach((coords, key) => {
+      geocodedMap.set(key, coords);
+    });
+  } else if (GEOCODING_ALGO === "google_directions") {
     // Extract unique intersections (street + cross street pairs)
     const intersectionSet = new Set<string>();
     const intersectionPairs: [string, string, string][] = []; // [street, crossStreet, crossStreetKey]
