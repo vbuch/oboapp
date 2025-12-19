@@ -90,3 +90,30 @@ export interface Interest {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
+
+// Notification Subscription
+export interface NotificationSubscription {
+  id?: string;
+  userId: string;
+  token: string; // FCM token
+  endpoint: string; // Push subscription endpoint
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  deviceInfo?: {
+    userAgent?: string;
+    platform?: string;
+  };
+}
+
+// Notification Match (message matched to user's interest)
+export interface NotificationMatch {
+  id?: string;
+  userId: string;
+  messageId: string;
+  interestId: string;
+  matchedAt: Date | string;
+  notified: boolean; // Whether notification was sent
+  notifiedAt?: Date | string;
+  notificationError?: string; // Error if notification failed
+  distance?: number; // Distance in meters from interest center to closest point
+}

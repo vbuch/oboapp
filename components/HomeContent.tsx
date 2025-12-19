@@ -4,8 +4,11 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapComponent from "@/components/MapComponent";
 import MessageDetailView from "@/components/MessageDetailView";
+import NotificationPrompt from "@/components/NotificationPrompt";
 import { Message, Interest } from "@/lib/types";
 import { useInterests } from "@/lib/hooks/useInterests";
+import { useNotificationPrompt } from "@/lib/hooks/useNotificationPrompt";
+import { useAuth } from "@/lib/auth-context";
 
 interface HomeContentProps {
   readonly onAddInterestRequest?: () => void;
@@ -46,6 +49,10 @@ export default function HomeContent({
   const { interests, addInterest, updateInterest, deleteInterest } =
     useInterests();
 
+  const { user } = useAuth();
+  const { showPrompt, onAccept, onDecline, checkAndPromptForNotifications } =
+    useNotificationPrompt();
+
   console.log(
     "[HomeContent] interests from hook:",
     interests.length,
@@ -55,6 +62,20 @@ export default function HomeContent({
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Check for notification permission when user has circles
+  useEffect(() => {
+    if (user && interests.length > 0) {
+      user
+        .getIdToken()
+        .then((idToken) => {
+          checkAndPromptForNotifications(user.uid, idToken, true);
+        })
+        .catch((err) => {
+          console.error("Failed to check notification permissions:", err);
+        });
+    }
+  }, [user, interests.length, checkAndPromptForNotifications]);
 
   // Calculate map height based on viewport
   useEffect(() => {
@@ -396,6 +417,11 @@ export default function HomeContent({
             </button>
           </div>
         </>
+      )}
+
+      {/* Notification permission prompt */}
+      {showPrompt && (
+        <NotificationPrompt onAccept={onAccept} onDecline={onDecline} />
       )}
     </div>
   );

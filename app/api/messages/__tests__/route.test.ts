@@ -199,18 +199,18 @@ describe("GET /api/messages - Date Filtering", () => {
     expect(data.messages[0].id).toBe("msg1");
   });
 
-  it("should use default 30 days when MESSAGE_RELEVANCE_DAYS is not set", async () => {
+  it("should use default 7 days when MESSAGE_RELEVANCE_DAYS is not set", async () => {
     const { adminDb } = await import("@/lib/firebase-admin");
 
-    const date25DaysAgo = new Date();
-    date25DaysAgo.setDate(date25DaysAgo.getDate() - 25);
+    const date5DaysAgo = new Date();
+    date5DaysAgo.setDate(date5DaysAgo.getDate() - 5);
 
     const mockMessages = [
       {
         id: "msg1",
         data: () => ({
-          text: "Message from 25 days ago",
-          createdAt: { _seconds: date25DaysAgo.getTime() / 1000 },
+          text: "Message from 5 days ago",
+          createdAt: { _seconds: date5DaysAgo.getTime() / 1000 },
         }),
       },
     ];
@@ -234,7 +234,7 @@ describe("GET /api/messages - Date Filtering", () => {
     const response = await GET();
     const data = await response.json();
 
-    // Should be included because it's within 30 days
+    // Should be included because it's within 7 days
     expect(data.messages).toHaveLength(1);
   });
 });
