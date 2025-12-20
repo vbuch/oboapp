@@ -6,6 +6,8 @@ import MapComponent from "@/components/MapComponent";
 import MessageDetailView from "@/components/MessageDetailView";
 import NotificationPrompt from "@/components/NotificationPrompt";
 import LoginPrompt from "@/components/LoginPrompt";
+import AddInterestButton from "@/components/AddInterestButton";
+import AddInterestsPrompt from "@/components/AddInterestsPrompt";
 import { Message, Interest } from "@/lib/types";
 import { useInterests } from "@/lib/hooks/useInterests";
 import { useNotificationPrompt } from "@/lib/hooks/useNotificationPrompt";
@@ -329,24 +331,36 @@ export default function HomeContent({
             <p className="text-gray-600">Loading map...</p>
           </div>
         ) : (
-          <MapComponent
-            messages={messages}
-            onFeatureClick={handleFeatureClick}
-            onMapReady={handleMapReady}
-            interests={interests}
-            onInterestClick={handleInterestClick}
-            targetMode={
-              targetMode.active
-                ? {
-                    active: true,
-                    initialRadius: targetMode.initialRadius,
-                    editingInterestId: targetMode.editingInterestId,
-                    onSave: handleSaveInterest,
-                    onCancel: handleCancelTargetMode,
-                  }
-                : undefined
-            }
-          />
+          <>
+            <MapComponent
+              messages={messages}
+              onFeatureClick={handleFeatureClick}
+              onMapReady={handleMapReady}
+              interests={interests}
+              onInterestClick={handleInterestClick}
+              targetMode={
+                targetMode.active
+                  ? {
+                      active: true,
+                      initialRadius: targetMode.initialRadius,
+                      editingInterestId: targetMode.editingInterestId,
+                      onSave: handleSaveInterest,
+                      onCancel: handleCancelTargetMode,
+                    }
+                  : undefined
+              }
+            />
+
+            {/* Add interests prompt - shown when user is logged in but has no interests */}
+            {user && interests.length === 0 && (
+              <AddInterestsPrompt onAddInterests={handleStartAddInterest} />
+            )}
+
+            {/* Add interests button - shown when user is logged in and has interests */}
+            {user && interests.length > 0 && (
+              <AddInterestButton onClick={handleStartAddInterest} />
+            )}
+          </>
         )}
       </div>
 
