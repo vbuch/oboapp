@@ -353,18 +353,16 @@ async function saveSourceDocument(
   console.log(`✅ Записано събитие: ${doc.title}`);
 }
 
-async function crawl(): Promise<void> {
+export async function crawl(dryRun = false): Promise<void> {
   console.log("🚰 Стартиране на crawler за Sofiyska Voda...\n");
-  console.log(
-    `🔧 Режим: ${isDryRun ? "dry-run (без запис)" : "производствен"}`
-  );
+  console.log(`🔧 Режим: ${dryRun ? "dry-run (без запис)" : "производствен"}`);
 
   const summary: CrawlSummary = { saved: 0, skipped: 0, emptyLayers: 0 };
   const seenUrls = new Set<string>();
-  const adminDb = await maybeInitFirestore();
+  const adminDb = await maybeInitFirestore(dryRun);
 
   for (const layer of LAYERS) {
-    const layerSummary = await processLayer(layer, seenUrls, adminDb);
+    const layerSummary = await processLayer(layer, seenUrls, adminDb, dryRun);
     summary.saved += layerSummary.saved;
     summary.skipped += layerSummary.skipped;
     summary.emptyLayers += layerSummary.emptyLayers;
@@ -373,8 +371,8 @@ async function crawl(): Promise<void> {
   logSummary(summary);
 }
 
-async function maybeInitFirestore(): Promise<Firestore | null> {
-  if (isDryRun) {
+async function maybeInitFirestore(dryRun: boolean): Promise<Firestore | null> {
+  if (dryRun) {
     return null;
   }
 
@@ -385,7 +383,8 @@ async function maybeInitFirestore(): Promise<Firestore | null> {
 async function processLayer(
   layer: LayerConfig,
   seenUrls: Set<string>,
-  adminDb: Firestore | null
+  adminDb: Firestore | null,
+  dryRun: boolean
 ): Promise<CrawlSummary> {
   console.log(`\n📡 Зареждане на слой ${layer.id} – ${layer.name}`);
   const features = await fetchLayerFeatures(layer);
@@ -398,7 +397,7 @@ async function processLayer(
   const result: CrawlSummary = { saved: 0, skipped: 0, emptyLayers: 0 };
 
   for (const feature of features) {
-    await handleFeature(feature, layer, seenUrls, adminDb, result);
+    await handleFeature(feature, layer, seenUrls, adminDb, result, dryRun);
   }
 
   return result;
@@ -409,7 +408,8 @@ async function handleFeature(
   layer: LayerConfig,
   seenUrls: Set<string>,
   adminDb: Firestore | null,
-  summary: CrawlSummary
+  summary: CrawlSummary,
+  dryRun: boolean
 ): Promise<void> {
   const document = buildSourceDocument(feature, layer);
   if (!document) {
@@ -421,7 +421,7 @@ async function handleFeature(
   }
   seenUrls.add(document.url);
 
-  if (isDryRun) {
+  if (dryRun) {
     console.log(`📝 [dry-run] ${document.title}`);
     return;
   }
@@ -457,8 +457,12 @@ function logSummary(summary: CrawlSummary): void {
   }
 }
 
-// eslint-disable-next-line unicorn/prefer-top-level-await
-crawl().catch((error) => {
-  console.error("❌ Софийска вода crawler се провали:", error);
-  process.exit(1);
-});
+// Run only when executed directly
+if (require.main === module) {
+  const isDryRun = process.argv.includes("--dry-run");
+  // eslint-disable-next-line unicorn/prefer-top-level-await
+  crawl(isDryRun).catch((error) => {
+    console.error("❌ Софийска вода crawler се провали:", error);
+    process.exit(1);
+  });
+}

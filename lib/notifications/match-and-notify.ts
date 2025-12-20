@@ -478,7 +478,7 @@ async function initFirebase(): Promise<{
 /**
  * Main function
  */
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   console.log("🔔 Starting notification matching and sending...\n");
 
   const { adminDb, messaging } = await initFirebase();
@@ -530,12 +530,15 @@ async function main(): Promise<void> {
   console.log("\n✅ Notification processing complete!\n");
 }
 
-// Run the script - using IIFE for compatibility with tsx/esbuild
-void (async () => {
-  try {
-    await main();
-  } catch (error) {
-    console.error("\n❌ Fatal error:", error);
-    process.exit(1);
-  }
-})();
+// Run the script only when executed directly
+if (require.main === module) {
+  // eslint-disable-next-line unicorn/prefer-top-level-await
+  void (async () => {
+    try {
+      await main();
+    } catch (error) {
+      console.error("\n❌ Fatal error:", error);
+      process.exit(1);
+    }
+  })();
+}

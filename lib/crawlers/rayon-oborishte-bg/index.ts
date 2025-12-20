@@ -265,7 +265,7 @@ async function processPost(
 /**
  * Main crawler function
  */
-async function crawl(): Promise<void> {
+export async function crawl(): Promise<void> {
   console.log("🚀 Starting rayon-oborishte-bg crawler...\n");
   console.log(`📍 Index URL: ${INDEX_URL}`);
   console.log(`🗄️  Source type: ${SOURCE_TYPE}\n`);
@@ -324,7 +324,7 @@ async function crawl(): Promise<void> {
     console.error("❌ Crawling failed with error:");
     console.error(error);
     console.error("=".repeat(60) + "\n");
-    process.exit(1);
+    throw error;
   } finally {
     if (browser) {
       await browser.close();
@@ -333,9 +333,11 @@ async function crawl(): Promise<void> {
   }
 }
 
-// Run the crawler
-// eslint-disable-next-line unicorn/prefer-top-level-await
-crawl().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
+// Run the crawler if executed directly
+if (require.main === module) {
+  // eslint-disable-next-line unicorn/prefer-top-level-await
+  crawl().catch((error) => {
+    console.error("Fatal error:", error);
+    process.exit(1);
+  });
+}

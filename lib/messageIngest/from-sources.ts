@@ -330,9 +330,7 @@ async function maybeInitFirestore(): Promise<Firestore> {
   return firebase.adminDb;
 }
 
-async function ingest(): Promise<void> {
-  const options = await parseArguments();
-
+export async function ingest(options: IngestOptions = {}): Promise<IngestSummary> {
   console.log("📥 Starting source ingestion...\n");
   console.log(
     `🔧 Mode: ${options.dryRun ? "dry-run (no ingestion)" : "production"}`
@@ -381,6 +379,7 @@ async function ingest(): Promise<void> {
   }
 
   logSummary(summary, options.dryRun ?? false);
+  return summary;
 }
 
 function logSummary(summary: IngestSummary, dryRun: boolean): void {
@@ -419,9 +418,15 @@ function logSummary(summary: IngestSummary, dryRun: boolean): void {
     );
   }
 }
-
-// eslint-disable-next-line unicorn/prefer-top-level-await
-ingest().catch((error) => {
-  console.error("❌ Ingestion failed:", error);
-  process.exit(1);
+// Run only when executed directly
+if (require.main === module) {
+  // eslint-disable-next-line unicorn/prefer-top-level-await
+  (async () => {
+    const options = await parseArguments();
+    await ingest(options);
+  })().catch((error) => {
+    console.error("❌ Ingestion failed:", error);
+    process.exit(1);
+  });
+}rocess.exit(1);
 });
