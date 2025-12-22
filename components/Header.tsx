@@ -21,7 +21,10 @@ export default function Header({ onOpenMessageModal }: HeaderProps) {
             {/* Left side - Logo and Title */}
             <div className="flex items-center gap-4">
               {/* Logo - overlapping content below */}
-              <div className="flex-shrink-0 relative -mb-20">
+              <a
+                href="/"
+                className="flex-shrink-0 relative -mb-20 cursor-pointer hover:opacity-90 transition-opacity"
+              >
                 {logoError ? (
                   <div className="h-32 w-32 bg-white rounded flex items-center justify-center border-2 border-yellow-400 relative z-30">
                     <span className="text-[#2c3e50] font-bold text-2xl text-center leading-tight">
@@ -36,7 +39,7 @@ export default function Header({ onOpenMessageModal }: HeaderProps) {
                     onError={() => setLogoError(true)}
                   />
                 )}
-              </div>
+              </a>
               <div>
                 <h1 className="text-lg font-bold">Район Оборище</h1>
               </div>

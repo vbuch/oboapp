@@ -5,6 +5,7 @@ export interface Message {
   extractedData?: ExtractedData;
   geoJson?: GeoJSONFeatureCollection;
   createdAt: Date | string;
+  source?: string;
 }
 
 export interface Address {
@@ -116,4 +117,11 @@ export interface NotificationMatch {
   notifiedAt?: Date | string;
   notificationError?: string; // Error if notification failed
   distance?: number; // Distance in meters from interest center to closest point
+}
+
+// Source Configuration
+export interface SourceConfig {
+  id: string;
+  url: string;
+  name: string;
 }

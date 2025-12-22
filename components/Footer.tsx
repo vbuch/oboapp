@@ -41,6 +41,12 @@ export default function Footer() {
                   rayon-oborishte.bg
                 </a>
               </div>
+              <div>
+                <p className="font-semibold text-gray-900">Източници</p>
+                <a href="/sources" className="text-[#5DADE2] hover:underline">
+                  Източници на данни
+                </a>
+              </div>
             </div>
           </div>
         </div>
