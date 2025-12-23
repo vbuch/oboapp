@@ -1,8 +1,9 @@
 # Copy this file to terraform.tfvars and fill in your values
 # terraform.tfvars is git-ignored for security
 
-project_id = "your-project-id"
-region     = "europe-west1"
+project_id         = "your-project-id"
+firebase_project_id = "your-firebase-project-id"  # Often same as project_id
+region             = "europe-west1"
 
 # Optional overrides
 # image_tag = "v1.0.0"

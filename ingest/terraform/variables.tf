@@ -52,3 +52,8 @@ variable "schedules" {
     notify                = "0 11 * * *" # Daily at 11:00 AM
   }
 }
+
+variable "firebase_project_id" {
+  description = "Firebase project ID (can be public)"
+  type        = string
+}

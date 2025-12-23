@@ -5,11 +5,11 @@ on:
     branches: [main]
     paths:
       - "ingest/**"
-      - ".github/workflows/deploy-ingest.yml"
   workflow_dispatch: # Allow manual trigger
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
   REGION: europe-west1
   IMAGE_NAME: oborishte-ingest
 
@@ -38,16 +38,77 @@ jobs:
         run: gcloud auth configure-docker
 
       - name: Build and push Docker image
+        id: build
         run: |
+          set -e  # Exit on error
           cd ingest
           IMAGE_TAG="${GITHUB_SHA::8}"
 
           # Build and push with commit SHA
-          gcloud builds submit \
-            --tag gcr.io/$PROJECT_ID/$IMAGE_NAME:$IMAGE_TAG \
-            --tag gcr.io/$PROJECT_ID/$IMAGE_NAME:latest
+          echo "========================================="
+          echo "Building image for commit: $GITHUB_SHA"
+          echo "Image tag: $IMAGE_TAG"
+          echo "Full image: gcr.io/$PROJECT_ID/$IMAGE_NAME:$IMAGE_TAG"
+          echo "========================================="
+
+          # Submit build with the commit SHA tag
+          if gcloud builds submit --tag gcr.io/$PROJECT_ID/$IMAGE_NAME:$IMAGE_TAG .; then
+            echo "========================================="
+            echo "✅ Image built and tagged as $IMAGE_TAG"
+            echo "========================================="
+          else
+            echo "❌ Build failed!"
+            exit 1
+          fi
+          echo "========================================="
 
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+          # Wait for GCR to fully propagate
+          echo "Waiting for registry to propagate..."
+          sleep 15
+
+          # Verify image exists with the specific tag
+          echo "Verifying image with tag $IMAGE_TAG in registry..."
+          MAX_RETRIES=6
+          RETRY_COUNT=0
+          IMAGE_FOUND=false
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if gcloud container images describe gcr.io/$PROJECT_ID/$IMAGE_NAME:$IMAGE_TAG --format="value(image_summary.fully_qualified_digest)" 2>/dev/null; then
+              echo "✅ Image gcr.io/$PROJECT_ID/$IMAGE_NAME:$IMAGE_TAG verified in registry"
+              IMAGE_FOUND=true
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "Image not ready yet, waiting... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+                sleep 10
+              fi
+            fi
+          done
+
+          if [ "$IMAGE_FOUND" = false ]; then
+            echo "❌ ERROR: Image with tag $IMAGE_TAG not found after $MAX_RETRIES attempts"
+            echo "Listing all tags in registry:"
+            gcloud container images list-tags gcr.io/$PROJECT_ID/$IMAGE_NAME --limit=10
+            exit 1
+          fi
+
+          # List recent images
+          echo ""
+          echo "Recent images in registry:"
+          gcloud container images list-tags gcr.io/$PROJECT_ID/$IMAGE_NAME --limit=10
+
+      - name: Grant GCR access to Cloud Run service account
+        run: |
+          # Ensure the Cloud Run service account can pull images from GCR
+          echo "Granting GCR access to ingest-runner service account..."
+          gcloud projects add-iam-policy-binding $PROJECT_ID \
+            --member="serviceAccount:ingest-runner@$PROJECT_ID.iam.gserviceaccount.com" \
+            --role="roles/storage.objectViewer" \
+            --quiet || echo "Permission may already exist"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -62,10 +123,16 @@ jobs:
       - name: Terraform Plan
         run: |
           cd ingest/terraform
+
+          # Debug: Show what IMAGE_TAG we're using
+          echo "Using IMAGE_TAG: ${IMAGE_TAG:-NOT_SET}"
+          echo "Using image: gcr.io/$PROJECT_ID/$IMAGE_NAME:${IMAGE_TAG}"
+
           terraform plan \
             -var="project_id=$PROJECT_ID" \
             -var="region=$REGION" \
-            -var="image_tag=$IMAGE_TAG" \
+            -var="image_tag=${IMAGE_TAG}" \
+            -var="firebase_project_id=$FIREBASE_PROJECT_ID" \
             -out=tfplan
 
       - name: Terraform Apply

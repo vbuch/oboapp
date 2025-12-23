@@ -41,6 +41,11 @@ resource "google_project_service" "firestore" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "secretmanager" {
+  service            = "secretmanager.googleapis.com"
+  disable_on_destroy = false
+}
+
 # Service Account for running jobs
 resource "google_service_account" "ingest_runner" {
   account_id   = "ingest-runner"
@@ -60,6 +65,43 @@ resource "google_project_iam_member" "run_invoker" {
   project = var.project_id
   role    = "roles/run.invoker"
   member  = "serviceAccount:${google_service_account.ingest_runner.email}"
+}
+
+# Grant Secret Manager access
+resource "google_project_iam_member" "secret_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.ingest_runner.email}"
+}
+
+# Reference existing secrets (these should be created manually or via setup script)
+# We use data sources to reference secrets that should be created before running terraform
+data "google_secret_manager_secret" "firebase_sa_key" {
+  secret_id = "firebase-service-account-key"
+  project   = var.project_id
+  
+  depends_on = [google_project_service.secretmanager]
+}
+
+data "google_secret_manager_secret" "google_ai_api_key" {
+  secret_id = "google-ai-api-key"
+  project   = var.project_id
+  
+  depends_on = [google_project_service.secretmanager]
+}
+
+data "google_secret_manager_secret" "google_ai_model" {
+  secret_id = "google-ai-model"
+  project   = var.project_id
+  
+  depends_on = [google_project_service.secretmanager]
+}
+
+data "google_secret_manager_secret" "google_maps_api_key" {
+  secret_id = "google-maps-api-key"
+  project   = var.project_id
+  
+  depends_on = [google_project_service.secretmanager]
 }
 
 # Cloud Run Jobs
@@ -122,6 +164,53 @@ resource "google_cloud_run_v2_job" "crawlers" {
           name  = "NODE_ENV"
           value = "production"
         }
+        
+        # Secret environment variables from Secret Manager
+        env {
+          name = "FIREBASE_SERVICE_ACCOUNT_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.firebase_sa_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "GOOGLE_AI_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_ai_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "GOOGLE_AI_MODEL"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_ai_model.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        # Public Firebase config (these can be in code or here)
+        env {
+          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          value = var.firebase_project_id
+        }
       }
       
       max_retries = 1
@@ -163,6 +252,52 @@ resource "google_cloud_run_v2_job" "ingest" {
           name  = "NODE_ENV"
           value = "production"
         }
+        
+        # Secret environment variables from Secret Manager
+        env {
+          name = "FIREBASE_SERVICE_ACCOUNT_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.firebase_sa_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "GOOGLE_AI_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_ai_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "GOOGLE_AI_MODEL"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_ai_model.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          value = var.firebase_project_id
+        }
       }
       
       max_retries = 1
@@ -203,6 +338,52 @@ resource "google_cloud_run_v2_job" "notify" {
         env {
           name  = "NODE_ENV"
           value = "production"
+        }
+        
+        # Secret environment variables from Secret Manager
+        env {
+          name = "FIREBASE_SERVICE_ACCOUNT_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.firebase_sa_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "GOOGLE_AI_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_ai_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "GOOGLE_AI_MODEL"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_ai_model.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          value = var.firebase_project_id
         }
       }
       
