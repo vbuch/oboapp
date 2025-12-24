@@ -354,6 +354,7 @@ export default function HomeContent() {
               <AddInterestButton
                 onClick={handleStartAddInterest}
                 isUserAuthenticated={!!user}
+                visible={!targetMode.active}
               />
             )}
           </>
