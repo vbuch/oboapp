@@ -42,14 +42,154 @@ const GEOJSON_STYLES = {
   },
 };
 
+// Helper: Transform GeoJSON coordinate to Google Maps LatLng
+const toLatLng = (coord: number[]) => ({
+  lat: coord[1],
+  lng: coord[0],
+});
+
+// Helper: Create feature click handler
+const createClickHandler = (
+  messageId: string | undefined,
+  geometryType: "Point" | "LineString" | "Polygon",
+  onFeatureClick?: (messageId: string) => void
+) => {
+  return () => {
+    if (messageId && onFeatureClick) {
+      trackEvent({
+        name: "map_feature_clicked",
+        params: {
+          message_id: messageId || "unknown",
+          geometry_type: geometryType,
+        },
+      });
+      onFeatureClick(messageId);
+    }
+  };
+};
+
+// Helper: Create hover handlers
+const createHoverHandlers = (
+  featureKey: string,
+  setHoveredFeature: (key: string | null) => void
+) => ({
+  onMouseOver: () => setHoveredFeature(featureKey),
+  onMouseOut: () => setHoveredFeature(null),
+});
+
+// Point feature component
+interface PointFeatureProps {
+  coords: number[];
+  isHovered: boolean;
+  messageId: string | undefined;
+  featureProperties: any;
+  featureKey: string;
+  onFeatureClick?: (messageId: string) => void;
+  setHoveredFeature: (key: string | null) => void;
+}
+
+function PointFeature({
+  coords,
+  isHovered,
+  messageId,
+  featureProperties,
+  featureKey,
+  onFeatureClick,
+  setHoveredFeature,
+}: PointFeatureProps) {
+  return (
+    <Marker
+      position={toLatLng(coords)}
+      icon={{
+        path: "M 0,0 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0",
+        fillColor: colors.primary.red,
+        fillOpacity: isHovered ? opacity.hover : opacity.default,
+        strokeWeight: 2,
+        strokeColor: colors.map.stroke,
+        scale: isHovered ? 1.2 : 1,
+      }}
+      title={featureProperties?.address || "Маркер"}
+      zIndex={10}
+      onClick={createClickHandler(messageId, "Point", onFeatureClick)}
+      {...createHoverHandlers(featureKey, setHoveredFeature)}
+      options={{ cursor: "pointer" }}
+    />
+  );
+}
+
+// LineString feature component
+interface LineStringFeatureProps {
+  coords: number[][];
+  isHovered: boolean;
+  messageId: string | undefined;
+  featureKey: string;
+  onFeatureClick?: (messageId: string) => void;
+  setHoveredFeature: (key: string | null) => void;
+}
+
+function LineStringFeature({
+  coords,
+  isHovered,
+  messageId,
+  featureKey,
+  onFeatureClick,
+  setHoveredFeature,
+}: LineStringFeatureProps) {
+  return (
+    <Polyline
+      path={coords.map(toLatLng)}
+      options={{
+        ...(isHovered
+          ? GEOJSON_STYLES.lineStringHover
+          : GEOJSON_STYLES.lineString),
+        clickable: true,
+      }}
+      onClick={createClickHandler(messageId, "LineString", onFeatureClick)}
+      {...createHoverHandlers(featureKey, setHoveredFeature)}
+    />
+  );
+}
+
+// Polygon feature component
+interface PolygonFeatureProps {
+  coords: number[][][];
+  isHovered: boolean;
+  messageId: string | undefined;
+  featureKey: string;
+  onFeatureClick?: (messageId: string) => void;
+  setHoveredFeature: (key: string | null) => void;
+}
+
+function PolygonFeature({
+  coords,
+  isHovered,
+  messageId,
+  featureKey,
+  onFeatureClick,
+  setHoveredFeature,
+}: PolygonFeatureProps) {
+  return (
+    <Polygon
+      paths={coords[0].map(toLatLng)}
+      options={{
+        ...(isHovered ? GEOJSON_STYLES.polygonHover : GEOJSON_STYLES.polygon),
+        clickable: true,
+      }}
+      onClick={createClickHandler(messageId, "Polygon", onFeatureClick)}
+      {...createHoverHandlers(featureKey, setHoveredFeature)}
+    />
+  );
+}
+
 export default function GeoJSONLayer({
   messages,
   onFeatureClick,
 }: GeoJSONLayerProps) {
-  const features: React.ReactElement[] = [];
   const [hoveredFeature, setHoveredFeature] = React.useState<string | null>(
     null
   );
+
+  const features: React.ReactElement[] = [];
 
   messages.forEach((message) => {
     if (!message.geoJson?.features) {
@@ -58,109 +198,50 @@ export default function GeoJSONLayer({
 
     message.geoJson.features.forEach((feature, featureIndex) => {
       const key = `${message.id}-geojson-${featureIndex}`;
+      const isHovered = hoveredFeature === key;
+      const { geometry, properties } = feature;
 
-      // Render based on geometry type
-      if (feature.geometry.type === "Point") {
-        const coords = feature.geometry.coordinates;
-
-        features.push(
-          <Marker
-            key={key}
-            position={{ lat: coords[1], lng: coords[0] }}
-            icon={{
-              path: "M 0,0 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0", // SVG circle path
-              fillColor: colors.primary.red,
-              fillOpacity:
-                hoveredFeature === key ? opacity.hover : opacity.default,
-              strokeWeight: 2,
-              strokeColor: colors.map.stroke,
-              scale: hoveredFeature === key ? 1.2 : 1,
-            }}
-            title={feature.properties?.address || "Маркер"}
-            zIndex={10}
-            onClick={() => {
-              if (message.id && onFeatureClick) {
-                trackEvent({
-                  name: "map_feature_clicked",
-                  params: {
-                    message_id: message.id,
-                    geometry_type: "Point",
-                  },
-                });
-                onFeatureClick(message.id);
-              }
-            }}
-            onMouseOver={() => setHoveredFeature(key)}
-            onMouseOut={() => setHoveredFeature(null)}
-            options={{
-              cursor: "pointer",
-            }}
-          />
-        );
-      } else if (feature.geometry.type === "LineString") {
-        const path = feature.geometry.coordinates.map((coord) => ({
-          lat: coord[1],
-          lng: coord[0],
-        }));
-        const isHovered = hoveredFeature === key;
-        features.push(
-          <Polyline
-            key={key}
-            path={path}
-            options={{
-              ...(isHovered
-                ? GEOJSON_STYLES.lineStringHover
-                : GEOJSON_STYLES.lineString),
-              clickable: true,
-            }}
-            onClick={() => {
-              if (message.id && onFeatureClick) {
-                trackEvent({
-                  name: "map_feature_clicked",
-                  params: {
-                    message_id: message.id,
-                    geometry_type: "LineString",
-                  },
-                });
-                onFeatureClick(message.id);
-              }
-            }}
-            onMouseOver={() => setHoveredFeature(key)}
-            onMouseOut={() => setHoveredFeature(null)}
-          />
-        );
-      } else if (feature.geometry.type === "Polygon") {
-        const paths = feature.geometry.coordinates[0].map((coord) => ({
-          lat: coord[1],
-          lng: coord[0],
-        }));
-        const isHovered = hoveredFeature === key;
-        features.push(
-          <Polygon
-            key={key}
-            paths={paths}
-            options={{
-              ...(isHovered
-                ? GEOJSON_STYLES.polygonHover
-                : GEOJSON_STYLES.polygon),
-              clickable: true,
-            }}
-            onClick={() => {
-              if (message.id && onFeatureClick) {
-                trackEvent({
-                  name: "map_feature_clicked",
-                  params: {
-                    message_id: message.id,
-                    geometry_type: "Polygon",
-                  },
-                });
-                onFeatureClick(message.id);
-              }
-            }}
-            onMouseOver={() => setHoveredFeature(key)}
-            onMouseOut={() => setHoveredFeature(null)}
-          />
-        );
+      switch (geometry.type) {
+        case "Point":
+          features.push(
+            <PointFeature
+              key={key}
+              coords={geometry.coordinates}
+              isHovered={isHovered}
+              messageId={message.id}
+              featureProperties={properties}
+              featureKey={key}
+              onFeatureClick={onFeatureClick}
+              setHoveredFeature={setHoveredFeature}
+            />
+          );
+          break;
+        case "LineString":
+          features.push(
+            <LineStringFeature
+              key={key}
+              coords={geometry.coordinates}
+              isHovered={isHovered}
+              messageId={message.id}
+              featureKey={key}
+              onFeatureClick={onFeatureClick}
+              setHoveredFeature={setHoveredFeature}
+            />
+          );
+          break;
+        case "Polygon":
+          features.push(
+            <PolygonFeature
+              key={key}
+              coords={geometry.coordinates}
+              isHovered={isHovered}
+              messageId={message.id}
+              featureKey={key}
+              onFeatureClick={onFeatureClick}
+              setHoveredFeature={setHoveredFeature}
+            />
+          );
+          break;
       }
     });
   });
