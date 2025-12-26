@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Circle } from "@react-google-maps/api";
 import { trackEvent, trackEventDebounced } from "@/lib/analytics";
+import { colors } from "@/lib/colors";
 
 interface InterestTargetModeProps {
   readonly map: google.maps.Map | null;
@@ -14,8 +15,6 @@ interface InterestTargetModeProps {
   readonly onCancel: () => void;
 }
 
-// Blue color from Oborishte logo
-const CIRCLE_COLOR = "#1976D2";
 const CIRCLE_OPACITY = 0.15;
 
 // Radius constraints
@@ -103,9 +102,9 @@ export default function InterestTargetMode({
           center={currentCenter}
           radius={radius}
           options={{
-            fillColor: CIRCLE_COLOR,
+            fillColor: colors.interaction.circle,
             fillOpacity: CIRCLE_OPACITY,
-            strokeColor: CIRCLE_COLOR,
+            strokeColor: colors.interaction.circle,
             strokeOpacity: CIRCLE_OPACITY * 2,
             strokeWeight: 2,
             clickable: false,

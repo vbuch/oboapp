@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* Color variables - see lib/colors.ts for the centralized color palette */
 :root {
   --background: #ffffff;
   --foreground: #171717;

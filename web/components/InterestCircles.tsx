@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Circle } from "@react-google-maps/api";
 import { trackEvent } from "@/lib/analytics";
 import { Interest } from "@/lib/types";
+import { colors } from "@/lib/colors";
 
 interface InterestCirclesProps {
   readonly interests: Interest[];
@@ -12,8 +13,6 @@ interface InterestCirclesProps {
   readonly hideAll?: boolean; // Hide all circles (e.g., during add mode)
 }
 
-// Blue color from Oborishte logo
-const CIRCLE_COLOR = "#1976D2";
 const CIRCLE_FILL_OPACITY = 0.08;
 const CIRCLE_STROKE_OPACITY = 0.1;
 const OPACITY_HOVER_DELTA = 0.05;
@@ -28,9 +27,9 @@ const CIRCLE_STROKE_OPACITY_HOVER = Math.max(
 
 // Shared circle options to avoid recreating on every render
 const CIRCLE_OPTIONS = {
-  fillColor: CIRCLE_COLOR,
+  fillColor: colors.interaction.circle,
   fillOpacity: CIRCLE_FILL_OPACITY,
-  strokeColor: CIRCLE_COLOR,
+  strokeColor: colors.interaction.circle,
   strokeOpacity: CIRCLE_STROKE_OPACITY,
   strokeWeight: 2,
   clickable: true,

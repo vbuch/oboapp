@@ -4,43 +4,40 @@ import React from "react";
 import { Marker, Polyline, Polygon } from "@react-google-maps/api";
 import { trackEvent } from "@/lib/analytics";
 import { Message } from "@/lib/types";
+import { colors, opacity } from "@/lib/colors";
 
 interface GeoJSONLayerProps {
   readonly messages: Message[];
   readonly onFeatureClick?: (messageId: string) => void;
 }
 
-// Colors for different types of GeoJSON features
-// Using the coral-red from the Oborishte logo instead of bright red
-const LOGO_RED = "#E74C3C";
-
 const GEOJSON_STYLES = {
   lineString: {
-    strokeColor: LOGO_RED,
-    strokeOpacity: 0.8,
+    strokeColor: colors.primary.red,
+    strokeOpacity: opacity.default,
     strokeWeight: 3,
     zIndex: 5,
   },
   lineStringHover: {
-    strokeColor: LOGO_RED,
-    strokeOpacity: 1,
+    strokeColor: colors.primary.red,
+    strokeOpacity: opacity.hover,
     strokeWeight: 4,
     zIndex: 6,
   },
   polygon: {
-    strokeColor: LOGO_RED,
-    strokeOpacity: 0.8,
+    strokeColor: colors.primary.red,
+    strokeOpacity: opacity.default,
     strokeWeight: 2,
-    fillColor: LOGO_RED,
-    fillOpacity: 0.2,
+    fillColor: colors.primary.red,
+    fillOpacity: opacity.fill,
     zIndex: 5,
   },
   polygonHover: {
-    strokeColor: LOGO_RED,
-    strokeOpacity: 1,
+    strokeColor: colors.primary.red,
+    strokeOpacity: opacity.hover,
     strokeWeight: 3,
-    fillColor: LOGO_RED,
-    fillOpacity: 0.35,
+    fillColor: colors.primary.red,
+    fillOpacity: opacity.fillHover,
     zIndex: 6,
   },
 };
@@ -72,10 +69,11 @@ export default function GeoJSONLayer({
             position={{ lat: coords[1], lng: coords[0] }}
             icon={{
               path: "M 0,0 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0", // SVG circle path
-              fillColor: LOGO_RED,
-              fillOpacity: hoveredFeature === key ? 1 : 0.8,
+              fillColor: colors.primary.red,
+              fillOpacity:
+                hoveredFeature === key ? opacity.hover : opacity.default,
               strokeWeight: 2,
-              strokeColor: "#ffffff",
+              strokeColor: colors.map.stroke,
               scale: hoveredFeature === key ? 1.2 : 1,
             }}
             title={feature.properties?.address || "Маркер"}
