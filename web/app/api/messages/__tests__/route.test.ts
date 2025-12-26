@@ -15,32 +15,6 @@ vi.mock("@/lib/messageIngest", () => ({
   messageIngest: vi.fn(),
 }));
 
-// Mock the boundary-utils module
-vi.mock("@/lib/boundary-utils", () => ({
-  loadOborishteBoundary: vi.fn().mockReturnValue({
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [23.3, 42.68],
-              [23.36, 42.68],
-              [23.36, 42.72],
-              [23.3, 42.72],
-              [23.3, 42.68],
-            ],
-          ],
-        },
-        properties: {},
-      },
-    ],
-  }),
-  isWithinBoundaries: vi.fn(() => true), // Always return true for tests
-}));
-
 // Helper to create mock GeoJSON for testing
 const createMockGeoJson = () => ({
   type: "FeatureCollection",

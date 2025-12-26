@@ -1,6 +1,6 @@
 # Web Application
 
-Next.js web application for **OboApp** - a civic engagement platform for residents of the Oborishte district in Sofia, Bulgaria. Aggregates and visualizes public announcements about local events, infrastructure work, and service disruptions on an interactive map.
+Next.js web application for **OboApp** - a civic engagement platform for residents of Sofia, Bulgaria. Aggregates and visualizes public announcements about local events, infrastructure work, and service disruptions on an interactive map.
 
 ## Tech Stack
 

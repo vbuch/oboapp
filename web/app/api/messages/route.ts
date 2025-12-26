@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { Message, Timespan } from "@/lib/types";
-import {
-  loadOborishteBoundary,
-  isWithinBoundaries,
-} from "@/lib/boundary-utils";
 
 const INGEST_SOURCE = "web-interface";
 const DEFAULT_RELEVANCE_DAYS = 7;
@@ -129,17 +125,9 @@ export async function GET() {
       isMessageRelevant(message, cutoffDate)
     );
 
-    // Filter messages by Oborishte boundary
-    const boundary = loadOborishteBoundary();
+    // Include all messages with valid GeoJSON
     const messages = relevantMessages.filter((message) => {
-      if (!message.geoJson) {
-        return false; // Exclude messages without GeoJSON
-      }
-      const geoJson =
-        typeof message.geoJson === "string"
-          ? JSON.parse(message.geoJson)
-          : message.geoJson;
-      return isWithinBoundaries(geoJson, boundary);
+      return message.geoJson !== null && message.geoJson !== undefined;
     });
 
     return NextResponse.json({ messages });

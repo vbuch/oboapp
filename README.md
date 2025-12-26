@@ -1,6 +1,6 @@
 # OboApp (oborishte-map)
 
-A civic tech platform that helps residents of Sofia's Oborishte district stay informed about infrastructure disruptions. The app automatically aggregates public announcements about water shutoffs, heating maintenance, road repairs, and municipal works, displaying them on an interactive map with push notifications for areas you care about.
+A civic tech platform that helps residents of Sofia stay informed about infrastructure disruptions. The app automatically aggregates public announcements about water shutoffs, heating maintenance, road repairs, and municipal works, displaying them on an interactive map with push notifications for areas you care about.
 
 ## Project Structure
 
