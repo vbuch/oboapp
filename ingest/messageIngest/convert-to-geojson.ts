@@ -1,5 +1,6 @@
 import { convertToGeoJSON } from "@/lib/geojson-service";
 import { ExtractedData, GeoJSONFeatureCollection } from "@/lib/types";
+import { validateAndFixGeoJSON } from "../crawlers/shared/geojson-validation";
 
 /**
  * Helper: Validate that all addresses have been geocoded
@@ -60,6 +61,24 @@ export async function convertMessageGeocodingToGeoJson(
   }
 
   const geoJson = await convertToGeoJSON(extractedData, preGeocodedMap);
+
+  // Validate the generated geoJson
+  if (geoJson) {
+    const validation = validateAndFixGeoJSON(geoJson, "AI-generated");
+
+    if (!validation.isValid || !validation.geoJson) {
+      console.error("Invalid GeoJSON generated from AI extraction:");
+      validation.errors.forEach((err) => console.error(`  ${err}`));
+      throw new Error("Generated GeoJSON is invalid");
+    }
+
+    if (validation.warnings.length > 0) {
+      console.warn("Fixed GeoJSON from AI extraction:");
+      validation.warnings.forEach((warn) => console.warn(`  ${warn}`));
+    }
+
+    return validation.geoJson;
+  }
 
   return geoJson;
 }

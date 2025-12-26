@@ -1,4 +1,4 @@
-import type { FeatureCollection } from "geojson";
+import type { GeoJSONFeatureCollection } from "../../lib/types";
 
 /**
  * Raw incident data from Toplo.bg embedded JavaScript
@@ -24,5 +24,5 @@ export interface ToploIncidentInfo {
  */
 export interface ToploIncident {
   info: ToploIncidentInfo;
-  geoJson: FeatureCollection;
+  geoJson: GeoJSONFeatureCollection;
 }

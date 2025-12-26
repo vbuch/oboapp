@@ -8,5 +8,5 @@ export interface BaseSourceDocument {
 }
 
 export interface SourceDocumentWithGeoJson extends BaseSourceDocument {
-  geoJson: any;
+  geoJson: import("../../lib/types").GeoJSONFeatureCollection;
 }

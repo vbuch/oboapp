@@ -84,7 +84,7 @@ export async function crawl(dryRun = false): Promise<void> {
       const { info, geoJson } = incident;
 
       const doc: SourceDocument = {
-        url: `https://toplo.bg/incidents/${info.AccidentId}`,
+        url: `https://toplo.bg/incidents/${info.ContentItemId}`,
         datePublished: info.FromDate,
         title: info.Name,
         message: buildMessage(
