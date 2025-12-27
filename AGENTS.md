@@ -6,6 +6,7 @@ This document provides important patterns and guidance for AI agents working on 
 
 - [Environment Variables & Firebase Admin](#environment-variables--firebase-admin)
 - [TypeScript & GeoJSON Validation](#typescript--geojson-validation)
+- [Developer Preference Enforcement](#developer-preference-enforcement)
 - [Crawler Development](#crawler-development)
 
 ---
@@ -199,6 +200,150 @@ const validation = validateAndFixGeoJSON(rawGeoJson, "context-name");
 
 ---
 
+## Developer Preference Enforcement
+
+### ⚠️ Critical: Enforce General Patterns, Not One-Offs
+
+When you discover a developer preference during work, **proactively suggest enforcing it** if it represents a **general project approach**. This compounds code quality improvements over time.
+
+### Three-Step Enforcement Workflow
+
+**When you identify a pattern worth enforcing:**
+
+1. **Apply the immediate change** requested by the developer
+2. **Suggest appropriate automation** (linting rule, formatter config, type checker setting, git hook, etc.)
+3. **Propose updating AGENTS.md** to document the pattern for future reference
+
+**❌ WRONG - Apply change only:**
+
+```typescript
+// Developer says: "I prefer imports alphabetically ordered"
+// Agent reorders imports in one file and stops
+
+import { validateAndFixGeoJSON } from "../shared/geojson-validation";
+import { adminDb } from "@/lib/firebase-admin";
+import type { GeoJSONFeatureCollection } from "@/lib/types";
+```
+
+**✅ CORRECT - Apply change + suggest enforcement:**
+
+```typescript
+// Agent reorders imports in one file, then suggests:
+// 1. Add ESLint plugin for import ordering
+// 2. Update AGENTS.md with import ordering guideline
+// 3. Run fix across codebase
+
+import type { GeoJSONFeatureCollection } from "@/lib/types";
+import { adminDb } from "@/lib/firebase-admin";
+import { validateAndFixGeoJSON } from "../shared/geojson-validation";
+```
+
+### Documentation Criteria: General vs One-Off
+
+**Before suggesting AGENTS.md updates, verify the pattern is widespread:**
+
+**✅ DOCUMENT - General project approach:**
+
+- Pattern exists in **10+ files** across the codebase
+- Affects **architectural decisions** (error handling, file structure, API design)
+- Relates to **correctness or maintainability** (not just personal preference)
+- Developer states it as a **project standard** ("we always...", "our convention is...")
+
+**❌ SKIP - One-off preference:**
+
+- Applies to a **single file or feature**
+- Purely **cosmetic** with no impact on correctness
+- **Contradicts existing patterns** found elsewhere in codebase
+- Developer states it as **personal preference** ("I like...", "I prefer...")
+
+**How to verify:**
+
+```bash
+# Use grep_search or semantic_search to check pattern frequency
+# Example: Check how many files use named exports
+grep -r "export const" --include="*.ts" --include="*.tsx" | wc -l
+grep -r "export default" --include="*.ts" --include="*.tsx" | wc -l
+```
+
+### Example Scenarios
+
+#### Code Style Preferences
+
+**Import Ordering:**
+
+- **Preference:** "Imports should be alphabetically ordered with type imports first"
+- **Automation:** ESLint plugin for import ordering, or TypeScript organize imports setting
+- **AGENTS.md:** Add to Common Patterns section with example
+
+**Naming Conventions:**
+
+- **Preference:** "Use PascalCase for React components, camelCase for utilities"
+- **Automation:** ESLint naming-convention rule
+- **AGENTS.md:** Add to project-specific section if not standard TypeScript/React convention
+
+#### Architectural Patterns
+
+**Export Patterns:**
+
+- **Preference:** "Prefer named exports over default exports for better refactoring"
+- **Automation:** ESLint rule to forbid default exports
+- **AGENTS.md:** Document in Common Patterns with rationale
+
+**Error Handling:**
+
+- **Preference:** "Always use try-catch with specific error logging in async functions"
+- **Automation:** TypeScript strict mode, ESLint async patterns
+- **AGENTS.md:** Add to Common Patterns with template
+
+**File Organization:**
+
+- **Preference:** "Co-locate test files with source (component.tsx + component.test.tsx)"
+- **Automation:** Vitest config, file naming convention
+- **AGENTS.md:** Document in project structure section
+
+### Enforcement Tool Categories
+
+When suggesting automation, consider these tool categories:
+
+1. **Linters** - ESLint, TypeScript compiler, Biome
+2. **Formatters** - Prettier, Biome, dprint
+3. **Type Checkers** - TypeScript strict mode flags
+4. **Git Hooks** - Husky, lint-staged (pre-commit formatting)
+5. **Editor Config** - .editorconfig for cross-editor consistency
+6. **CI/CD Checks** - GitHub Actions, pre-merge validation
+
+### Workflow Example
+
+**Developer request:** "I prefer imports alphabetically ordered on top of the file"
+
+**Agent response:**
+
+1. ✅ **Immediate fix:** Reorder imports in the current file
+2. 🔍 **Pattern verification:** Search codebase for import patterns
+3. 📊 **Analysis:** "Found mixed ordering in 45 files - this appears to be inconsistent"
+4. 💡 **Suggestions:**
+   - "Add ESLint import ordering rule to enforce this project-wide?"
+   - "Run automated fix across all 45 files?"
+   - "Update AGENTS.md Common Patterns section with import ordering guideline?"
+5. 📝 **Proposed AGENTS.md addition:**
+
+   ````markdown
+   ### Import Organization
+
+   **Always order imports alphabetically** with type imports first:
+
+   ```typescript
+   import type { MyType } from "./types";
+   import { utilA, utilB } from "./utils";
+   ```
+   ````
+
+   ```
+
+   ```
+
+---
+
 ## Crawler Development
 
 ### Document ID Stability
@@ -272,6 +417,10 @@ Reference implementations:
 ---
 
 ## Common Patterns
+
+### Working with Developer Preferences
+
+When working on the codebase, if you identify a general project pattern or preference, see [Developer Preference Enforcement](#developer-preference-enforcement) for guidance on suggesting automation and documentation updates.
 
 ### Script Template
 
