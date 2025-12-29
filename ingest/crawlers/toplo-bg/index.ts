@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 import dotenv from "dotenv";
 import { resolve } from "node:path";
-import type { Firestore } from "firebase-admin/firestore";
-import type { FeatureCollection } from "geojson";
 import { parseIncidents } from "./parser";
+import { buildMessage, buildUrl, buildTitle } from "./builders";
 import { launchBrowser } from "../shared/browser";
-import { encodeDocumentId, saveSourceDocumentIfNew } from "../shared/firestore";
+import { saveSourceDocumentIfNew } from "../shared/firestore";
 import type { SourceDocumentWithGeoJson } from "../shared/types";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -21,32 +20,6 @@ interface CrawlSummary {
   saved: number;
   skipped: number;
   failed: number;
-}
-
-function formatDate(isoDate: string): string {
-  const date = new Date(isoDate);
-  return date.toLocaleString("bg-BG", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function buildMessage(
-  name: string,
-  fromDate: string,
-  addresses: string,
-  untilDate: string | null
-): string {
-  const parts = [name, "", formatDate(fromDate), addresses];
-
-  if (untilDate) {
-    parts.push("", `Очаквано възстановяване на ${formatDate(untilDate)}`);
-  }
-
-  return parts.join("\n");
 }
 
 export async function crawl(dryRun = false): Promise<void> {
@@ -84,9 +57,9 @@ export async function crawl(dryRun = false): Promise<void> {
       const { info, geoJson } = incident;
 
       const doc: SourceDocument = {
-        url: `https://toplo.bg/incidents/${info.ContentItemId}`,
+        url: buildUrl(info.ContentItemId),
         datePublished: info.FromDate,
-        title: info.Name,
+        title: buildTitle(info),
         message: buildMessage(
           info.Name,
           info.FromDate,
