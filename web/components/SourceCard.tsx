@@ -8,12 +8,21 @@ interface SourceCardProps {
   readonly source: SourceConfig;
 }
 
+function extractHostname(url: string): string {
+  try {
+    const { hostname } = new URL(url);
+    return hostname.replace("www.", "");
+  } catch {
+    return url;
+  }
+}
+
 export default function SourceCard({ source }: SourceCardProps) {
   const [logoError, setLogoError] = useState(false);
   const logoPath = `/sources/${source.id}.png`;
 
   // Extract display URL (remove protocol and trailing slash)
-  const displayUrl = source.url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const displayUrl = extractHostname(source.url);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
