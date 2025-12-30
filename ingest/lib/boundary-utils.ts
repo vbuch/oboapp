@@ -13,7 +13,6 @@ export function loadBoundaries(
   boundariesPath?: string
 ): GeoJSONFeatureCollection | null {
   if (!boundariesPath) {
-    console.log("ℹ️  No boundaries specified, processing all sources");
     return null;
   }
 
@@ -21,9 +20,6 @@ export function loadBoundaries(
     const absolutePath = resolve(process.cwd(), boundariesPath);
     const content = readFileSync(absolutePath, "utf-8");
     const geojson = JSON.parse(content) as GeoJSONFeatureCollection;
-
-    console.log(`✅ Loaded boundaries from: ${absolutePath}`);
-    console.log(`   Features: ${geojson.features.length}`);
 
     return geojson;
   } catch (error) {
@@ -59,7 +55,6 @@ function checkBoundingBoxOverlap(
     );
 
     if (overlaps) {
-      console.log(`ℹ️  Using bounding box check for ${geometryType} geometry`);
       return true;
     }
 

@@ -7,7 +7,7 @@ import { GeoJSONFeatureCollection } from "@/lib/types";
 import { isWithinBoundaries, loadBoundaries } from "@/lib/boundary-utils";
 
 // Load environment variables
-dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: resolve(process.cwd(), ".env.local"), debug: false });
 
 interface SourceDocument {
   url: string;
@@ -64,18 +64,17 @@ async function fetchSources(
   adminDb: Firestore,
   options: IngestOptions
 ): Promise<SourceDocument[]> {
-  console.log("\n📡 Fetching sources from Firestore...");
-
   let query = adminDb.collection("sources") as any;
+  const filters: string[] = [];
 
   if (options.sourceType) {
     query = query.where("sourceType", "==", options.sourceType);
-    console.log(`   ➜ Filtering by sourceType: ${options.sourceType}`);
+    filters.push(`sourceType=${options.sourceType}`);
   }
 
   if (options.limit) {
     query = query.limit(options.limit);
-    console.log(`   ➜ Limiting to: ${options.limit} documents`);
+    filters.push(`limit=${options.limit}`);
   }
 
   const snapshot = await query.get();
@@ -95,7 +94,8 @@ async function fetchSources(
     });
   }
 
-  console.log(`✅ Fetched ${sources.length} source(s)`);
+  const filterInfo = filters.length > 0 ? ` (${filters.join(", ")})` : "";
+  console.log(`📡 Fetched ${sources.length} source(s)${filterInfo}`);
   return sources;
 }
 
@@ -127,7 +127,6 @@ async function ingestSource(
   // Check if already ingested
   const alreadyIngested = await isAlreadyIngested(adminDb, source.url);
   if (alreadyIngested) {
-    console.log(`   ⏭️  Already ingested: ${source.title}`);
     return false;
   }
 
@@ -181,8 +180,6 @@ async function filterByBoundaries(
     return { withinBounds: sources, outsideBounds: 0 };
   }
 
-  console.log("\n🗺️  Filtering sources by boundaries...");
-
   const withinBounds: SourceDocument[] = [];
   let outsideBounds = 0;
 
@@ -217,8 +214,9 @@ async function filterByBoundaries(
     }
   }
 
-  console.log(`   ✅ Within boundaries: ${withinBounds.length}`);
-  console.log(`   ⏭️  Outside boundaries: ${outsideBounds}`);
+  console.log(
+    `🗺️  Boundary filter: ${withinBounds.length} within, ${outsideBounds} outside`
+  );
 
   return { withinBounds, outsideBounds };
 }
@@ -231,12 +229,16 @@ async function maybeInitFirestore(): Promise<Firestore> {
 export async function ingest(
   options: IngestOptions = {}
 ): Promise<IngestSummary> {
-  console.log("📥 Starting source ingestion...\n");
   console.log(
-    `🔧 Mode: ${options.dryRun ? "dry-run (no ingestion)" : "production"}`
+    `📥 Starting source ingestion (${
+      options.dryRun ? "dry-run" : "production"
+    })`
   );
 
   const boundaries = loadBoundaries(options.boundariesPath);
+  if (boundaries) {
+    console.log("🗺️  Using boundary filtering");
+  }
   const adminDb = await maybeInitFirestore();
 
   const allSources = await fetchSources(adminDb, options);
@@ -260,8 +262,6 @@ export async function ingest(
     failed: 0,
     errors: [],
   };
-
-  console.log("\n⚙️  Processing sources...\n");
 
   for (const source of withinBounds) {
     try {
