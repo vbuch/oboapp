@@ -10,6 +10,12 @@ export async function launchBrowser(options?: {
   return chromium.launch({
     headless: options?.headless ?? true,
     timeout: options?.timeout,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+    ],
   });
 }
 
