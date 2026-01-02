@@ -29,6 +29,7 @@ interface IngestOptions {
 
 interface IngestSummary {
   total: number;
+  tooOld: number;
   withinBounds: number;
   outsideBounds: number;
   ingested: number;
@@ -172,6 +173,39 @@ async function ingestSource(
   return true;
 }
 
+async function filterByAge(
+  sources: SourceDocument[],
+  maxAgeInDays: number = 90
+): Promise<{ recentSources: SourceDocument[]; tooOld: number }> {
+  const recentSources: SourceDocument[] = [];
+  let tooOld = 0;
+
+  // Normalize to midnight UTC to avoid timezone/time-of-day issues
+  const nowDate = new Date();
+  nowDate.setUTCHours(0, 0, 0, 0);
+  const now = nowDate.getTime();
+  const maxAgeMs = maxAgeInDays * 24 * 60 * 60 * 1000;
+
+  for (const source of sources) {
+    const publishedDate = new Date(source.datePublished);
+    const ageMs = now - publishedDate.getTime();
+
+    if (ageMs >= maxAgeMs) {
+      tooOld++;
+    } else {
+      recentSources.push(source);
+    }
+  }
+
+  if (tooOld > 0) {
+    console.log(
+      `📅 Age filter: ${recentSources.length} recent, ${tooOld} too old (>=${maxAgeInDays} days)`
+    );
+  }
+
+  return { recentSources, tooOld };
+}
+
 async function filterByBoundaries(
   sources: SourceDocument[],
   boundaries: GeoJSONFeatureCollection | null
@@ -243,17 +277,21 @@ export async function ingest(
 
   const allSources = await fetchSources(adminDb, options);
 
+  // Filter by age first (skip sources older than 90 days)
+  const { recentSources, tooOld } = await filterByAge(allSources);
+
   // Note: For sources WITH precomputed geoJson (toplo-bg, sofiyska-voda),
   // we still do the boundary filtering here at the source level
   // For sources WITHOUT geoJson (rayon-oborishte-bg, sofia-bg),
   // filtering will happen during messageIngest after geocoding
   const { withinBounds, outsideBounds } = await filterByBoundaries(
-    allSources,
+    recentSources,
     boundaries
   );
 
   const summary: IngestSummary = {
     total: allSources.length,
+    tooOld,
     withinBounds: withinBounds.length,
     outsideBounds,
     ingested: 0,
@@ -305,7 +343,10 @@ function logSummary(summary: IngestSummary, dryRun: boolean): void {
   console.log("📊 Ingestion Summary");
   console.log("=".repeat(60));
   console.log(`📦 Total sources fetched: ${summary.total}`);
-  if (summary.withinBounds < summary.total) {
+  if (summary.tooOld > 0) {
+    console.log(`📅 Too old (skipped): ${summary.tooOld}`);
+  }
+  if (summary.withinBounds < summary.total - summary.tooOld) {
     console.log(`🗺️  Within boundaries: ${summary.withinBounds}`);
     console.log(`⏭️  Outside boundaries: ${summary.outsideBounds}`);
   }

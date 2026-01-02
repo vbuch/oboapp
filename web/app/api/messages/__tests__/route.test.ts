@@ -168,6 +168,20 @@ describe("GET /api/messages - Date Filtering", () => {
   });
 
   it("should show message if at least one timespan is still relevant", async () => {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Format dates as DD.MM.YYYY HH:MM
+    const formatDate = (date: Date) => {
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}.${month}.${year} 08:00`;
+    };
+
     const mockMessages = [
       {
         id: "msg1",
@@ -179,7 +193,7 @@ describe("GET /api/messages - Date Filtering", () => {
               {
                 address: "ул. Тест 1",
                 timespans: [
-                  { start: "01.01.2024 08:00", end: "01.01.2024 18:00" }, // expired
+                  { start: formatDate(yesterday), end: formatDate(yesterday) }, // expired
                 ],
               },
             ],
@@ -189,13 +203,13 @@ describe("GET /api/messages - Date Filtering", () => {
                 from: "кръстовище А",
                 to: "кръстовище Б",
                 timespans: [
-                  { start: "19.12.2025 08:00", end: "25.12.2025 18:00" }, // current
+                  { start: formatDate(yesterday), end: formatDate(tomorrow) }, // current
                 ],
               },
             ],
           }),
           geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: new Date("2024-01-01").getTime() / 1000 },
+          createdAt: { _seconds: yesterday.getTime() / 1000 },
         }),
       },
     ];
