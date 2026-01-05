@@ -9,6 +9,10 @@ Next.js web application for **OboApp** - a civic engagement platform for residen
 - **Google Maps API** for interactive mapping
 - **Turf.js** for geospatial analysis
 
+## Hosting
+
+Hosted on Vercel.
+
 ## Key Features
 
 - Interactive map displaying geolocated messages from municipal sources
@@ -40,13 +44,6 @@ To enable notifications on iOS Safari:
 
 The app automatically detects iOS Safari and displays installation instructions when needed.
 
-### Implementation
-
-- Platform detection: `lib/platform-detection.ts`
-- Notification service: `lib/notification-service.ts`
-- Firebase Messaging with `isSupported()` check for compatibility
-- Automatic PWA detection using `display-mode: standalone` and `navigator.standalone`
+## Ingestion
 
 Backend data ingestion handled by the [`/ingest`](../ingest) folder.
-
-Hosted on Vercel.
