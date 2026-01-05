@@ -15,9 +15,9 @@ export interface PlatformInfo {
  * Detect if the browser is running on iOS
  */
 export function isIOS(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof globalThis.window === "undefined") return false;
 
-  const userAgent = window.navigator.userAgent.toLowerCase();
+  const userAgent = globalThis.window.navigator.userAgent.toLowerCase();
   return /iphone|ipad|ipod/.test(userAgent);
 }
 
@@ -25,9 +25,9 @@ export function isIOS(): boolean {
  * Detect if the browser is Safari
  */
 export function isSafari(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof globalThis.window === "undefined") return false;
 
-  const userAgent = window.navigator.userAgent.toLowerCase();
+  const userAgent = globalThis.window.navigator.userAgent.toLowerCase();
   // Safari detection: has Safari in UA but not Chrome/Chromium/CriOS
   return (
     /safari/.test(userAgent) &&
@@ -39,16 +39,18 @@ export function isSafari(): boolean {
  * Detect if the app is installed as a PWA (running in standalone mode)
  */
 export function isPWA(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof globalThis.window === "undefined") return false;
 
   // Check if running in standalone mode (PWA installed)
-  const standaloneMatch = window.matchMedia("(display-mode: standalone)")
-    .matches;
+  const standaloneMatch = globalThis.window.matchMedia(
+    "(display-mode: standalone)"
+  ).matches;
 
   // Check iOS-specific standalone property
   const iosStandalone =
-    "standalone" in window.navigator &&
-    (window.navigator as { standalone?: boolean }).standalone === true;
+    "standalone" in globalThis.window.navigator &&
+    (globalThis.window.navigator as { standalone?: boolean }).standalone ===
+      true;
 
   return standaloneMatch || iosStandalone;
 }
