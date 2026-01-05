@@ -16,6 +16,37 @@ Next.js web application for **OboApp** - a civic engagement platform for residen
 - Push notifications for new messages in areas of interest
 - Progressive Web App with offline support
 
+## Push Notifications
+
+### Browser Support
+
+Push notifications are supported on:
+- **Chrome/Edge/Opera** (Desktop & Android) - works in regular browser
+- **Firefox** (Desktop & Android) - works in regular browser
+- **Safari** (macOS 16.4+) - works in regular browser
+- **Safari** (iOS 16.4+) - **requires PWA installation**
+
+### iOS Safari Requirements
+
+**Important:** On iOS Safari, push notifications only work when the app is installed as a PWA (added to Home Screen). This is a platform limitation by Apple.
+
+To enable notifications on iOS Safari:
+
+1. Open the app in Safari
+2. Tap the Share button (square with arrow)
+3. Select "Add to Home Screen"
+4. Open the app from your Home Screen
+5. Grant notification permission when prompted
+
+The app automatically detects iOS Safari and displays installation instructions when needed.
+
+### Implementation
+
+- Platform detection: `lib/platform-detection.ts`
+- Notification service: `lib/notification-service.ts`
+- Firebase Messaging with `isSupported()` check for compatibility
+- Automatic PWA detection using `display-mode: standalone` and `navigator.standalone`
+
 Backend data ingestion handled by the [`/ingest`](../ingest) folder.
 
 Hosted on Vercel.
