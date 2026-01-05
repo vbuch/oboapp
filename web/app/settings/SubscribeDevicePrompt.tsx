@@ -1,3 +1,12 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  getPlatformInfo,
+  getNotificationInstructions,
+  PlatformInfo,
+} from "@/lib/platform-detection";
+
 interface SubscribeDevicePromptProps {
   readonly onSubscribe: () => void;
   readonly hasAnySubscriptions: boolean;
@@ -7,6 +16,19 @@ export default function SubscribeDevicePrompt({
   onSubscribe,
   hasAnySubscriptions,
 }: SubscribeDevicePromptProps) {
+  const [platformInfo, setPlatformInfo] = useState<PlatformInfo | null>(null);
+
+  useEffect(() => {
+    setPlatformInfo(getPlatformInfo());
+  }, []);
+
+  // Don't show anything during SSR
+  if (!platformInfo) {
+    return null;
+  }
+
+  const instructions = getNotificationInstructions(platformInfo);
+
   return (
     <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
       <p className="text-yellow-800 mb-2">
@@ -14,12 +36,29 @@ export default function SubscribeDevicePrompt({
           ? "Текущото устройство не е абонирано за известия."
           : "Няма абонамент за известия на нито едно устройство. Това е основната задача на OboApp. Абонирай се!"}
       </p>
-      <button
-        onClick={onSubscribe}
-        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        Абонирай това устройство
-      </button>
+
+      {platformInfo.requiresPWAInstall && (
+        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-900">
+          <p className="font-semibold mb-2">📱 iOS Safari изисква инсталация</p>
+          <p className="whitespace-pre-line">{instructions}</p>
+        </div>
+      )}
+
+      {!platformInfo.supportsNotifications && !platformInfo.requiresPWAInstall && (
+        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-900">
+          <p className="font-semibold mb-1">⚠️ Известията не са поддържани</p>
+          <p>{instructions}</p>
+        </div>
+      )}
+
+      {platformInfo.supportsNotifications && (
+        <button
+          onClick={onSubscribe}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Абонирай това устройство
+        </button>
+      )}
     </div>
   );
 }

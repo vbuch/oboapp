@@ -10,6 +10,11 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_BASE_URL || "https://oboapp.online"
   ),
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "OboApp",
+  },
   openGraph: {
     title: "OboApp",
     description: "Следи събитията в район Оборище",

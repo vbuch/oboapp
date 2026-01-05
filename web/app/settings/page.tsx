@@ -107,6 +107,19 @@ export default function SettingsPage() {
   useEffect(() => {
     const getCurrentToken = async () => {
       try {
+        // Check if Firebase Messaging is supported
+        const { isMessagingSupported } = await import(
+          "@/lib/notification-service"
+        );
+        const supported = await isMessagingSupported();
+
+        if (!supported) {
+          console.warn(
+            "Firebase Messaging is not supported on this browser/platform"
+          );
+          return;
+        }
+
         const messaging = getMessaging(app);
         const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
         if (!vapidKey) return;
@@ -129,6 +142,21 @@ export default function SettingsPage() {
     if (!user) return;
 
     try {
+      // Check if Firebase Messaging is supported first
+      const { isMessagingSupported } = await import(
+        "@/lib/notification-service"
+      );
+      const supported = await isMessagingSupported();
+
+      if (!supported) {
+        alert(
+          "За съжаление, този браузър не поддържа известия.\n\n" +
+            "На iOS Safari е необходимо да добавите приложението към началния екран " +
+            "преди да можете да получавате известия."
+        );
+        return;
+      }
+
       // Check if notifications are blocked
       const currentPermission = getNotificationPermission();
       if (currentPermission === "denied") {

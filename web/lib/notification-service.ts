@@ -5,18 +5,56 @@ import {
   getToken,
   onMessage,
   Messaging,
+  isSupported,
 } from "firebase/messaging";
 import { app } from "./firebase";
 import { NotificationSubscription } from "./types";
 
 let messaging: Messaging | null = null;
+let messagingSupported: boolean | null = null;
 
 // Initialize messaging (only in browser)
 if (globalThis.window !== undefined) {
+  isSupported()
+    .then((supported) => {
+      messagingSupported = supported;
+      if (supported) {
+        try {
+          messaging = getMessaging(app);
+        } catch (error) {
+          console.error("Failed to initialize Firebase Messaging:", error);
+        }
+      } else {
+        console.warn("Firebase Messaging is not supported in this browser");
+      }
+    })
+    .catch((error) => {
+      console.error("Error checking Firebase Messaging support:", error);
+      messagingSupported = false;
+    });
+}
+
+/**
+ * Check if Firebase Messaging is supported in this browser
+ */
+export async function isMessagingSupported(): Promise<boolean> {
+  // If we already checked, return cached result
+  if (messagingSupported !== null) {
+    return messagingSupported;
+  }
+
+  // Check if we're in a browser environment
+  if (typeof globalThis.window === "undefined") {
+    return false;
+  }
+
   try {
-    messaging = getMessaging(app);
+    messagingSupported = await isSupported();
+    return messagingSupported;
   } catch (error) {
-    console.error("Failed to initialize Firebase Messaging:", error);
+    console.error("Error checking messaging support:", error);
+    messagingSupported = false;
+    return false;
   }
 }
 
@@ -133,6 +171,13 @@ export async function subscribeToPushNotifications(
   userId: string,
   idToken: string
 ): Promise<NotificationSubscription | null> {
+  // Check if messaging is supported
+  const supported = await isMessagingSupported();
+  if (!supported) {
+    console.error("Firebase Messaging is not supported on this platform");
+    return null;
+  }
+
   if (!messaging) {
     console.error("Firebase Messaging not initialized");
     return null;
