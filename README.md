@@ -33,6 +33,20 @@ See [web/](web) for details.
 
 ## Documentation
 
-- [Message Filtering](docs/features/message-filtering.md) - AI-powered content filtering, address extraction, geocoding, and time-based relevance for infrastructure disruption messages
+### Features
+
+- [Message Filtering](docs/features/message-filtering.md) - AI-powered content filtering, address extraction, geocoding, and time-based relevance
+
+### Pipeline
+
+- [Ingest Overview](ingest/README.md) - Data collection and processing pipeline architecture
+- [Message Processing](ingest/messageIngest/README.md) - Filtering, extraction, geocoding, and GeoJSON conversion flow
+- [Crawlers](ingest/crawlers/README.md) - Data sources and web scraping implementations
+
+### Operations
+
+- [Notifications](ingest/notifications/README.md) - Push notification matching and delivery
+- [Terraform](ingest/terraform/README.md) - Cloud Run deployment and infrastructure
+- [Web App](web/README.md) - PWA installation and browser support
 
 Documentation is written for technical stakeholders, system administrators, and QA personnel who need to understand system behavior and configuration. Focus is on facts and behavior rather than implementation details, with diagrams for complex flows and practical configuration guidance.
