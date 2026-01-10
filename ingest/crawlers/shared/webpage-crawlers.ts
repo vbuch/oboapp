@@ -1,5 +1,10 @@
 import { parseBulgarianDate } from "./date-utils";
 import { createTurndownService } from "./markdown";
+import { Browser, Page } from "playwright";
+import type { Firestore } from "firebase-admin/firestore";
+import { PostLink } from "./types";
+import { launchBrowser } from "./browser";
+import { isUrlProcessed } from "./firestore";
 
 const turndownService = createTurndownService();
 
@@ -44,4 +49,97 @@ export function buildWebPageSourceDocument(
     message,
     sourceType,
   };
+}
+
+/**
+ * Crawl a WordPress-style news page
+ * Generic crawler that extracts post links from an index page and processes each post
+ */
+export async function crawlWordpressPage(options: {
+  indexUrl: string;
+  sourceType: string;
+  extractPostLinks: (page: Page) => Promise<PostLink[]>;
+  processPost: (
+    browser: Browser,
+    postLink: PostLink,
+    adminDb: Firestore
+  ) => Promise<void>;
+  delayBetweenRequests?: number;
+}): Promise<void> {
+  const {
+    indexUrl,
+    sourceType,
+    extractPostLinks,
+    processPost,
+    delayBetweenRequests = 2000,
+  } = options;
+
+  console.log(`🚀 Starting ${sourceType} crawler...\n`);
+  console.log(`📍 Index URL: ${indexUrl}`);
+  console.log(`🗄️  Source type: ${sourceType}\n`);
+
+  const { adminDb } = await import("@/lib/firebase-admin");
+
+  let browser: Browser | null = null;
+
+  try {
+    console.log("🌐 Launching browser...");
+    browser = await launchBrowser();
+
+    const page = await browser.newPage();
+    console.log(`📥 Fetching index page: ${indexUrl}`);
+    await page.goto(indexUrl, { waitUntil: "networkidle" });
+
+    const postLinks = await extractPostLinks(page);
+    await page.close();
+
+    if (postLinks.length === 0) {
+      console.warn("⚠️ No posts found on index page");
+      return;
+    }
+
+    console.log(`\n📊 Total posts to process: ${postLinks.length}\n`);
+
+    let processedCount = 0;
+    let skippedCount = 0;
+
+    for (const postLink of postLinks) {
+      try {
+        const wasProcessed = await isUrlProcessed(postLink.url, adminDb);
+
+        if (wasProcessed) {
+          skippedCount++;
+          console.log(
+            `⏭️  Skipped (already processed): ${postLink.title.substring(
+              0,
+              60
+            )}...`
+          );
+        } else {
+          await processPost(browser, postLink, adminDb);
+          processedCount++;
+        }
+      } catch (error) {
+        console.error(`❌ Error processing post: ${postLink.url}`, error);
+      }
+    }
+
+    console.log("\n" + "=".repeat(60));
+    console.log("✅ Crawling completed successfully!");
+    console.log(`📊 Total posts found: ${postLinks.length}`);
+    console.log(`✅ Newly processed: ${processedCount}`);
+    console.log(`⏭️  Skipped (already exists): ${skippedCount}`);
+    console.log("=".repeat(60) + "\n");
+  } catch (error) {
+    console.error("\n" + "=".repeat(60));
+    console.error("❌ Crawling failed with error:");
+    console.error(error);
+    console.error("=".repeat(60) + "\n");
+    throw error;
+  } finally {
+    if (browser) {
+      await browser.close();
+      console.log("🔒 Browser closed");
+    }
+  }
 }

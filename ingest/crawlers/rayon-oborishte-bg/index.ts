@@ -5,11 +5,13 @@ import { resolve } from "node:path";
 import { Browser } from "playwright";
 import type { Firestore } from "firebase-admin/firestore";
 import { SourceDocument, PostLink } from "./types";
-import { launchBrowser } from "../shared/browser";
+import { saveSourceDocument } from "../shared/firestore";
 import { delay } from "@/lib/delay";
-import { isUrlProcessed, saveSourceDocument } from "../shared/firestore";
 import { extractPostLinks, extractPostDetails } from "./extractors";
-import { buildWebPageSourceDocument } from "../shared/webpage-crawlers";
+import {
+  buildWebPageSourceDocument,
+  crawlWordpressPage,
+} from "../shared/webpage-crawlers";
 
 // Load environment variables from .env.local
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -31,19 +33,6 @@ async function processPost(
 
   console.log(`\n🔍 Processing: ${title.substring(0, 60)}...`);
 
-  // Check if already processed
-  try {
-    const alreadyProcessed = await isUrlProcessed(url, adminDb);
-    if (alreadyProcessed) {
-      console.log(`⏭️  Skipped (already processed): ${url}`);
-      return;
-    }
-  } catch (error) {
-    console.error(`❌ Error checking if URL is processed: ${url}`, error);
-    throw error;
-  }
-
-  // Open new page for this post
   const page = await browser.newPage();
 
   try {
@@ -84,74 +73,13 @@ async function processPost(
  * Main crawler function
  */
 export async function crawl(): Promise<void> {
-  console.log("🚀 Starting rayon-oborishte-bg crawler...\n");
-  console.log(`📍 Index URL: ${INDEX_URL}`);
-  console.log(`🗄️  Source type: ${SOURCE_TYPE}\n`);
-
-  // Import firebase-admin after env is loaded
-  const { adminDb } = await import("@/lib/firebase-admin");
-
-  let browser: Browser | null = null;
-
-  try {
-    // Launch browser
-    console.log("🌐 Launching browser...");
-    browser = await launchBrowser();
-
-    // Open index page
-    const page = await browser.newPage();
-    console.log(`📥 Fetching index page: ${INDEX_URL}`);
-    await page.goto(INDEX_URL, { waitUntil: "networkidle" });
-
-    // Extract all post links
-    const postLinks = await extractPostLinks(page);
-    await page.close();
-
-    if (postLinks.length === 0) {
-      console.warn("⚠️ No posts found on index page");
-      return;
-    }
-
-    console.log(`\n📊 Total posts to process: ${postLinks.length}\n`);
-
-    // Process each post
-    let processedCount = 0;
-    let skippedCount = 0;
-
-    for (const postLink of postLinks) {
-      try {
-        const wasProcessed = await isUrlProcessed(postLink.url, adminDb);
-
-        if (wasProcessed) {
-          skippedCount++;
-        } else {
-          await processPost(browser, postLink, adminDb);
-          processedCount++;
-        }
-      } catch (error) {
-        console.error(`❌ Error processing post: ${postLink.url}`, error);
-        // Continue with next post
-      }
-    }
-
-    console.log("\n" + "=".repeat(60));
-    console.log("✅ Crawling completed successfully!");
-    console.log(`📊 Total posts found: ${postLinks.length}`);
-    console.log(`✅ Newly processed: ${processedCount}`);
-    console.log(`⏭️  Skipped (already exists): ${skippedCount}`);
-    console.log("=".repeat(60) + "\n");
-  } catch (error) {
-    console.error("\n" + "=".repeat(60));
-    console.error("❌ Crawling failed with error:");
-    console.error(error);
-    console.error("=".repeat(60) + "\n");
-    throw error;
-  } finally {
-    if (browser) {
-      await browser.close();
-      console.log("🔒 Browser closed");
-    }
-  }
+  await crawlWordpressPage({
+    indexUrl: INDEX_URL,
+    sourceType: SOURCE_TYPE,
+    extractPostLinks,
+    processPost,
+    delayBetweenRequests: DELAY_BETWEEN_REQUESTS,
+  });
 }
 
 // Run the crawler if executed directly

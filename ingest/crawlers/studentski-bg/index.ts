@@ -5,11 +5,13 @@ import { resolve } from "node:path";
 import { Browser } from "playwright";
 import type { Firestore } from "firebase-admin/firestore";
 import { SourceDocument, PostLink } from "./types";
-import { launchBrowser } from "../shared/browser";
-import { isUrlProcessed, saveSourceDocument } from "../shared/firestore";
+import { saveSourceDocument } from "../shared/firestore";
 import { delay } from "@/lib/delay";
 import { extractPostLinks, extractPostDetails } from "./extractors";
-import { buildWebPageSourceDocument } from "../shared/webpage-crawlers";
+import {
+  buildWebPageSourceDocument,
+  crawlWordpressPage,
+} from "../shared/webpage-crawlers";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
@@ -22,72 +24,13 @@ const DELAY_BETWEEN_REQUESTS = 2000; // 2 seconds
  * Main crawler function for studentski.bg
  */
 export async function crawl(): Promise<void> {
-  console.log("🚀 Starting studentski-bg crawler...\n");
-  console.log(`📍 Index URL: ${INDEX_URL}`);
-  console.log(`🗄️  Source type: ${SOURCE_TYPE}\n`);
-
-  const { adminDb } = await import("@/lib/firebase-admin");
-  let browser: Browser | null = null;
-
-  try {
-    console.log("🌐 Launching browser...");
-    browser = await launchBrowser();
-
-    const page = await browser.newPage();
-    console.log(`📥 Fetching index page: ${INDEX_URL}`);
-    await page.goto(INDEX_URL, { waitUntil: "networkidle" });
-
-    const postLinks = await extractPostLinks(page);
-    await page.close();
-
-    if (postLinks.length === 0) {
-      console.warn("⚠️ No posts found on index page");
-      return;
-    }
-
-    console.log(`\n📊 Total posts to process: ${postLinks.length}\n`);
-
-    let processedCount = 0;
-    let skippedCount = 0;
-
-    for (const postLink of postLinks) {
-      try {
-        const wasProcessed = await isUrlProcessed(postLink.url, adminDb);
-        if (wasProcessed) {
-          skippedCount++;
-          console.log(
-            `⏭️  Skipped (already processed): ${postLink.title.substring(
-              0,
-              60
-            )}...`
-          );
-        } else {
-          await processPost(browser, postLink, adminDb);
-          processedCount++;
-        }
-      } catch (error) {
-        console.error(`❌ Error processing post: ${postLink.url}`, error);
-      }
-    }
-
-    console.log("\n" + "=".repeat(60));
-    console.log("✅ Crawling completed successfully!");
-    console.log(`📊 Total posts found: ${postLinks.length}`);
-    console.log(`✅ Newly processed: ${processedCount}`);
-    console.log(`⏭️  Skipped (already exists): ${skippedCount}`);
-    console.log("=".repeat(60) + "\n");
-  } catch (error) {
-    console.error("\n" + "=".repeat(60));
-    console.error("❌ Crawling failed with error:");
-    console.error(error);
-    console.error("=".repeat(60) + "\n");
-    throw error;
-  } finally {
-    if (browser) {
-      await browser.close();
-      console.log("🔒 Browser closed");
-    }
-  }
+  await crawlWordpressPage({
+    indexUrl: INDEX_URL,
+    sourceType: SOURCE_TYPE,
+    extractPostLinks,
+    processPost,
+    delayBetweenRequests: DELAY_BETWEEN_REQUESTS,
+  });
 }
 
 /**
@@ -101,17 +44,6 @@ async function processPost(
   const { url, title } = postLink;
 
   console.log(`\n🔍 Processing: ${title.substring(0, 60)}...`);
-
-  try {
-    const alreadyProcessed = await isUrlProcessed(url, adminDb);
-    if (alreadyProcessed) {
-      console.log(`⏭️  Skipped (already processed): ${url}`);
-      return;
-    }
-  } catch (error) {
-    console.error(`❌ Error checking if URL is processed: ${url}`, error);
-    throw error;
-  }
 
   const page = await browser.newPage();
 
