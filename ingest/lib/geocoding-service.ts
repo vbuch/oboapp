@@ -1,5 +1,9 @@
 import { Address } from "./types";
-import { isWithinSofia } from "./geocoding-utils";
+import {
+  isWithinSofia,
+  isSofiaCenterFallback,
+  isGenericCityAddress,
+} from "./geocoding-utils";
 import { delay } from "./delay";
 
 // Constants for API rate limiting
@@ -30,6 +34,25 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
       for (const result of data.results) {
         const lat = result.geometry.location.lat;
         const lng = result.geometry.location.lng;
+        const formattedAddress = result.formatted_address;
+
+        // Reject results that match Sofia center exactly (Google's fallback)
+        if (isSofiaCenterFallback(lat, lng)) {
+          console.warn(
+            `⚠️  Result for "${address}" is Sofia city center: [${lat.toFixed(
+              6
+            )}, ${lng.toFixed(6)}] - generic fallback, rejecting`
+          );
+          continue;
+        }
+
+        // Reject generic city-level addresses (e.g., "Sofia, Bulgaria")
+        if (isGenericCityAddress(formattedAddress)) {
+          console.warn(
+            `⚠️  Rejecting generic address for "${address}": ${formattedAddress}`
+          );
+          continue;
+        }
 
         // Validate that the result is actually within Sofia
         if (isWithinSofia(lat, lng)) {

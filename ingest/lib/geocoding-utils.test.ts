@@ -4,6 +4,8 @@ import {
   SOFIA_CENTER,
   SOFIA_BBOX,
   isWithinSofia,
+  isSofiaCenterFallback,
+  isGenericCityAddress,
 } from "./geocoding-utils";
 
 describe("geocoding-utils", () => {
@@ -91,6 +93,71 @@ describe("geocoding-utils", () => {
       // Very large coordinates
       expect(isWithinSofia(90, 180)).toBe(false);
       expect(isWithinSofia(-90, -180)).toBe(false);
+    });
+  });
+
+  describe("isSofiaCenterFallback", () => {
+    it("should return true for exact Sofia center coordinates", () => {
+      expect(isSofiaCenterFallback(SOFIA_CENTER.lat, SOFIA_CENTER.lng)).toBe(
+        true
+      );
+    });
+
+    it("should return true for coordinates that round to Sofia center", () => {
+      // Coordinates within rounding precision (4 decimal places)
+      expect(isSofiaCenterFallback(42.69771, 23.32191)).toBe(true);
+      expect(isSofiaCenterFallback(42.69769, 23.32189)).toBe(true);
+    });
+
+    it("should return false for coordinates that don't round to center", () => {
+      // Just outside rounding range
+      expect(isSofiaCenterFallback(42.69775, 23.32195)).toBe(false);
+      expect(isSofiaCenterFallback(42.6976, 23.3218)).toBe(false);
+
+      // NDK is far away
+      expect(isSofiaCenterFallback(42.6847, 23.3188)).toBe(false);
+
+      // Oborishte district
+      expect(isSofiaCenterFallback(42.6995, 23.3219)).toBe(false);
+    });
+
+    it("should detect the exact problematic coordinates from the bug report", () => {
+      // These coordinates (42.697708, 23.321867) round to Sofia center
+      expect(isSofiaCenterFallback(42.697708, 23.321867)).toBe(true);
+    });
+  });
+
+  describe("isGenericCityAddress", () => {
+    it("should detect generic Sofia addresses in English", () => {
+      expect(isGenericCityAddress("Sofia, Bulgaria")).toBe(true);
+      expect(isGenericCityAddress("Sofia,Bulgaria")).toBe(true);
+      expect(isGenericCityAddress("Sofia")).toBe(true);
+    });
+
+    it("should detect generic Sofia addresses in Bulgarian", () => {
+      expect(isGenericCityAddress("София, България")).toBe(true);
+      expect(isGenericCityAddress("София,България")).toBe(true);
+      expect(isGenericCityAddress("София")).toBe(true);
+    });
+
+    it("should be case insensitive", () => {
+      expect(isGenericCityAddress("SOFIA, BULGARIA")).toBe(true);
+      expect(isGenericCityAddress("sofia, bulgaria")).toBe(true);
+      expect(isGenericCityAddress("СОФИЯ, БЪЛГАРИЯ")).toBe(true);
+    });
+
+    it("should not flag specific addresses in Sofia", () => {
+      expect(isGenericCityAddress("ул. Врабча 1, София, България")).toBe(false);
+      expect(isGenericCityAddress("бул. Витоша 1, 1000 София, Bulgaria")).toBe(
+        false
+      );
+      expect(isGenericCityAddress("NDK, Sofia, Bulgaria")).toBe(false);
+      expect(isGenericCityAddress("Sofia Airport, Bulgaria")).toBe(false);
+    });
+
+    it("should not flag addresses outside Sofia", () => {
+      expect(isGenericCityAddress("Plovdiv, Bulgaria")).toBe(false);
+      expect(isGenericCityAddress("Varna, Bulgaria")).toBe(false);
     });
   });
 });
