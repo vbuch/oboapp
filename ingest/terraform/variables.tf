@@ -42,6 +42,7 @@ variable "schedules" {
     crawl_toplo           = string
     crawl_erm_zapad       = string
     crawl_mladost         = string
+    crawl_studentski      = string
     ingest                = string
     notify                = string
   })
@@ -52,6 +53,7 @@ variable "schedules" {
     crawl_toplo           = "15 10,14,16 * * *"  # 3x daily: 10:15, 14:15, 16:15
     crawl_erm_zapad       = "20 10,14,16 * * *"  # 3x daily: 10:20, 14:20, 16:20
     crawl_mladost         = "25 10,14,16 * * *"  # 3x daily: 10:25, 14:25, 16:25
+    crawl_studentski      = "27 10,14,16 * * *"  # 3x daily: 10:27, 14:27, 16:27
     ingest                = "30 10,14,16 * * *"  # 3x daily: 10:30, 14:30, 16:30
     notify                = "45 10,14,16 * * *"  # 3x daily: 10:45, 14:45, 16:45
   }

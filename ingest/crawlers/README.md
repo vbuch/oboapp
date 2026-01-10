@@ -6,6 +6,7 @@ Automated data collectors that fetch public notifications and disruptions from e
 
 - **rayon-oborishte-bg** - Scrapes repair/disruption notices from Rayon Oborishte's website
 - **mladost-bg** - Scrapes repair/disruption notices from Rayon Mladost's website
+- **studentski-bg** - Scrapes construction/maintenance schedules from Rayon Studentski's website
 - **sofia-bg** - Scrapes municipal repair announcements and traffic changes from Sofia.bg
 - **sofiyska-voda** - Fetches water supply disruptions from Sofiyska Voda's ArcGIS API
 - **toplo-bg** - Fetches heating infrastructure incidents from Toplo.bg with pre-geocoded polygons
@@ -31,7 +32,7 @@ Crawlers handle message formatting differently based on whether they provide pre
 - The `markdownText` field is used for display in the message details view
 - Can produce markdown (erm-zapad, sofiyska-voda) or plain text (toplo-bg)
 
-**Crawlers without GeoJSON** (rayon-oborishte-bg, sofia-bg, mladost-bg):
+**Crawlers without GeoJSON** (rayon-oborishte-bg, sofia-bg, mladost-bg, studentski-bg):
 
 - Go through the full AI extraction pipeline
 - Store HTML content converted to markdown in `message` field only
@@ -44,6 +45,7 @@ Crawlers handle message formatting differently based on whether they provide pre
 # Run a specific crawler
 npx tsx crawl --source rayon-oborishte-bg
 npx tsx crawl --source mladost-bg
+npx tsx crawl --source studentski-bg
 npx tsx crawl --source sofiyska-voda
 npx tsx crawl --source toplo-bg
 npx tsx crawl --source sofia-bg

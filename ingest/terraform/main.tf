@@ -149,6 +149,13 @@ locals {
       timeout      = "1800s"
       description  = "Crawl Mladost district"
     }
+    studentski = {
+      source       = "studentski-bg"
+      schedule     = var.schedules.crawl_studentski
+      memory       = "1Gi"
+      timeout      = "1800s"
+      description  = "Crawl Studentski district"
+    }
   }
 }
 
