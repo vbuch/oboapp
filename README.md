@@ -49,4 +49,6 @@ See [web/](web) for details.
 - [Terraform](ingest/terraform/README.md) - Cloud Run deployment and infrastructure
 - [Web App](web/README.md) - PWA installation and browser support
 
-Documentation is written for technical stakeholders, system administrators, and QA personnel who need to understand system behavior and configuration. Focus is on facts and behavior rather than implementation details, with diagrams for complex flows and practical configuration guidance.
+## Style
+
+Documentation is written for technical stakeholders, system administrators, and QA personnel who need to understand system behavior and configuration. Focus is on facts and behavior rather than implementation details, with diagrams for complex flows and practical configuration guidance. We keep it short and informative. We avoid excessive explanations of topics that are standard to the industry or easy to understand.
