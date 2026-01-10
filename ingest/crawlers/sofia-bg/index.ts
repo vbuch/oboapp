@@ -82,13 +82,10 @@ async function processPost(
 /**
  * Main crawler function
  */
-export async function crawl(options?: { headless?: boolean }): Promise<void> {
-  const headless = options?.headless ?? true;
-
+export async function crawl(): Promise<void> {
   console.log("🚀 Starting sofia-bg crawler...\n");
   console.log(`📍 Index URL: ${INDEX_URL}`);
-  console.log(`🗄️  Source type: ${SOURCE_TYPE}`);
-  console.log(`🖥️  Headless mode: ${headless}\n`);
+  console.log(`🗄️  Source type: ${SOURCE_TYPE}\n`);
 
   // Import firebase-admin after env is loaded
   const { adminDb } = await import("@/lib/firebase-admin");
@@ -98,7 +95,7 @@ export async function crawl(options?: { headless?: boolean }): Promise<void> {
   try {
     // Launch browser
     console.log("🌐 Launching browser...");
-    browser = await launchBrowser({ headless });
+    browser = await launchBrowser();
 
     // Open index page
     const page = await browser.newPage();
@@ -159,7 +156,7 @@ export async function crawl(options?: { headless?: boolean }): Promise<void> {
 // Run the crawler if executed directly
 if (require.main === module) {
   // eslint-disable-next-line unicorn/prefer-top-level-await
-  crawl({ headless: true }).catch((error) => {
+  crawl().catch((error) => {
     console.error("Fatal error:", error);
     process.exit(1);
   });
