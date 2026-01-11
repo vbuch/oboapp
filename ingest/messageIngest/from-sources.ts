@@ -40,7 +40,7 @@ interface IngestSummary {
 }
 
 const SYSTEM_USER_ID = "system";
-const SYSTEM_USER_EMAIL = "system@oborishte-map.local";
+const SYSTEM_USER_EMAIL = "system@oboapp.local";
 
 async function parseArguments(): Promise<IngestOptions> {
   const args = process.argv.slice(2);

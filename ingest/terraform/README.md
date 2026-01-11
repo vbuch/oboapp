@@ -131,13 +131,13 @@ gcloud run jobs update crawl-rayon-oborishte \
 
 All variables are defined in `variables.tf`. Override them in `terraform.tfvars`:
 
-| Variable            | Description            | Default            |
-| ------------------- | ---------------------- | ------------------ |
-| `project_id`        | GCP Project ID         | _required_         |
-| `region`            | GCP region             | `europe-west1`     |
-| `image_name`        | Docker image name      | `oborishte-ingest` |
-| `image_tag`         | Docker image tag       | `latest`           |
-| `schedule_timezone` | Timezone for schedules | `Europe/Sofia`     |
+| Variable            | Description            | Default         |
+| ------------------- | ---------------------- | --------------- |
+| `project_id`        | GCP Project ID         | _required_      |
+| `region`            | GCP region             | `europe-west1`  |
+| `image_name`        | Docker image name      | `oboapp-ingest` |
+| `image_tag`         | Docker image tag       | `latest`        |
+| `schedule_timezone` | Timezone for schedules | `Europe/Sofia`  |
 
 ### Modifying Schedules
 

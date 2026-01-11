@@ -1,6 +1,6 @@
 # Agent Development Guidelines
 
-This document outlines critical patterns, standards, and workflows for AI agents working on the `oborishte-map` codebase. **Strict adherence is required.**
+This document outlines critical patterns, standards, and workflows for AI agents working on the `oboapp`'s codebase. **Strict adherence is required.**
 
 ## 1. Core Principles & Workflow
 

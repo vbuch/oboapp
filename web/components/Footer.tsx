@@ -32,7 +32,7 @@ export default function Footer() {
         <div className="mt-8 pt-6 border-t border-gray-300 text-center text-sm text-gray-600">
           <p>
             <a
-              href="https://github.com/vbuch/oborishte-map"
+              href="https://github.com/vbuch/oboapp"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#5DADE2] hover:underline"
@@ -40,7 +40,7 @@ export default function Footer() {
                 trackEvent({
                   name: "external_link_clicked",
                   params: {
-                    url: "https://github.com/vbuch/oborishte-map",
+                    url: "https://github.com/vbuch/oboapp",
                     location: "footer",
                     link_text: "Отворен код",
                   },
