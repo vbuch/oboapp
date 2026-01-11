@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { parseMapCenterFromParams } from "./useMapNavigation.utils";
 
 type CenterMapFn = (
   lat: number,
@@ -30,16 +31,12 @@ export function useMapNavigation() {
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
 
-    if (lat && lng) {
-      const latitude = Number.parseFloat(lat);
-      const longitude = Number.parseFloat(lng);
+    const center = parseMapCenterFromParams(lat, lng);
+    if (center) {
+      setInitialMapCenter(center);
 
-      if (!Number.isNaN(latitude) && !Number.isNaN(longitude)) {
-        setInitialMapCenter({ lat: latitude, lng: longitude });
-
-        // Clear query params after setting initial center
-        globalThis.history.replaceState({}, "", "/");
-      }
+      // Clear query params after setting initial center
+      globalThis.history.replaceState({}, "", "/");
     }
   }, [searchParams]);
 

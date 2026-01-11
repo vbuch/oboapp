@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Message } from "@/lib/types";
+import { buildMessagesUrl } from "./useMessages.utils";
 
 interface ViewportBounds {
   north: number;
@@ -31,16 +32,7 @@ export function useMessages() {
       setIsLoading(true);
       setError(null);
 
-      let url = "/api/messages";
-      if (bounds) {
-        const params = new URLSearchParams({
-          north: bounds.north.toString(),
-          south: bounds.south.toString(),
-          east: bounds.east.toString(),
-          west: bounds.west.toString(),
-        });
-        url += `?${params.toString()}`;
-      }
+      const url = buildMessagesUrl(bounds);
 
       const response = await fetch(url);
 

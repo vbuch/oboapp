@@ -41,3 +41,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+web/coverage/base.css
+web/coverage/block-navigation.js
+web/coverage/coverage-final.json
+web/coverage/favicon.png
+web/coverage/index.html
+web/coverage/prettify.css
+web/coverage/prettify.js
+web/coverage/sort-arrow-sprite.png
+web/coverage/sorter.js
+web/coverage/useInterestManagement.ts.html
+web/coverage/useMapNavigation.utils.ts.html
+web/coverage/useMessages.utils.ts.html
