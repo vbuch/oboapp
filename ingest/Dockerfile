@@ -3,15 +3,14 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy only dependency manifests
 COPY package*.json ./
-COPY tsconfig.json ./
 
-# Install dependencies
+# Install ALL deps (needed for tsx + playwright install)
 RUN npm ci
 
-# Install Playwright browsers (needed for crawlers)
-RUN npx playwright install --with-deps chromium
+# Install Chromium ONLY (no system deps here)
+RUN npx playwright install chromium
 
 # Copy source code
 COPY . .
@@ -27,12 +26,10 @@ WORKDIR /app
 # Install system dependencies for Playwright/Chromium including fonts
 RUN apt-get update && apt-get install -y \
     libnss3 \
-    libnspr4 \
     libatk1.0-0 \
     libatk-bridge2.0-0 \
     libcups2 \
     libdrm2 \
-    libdbus-1-3 \
     libxkbcommon0 \
     libxcomposite1 \
     libxdamage1 \
@@ -43,8 +40,6 @@ RUN apt-get update && apt-get install -y \
     libatspi2.0-0 \
     libxshmfence1 \
     fonts-liberation \
-    fonts-noto-color-emoji \
-    fonts-noto-cjk \
     fonts-dejavu-core \
     fonts-freefont-ttf \
     && rm -rf /var/lib/apt/lists/*
@@ -53,20 +48,16 @@ RUN apt-get update && apt-get install -y \
 COPY package*.json ./
 RUN npm ci --production
 
-# Install Playwright (needed at runtime for crawlers)
-RUN npm install playwright
-
-# Copy Playwright browsers from builder stage
+# Copy Playwright browser cache
 COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
 
-# Copy built application and source (tsx needs source)
-COPY --from=builder /app .
+# Copy application source
+COPY --from=builder /app ./
 
-# Install tsx globally for running TypeScript
+# Install tsx ONLY if you really need it at runtime
 RUN npm install -g tsx
 
-# Set environment to production
 ENV NODE_ENV=production
+ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
 
-# Default command (will be overridden by Cloud Run Job)
 CMD ["tsx", "crawl.ts", "--help"]
