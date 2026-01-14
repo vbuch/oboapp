@@ -28,7 +28,7 @@ export const buttonStyles = {
     "bg-yellow-200 hover:bg-yellow-300 text-yellow-900 transition-colors disabled:opacity-50",
   /** Ghost button - no background, with border */
   ghost:
-    "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 transition-colors disabled:opacity-50",
+    "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
   /** Link-style button */
   link: "text-blue-600 hover:text-blue-700 hover:underline",
   /** Destructive link-style button */
