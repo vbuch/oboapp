@@ -25,12 +25,12 @@ export default function SourceCard({ source }: SourceCardProps) {
   const displayUrl = extractHostname(source.url);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+    <div className="bg-white rounded-lg shadow-md p-6 border border-neutral-border hover:shadow-lg transition-shadow">
       <div className="flex flex-col items-center text-center space-y-4">
         {/* Logo */}
         <div className="flex-shrink-0">
           {logoError ? (
-            <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="w-32 h-32 bg-neutral-light rounded-lg flex items-center justify-center">
               <svg
                 className="w-16 h-16 text-gray-400"
                 fill="none"
@@ -56,7 +56,7 @@ export default function SourceCard({ source }: SourceCardProps) {
         </div>
 
         {/* Name */}
-        <h3 className="text-lg font-semibold text-gray-900">{source.name}</h3>
+        <h3 className="text-lg font-semibold text-foreground">{source.name}</h3>
 
         {/* URL */}
         <a

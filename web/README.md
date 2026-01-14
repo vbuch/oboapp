@@ -8,10 +8,20 @@ Next.js web application for **OboApp** - a civic engagement platform for residen
 - **Firebase** (Authentication, Firestore, Cloud Messaging)
 - **Google Maps API** for interactive mapping
 - **Turf.js** for geospatial analysis
+- **Tailwind CSS v4** with centralized theme system
 
 ## Hosting
 
 Hosted on Vercel.
+
+## Styling
+
+The application uses a centralized Tailwind CSS theme system:
+- **Theme colors**: Defined in [lib/colors.ts](lib/colors.ts) as the single source of truth
+- **CSS variables**: Implemented in [app/globals.css](app/globals.css) using Tailwind v4 @theme
+- **Utilities**: Button styles and helpers available in [lib/theme.ts](lib/theme.ts)
+
+See [AGENTS.md](../AGENTS.md#tailwind-theme-system) for usage guidelines.
 
 ## Key Features
 

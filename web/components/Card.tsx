@@ -18,7 +18,7 @@ export default function Card({
   onClick,
 }: CardProps) {
   const baseClasses =
-    "bg-white rounded-lg shadow-md p-6 border border-gray-200";
+    "bg-white rounded-lg shadow-md p-6 border border-neutral-border";
   const interactiveClasses = clickable
     ? "hover:shadow-lg transition-shadow cursor-pointer"
     : "";

@@ -20,15 +20,18 @@ export const buttonStyles = {
   /** Destructive action button - uses theme destructive color */
   destructive:
     "bg-destructive hover:bg-destructive-hover text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-  /** Secondary action button - gray background */
+  /** Secondary action button - uses theme neutral color */
   secondary:
-    "bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-  /** Warning action button - yellow background */
+    "bg-neutral-light hover:bg-neutral-border text-neutral transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+  /** Warning action button - uses theme warning color */
   warning:
-    "bg-yellow-200 hover:bg-yellow-300 text-yellow-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-  /** Ghost button - no background, with border */
+    "bg-warning-light hover:bg-warning-border text-warning border border-warning-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+  /** Success action button - uses theme success color */
+  success:
+    "bg-success hover:bg-success-hover text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+  /** Ghost button - no background, with border - uses theme neutral color */
   ghost:
-    "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-white hover:bg-neutral-light text-neutral border border-neutral-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
   /** Link-style button - uses theme primary color */
   link: "text-primary hover:text-primary-hover hover:underline",
   /** Destructive link-style button - uses theme destructive color */

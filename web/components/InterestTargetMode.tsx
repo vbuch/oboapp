@@ -133,17 +133,17 @@ export default function InterestTargetMode({
 
       {/* Control Panel */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-        <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 min-w-[320px]">
+        <div className="bg-white rounded-lg shadow-xl border border-neutral-border p-4 min-w-[320px]">
           {/* Coordinates Display */}
           {currentCenter && (
-            <div className="mb-4 text-xs text-gray-600 font-mono text-center">
+            <div className="mb-4 text-xs text-neutral font-mono text-center">
               {currentCenter.lat.toFixed(6)}, {currentCenter.lng.toFixed(6)}
             </div>
           )}
 
           {/* Radius Slider */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-neutral mb-2">
               Радиус: {radius}м
             </label>
             <input
@@ -153,9 +153,9 @@ export default function InterestTargetMode({
               step={50}
               value={radius}
               onChange={handleRadiusChange}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              className="w-full h-2 bg-neutral-light rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <div className="flex justify-between text-xs text-neutral mt-1">
               <span>{MIN_RADIUS}m</span>
               <span>{MAX_RADIUS}m</span>
             </div>

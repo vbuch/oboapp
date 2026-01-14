@@ -24,21 +24,21 @@ export default function Header({
   };
 
   return (
-    <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm z-10">
+    <div className="sticky top-0 bg-white border-b border-neutral-border px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm z-10">
       <button
         type="button"
-        className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-gray-300 rounded-full sm:hidden cursor-grab active:cursor-grabbing"
+        className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-neutral-border rounded-full sm:hidden cursor-grab active:cursor-grabbing"
         {...handlers}
         onClick={handleClose}
         aria-label="Плъзни, за да затвориш, или натисни, за да затвориш"
       />
 
-      <h2 className="text-lg sm:text-xl font-semibold text-gray-900 pt-3 sm:pt-0">
+      <h2 className="text-lg sm:text-xl font-semibold text-foreground pt-3 sm:pt-0">
         Детайли за сигнала
       </h2>
       <button
         onClick={handleClose}
-        className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-full mt-3 sm:mt-0"
+        className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-neutral-light rounded-full mt-3 sm:mt-0"
         aria-label="Затвори детайлите"
       >
         <svg

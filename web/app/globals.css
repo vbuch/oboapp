@@ -4,12 +4,45 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  
+
   /* Theme colors from colors.ts */
   --color-primary: #1976D2; /* colors.interaction.circle - for primary buttons and interactive UI */
   --color-primary-hover: #1565C0; /* Darker shade for hover states */
   --color-destructive: #E74C3C; /* colors.primary.red - for destructive actions */
   --color-destructive-hover: #C0392B; /* colors.primary.redDark - for destructive hover */
+
+  /* Semantic colors from colors.semantic */
+  --color-neutral: #6B7280;
+  --color-neutral-hover: #4B5563;
+  --color-neutral-light: #F3F4F6;
+  --color-neutral-border: #E5E7EB;
+
+  --color-error: #DC2626;
+  --color-error-hover: #B91C1C;
+  --color-error-light: #FEE2E2;
+  --color-error-border: #FECACA;
+
+  --color-warning: #F59E0B;
+  --color-warning-hover: #D97706;
+  --color-warning-light: #FEF3C7;
+  --color-warning-border: #FDE68A;
+
+  --color-success: #10B981;
+  --color-success-hover: #059669;
+  --color-success-light: #D1FAE5;
+  --color-success-border: #A7F3D0;
+
+  --color-info: #3B82F6;
+  --color-info-hover: #2563EB;
+  --color-info-light: #DBEAFE;
+  --color-info-border: #BFDBFE;
+
+  /* Layout-specific colors from colors.primary and colors.ui */
+  --color-header-bg: #2c3e50;      /* colors.primary.blueDark */
+  --color-nav-bg: #5DADE2;         /* colors.primary.blue */
+  --color-footer-bg: #f8f9fa;      /* colors.ui.footerBg */
+  --color-link: #5DADE2;           /* colors.primary.blue */
+  --color-link-hover: #3498DB;     /* slightly darker for hover */
 }
 
 @theme inline {
@@ -19,6 +52,40 @@
   --color-primary-hover: var(--color-primary-hover);
   --color-destructive: var(--color-destructive);
   --color-destructive-hover: var(--color-destructive-hover);
+
+  /* Semantic colors for Tailwind theme */
+  --color-neutral: var(--color-neutral);
+  --color-neutral-hover: var(--color-neutral-hover);
+  --color-neutral-light: var(--color-neutral-light);
+  --color-neutral-border: var(--color-neutral-border);
+
+  --color-error: var(--color-error);
+  --color-error-hover: var(--color-error-hover);
+  --color-error-light: var(--color-error-light);
+  --color-error-border: var(--color-error-border);
+
+  --color-warning: var(--color-warning);
+  --color-warning-hover: var(--color-warning-hover);
+  --color-warning-light: var(--color-warning-light);
+  --color-warning-border: var(--color-warning-border);
+
+  --color-success: var(--color-success);
+  --color-success-hover: var(--color-success-hover);
+  --color-success-light: var(--color-success-light);
+  --color-success-border: var(--color-success-border);
+
+  --color-info: var(--color-info);
+  --color-info-hover: var(--color-info-hover);
+  --color-info-light: var(--color-info-light);
+  --color-info-border: var(--color-info-border);
+
+  /* Layout colors for Tailwind theme */
+  --color-header-bg: var(--color-header-bg);
+  --color-nav-bg: var(--color-nav-bg);
+  --color-footer-bg: var(--color-footer-bg);
+  --color-link: var(--color-link);
+  --color-link-hover: var(--color-link-hover);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

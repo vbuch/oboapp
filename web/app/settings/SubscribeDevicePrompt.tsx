@@ -32,8 +32,8 @@ export default function SubscribeDevicePrompt({
   const instructions = getNotificationInstructions(platformInfo);
 
   return (
-    <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-      <p className="text-yellow-800 mb-2">
+    <div className="mb-4 bg-warning-light border border-warning-border rounded-lg p-4">
+      <p className="text-warning mb-2">
         {hasAnySubscriptions
           ? "Текущото устройство не е абонирано за известия."
           : "Няма абонамент за известия на нито едно устройство. Това е основната задача на OboApp. Абонирай се!"}
@@ -47,7 +47,7 @@ export default function SubscribeDevicePrompt({
       )}
 
       {!platformInfo.supportsNotifications && !platformInfo.requiresPWAInstall && (
-        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-900">
+        <div className="mb-3 p-3 bg-error-light border border-error-border rounded text-sm text-error">
           <p className="font-semibold mb-1">⚠️ Известията не са поддържани</p>
           <p>{instructions}</p>
         </div>

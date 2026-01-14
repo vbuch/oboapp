@@ -9,14 +9,14 @@ interface SubscribePromptProps {
 export default function SubscribePrompt({ onClose }: SubscribePromptProps) {
   return (
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 p-4 w-full max-w-md">
-      <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg shadow-xl p-4">
+      <div className="bg-warning-light border-2 border-warning-border rounded-lg shadow-xl p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 text-2xl">⚠️</div>
           <div className="flex-1">
-            <h3 className="font-semibold text-yellow-900 mb-2">
+            <h3 className="font-semibold text-warning mb-2">
               Няма абонамент за известия
             </h3>
-            <p className="text-yellow-800 text-sm mb-3">
+            <p className="text-warning text-sm mb-3">
               Имате зони на интерес, но не сте абонирани за известия. Това е
               основната задача на OboApp!
             </p>

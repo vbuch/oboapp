@@ -8,7 +8,7 @@ interface DetailItemProps {
 export default function DetailItem({ title, children }: DetailItemProps) {
   return (
     <div>
-      <h3 className="text-sm font-medium text-gray-500 mb-1">{title}</h3>
+      <h3 className="text-sm font-medium text-neutral mb-1">{title}</h3>
       <div>{children}</div>
     </div>
   );

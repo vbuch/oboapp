@@ -26,7 +26,7 @@ export default function InterestContextMenu({
       />
       {/* Menu */}
       <div
-        className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[150px]"
+        className="fixed z-50 bg-white rounded-lg shadow-xl border border-neutral-border py-1 min-w-[150px]"
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
@@ -35,7 +35,7 @@ export default function InterestContextMenu({
       >
         <button
           onClick={onMove}
-          className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+          className="w-full px-4 py-2 text-sm text-left text-neutral hover:bg-neutral-light flex items-center gap-2"
         >
           <svg
             className="w-4 h-4"
@@ -52,7 +52,7 @@ export default function InterestContextMenu({
         </button>
         <button
           onClick={onDelete}
-          className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+          className="w-full px-4 py-2 text-sm text-left text-error hover:bg-error-light flex items-center gap-2"
         >
           <svg
             className="w-4 h-4"

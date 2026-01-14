@@ -33,13 +33,13 @@ export default function CookieConsent() {
       <div className="bg-white rounded-lg shadow-md py-1.5 px-3 sm:py-2 sm:px-4 sm:opacity-70 sm:hover:opacity-100 transition-opacity duration-200">
         {/* Mobile compact view with icon buttons */}
         <div className="flex sm:hidden items-center gap-2">
-          <p className="text-xs text-gray-600 flex-1">
+          <p className="text-xs text-neutral flex-1">
             Използваме бисквитки за анализ на трафика.
           </p>
           <div className="flex gap-1.5">
             <button
               onClick={handleDecline}
-              className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold text-lg"
+              className="w-8 h-8 flex items-center justify-center bg-neutral-light hover:bg-neutral-border text-neutral rounded-lg font-bold text-lg"
               aria-label="Откажи"
             >
               ✕
@@ -56,7 +56,7 @@ export default function CookieConsent() {
 
         {/* Desktop single-line view */}
         <div className="hidden sm:flex items-center gap-4">
-          <p className="text-xs text-gray-600 flex-1">
+          <p className="text-xs text-neutral flex-1">
             Използваме бисквитки за анализ на трафика.
           </p>
           <div className="flex gap-2 whitespace-nowrap">

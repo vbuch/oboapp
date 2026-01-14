@@ -13,25 +13,25 @@ interface MessageCardProps {
 
 export function MessageCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+    <div className="bg-white rounded-lg shadow-md p-6 border border-neutral-border">
       <div className="space-y-4 animate-pulse">
         {/* Source logo skeleton */}
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gray-200 rounded"></div>
+          <div className="w-10 h-10 bg-neutral-light rounded"></div>
           <div className="flex-1">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-neutral-light rounded w-3/4"></div>
           </div>
         </div>
 
         {/* Text snippet skeleton */}
         <div className="space-y-2">
-          <div className="h-3 bg-gray-200 rounded"></div>
-          <div className="h-3 bg-gray-200 rounded"></div>
-          <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+          <div className="h-3 bg-neutral-light rounded"></div>
+          <div className="h-3 bg-neutral-light rounded"></div>
+          <div className="h-3 bg-neutral-light rounded w-5/6"></div>
         </div>
 
         {/* Timestamp skeleton */}
-        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+        <div className="h-3 bg-neutral-light rounded w-1/2"></div>
       </div>
     </div>
   );
@@ -100,7 +100,7 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
   return (
     <button
       type="button"
-      className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer w-full text-left"
+      className="bg-white rounded-lg shadow-md p-6 border border-neutral-border hover:shadow-lg transition-shadow cursor-pointer w-full text-left"
       onClick={handleClick}
     >
       <div className="space-y-4">
@@ -114,7 +114,7 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
               onError={() => setLogoError(true)}
             />
           ) : (
-            <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-neutral-light rounded flex items-center justify-center flex-shrink-0">
               <svg
                 className="w-6 h-6 text-gray-400"
                 fill="none"
@@ -131,18 +131,18 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900 truncate">
+            <h3 className="text-sm font-semibold text-foreground truncate">
               {sourceInfo?.name || message.source || "Неизвестен източник"}
             </h3>
           </div>
         </div>
 
         {/* Text snippet */}
-        <p className="text-sm text-gray-700 line-clamp-3">{snippet}</p>
+        <p className="text-sm text-neutral line-clamp-3">{snippet}</p>
 
         {/* Timestamp */}
         {formattedDate && (
-          <p className="text-xs text-gray-500">{formattedDate}</p>
+          <p className="text-xs text-neutral">{formattedDate}</p>
         )}
       </div>
     </button>

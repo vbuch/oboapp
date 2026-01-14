@@ -19,10 +19,10 @@ export default function NotificationHistorySection({
     <section className="bg-white rounded-lg shadow mb-6 p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          <h2 className="text-xl font-semibold text-foreground mb-1">
             История на известията
           </h2>
-          <p className="text-gray-600">
+          <p className="text-neutral">
             Получили сте общо {count} {count === 1 ? "известие" : "известия"}
           </p>
         </div>

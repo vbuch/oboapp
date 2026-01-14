@@ -1,3 +1,3 @@
 export default function EmptyZonesMessage() {
-  return <p className="text-gray-600">Нямате зони на интерес.</p>;
+  return <p className="text-neutral">Нямате зони на интерес.</p>;
 }

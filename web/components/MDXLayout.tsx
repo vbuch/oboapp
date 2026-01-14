@@ -6,9 +6,9 @@ interface MDXLayoutProps {
 
 export default function MDXLayout({ children }: MDXLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-light">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <article className="bg-white rounded-lg shadow-md p-6 md:p-8 border border-gray-200 prose prose-gray max-w-none">
+        <article className="bg-white rounded-lg shadow-md p-6 md:p-8 border border-neutral-border prose prose-gray max-w-none">
           {children}
         </article>
       </div>

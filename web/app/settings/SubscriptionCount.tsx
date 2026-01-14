@@ -5,7 +5,7 @@ interface SubscriptionCountProps {
 export default function SubscriptionCount({ count }: SubscriptionCountProps) {
   return (
     <div className="mb-4">
-      <p className="text-gray-600">
+      <p className="text-neutral">
         Брой активни абонаменти: <span className="font-semibold">{count}</span>
       </p>
     </div>

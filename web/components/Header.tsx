@@ -12,7 +12,7 @@ export default function Header() {
   return (
     <>
       {/* Top Header - Dark Blue */}
-      <header className="bg-[#2c3e50] text-white relative z-20">
+      <header className="bg-header-bg text-white relative z-20">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           {/* Main Header with Logo */}
           <div className="flex items-center justify-between py-3">
@@ -62,7 +62,7 @@ export default function Header() {
       </header>
 
       {/* Navigation Bar - Light Blue */}
-      <nav className="bg-[#5DADE2] hidden sm:block">
+      <nav className="bg-nav-bg hidden sm:block">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex gap-6 py-3 items-center">
             {/* Navigation items can be added here */}

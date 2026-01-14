@@ -26,11 +26,11 @@ export default function DeviceSubscriptionCard({
   return (
     <div
       className={`border rounded-lg p-3 flex items-center justify-between gap-4 ${
-        isCurrentDevice ? "border-blue-500 bg-blue-50" : "border-gray-200"
+        isCurrentDevice ? "border-info-border bg-info-light" : "border-neutral-border"
       }`}
     >
       <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:gap-2">
-        <p className="font-medium text-gray-900 text-sm flex items-center gap-2">
+        <p className="font-medium text-foreground text-sm flex items-center gap-2">
           <span>{parsed.displayName}</span>
           {isCurrentDevice && (
             <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded whitespace-nowrap">
@@ -38,7 +38,7 @@ export default function DeviceSubscriptionCard({
             </span>
           )}
         </p>
-        <p className="text-xs text-gray-500 sm:before:content-['•'] sm:before:mr-2">
+        <p className="text-xs text-neutral sm:before:content-['•'] sm:before:mr-2">
           Добавено: {createdDate}
         </p>
       </div>

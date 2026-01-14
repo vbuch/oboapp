@@ -38,11 +38,11 @@ export default function Addresses({
               );
               onClose();
             }}
-            className="w-full text-left bg-gray-50 rounded-md p-3 border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+            className="w-full text-left bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
           >
-            <p className="text-sm text-gray-900">{address.formattedAddress}</p>
+            <p className="text-sm text-foreground">{address.formattedAddress}</p>
             {address.coordinates && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-neutral mt-1">
                 {address.coordinates.lat.toFixed(6)},{" "}
                 {address.coordinates.lng.toFixed(6)}
               </p>

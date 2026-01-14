@@ -28,7 +28,7 @@ export default function AddInterestsPrompt({
   };
 
   return (
-    <div className="absolute bottom-12 right-4 z-40 bg-white rounded-lg shadow-xl p-6 pb-4 pr-4 max-w-sm">
+    <div className="absolute bottom-4 right-4 z-40 bg-white rounded-lg shadow-xl p-6 pb-4 pr-4 max-w-sm">
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-shrink-0">
           <svg

@@ -37,6 +37,49 @@ export const colors = {
     /** Footer background - very light gray */
     footerBg: "#f8f9fa",
   },
+
+  // Semantic UI colors for consistent theming
+  semantic: {
+    // Neutral colors (for borders, backgrounds, disabled states)
+    /** Neutral text and icon color - gray-500 equivalent */
+    neutral: "#6B7280",
+    /** Light neutral background - gray-100 equivalent */
+    neutralLight: "#F3F4F6",
+    /** Neutral border color - gray-200 equivalent */
+    neutralBorder: "#E5E7EB",
+
+    // Error colors (for destructive warnings, validation errors)
+    /** Error text and icon color - red-600 equivalent */
+    error: "#DC2626",
+    /** Light error background - red-50 equivalent */
+    errorLight: "#FEE2E2",
+    /** Error border color - red-200 equivalent */
+    errorBorder: "#FECACA",
+
+    // Warning colors (for alerts, caution messages)
+    /** Warning text and icon color - amber-500 equivalent */
+    warning: "#F59E0B",
+    /** Light warning background - amber-50 equivalent */
+    warningLight: "#FEF3C7",
+    /** Warning border color - amber-200 equivalent */
+    warningBorder: "#FDE68A",
+
+    // Success colors (for confirmations, completed states)
+    /** Success text and icon color - green-500 equivalent */
+    success: "#10B981",
+    /** Light success background - green-50 equivalent */
+    successLight: "#D1FAE5",
+    /** Success border color - green-200 equivalent */
+    successBorder: "#A7F3D0",
+
+    // Info colors (for informational messages)
+    /** Info text and icon color - blue-500 equivalent */
+    info: "#3B82F6",
+    /** Light info background - blue-50 equivalent */
+    infoLight: "#DBEAFE",
+    /** Info border color - blue-200 equivalent */
+    infoBorder: "#BFDBFE",
+  },
 } as const;
 
 /**

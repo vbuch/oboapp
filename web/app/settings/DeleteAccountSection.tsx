@@ -25,21 +25,21 @@ export default function DeleteAccountSection({
 
   return (
     <section className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">
+      <h2 className="text-xl font-semibold text-foreground mb-4">
         Изтриване на профил
       </h2>
 
-      <p className="text-gray-600 mb-4">
+      <p className="text-neutral mb-4">
         Това действие ще изтрие всички ваши данни, включително зони на интерес,
         абонаменти за известия и история на известия.
       </p>
 
       {showConfirm ? (
-        <div className="border border-red-300 rounded-lg p-4 bg-red-50 relative z-30">
-          <p className="text-red-900 font-semibold mb-3">
+        <div className="border border-error-border rounded-lg p-4 bg-error-light relative z-30">
+          <p className="text-error font-semibold mb-3">
             Сигурни ли сте, че искате да изтриете профила си?
           </p>
-          <p className="text-red-800 text-sm mb-4">
+          <p className="text-error text-sm mb-4">
             Това действие е необратимо. Напишете <strong>ИЗТРИЙ</strong> за
             потвърждение:
           </p>
@@ -48,7 +48,7 @@ export default function DeleteAccountSection({
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder="ИЗТРИЙ"
-            className={`w-full px-3 py-2 border border-red-300 ${borderRadius.md} mb-4 focus:outline-none focus:ring-2 focus:ring-red-500`}
+            className={`w-full px-3 py-2 border border-error-border ${borderRadius.md} mb-4 focus:outline-none focus:ring-2 focus:ring-error`}
           />
           <div className="flex gap-3">
             <button

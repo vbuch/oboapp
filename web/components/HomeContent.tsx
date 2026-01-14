@@ -164,7 +164,7 @@ export default function HomeContent() {
       {error && (
         <div className="bg-white border-b shadow-sm z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="p-4 bg-red-100 text-red-700 rounded-md">
+            <div className="p-4 bg-error-light text-error rounded-md">
               {error}
             </div>
           </div>
@@ -192,7 +192,7 @@ export default function HomeContent() {
         />
         {isLoading && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-lg shadow-md z-20">
-            <p className="text-sm text-gray-600">Зареждане...</p>
+            <p className="text-sm text-neutral">Зареждане...</p>
           </div>
         )}
       </div>

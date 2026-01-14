@@ -40,7 +40,7 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-4 right-4 text-neutral hover:text-neutral transition-colors"
           aria-label="Close menu"
         >
           <svg
@@ -59,7 +59,7 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
         </button>
 
         {/* User Info Section */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-neutral-border">
           <div className="flex items-center gap-3 mb-2">
             {user.photoURL && (
               <img
@@ -69,11 +69,11 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
               />
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-sm font-medium text-foreground truncate">
                 {user.displayName || user.email}
               </p>
               {user.displayName && user.email && (
-                <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                <p className="text-xs text-neutral truncate">{user.email}</p>
               )}
             </div>
           </div>
@@ -85,18 +85,18 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
           <Link
             href="/settings"
             onClick={onClose}
-            className="block w-full px-6 py-3 text-left text-sm hover:bg-gray-50 transition-colors"
+            className="block w-full px-6 py-3 text-left text-sm hover:bg-neutral-light transition-colors"
           >
             Настройки
           </Link>
 
           {/* Divider */}
-          <hr className="my-2 border-gray-200" />
+          <hr className="my-2 border-neutral-border" />
 
           {/* Sign Out */}
           <button
             onClick={handleSignOut}
-            className="w-full px-6 py-3 text-left text-sm text-red-600 hover:bg-red-50 transition-colors"
+            className="w-full px-6 py-3 text-left text-sm text-error hover:bg-error-light transition-colors"
           >
             Излез
           </button>
