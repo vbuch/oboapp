@@ -1,3 +1,5 @@
+import { buttonStyles } from "@/lib/theme";
+
 interface UnsubscribeAllButtonProps {
   readonly onUnsubscribeAll: () => void;
 }
@@ -8,7 +10,7 @@ export default function UnsubscribeAllButton({
   return (
     <button
       onClick={onUnsubscribeAll}
-      className="text-sm text-red-600 hover:text-red-700 hover:underline"
+      className={`text-sm ${buttonStyles.linkDestructive}`}
     >
       Отписване от всички устройства
     </button>

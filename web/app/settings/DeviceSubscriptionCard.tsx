@@ -1,5 +1,6 @@
 import { NotificationSubscription } from "@/lib/types";
 import { parseUserAgent } from "@/lib/parse-user-agent";
+import { buttonStyles } from "@/lib/theme";
 
 interface DeviceSubscriptionCardProps {
   readonly subscription: NotificationSubscription;
@@ -43,7 +44,7 @@ export default function DeviceSubscriptionCard({
       </div>
       <button
         onClick={() => onUnsubscribe(subscription.token)}
-        className="text-xs text-red-600 hover:text-red-700 hover:underline whitespace-nowrap flex-shrink-0"
+        className={`text-xs whitespace-nowrap flex-shrink-0 ${buttonStyles.linkDestructive}`}
       >
         Отписване
       </button>

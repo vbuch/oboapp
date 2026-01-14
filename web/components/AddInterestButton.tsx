@@ -1,6 +1,7 @@
 "use client";
 
 import { trackEvent } from "@/lib/analytics";
+import { borderRadius } from "@/lib/colors";
 
 interface AddInterestButtonProps {
   readonly onClick: () => void;
@@ -24,7 +25,7 @@ export default function AddInterestButton({
   return (
     <button
       onClick={handleClick}
-      className={`absolute bottom-8 right-8 z-30 bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium text-sm transition-opacity duration-150 ${
+      className={`absolute bottom-8 right-8 z-30 bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 ${borderRadius.md} shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium text-sm transition-opacity duration-150 ${
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
       aria-label="Добави зона"

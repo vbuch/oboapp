@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { buttonStyles } from "@/lib/theme";
+import { borderRadius } from "@/lib/colors";
 
 interface PromptCardProps {
   readonly icon?: React.ReactNode;
@@ -36,13 +38,13 @@ export default function PromptCard({
           <div className="flex gap-3">
             <button
               onClick={primaryButton.onClick}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              className={`flex-1 px-4 py-2 text-sm font-medium ${buttonStyles.primary} ${borderRadius.md}`}
             >
               {primaryButton.text}
             </button>
             <button
               onClick={secondaryButton.onClick}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 transition-colors"
+              className={`flex-1 px-4 py-2 text-sm font-medium ${buttonStyles.secondary} ${borderRadius.md}`}
             >
               {secondaryButton.text}
             </button>

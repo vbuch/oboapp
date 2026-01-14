@@ -54,7 +54,22 @@ export const opacity = {
 } as const;
 
 /**
+ * Border radius values for consistent component rounding
+ */
+export const borderRadius = {
+  /** Small radius for compact elements */
+  sm: "rounded-md",
+  /** Medium radius for buttons and cards */
+  md: "rounded-lg",
+  /** Large radius for prominent containers */
+  lg: "rounded-lg",
+  /** Full circle for icon buttons and avatars */
+  full: "rounded-full",
+} as const;
+
+/**
  * Type-safe color access
  */
 export type ColorPalette = typeof colors;
 export type OpacityValues = typeof opacity;
+export type BorderRadiusValues = typeof borderRadius;

@@ -6,6 +6,8 @@ import {
   getNotificationInstructions,
   PlatformInfo,
 } from "@/lib/platform-detection";
+import { buttonStyles } from "@/lib/theme";
+import { borderRadius } from "@/lib/colors";
 
 interface SubscribeDevicePromptProps {
   readonly onSubscribe: () => void;
@@ -54,7 +56,7 @@ export default function SubscribeDevicePrompt({
       {platformInfo.supportsNotifications && (
         <button
           onClick={onSubscribe}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className={`px-4 py-2 ${buttonStyles.primary} ${borderRadius.md}`}
         >
           Абонирай това устройство
         </button>

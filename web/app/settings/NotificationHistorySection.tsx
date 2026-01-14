@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { buttonStyles } from "@/lib/theme";
+import { borderRadius } from "@/lib/colors";
 
 interface NotificationHistorySectionProps {
   readonly count: number;
@@ -26,7 +28,7 @@ export default function NotificationHistorySection({
         </div>
         <Link
           href="/notifications"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className={`px-4 py-2 ${buttonStyles.primary} ${borderRadius.md}`}
         >
           Вижте история
         </Link>

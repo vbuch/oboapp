@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { buttonStyles } from "@/lib/theme";
+import { borderRadius } from "@/lib/colors";
 
 interface DeleteAccountSectionProps {
   readonly onDeleteAccount: (confirmText: string) => Promise<void>;
@@ -46,13 +48,13 @@ export default function DeleteAccountSection({
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder="ИЗТРИЙ"
-            className="w-full px-3 py-2 border border-red-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-red-500"
+            className={`w-full px-3 py-2 border border-red-300 ${borderRadius.md} mb-4 focus:outline-none focus:ring-2 focus:ring-red-500`}
           />
           <div className="flex gap-3">
             <button
               onClick={handleConfirm}
               disabled={isDeleting || confirmText !== "ИЗТРИЙ"}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`px-4 py-2 ${buttonStyles.destructive} ${borderRadius.md}`}
             >
               {isDeleting ? "Изтриване..." : "Потвърди изтриването"}
             </button>
@@ -62,7 +64,7 @@ export default function DeleteAccountSection({
                 setConfirmText("");
               }}
               disabled={isDeleting}
-              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+              className={`px-4 py-2 ${buttonStyles.secondary} ${borderRadius.md}`}
             >
               Отказ
             </button>
@@ -71,7 +73,7 @@ export default function DeleteAccountSection({
       ) : (
         <button
           onClick={() => setShowConfirm(true)}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          className={`px-4 py-2 ${buttonStyles.destructive} ${borderRadius.md}`}
         >
           Изтрий профила ми
         </button>

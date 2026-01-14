@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { buttonStyles } from "@/lib/theme";
+import { borderRadius } from "@/lib/colors";
 
 interface SubscribePromptProps {
   readonly onClose: () => void;
@@ -21,13 +23,13 @@ export default function SubscribePrompt({ onClose }: SubscribePromptProps) {
             <div className="flex gap-2">
               <Link
                 href="/settings"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                className={`px-4 py-2 text-sm font-medium ${buttonStyles.primary} ${borderRadius.md}`}
               >
                 Отиди в настройки
               </Link>
               <button
                 onClick={onClose}
-                className="bg-yellow-200 text-yellow-900 px-4 py-2 rounded-lg hover:bg-yellow-300 transition-colors text-sm"
+                className={`px-4 py-2 text-sm ${borderRadius.md} bg-yellow-200 text-yellow-900 hover:bg-yellow-300 transition-colors`}
               >
                 По-късно
               </button>
