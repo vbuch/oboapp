@@ -3,23 +3,23 @@
  * Provides consistent button styles using theme colors from colors.ts
  */
 
-import { borderRadius, colors } from "./colors";
+import { borderRadius } from "./colors";
 
 /**
- * Button style variants using theme colors
+ * Button style variants using Tailwind theme colors
  * 
- * Uses Tailwind's arbitrary value syntax (bg-[color]) to apply exact theme colors:
+ * Colors are defined in globals.css @theme inline and sourced from colors.ts:
  * - Primary buttons: colors.interaction.circle (#1976D2) - consistent with interactive UI elements
  * - Destructive buttons: colors.primary.red (#E74C3C) and redDark - for destructive actions
  * - Secondary/Warning: Standard Tailwind grays and yellows for neutral states
  */
 export const buttonStyles = {
-  /** Primary action button - uses theme interaction color */
+  /** Primary action button - uses theme primary color */
   primary:
-    `bg-[${colors.interaction.circle}] hover:bg-[#1565C0] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed`,
-  /** Destructive action button - uses theme red */
+    "bg-primary hover:bg-primary-hover text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+  /** Destructive action button - uses theme destructive color */
   destructive:
-    `bg-[${colors.primary.red}] hover:bg-[${colors.primary.redDark}] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed`,
+    "bg-destructive hover:bg-destructive-hover text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
   /** Secondary action button - gray background */
   secondary:
     "bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
@@ -29,10 +29,10 @@ export const buttonStyles = {
   /** Ghost button - no background, with border */
   ghost:
     "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-  /** Link-style button - uses theme interaction color */
-  link: `text-[${colors.interaction.circle}] hover:text-[#1565C0] hover:underline`,
-  /** Destructive link-style button - uses theme red */
-  linkDestructive: `text-[${colors.primary.red}] hover:text-[${colors.primary.redDark}] hover:underline`,
+  /** Link-style button - uses theme primary color */
+  link: "text-primary hover:text-primary-hover hover:underline",
+  /** Destructive link-style button - uses theme destructive color */
+  linkDestructive: "text-destructive hover:text-destructive-hover hover:underline",
 } as const;
 
 /**
