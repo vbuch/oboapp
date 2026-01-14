@@ -66,12 +66,34 @@ Type `yes` when prompted. This will create:
 
 ### 5. Build and Deploy Container Image
 
-After Terraform creates the infrastructure:
+After Terraform creates the infrastructure, get the Artifact Registry URL:
 
 ```bash
 cd ..  # back to ingest directory
-gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/oborishte-ingest:latest
+
+# Get the image URL from terraform
+terraform output container_image_url
+
+# Configure Docker for Artifact Registry (replace REGION with your region)
+gcloud auth configure-docker [REGION]-docker.pkg.dev
+
+# Build and push image using the URL from terraform output
+gcloud builds submit --tag [CONTAINER_IMAGE_URL]
+
+# Or build locally and push
+docker build -t [CONTAINER_IMAGE_URL] .
+docker push [CONTAINER_IMAGE_URL]
 ```
+
+**Example:**
+
+```bash
+# If terraform output shows: europe-west1-docker.pkg.dev/my-project/oborishte-ingest/oborishte-ingest:latest
+gcloud auth configure-docker europe-west1-docker.pkg.dev
+gcloud builds submit --tag europe-west1-docker.pkg.dev/my-project/oborishte-ingest/oborishte-ingest:latest
+```
+
+**Automatic Cleanup:** The repository has cleanup policies that keep only the latest version and remove untagged images after 1 day.
 
 ### 6. Verify Deployment
 
@@ -99,13 +121,18 @@ terraform apply  # apply changes
 
 When you update the application code:
 
-1. **Build new image**:
+1. **Build and push new image**:
 
    ```bash
+   # Build and push with Cloud Build (recommended)
    gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/oborishte-ingest:v1.0.1
+
+   # Or build locally
+   docker build -t gcr.io/YOUR_PROJECT_ID/oborishte-ingest:v1.0.1 .
+   docker push gcr.io/YOUR_PROJECT_ID/oborishte-ingest:v1.0.1
    ```
 
-2. **Update Terraform variable**:
+2. **Update Terraform variable** (if using a specific tag):
 
    ```hcl
    # In terraform.tfvars

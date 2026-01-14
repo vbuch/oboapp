@@ -3,6 +3,16 @@ output "service_account_email" {
   value       = google_service_account.ingest_runner.email
 }
 
+output "artifact_registry_repository" {
+  description = "Artifact Registry repository name"
+  value       = google_artifact_registry_repository.ingest.name
+}
+
+output "container_image_url" {
+  description = "Full URL for pushing container images with automatic cleanup"
+  value       = local.full_image_url
+}
+
 output "crawler_jobs" {
   description = "Cloud Run Job names for crawlers"
   value       = { for k, v in google_cloud_run_v2_job.crawlers : k => v.name }

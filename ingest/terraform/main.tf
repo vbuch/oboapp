@@ -20,6 +20,11 @@ provider "google" {
   region  = var.region
 }
 
+# Computed values
+locals {
+  full_image_url = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.ingest.repository_id}/${var.image_name}:${var.image_tag}"
+}
+
 # Enable required APIs
 resource "google_project_service" "run" {
   service            = "run.googleapis.com"
@@ -44,6 +49,46 @@ resource "google_project_service" "firestore" {
 resource "google_project_service" "secretmanager" {
   service            = "secretmanager.googleapis.com"
   disable_on_destroy = false
+}
+
+resource "google_project_service" "artifactregistry" {
+  service            = "artifactregistry.googleapis.com"
+  disable_on_destroy = false
+}
+
+# Create a new Artifact Registry repository with cleanup policies
+resource "google_artifact_registry_repository" "ingest" {
+  location      = var.region
+  repository_id = "oborishte-ingest"
+  description   = "Docker repository for oborishte-ingest container images with automatic cleanup"
+  format        = "DOCKER"
+
+  cleanup_policies {
+    id     = "keep-latest-only"
+    action = "DELETE"
+    
+    condition {
+      tag_state    = "TAGGED"
+      tag_prefixes = ["latest"]
+      older_than   = "0s"
+    }
+    
+    most_recent_versions {
+      keep_count = 1  # Keep only 1 version of each tag
+    }
+  }
+  
+  cleanup_policies {
+    id     = "delete-untagged"
+    action = "DELETE"
+    
+    condition {
+      tag_state  = "UNTAGGED"
+      older_than = "86400s"  # Delete untagged images after 1 day
+    }
+  }
+
+  depends_on = [google_project_service.artifactregistry]
 }
 
 # Service Account for running jobs
@@ -171,7 +216,7 @@ resource "google_cloud_run_v2_job" "crawlers" {
       timeout         = each.value.timeout
       
       containers {
-        image = "${var.image_registry}/${var.project_id}/${var.image_name}:${var.image_tag}"
+        image = local.full_image_url
         args  = ["npm", "run", "prebuilt:crawl", "--", "--source", each.value.source]
         
         resources {
@@ -264,7 +309,7 @@ resource "google_cloud_run_v2_job" "ingest" {
       timeout         = "1800s"
       
       containers {
-        image = "${var.image_registry}/${var.project_id}/${var.image_name}:${var.image_tag}"
+        image = local.full_image_url
         args  = ["npm", "run", "prebuilt:ingest"]
         
         resources {
@@ -356,7 +401,7 @@ resource "google_cloud_run_v2_job" "notify" {
       timeout         = "1800s"
       
       containers {
-        image = "${var.image_registry}/${var.project_id}/${var.image_name}:${var.image_tag}"
+        image = local.full_image_url
         args  = ["npm", "run", "prebuilt:notify"]
         
         resources {
