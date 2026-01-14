@@ -15,8 +15,7 @@ RUN npx playwright install chromium
 # Copy source code
 COPY . .
 
-# Build if needed (tsx runs TypeScript directly, so optional)
-# RUN npm run build
+RUN npm run build
 
 # Production stage
 FROM node:20-slim
@@ -51,13 +50,13 @@ RUN npm ci --production
 # Copy Playwright browser cache
 COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
 
-# Copy application source
-COPY --from=builder /app ./
-
-# Install tsx ONLY if you really need it at runtime
-RUN npm install -g tsx
+# Copy only the built JavaScript files and necessary runtime files
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prompts ./prompts
+COPY --from=builder /app/crawlers ./crawlers
 
 ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
 
-CMD ["tsx", "crawl.ts", "--help"]
+CMD ["npm", "run", "prebuilt:crawl", "--", "--help"]

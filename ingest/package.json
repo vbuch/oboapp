@@ -7,7 +7,11 @@
     "test:run": "vitest run",
     "crawl": "tsx crawl",
     "ingest": "tsx ingest",
-    "notify": "tsx notify"
+    "notify": "tsx notify",
+    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "prebuilt:crawl": "node dist/crawl.js",
+    "prebuilt:ingest": "node dist/ingest.js",
+    "prebuilt:notify": "node dist/notify.js"
   },
   "dependencies": {
     "@google/genai": "^1.33.0",
@@ -17,7 +21,9 @@
     "dotenv": "^17.2.3",
     "firebase": "^12.6.0",
     "firebase-admin": "^13.6.0",
-    "proj4": "^2.20.2"
+    "playwright": "^1.57.0",
+    "proj4": "^2.20.2",
+    "turndown": "^7.2.2"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -26,9 +32,8 @@
     "eslint": "*",
     "eslint-config-next": "^16.0.10",
     "happy-dom": "^20.0.11",
-    "playwright": "^1.57.0",
+    "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
-    "turndown": "^7.2.2",
     "typescript": "^5",
     "vitest": "^4.0.15"
   }

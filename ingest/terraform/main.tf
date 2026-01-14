@@ -172,7 +172,7 @@ resource "google_cloud_run_v2_job" "crawlers" {
       
       containers {
         image = "${var.image_registry}/${var.project_id}/${var.image_name}:${var.image_tag}"
-        args  = ["tsx", "crawl.ts", "--source", each.value.source]
+        args  = ["npm", "run", "prebuilt:crawl", "--", "--source", each.value.source]
         
         resources {
           limits = {
@@ -265,7 +265,7 @@ resource "google_cloud_run_v2_job" "ingest" {
       
       containers {
         image = "${var.image_registry}/${var.project_id}/${var.image_name}:${var.image_tag}"
-        args  = ["tsx", "ingest.ts"]
+        args  = ["npm", "run", "prebuilt:ingest"]
         
         resources {
           limits = {
@@ -357,7 +357,7 @@ resource "google_cloud_run_v2_job" "notify" {
       
       containers {
         image = "${var.image_registry}/${var.project_id}/${var.image_name}:${var.image_tag}"
-        args  = ["tsx", "notify.ts"]
+        args  = ["npm", "run", "prebuilt:notify"]
         
         resources {
           limits = {

@@ -1,3 +1,5 @@
+dist/
+
 # Terraform state
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
