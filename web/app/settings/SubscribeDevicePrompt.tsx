@@ -40,7 +40,7 @@ export default function SubscribeDevicePrompt({
       </p>
 
       {platformInfo.requiresPWAInstall && (
-        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-primary">
+        <div className="mb-3 p-3 bg-primary/10 border border-primary/20 rounded text-sm text-primary">
           <p className="font-semibold mb-2">📱 iOS Safari изисква инсталация</p>
           <p className="whitespace-pre-line">{instructions}</p>
         </div>
