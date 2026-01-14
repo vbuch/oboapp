@@ -57,7 +57,7 @@ export default function AddInterestsPrompt({
       <div className="flex justify-end">
         <button
           onClick={handleAddInterests}
-          className={`${buttonSizes.lg} ${borderRadius.md} shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium ${buttonStyles.primary}`}
+          className={`${buttonSizes.lg} ${buttonStyles.primary} ${borderRadius.md} shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium`}
         >
           <svg
             className="w-5 h-5"

@@ -26,9 +26,9 @@ export default function AddInterestButton({
   return (
     <button
       onClick={handleClick}
-      className={`absolute bottom-8 right-8 z-30 ${buttonSizes.lg} ${borderRadius.md} shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium ${
+      className={`absolute bottom-8 right-8 z-30 ${buttonSizes.lg} ${buttonStyles.primary} ${borderRadius.md} shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium ${
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
-      } ${buttonStyles.primary}`}
+      }`}
       aria-label="Добави зона"
       aria-hidden={!visible}
     >

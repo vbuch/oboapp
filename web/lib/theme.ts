@@ -7,9 +7,11 @@ import { borderRadius } from "./colors";
 
 /**
  * Button style variants
- * Note: These use Tailwind color classes for now because Tailwind requires
- * complete class names to be present in the source code for its JIT compiler.
- * The actual color values match those defined in colors.ts.
+ * Note: These use Tailwind color classes (e.g., bg-blue-600) rather than the brand colors
+ * from colors.ts (e.g., colors.primary.blue: "#5DADE2") because:
+ * 1. Tailwind's JIT compiler requires complete class names in source code
+ * 2. UI buttons intentionally use standard Tailwind colors for consistency with common UI patterns
+ * 3. Brand colors from colors.ts are reserved for logo, markers, and brand-specific elements
  */
 export const buttonStyles = {
   /** Primary action button - blue background */

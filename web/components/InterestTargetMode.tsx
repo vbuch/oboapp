@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Circle } from "@react-google-maps/api";
 import { trackEvent, trackEventDebounced } from "@/lib/analytics";
 import { colors, borderRadius } from "@/lib/colors";
-import { buttonStyles } from "@/lib/theme";
+import { buttonStyles, buttonSizes } from "@/lib/theme";
 
 interface InterestTargetModeProps {
   readonly map: google.maps.Map | null;
@@ -166,14 +166,14 @@ export default function InterestTargetMode({
             <button
               onClick={handleCancel}
               disabled={isSaving}
-              className={`flex-1 px-4 py-2 text-sm font-medium ${buttonStyles.ghost} ${borderRadius.md}`}
+              className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.ghost} ${borderRadius.sm}`}
             >
               Отказ
             </button>
             <button
               onClick={handleSave}
               disabled={!currentCenter || isSaving}
-              className={`flex-1 px-4 py-2 text-sm font-medium ${buttonStyles.primary} ${borderRadius.md}`}
+              className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.primary} ${borderRadius.sm}`}
             >
               {isSaving ? "Запазвам..." : "Запази зоната"}
             </button>

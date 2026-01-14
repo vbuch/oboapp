@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { buttonStyles } from "@/lib/theme";
+import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { borderRadius } from "@/lib/colors";
 
 interface DeleteAccountSectionProps {
@@ -54,7 +54,7 @@ export default function DeleteAccountSection({
             <button
               onClick={handleConfirm}
               disabled={isDeleting || confirmText !== "ИЗТРИЙ"}
-              className={`px-4 py-2 ${buttonStyles.destructive} ${borderRadius.md}`}
+              className={`${buttonSizes.md} ${buttonStyles.destructive} ${borderRadius.md}`}
             >
               {isDeleting ? "Изтриване..." : "Потвърди изтриването"}
             </button>
@@ -64,7 +64,7 @@ export default function DeleteAccountSection({
                 setConfirmText("");
               }}
               disabled={isDeleting}
-              className={`px-4 py-2 ${buttonStyles.secondary} ${borderRadius.md}`}
+              className={`${buttonSizes.md} ${buttonStyles.secondary} ${borderRadius.md}`}
             >
               Отказ
             </button>
@@ -73,7 +73,7 @@ export default function DeleteAccountSection({
       ) : (
         <button
           onClick={() => setShowConfirm(true)}
-          className={`px-4 py-2 ${buttonStyles.destructive} ${borderRadius.md}`}
+          className={`${buttonSizes.md} ${buttonStyles.destructive} ${borderRadius.md}`}
         >
           Изтрий профила ми
         </button>

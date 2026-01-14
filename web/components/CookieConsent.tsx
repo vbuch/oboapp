@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { hasConsentDecision, setConsent, initGA } from "@/lib/analytics";
-import { buttonStyles } from "@/lib/theme";
+import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { borderRadius } from "@/lib/colors";
 
 export default function CookieConsent() {
@@ -50,13 +50,13 @@ export default function CookieConsent() {
           <div className="flex gap-3 justify-end">
             <button
               onClick={handleDecline}
-              className={`px-4 py-2 text-sm font-medium ${buttonStyles.secondary} ${borderRadius.md}`}
+              className={`${buttonSizes.md} font-medium ${buttonStyles.secondary} ${borderRadius.md}`}
             >
               Откажи
             </button>
             <button
               onClick={handleAccept}
-              className={`px-4 py-2 text-sm font-medium ${buttonStyles.primary} ${borderRadius.md}`}
+              className={`${buttonSizes.md} font-medium ${buttonStyles.primary} ${borderRadius.md}`}
             >
               Приеми
             </button>
