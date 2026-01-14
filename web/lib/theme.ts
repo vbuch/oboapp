@@ -1,38 +1,38 @@
 /**
  * Theme utilities for OboApp
- * Provides consistent button styles and class names
+ * Provides consistent button styles using theme colors from colors.ts
  */
 
-import { borderRadius } from "./colors";
+import { borderRadius, colors } from "./colors";
 
 /**
- * Button style variants
- * Note: These use Tailwind color classes (e.g., bg-blue-600) rather than the brand colors
- * from colors.ts (e.g., colors.primary.blue: "#5DADE2") because:
- * 1. Tailwind's JIT compiler requires complete class names in source code
- * 2. UI buttons intentionally use standard Tailwind colors for consistency with common UI patterns
- * 3. Brand colors from colors.ts are reserved for logo, markers, and brand-specific elements
+ * Button style variants using theme colors
+ * 
+ * Uses Tailwind's arbitrary value syntax (bg-[color]) to apply exact theme colors:
+ * - Primary buttons: colors.interaction.circle (#1976D2) - consistent with interactive UI elements
+ * - Destructive buttons: colors.primary.red (#E74C3C) and redDark - for destructive actions
+ * - Secondary/Warning: Standard Tailwind grays and yellows for neutral states
  */
 export const buttonStyles = {
-  /** Primary action button - blue background */
+  /** Primary action button - uses theme interaction color */
   primary:
-    "bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-  /** Destructive action button - red background */
+    `bg-[${colors.interaction.circle}] hover:bg-[#1565C0] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed`,
+  /** Destructive action button - uses theme red */
   destructive:
-    "bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+    `bg-[${colors.primary.red}] hover:bg-[${colors.primary.redDark}] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed`,
   /** Secondary action button - gray background */
   secondary:
     "bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
   /** Warning action button - yellow background */
   warning:
-    "bg-yellow-200 hover:bg-yellow-300 text-yellow-900 transition-colors disabled:opacity-50",
+    "bg-yellow-200 hover:bg-yellow-300 text-yellow-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
   /** Ghost button - no background, with border */
   ghost:
     "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-  /** Link-style button */
-  link: "text-blue-600 hover:text-blue-700 hover:underline",
-  /** Destructive link-style button */
-  linkDestructive: "text-red-600 hover:text-red-700 hover:underline",
+  /** Link-style button - uses theme interaction color */
+  link: `text-[${colors.interaction.circle}] hover:text-[#1565C0] hover:underline`,
+  /** Destructive link-style button - uses theme red */
+  linkDestructive: `text-[${colors.primary.red}] hover:text-[${colors.primary.redDark}] hover:underline`,
 } as const;
 
 /**
