@@ -20,7 +20,7 @@ export default function GeolocationButton({
       disabled={isLocating}
       className={`absolute bottom-8 left-8 z-30 p-4 ${borderRadius.full} shadow-lg hover:shadow-xl transition-all duration-200 ${
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
-      } ${isLocating ? "cursor-not-allowed bg-blue-400" : `cursor-pointer ${buttonStyles.primary}`}`}
+      } ${isLocating ? "cursor-not-allowed" : "cursor-pointer"} ${buttonStyles.primary}`}
       aria-label="Покажи моето местоположение"
       aria-hidden={!visible}
     >
