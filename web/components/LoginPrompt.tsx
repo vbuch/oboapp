@@ -28,7 +28,7 @@ export default function LoginPrompt() {
       <PromptCard
         icon={
           <svg
-            className="w-12 h-12 text-blue-600"
+            className="w-12 h-12 text-primary"
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"

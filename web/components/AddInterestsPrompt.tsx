@@ -32,7 +32,7 @@ export default function AddInterestsPrompt({
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-shrink-0">
           <svg
-            className="w-10 h-10 text-blue-600"
+            className="w-10 h-10 text-primary"
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"

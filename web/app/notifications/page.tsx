@@ -59,7 +59,7 @@ export default function NotificationsPage() {
           <div className="mb-6">
             <Link
               href="/settings"
-              className="text-blue-600 hover:text-blue-700 flex items-center gap-2"
+              className="text-primary hover:text-primary-hover flex items-center gap-2"
             >
               <span>←</span>
               <span>Обратно към настройките</span>
@@ -69,7 +69,7 @@ export default function NotificationsPage() {
             История на известията
           </h1>
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         </div>
       </div>
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
         <div className="mb-6">
           <Link
             href="/settings"
-            className="text-blue-600 hover:text-blue-700 flex items-center gap-2"
+            className="text-primary hover:text-primary-hover flex items-center gap-2"
           >
             <span>←</span>
             <span>Обратно към настройките</span>

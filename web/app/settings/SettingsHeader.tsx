@@ -5,7 +5,7 @@ export default function SettingsHeader() {
     <div className="mb-8">
       <Link
         href="/"
-        className="text-sm text-blue-600 hover:text-blue-700 mb-4 inline-block"
+        className="text-sm text-primary hover:text-primary-hover mb-4 inline-block"
       >
         ← Начало
       </Link>

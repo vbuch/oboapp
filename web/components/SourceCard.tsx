@@ -63,7 +63,7 @@ export default function SourceCard({ source }: SourceCardProps) {
           href={source.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium underline break-all"
+          className="text-primary hover:text-primary-hover text-sm font-medium underline break-all"
           onClick={() => {
             trackEvent({
               name: "external_link_clicked",

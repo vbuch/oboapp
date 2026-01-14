@@ -27,7 +27,7 @@ export default function ZoneCard({ interest }: ZoneCardProps) {
             Радиус: {interest.radius}м • Добавена: {createdDate}
           </p>
         </div>
-        <div className="text-blue-600">→</div>
+        <div className="text-primary">→</div>
       </div>
     </Link>
   );

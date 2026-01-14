@@ -24,7 +24,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       <p className="text-gray-700 mb-4 leading-relaxed">{children}</p>
     ),
     a: ({ href, children }) => (
-      <a href={href} className="text-blue-600 hover:text-blue-800 underline">
+      <a href={href} className="text-primary hover:text-primary-hover underline">
         {children}
       </a>
     ),
