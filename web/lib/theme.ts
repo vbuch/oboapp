@@ -49,11 +49,20 @@ export const buttonSizes = {
 
 /**
  * Helper function to combine button classes
+ * 
+ * @param variant - Button style variant (default: "primary")
+ * @param size - Button size (default: "md")
+ * @param radius - Border radius (default: "sm" which is rounded-md, the most common button radius)
+ * @param additionalClasses - Additional Tailwind classes
+ * @returns Combined className string
+ * 
+ * Note: Most buttons use borderRadius.sm (rounded-md). Use borderRadius.md (rounded-lg) 
+ * for larger, more prominent buttons like those in prompts and dialogs.
  */
 export function getButtonClasses(
   variant: keyof typeof buttonStyles = "primary",
   size: keyof typeof buttonSizes = "md",
-  radius: keyof typeof borderRadius = "md",
+  radius: keyof typeof borderRadius = "sm",
   additionalClasses = ""
 ): string {
   const classes = [
