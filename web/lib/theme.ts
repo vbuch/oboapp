@@ -7,6 +7,9 @@ import { borderRadius } from "./colors";
 
 /**
  * Button style variants
+ * Note: These use Tailwind color classes for now because Tailwind requires
+ * complete class names to be present in the source code for its JIT compiler.
+ * The actual color values match those defined in colors.ts.
  */
 export const buttonStyles = {
   /** Primary action button - blue background */
@@ -18,8 +21,12 @@ export const buttonStyles = {
   /** Secondary action button - gray background */
   secondary:
     "bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors disabled:opacity-50",
-  /** Ghost button - no background */
-  ghost: "bg-transparent hover:bg-gray-100 text-gray-700 transition-colors",
+  /** Warning action button - yellow background */
+  warning:
+    "bg-yellow-200 hover:bg-yellow-300 text-yellow-900 transition-colors disabled:opacity-50",
+  /** Ghost button - no background, with border */
+  ghost:
+    "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 transition-colors disabled:opacity-50",
   /** Link-style button */
   link: "text-blue-600 hover:text-blue-700 hover:underline",
   /** Destructive link-style button */

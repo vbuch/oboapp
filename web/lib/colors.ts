@@ -62,7 +62,7 @@ export const borderRadius = {
   /** Medium radius for buttons and cards */
   md: "rounded-lg",
   /** Large radius for prominent containers */
-  lg: "rounded-lg",
+  lg: "rounded-xl",
   /** Full circle for icon buttons and avatars */
   full: "rounded-full",
 } as const;

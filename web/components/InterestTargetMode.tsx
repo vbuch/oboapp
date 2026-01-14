@@ -166,7 +166,7 @@ export default function InterestTargetMode({
             <button
               onClick={handleCancel}
               disabled={isSaving}
-              className={`flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 ${borderRadius.md} hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`flex-1 px-4 py-2 text-sm font-medium ${buttonStyles.ghost} ${borderRadius.md}`}
             >
               Отказ
             </button>
