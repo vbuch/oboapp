@@ -22,7 +22,7 @@ export const buttonStyles = {
     "bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
   /** Secondary action button - gray background */
   secondary:
-    "bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors disabled:opacity-50",
+    "bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
   /** Warning action button - yellow background */
   warning:
     "bg-yellow-200 hover:bg-yellow-300 text-yellow-900 transition-colors disabled:opacity-50",
