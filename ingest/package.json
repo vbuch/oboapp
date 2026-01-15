@@ -8,6 +8,7 @@
     "crawl": "tsx crawl",
     "ingest": "tsx ingest",
     "notify": "tsx notify",
+    "categorize": "tsx categorize",
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "prebuilt:crawl": "node dist/crawl.js",
     "prebuilt:ingest": "node dist/ingest.js",

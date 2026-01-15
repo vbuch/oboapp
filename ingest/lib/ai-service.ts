@@ -17,6 +17,21 @@ try {
   throw new Error("Message filter prompt template file not found");
 }
 
+// Read the message categorization prompt template
+let categorizeSystemInstruction: string;
+try {
+  categorizeSystemInstruction = readFileSync(
+    join(process.cwd(), "prompts/categorize.md"),
+    "utf-8"
+  );
+} catch (error) {
+  console.error(
+    "Failed to load message categorization prompt template:",
+    error
+  );
+  throw new Error("Message categorization prompt template file not found");
+}
+
 // Read the data extraction prompt template
 // Uses Overpass-optimized prompt for hybrid geocoding (Google for pins, Overpass for streets)
 let extractionSystemInstruction: string;
@@ -99,6 +114,58 @@ export async function filterMessage(
     }
 
     return null;
+  } catch (error) {
+    console.error("Error filtering message:", error);
+    return null;
+  }
+}
+
+export async function categorize(text: string): Promise<FilterResult | null> {
+  try {
+    // Validate message
+    if (!text || typeof text !== "string") {
+      console.error("Invalid text parameter for message categorization");
+      return null;
+    }
+
+    // Validate message length
+    if (text.length > 10000) {
+      console.error(
+        "Text is too long for message categorization (max 10000 characters)"
+      );
+      return null;
+    }
+
+    // Validate required environment variable
+    const model = process.env.GOOGLE_AI_MODEL;
+    if (!model) {
+      console.error("GOOGLE_AI_MODEL environment variable is not set");
+      return null;
+    }
+
+    // Make request to Gemini API
+    const response = await ai.models.generateContent({
+      model: model,
+      contents: text,
+      config: {
+        systemInstruction: categorizeSystemInstruction,
+        responseMimeType: "application/json",
+      },
+    });
+    const responseText = response.text || "";
+
+    try {
+      // Parse the JSON response
+      const parsedResponse = JSON.parse(responseText);
+
+      // Validate response structure
+      // TODO: Need to iterate over each item an verify.
+      return parsedResponse;
+    } catch (parseError) {
+      console.error("Failed to parse JSON response from AI:", parseError);
+      console.error("Full AI response:", responseText);
+      return null;
+    }
   } catch (error) {
     console.error("Error filtering message:", error);
     return null;
