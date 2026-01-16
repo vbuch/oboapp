@@ -6,6 +6,7 @@ import {
 } from "@/lib/types";
 import { storeIncomingMessage, updateMessage } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
+import { generateMessageId, formatCategorizedMessageLogInfo } from "./utils";
 
 export { extractAddressesFromMessage } from "./extract-addresses";
 export {
@@ -74,115 +75,25 @@ export async function messageIngest(
 
   // For messages with precomputed GeoJSON, create single message without categorization
   if (hasPrecomputedGeoJson) {
-    const messageId = sourceDocumentId ? `${sourceDocumentId}-1` : undefined; // Let Firestore auto-generate for web interface
-
-    const storedMessageId = await storeIncomingMessage(
+    return await processPrecomputedGeoJsonMessage(
       text,
       userId,
       userEmail,
       source,
-      options.sourceUrl,
-      options.crawledAt,
-      messageId,
-      sourceDocumentId
-    );
-
-    const message = await processSingleMessage(
-      storedMessageId,
-      text,
-      options.precomputedGeoJson || null,
+      sourceDocumentId,
       options
     );
-
-    return {
-      messages: [message],
-      totalCategorized: 1,
-      totalRelevant: 1,
-      totalIrrelevant: 0,
-    };
   }
 
   // Use categorize for messages without precomputed GeoJSON
-  const { categorize } = await import("../lib/ai-service");
-  const categorizedMessages = await categorize(text);
-
-  if (!categorizedMessages || categorizedMessages.length === 0) {
-    console.error("❌ Failed to categorize message");
-    throw new Error("Message categorization failed");
-  }
-
-  const messages: Message[] = [];
-  let totalRelevant = 0;
-  let totalIrrelevant = 0;
-
-  console.log(`📊 Categorized into ${categorizedMessages.length} message(s)`);
-
-  for (let i = 0; i < categorizedMessages.length; i++) {
-    const categorizedMessage = categorizedMessages[i];
-    const messageIndex = i + 1;
-
-    // Generate deterministic message ID
-    const messageId = sourceDocumentId
-      ? `${sourceDocumentId}-${messageIndex}`
-      : undefined; // Let Firestore auto-generate for web interface
-
-    console.log(
-      `\n📄 Processing message ${messageIndex}/${categorizedMessages.length}`
-    );
-    console.log(`   Categories: ${categorizedMessage.categories.join(", ")}`);
-    console.log(`   Relevant: ${categorizedMessage.isRelevant}`);
-    console.log(`   Message ID: ${messageId || "auto-generated"}`);
-
-    // Store the categorized message
-    const storedMessageId = await storeIncomingMessage(
-      categorizedMessage.normalizedText,
-      userId,
-      userEmail,
-      source,
-      options.sourceUrl,
-      options.crawledAt,
-      messageId,
-      sourceDocumentId
-    );
-
-    // Store categorization result
-    await updateMessage(storedMessageId, {
-      categorize: categorizedMessage,
-    });
-
-    if (categorizedMessage.isRelevant) {
-      totalRelevant++;
-      const message = await processSingleMessage(
-        storedMessageId,
-        categorizedMessage.normalizedText,
-        null,
-        options,
-        categorizedMessage
-      );
-      messages.push(message);
-    } else {
-      totalIrrelevant++;
-      console.log("ℹ️  Message filtered as irrelevant, marking as finalized");
-      await updateMessage(storedMessageId, { finalizedAt: new Date() });
-
-      const { buildMessageResponse } = await import("./build-response");
-      const message = await buildMessageResponse(
-        storedMessageId,
-        categorizedMessage.normalizedText,
-        [],
-        null,
-        null
-      );
-      messages.push(message);
-    }
-  }
-
-  return {
-    messages,
-    totalCategorized: categorizedMessages.length,
-    totalRelevant,
-    totalIrrelevant,
-  };
+  return await processCategorizedMessages(
+    text,
+    userId,
+    userEmail,
+    source,
+    sourceDocumentId,
+    options
+  );
 }
 
 /**
@@ -200,107 +111,404 @@ async function processSingleMessage(
   let geoJson: GeoJSONFeatureCollection | null = precomputedGeoJson;
 
   if (!precomputedGeoJson) {
-    // Extract structured data from text
-    const { extractAddressesFromMessage } = await import("./extract-addresses");
-    extractedData = await extractAddressesFromMessage(text);
+    const extractionResult = await extractAndGeocodeFromText(messageId, text);
 
-    // Store extracted data and markdown text together
-    const markdownText = extractedData?.markdown_text || "";
-    await updateMessage(messageId, {
-      extractedData,
-      markdownText,
-    });
+    if (!extractionResult) {
+      return await finalizeFailedMessage(messageId, text);
+    }
 
-    // If extraction failed, finalize and return
-    if (!extractedData) {
-      console.error(
-        "❌ Failed to extract data from message, marking as finalized"
+    extractedData = extractionResult.extractedData;
+    addresses = extractionResult.addresses;
+    geoJson = extractionResult.geoJson;
+  } else {
+    extractedData = await handlePrecomputedGeoJsonData(
+      messageId,
+      options.markdownText
+    );
+  }
+
+  geoJson = await applyBoundaryFilteringIfNeeded(
+    messageId,
+    geoJson,
+    options.boundaryFilter
+  );
+
+  await finalizeMessageWithResults(messageId, geoJson);
+
+  return await buildFinalMessageResponse(
+    messageId,
+    text,
+    addresses,
+    extractedData,
+    geoJson
+  );
+}
+/**
+ * Handle messages that come with precomputed GeoJSON (skip categorization)
+ */
+async function processPrecomputedGeoJsonMessage(
+  text: string,
+  userId: string,
+  userEmail: string | null,
+  source: string,
+  sourceDocumentId: string | undefined,
+  options: MessageIngestOptions
+): Promise<MessageIngestResult> {
+  const messageId = sourceDocumentId ? `${sourceDocumentId}-1` : undefined;
+
+  const storedMessageId = await storeIncomingMessage(
+    text,
+    userId,
+    userEmail,
+    source,
+    options.sourceUrl,
+    options.crawledAt,
+    messageId,
+    sourceDocumentId
+  );
+
+  const message = await processSingleMessage(
+    storedMessageId,
+    text,
+    options.precomputedGeoJson || null,
+    options
+  );
+
+  return {
+    messages: [message],
+    totalCategorized: 1,
+    totalRelevant: 1,
+    totalIrrelevant: 0,
+  };
+}
+
+/**
+ * Handle messages that need categorization via AI service
+ */
+async function processCategorizedMessages(
+  text: string,
+  userId: string,
+  userEmail: string | null,
+  source: string,
+  sourceDocumentId: string | undefined,
+  options: MessageIngestOptions
+): Promise<MessageIngestResult> {
+  const { categorize } = await import("../lib/ai-service");
+  const categorizedMessages = await categorize(text);
+
+  if (!categorizedMessages || categorizedMessages.length === 0) {
+    console.error("❌ Failed to categorize message");
+    throw new Error("Message categorization failed");
+  }
+
+  console.log(`📊 Categorized into ${categorizedMessages.length} message(s)`);
+
+  const messages: Message[] = [];
+  let totalRelevant = 0;
+  let totalIrrelevant = 0;
+
+  for (let i = 0; i < categorizedMessages.length; i++) {
+    const categorizedMessage = categorizedMessages[i];
+    const messageIndex = i + 1;
+    const messageId = generateMessageId(sourceDocumentId, messageIndex);
+
+    logCategorizedMessageInfo(
+      categorizedMessage,
+      messageIndex,
+      categorizedMessages.length,
+      messageId
+    );
+
+    const storedMessageId = await storeCategorizedMessage(
+      categorizedMessage,
+      userId,
+      userEmail,
+      source,
+      messageId,
+      sourceDocumentId,
+      options
+    );
+
+    if (categorizedMessage.isRelevant) {
+      totalRelevant++;
+      const message = await processSingleMessage(
+        storedMessageId,
+        categorizedMessage.normalizedText,
+        null,
+        options,
+        categorizedMessage
       );
-      await updateMessage(messageId, { finalizedAt: new Date() });
-
-      const { buildMessageResponse } = await import("./build-response");
-      return await buildMessageResponse(messageId, text, [], null, null);
+      messages.push(message);
+    } else {
+      totalIrrelevant++;
+      const message = await handleIrrelevantMessage(
+        storedMessageId,
+        categorizedMessage.normalizedText
+      );
+      messages.push(message);
     }
+  }
 
-    // Geocode addresses
-    const { geocodeAddressesFromExtractedData } = await import(
-      "./geocode-addresses"
-    );
-    const {
-      preGeocodedMap,
-      addresses: geocodedAddresses,
-      cadastralGeometries,
-    } = await geocodeAddressesFromExtractedData(extractedData);
+  return {
+    messages,
+    totalCategorized: categorizedMessages.length,
+    totalRelevant,
+    totalIrrelevant,
+  };
+}
 
-    // Filter outlier coordinates
-    const { filterOutlierCoordinates } = await import("./filter-outliers");
-    addresses = filterOutlierCoordinates(geocodedAddresses);
+/**
+ * Log information about a categorized message being processed
+ */
+function logCategorizedMessageInfo(
+  categorizedMessage: any,
+  messageIndex: number,
+  totalMessages: number,
+  messageId: string | undefined
+): void {
+  const logMessages = formatCategorizedMessageLogInfo(
+    categorizedMessage,
+    messageIndex,
+    totalMessages,
+    messageId
+  );
+  logMessages.forEach((message) => console.log(message));
+}
 
-    // Update preGeocodedMap to remove filtered outliers
-    const filteredOriginalTexts = new Set(addresses.map((a) => a.originalText));
-    for (const [key] of preGeocodedMap) {
-      if (!filteredOriginalTexts.has(key)) {
-        preGeocodedMap.delete(key);
-      }
+/**
+ * Store a categorized message with its categorization result
+ */
+async function storeCategorizedMessage(
+  categorizedMessage: any,
+  userId: string,
+  userEmail: string | null,
+  source: string,
+  messageId: string | undefined,
+  sourceDocumentId: string | undefined,
+  options: MessageIngestOptions
+): Promise<string> {
+  const storedMessageId = await storeIncomingMessage(
+    categorizedMessage.normalizedText,
+    userId,
+    userEmail,
+    source,
+    options.sourceUrl,
+    options.crawledAt,
+    messageId,
+    sourceDocumentId
+  );
+
+  await updateMessage(storedMessageId, {
+    categorize: categorizedMessage,
+  });
+
+  return storedMessageId;
+}
+
+/**
+ * Handle messages that are categorized as irrelevant
+ */
+async function handleIrrelevantMessage(
+  messageId: string,
+  text: string
+): Promise<Message> {
+  console.log("ℹ️  Message filtered as irrelevant, marking as finalized");
+  await updateMessage(messageId, { finalizedAt: new Date() });
+
+  const { buildMessageResponse } = await import("./build-response");
+  return await buildMessageResponse(messageId, text, [], null, null);
+}
+
+/**
+ * Extract data from text and perform geocoding
+ */
+async function extractAndGeocodeFromText(
+  messageId: string,
+  text: string
+): Promise<{
+  extractedData: ExtractedData;
+  addresses: Address[];
+  geoJson: GeoJSONFeatureCollection | null;
+} | null> {
+  const { extractAddressesFromMessage } = await import("./extract-addresses");
+  const extractedData = await extractAddressesFromMessage(text);
+
+  await storeExtractedData(messageId, extractedData);
+
+  if (!extractedData) {
+    return null;
+  }
+
+  const geocodingResults = await performGeocoding(extractedData);
+  const addresses = await filterAndStoreAddresses(
+    messageId,
+    geocodingResults.addresses,
+    geocodingResults.preGeocodedMap
+  );
+  const geoJson = await convertToGeoJson(
+    extractedData,
+    geocodingResults.preGeocodedMap,
+    geocodingResults.cadastralGeometries
+  );
+
+  return { extractedData, addresses, geoJson };
+}
+
+/**
+ * Store extracted data and markdown text in the message
+ */
+async function storeExtractedData(
+  messageId: string,
+  extractedData: ExtractedData | null
+): Promise<void> {
+  const markdownText = extractedData?.markdown_text || "";
+  await updateMessage(messageId, {
+    extractedData,
+    markdownText,
+  });
+}
+
+/**
+ * Perform geocoding on extracted data
+ */
+async function performGeocoding(extractedData: ExtractedData) {
+  const { geocodeAddressesFromExtractedData } = await import(
+    "./geocode-addresses"
+  );
+  return await geocodeAddressesFromExtractedData(extractedData);
+}
+
+/**
+ * Filter outliers and store valid addresses
+ */
+async function filterAndStoreAddresses(
+  messageId: string,
+  geocodedAddresses: Address[],
+  preGeocodedMap: Map<string, any>
+): Promise<Address[]> {
+  const { filterOutlierCoordinates } = await import("./filter-outliers");
+  const addresses = filterOutlierCoordinates(geocodedAddresses);
+
+  // Update preGeocodedMap to remove filtered outliers
+  const filteredOriginalTexts = new Set(addresses.map((a) => a.originalText));
+  for (const [key] of preGeocodedMap) {
+    if (!filteredOriginalTexts.has(key)) {
+      preGeocodedMap.delete(key);
     }
+  }
 
-    // Store geocoding results in message
-    if (addresses.length > 0) {
-      await updateMessage(messageId, { addresses });
-    }
+  if (addresses.length > 0) {
+    await updateMessage(messageId, { addresses });
+  }
 
-    // Convert to GeoJSON
-    const { convertMessageGeocodingToGeoJson } = await import(
-      "./convert-to-geojson"
-    );
-    geoJson = await convertMessageGeocodingToGeoJson(
-      extractedData,
-      preGeocodedMap,
-      cadastralGeometries
-    );
-  } else if (options.markdownText) {
-    // When using precomputed GeoJSON, store markdown_text if provided
-    extractedData = {
+  return addresses;
+}
+
+/**
+ * Convert geocoding results to GeoJSON format
+ */
+async function convertToGeoJson(
+  extractedData: ExtractedData,
+  preGeocodedMap: Map<string, any>,
+  cadastralGeometries: any
+): Promise<GeoJSONFeatureCollection | null> {
+  const { convertMessageGeocodingToGeoJson } = await import(
+    "./convert-to-geojson"
+  );
+  return await convertMessageGeocodingToGeoJson(
+    extractedData,
+    preGeocodedMap,
+    cadastralGeometries
+  );
+}
+
+/**
+ * Finalize a message that failed extraction
+ */
+async function finalizeFailedMessage(
+  messageId: string,
+  text: string
+): Promise<Message> {
+  console.error("❌ Failed to extract data from message, marking as finalized");
+  await updateMessage(messageId, { finalizedAt: new Date() });
+
+  const { buildMessageResponse } = await import("./build-response");
+  return await buildMessageResponse(messageId, text, [], null, null);
+}
+
+/**
+ * Handle precomputed GeoJSON data storage
+ */
+async function handlePrecomputedGeoJsonData(
+  messageId: string,
+  markdownText: string | undefined
+): Promise<ExtractedData | null> {
+  if (markdownText) {
+    const extractedData: ExtractedData = {
       responsible_entity: "",
       pins: [],
       streets: [],
-      markdown_text: options.markdownText,
+      markdown_text: markdownText,
     };
+
     await updateMessage(messageId, {
-      markdownText: options.markdownText,
+      markdownText,
       extractedData,
     });
+
+    return extractedData;
   }
 
-  // Apply boundary filtering if provided
-  if (options.boundaryFilter && geoJson) {
-    const { filterFeaturesByBoundaries } = await import(
-      "../lib/boundary-utils"
-    );
-    const filteredGeoJson = filterFeaturesByBoundaries(
-      geoJson,
-      options.boundaryFilter
-    );
+  return null;
+}
 
-    if (!filteredGeoJson) {
-      // No features within boundaries, don't store the message
-      console.log(
-        `⏭️  Message ${messageId} has no features within boundaries, skipping storage`
-      );
-      // Note: The message document already exists in Firestore from storeIncomingMessage
-      // We could delete it here, but leaving it allows for auditing
-      throw new Error("No features within specified boundaries");
-    }
-
-    geoJson = filteredGeoJson;
+/**
+ * Apply boundary filtering to GeoJSON if boundary filter is provided
+ */
+async function applyBoundaryFilteringIfNeeded(
+  messageId: string,
+  geoJson: GeoJSONFeatureCollection | null,
+  boundaryFilter: GeoJSONFeatureCollection | undefined
+): Promise<GeoJSONFeatureCollection | null> {
+  if (!boundaryFilter || !geoJson) {
+    return geoJson;
   }
 
-  // Store GeoJSON and finalize message
+  const { filterFeaturesByBoundaries } = await import("../lib/boundary-utils");
+  const filteredGeoJson = filterFeaturesByBoundaries(geoJson, boundaryFilter);
+
+  if (!filteredGeoJson) {
+    console.log(
+      `⏭️  Message ${messageId} has no features within boundaries, skipping storage`
+    );
+    throw new Error("No features within specified boundaries");
+  }
+
+  return filteredGeoJson;
+}
+
+/**
+ * Finalize message by storing GeoJSON and setting finalized timestamp
+ */
+async function finalizeMessageWithResults(
+  messageId: string,
+  geoJson: GeoJSONFeatureCollection | null
+): Promise<void> {
   if (geoJson) {
     await updateMessage(messageId, { geoJson, finalizedAt: new Date() });
   }
+}
 
-  // Build and return response
+/**
+ * Build the final message response
+ */
+async function buildFinalMessageResponse(
+  messageId: string,
+  text: string,
+  addresses: Address[],
+  extractedData: ExtractedData | null,
+  geoJson: GeoJSONFeatureCollection | null
+): Promise<Message> {
   const { buildMessageResponse } = await import("./build-response");
   return await buildMessageResponse(
     messageId,
