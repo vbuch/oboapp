@@ -148,11 +148,12 @@ The pipeline processes messages about public infrastructure disruptions in Sofia
 
 **Two-Stage LLM Processing:**
 
-1. **Filtering Stage** (`ingest/prompts/message-filter.md`)
+1. **Categorization Stage** (`ingest/lib/ai-service.ts` + `ingest/prompts/categorize.md`)
 
+   - Single AI call processes entire message
    - Determines if message contains public infrastructure information
-   - Removes transport-only content (bus routes, metro schedules, tram timetables)
-   - Returns `{isRelevant: boolean, normalizedText: string}`
+   - Returns array of categorized messages with rich metadata
+   - Each message includes: categories, relations, geographic scope, addresses, coordinates
    - Irrelevant messages are finalized immediately without geocoding
 
 2. **Extraction Stage** (`ingest/prompts/data-extraction-overpass.md`)
@@ -166,7 +167,7 @@ The pipeline processes messages about public infrastructure disruptions in Sofia
 ```mermaid
 flowchart LR
     A[Raw Text] --> B{Has Precomputed GeoJSON?}
-    B -->|No| C[Filter]
+    B -->|No| C[Categorize - 1 source many messages]
     B -->|Yes| H[Skip to GeoJSON]
     C --> D{Relevant?}
     D -->|No| E[Finalize]
@@ -178,18 +179,25 @@ flowchart LR
 
 **Crawler Integration:**
 
-- Crawlers with `precomputedGeoJson` (sofiyska-voda, toplo-bg, erm-zapad) **skip filtering and extraction**
-- Crawlers without GeoJSON (rayon-oborishte-bg, sofia-bg) **go through full pipeline**
+- Crawlers with `precomputedGeoJson` (sofiyska-voda, toplo-bg, erm-zapad) **skip categorization**
+- Crawlers without GeoJSON (rayon-oborishte-bg, sofia-bg) **go through categorization**
 - Markdown text from crawlers is stored directly via `options.markdownText`
 
 **Field Storage:**
 
 - `text` - Original user/crawler input
-- `messageFilter` - Filter result for debugging (only if filtering was performed)
+- `categorize` - Rich categorization result if categorization was performed
+- `sourceDocumentId` - Links back to source document
 - `extractedData` - Structured data (pins, streets, responsible_entity, markdown_text)
 - `markdownText` - Denormalized from extractedData.markdown_text or crawler option
 - `geoJson` - Final geometry (determines public visibility)
 - `finalizedAt` - Marks processing complete (relevant or irrelevant)
+
+**Database Indexes:**
+
+- `categories` (array-contains) + `finalizedAt` (descending) - Category filtering
+- `relations` (array-contains) + `finalizedAt` (descending) - Relations clustering
+- Deploy via `firebase deploy --only firestore:indexes` before code changes
 
 ### Crawler Development
 

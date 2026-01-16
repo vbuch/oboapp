@@ -3,7 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 /**
  * Process fields for Firestore storage
  * - Converts Date objects to Firestore server timestamps
- * - Stringifies complex objects (extractedData, geoJson, messageFilter)
+ * - Stringifies complex objects (extractedData, geoJson, categorize)
  * - Passes through primitives unchanged
  */
 export function processFieldsForFirestore(
@@ -14,7 +14,7 @@ export function processFieldsForFirestore(
     if (value instanceof Date) {
       processedFields[key] = FieldValue.serverTimestamp();
     } else if (typeof value === "object" && value !== null) {
-      // Stringify objects (extractedData, geoJson, messageFilter)
+      // Stringify objects (extractedData, geoJson, categorize)
       processedFields[key] = JSON.stringify(value);
     } else {
       processedFields[key] = value;

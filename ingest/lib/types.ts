@@ -1,3 +1,5 @@
+import { Category, CategorizedMessage } from "./categorize.schema";
+
 export interface Message {
   id?: string;
   text: string;
@@ -9,11 +11,9 @@ export interface Message {
   finalizedAt?: Date | string;
   source?: string;
   sourceUrl?: string;
+  sourceDocumentId?: string;
   markdownText?: string;
-  messageFilter?: {
-    isRelevant: boolean;
-    normalizedText: string;
-  };
+  categorize?: CategorizedMessage;
 }
 
 export interface Address {

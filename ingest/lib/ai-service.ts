@@ -9,18 +9,6 @@ import {
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || "" });
 
-// Read the message filter prompt template
-let filterSystemInstruction: string;
-try {
-  filterSystemInstruction = readFileSync(
-    join(process.cwd(), "prompts/message-filter.md"),
-    "utf-8"
-  );
-} catch (error) {
-  console.error("Failed to load message filter prompt template:", error);
-  throw new Error("Message filter prompt template file not found");
-}
-
 // Read the message categorization prompt template
 let categorizeSystemInstruction: string;
 try {
@@ -47,81 +35,6 @@ try {
 } catch (error) {
   console.error("Failed to load data extraction prompt template:", error);
   throw new Error("Data extraction prompt template file not found");
-}
-
-export interface FilterResult {
-  isRelevant: boolean;
-  normalizedText: string;
-}
-
-export async function filterMessage(
-  text: string
-): Promise<FilterResult | null> {
-  try {
-    // Validate message
-    if (!text || typeof text !== "string") {
-      console.error("Invalid text parameter for message filtering");
-      return null;
-    }
-
-    // Validate message length
-    if (text.length > 10000) {
-      console.error(
-        "Text is too long for message filtering (max 10000 characters)"
-      );
-      return null;
-    }
-
-    // Validate required environment variable
-    const model = process.env.GOOGLE_AI_MODEL;
-    if (!model) {
-      console.error("GOOGLE_AI_MODEL environment variable is not set");
-      return null;
-    }
-
-    // Make request to Gemini API
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: text,
-      config: {
-        systemInstruction: filterSystemInstruction,
-        responseMimeType: "application/json",
-      },
-    });
-    const responseText = response.text || "";
-
-    // Parse the JSON response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const parsedResponse = JSON.parse(jsonMatch[0]);
-
-        // Validate response structure
-        if (
-          typeof parsedResponse.isRelevant !== "boolean" ||
-          typeof parsedResponse.normalizedText !== "string"
-        ) {
-          console.error("Invalid filter response structure:", parsedResponse);
-          return null;
-        }
-
-        return {
-          isRelevant: parsedResponse.isRelevant,
-          normalizedText: parsedResponse.normalizedText,
-        };
-      } catch (parseError) {
-        console.error("Failed to parse JSON response from AI:", parseError);
-        console.error("Raw JSON that failed to parse:", jsonMatch[0]);
-        console.error("Full AI response:", responseText);
-        return null;
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Error filtering message:", error);
-    return null;
-  }
 }
 
 export async function categorize(
