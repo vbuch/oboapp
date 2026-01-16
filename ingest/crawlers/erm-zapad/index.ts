@@ -186,10 +186,12 @@ function buildSourceDocument(
     datePublished,
     title,
     message,
-    markdownText: message, // Store markdown for display in details view
+    markdownText: message,
     sourceType: SOURCE_TYPE,
     crawledAt: new Date(),
     geoJson: validation.geoJson,
+    categories: ["electricity"],
+    isRelevant: true,
   };
 }
 

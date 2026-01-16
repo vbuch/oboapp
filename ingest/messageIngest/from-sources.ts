@@ -18,6 +18,8 @@ interface SourceDocument {
   crawledAt: Date;
   geoJson?: string | GeoJSONFeatureCollection; // Can be stored as string in Firestore
   markdownText?: string; // Markdown-formatted message for display
+  categories?: string[]; // Categories for precomputed GeoJSON sources
+  isRelevant?: boolean; // Whether source is relevant for precomputed GeoJSON sources
 }
 
 interface IngestOptions {
@@ -92,6 +94,8 @@ async function fetchSources(
       crawledAt: data.crawledAt?.toDate() ?? new Date(),
       geoJson: data.geoJson,
       markdownText: data.markdownText,
+      categories: data.categories,
+      isRelevant: data.isRelevant,
     });
   }
 
@@ -168,6 +172,8 @@ async function ingestSource(
       boundaryFilter: boundaries ?? undefined,
       crawledAt: source.crawledAt,
       markdownText: source.markdownText,
+      categories: source.categories,
+      isRelevant: source.isRelevant,
     }
   );
 

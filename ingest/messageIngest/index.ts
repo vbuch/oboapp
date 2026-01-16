@@ -41,6 +41,14 @@ export interface MessageIngestOptions {
    * Optional markdown-formatted text for display (when crawler produces markdown)
    */
   markdownText?: string;
+  /**
+   * Categories for sources with precomputed GeoJSON (for Firestore indexing)
+   */
+  categories?: string[];
+  /**
+   * Whether the source is relevant (for precomputed GeoJSON sources)
+   */
+  isRelevant?: boolean;
 }
 
 export interface MessageIngestResult {
@@ -166,6 +174,14 @@ async function processPrecomputedGeoJsonMessage(
     messageId,
     sourceDocumentId
   );
+
+  // Store categories and isRelevant for precomputed GeoJSON sources (for Firestore indexes)
+  if (options.categories && options.isRelevant !== undefined) {
+    await updateMessage(storedMessageId, {
+      categories: options.categories,
+      isRelevant: options.isRelevant,
+    });
+  }
 
   const message = await processSingleMessage(
     storedMessageId,
