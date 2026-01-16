@@ -1,4 +1,4 @@
-import { Category, CategorizedMessage } from "./categorize.schema";
+import { CategorizedMessage } from "./categorize.schema";
 
 export interface Message {
   id?: string;
