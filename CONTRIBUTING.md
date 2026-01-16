@@ -113,6 +113,10 @@ service cloud.firestore {
 
 Edit `web/public/firebase-messaging-sw.js` and replace the Firebase config (lines 10-16) with your project's values.
 
+### 11. Deploy Firestore Indexes
+
+**Critical**: The application requires custom Firestore indexes for efficient querying. Follow the complete setup guide in [Firebase Service Account Setup - Firestore Index Deployment](docs/features/firebase-service-account-setup.md#firestore-index-deployment).
+
 ## Google Cloud Setup
 
 Firebase projects are also Google Cloud projects. Use the same project for these APIs.
@@ -208,7 +212,14 @@ npx playwright install chromium
 
 ## Validation
 
-### 1. Run Tests
+### 1. Verify Firestore Indexes
+
+Before running tests or crawlers, ensure all Firestore indexes are enabled:
+
+1. Visit [Firebase Console](https://console.firebase.google.com/) → Firestore → Indexes
+2. Confirm all indexes show "Enabled" status (not "Building")
+
+### 2. Run Tests
 
 Verify setup by running tests in both directories:
 
@@ -222,7 +233,7 @@ cd ../ingest
 npm run test:run
 ```
 
-### 2. Start Development Server
+### 3. Start Development Server
 
 ```bash
 cd web
@@ -231,7 +242,7 @@ npm run dev
 
 Open http://localhost:3000 in your browser. You should see the map interface.
 
-### 3. Test a Crawler (Optional)
+### 4. Test a Crawler (Optional)
 
 Run a crawler in dry-run mode:
 
