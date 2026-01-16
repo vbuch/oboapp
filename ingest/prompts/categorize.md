@@ -76,7 +76,7 @@ out: футболен мач
 
 <single-message>
 A single MEANINGFUL message that makes sense on its own.
-It doesn't lack any infomration that is common to all the messages in the source notification.
+It doesn't lack any information that is common to all the messages in the source notification.
 It doesn't lose any of the semantics of the message.
 There are no typos.
 There are no made-up facts only a meaningful extraction from the bigger hard-to read notification.
