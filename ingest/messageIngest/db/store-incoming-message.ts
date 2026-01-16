@@ -10,7 +10,9 @@ export async function storeIncomingMessage(
   userEmail: string | null,
   source: string = "web-interface",
   sourceUrl?: string,
-  crawledAt?: Date
+  crawledAt?: Date,
+  messageId?: string,
+  sourceDocumentId?: string
 ): Promise<string> {
   const messagesRef = adminDb.collection("messages");
   const docData: any = {
@@ -26,6 +28,16 @@ export async function storeIncomingMessage(
     docData.sourceUrl = sourceUrl;
   }
 
-  const docRef = await messagesRef.add(docData);
-  return docRef.id;
+  if (sourceDocumentId) {
+    docData.sourceDocumentId = sourceDocumentId;
+  }
+
+  // Use deterministic ID if provided, otherwise auto-generate
+  if (messageId) {
+    await messagesRef.doc(messageId).set(docData);
+    return messageId;
+  } else {
+    const docRef = await messagesRef.add(docData);
+    return docRef.id;
+  }
 }

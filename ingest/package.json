@@ -8,6 +8,7 @@
     "crawl": "tsx crawl",
     "ingest": "tsx ingest",
     "notify": "tsx notify",
+    "categorize": "tsx categorize",
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "prebuilt:crawl": "node dist/crawl.js",
     "prebuilt:ingest": "node dist/ingest.js",
@@ -23,7 +24,8 @@
     "firebase-admin": "^13.6.0",
     "playwright": "^1.57.0",
     "proj4": "^2.20.2",
-    "turndown": "^7.2.2"
+    "turndown": "^7.2.2",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -54,7 +54,15 @@ describe("processFieldsForFirestore", () => {
           },
         ],
       },
-      messageFilter: {
+      categorize: {
+        categories: ["water"],
+        relations: [],
+        withSpecificAddress: true,
+        specificAddresses: ["ул. Оборище 15"],
+        coordinates: [],
+        busStops: [],
+        cadastralProperties: [],
+        cityWide: false,
         isRelevant: true,
         normalizedText: "Ремонт на ул. Оборище",
       },
@@ -64,12 +72,12 @@ describe("processFieldsForFirestore", () => {
 
     expect(result.extractedData).toBe(JSON.stringify(fields.extractedData));
     expect(result.geoJson).toBe(JSON.stringify(fields.geoJson));
-    expect(result.messageFilter).toBe(JSON.stringify(fields.messageFilter));
+    expect(result.categorize).toBe(JSON.stringify(fields.categorize));
 
     // Verify we can parse back
     expect(JSON.parse(result.extractedData)).toEqual(fields.extractedData);
     expect(JSON.parse(result.geoJson)).toEqual(fields.geoJson);
-    expect(JSON.parse(result.messageFilter)).toEqual(fields.messageFilter);
+    expect(JSON.parse(result.categorize)).toEqual(fields.categorize);
   });
 
   it("should handle mixed field types", () => {

@@ -184,5 +184,7 @@ export function buildSourceDocument(
     sourceType: SOURCE_TYPE,
     crawledAt: new Date(),
     geoJson,
+    categories: ["water"],
+    isRelevant: true,
   };
 }

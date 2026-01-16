@@ -8,6 +8,7 @@ import {
 } from "firebase/messaging";
 import { app } from "./firebase";
 import { NotificationSubscription } from "./types";
+import type { FirebaseNotificationPayload } from "./types";
 
 let messaging: Messaging | null = null;
 
@@ -131,7 +132,7 @@ export async function subscribeToPushNotifications(
  * Setup foreground message listener
  */
 export function setupForegroundMessageListener(
-  onMessageReceived: (payload: any) => void
+  onMessageReceived: (payload: FirebaseNotificationPayload) => void
 ) {
   if (!messaging) {
     console.error("Firebase Messaging not initialized");

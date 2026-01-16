@@ -74,6 +74,8 @@ export async function crawl(dryRun = false): Promise<void> {
         sourceType: SOURCE_TYPE,
         crawledAt: new Date(),
         geoJson,
+        categories: ["heating"],
+        isRelevant: true,
       };
 
       if (dryRun) {

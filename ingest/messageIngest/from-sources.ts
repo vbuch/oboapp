@@ -18,6 +18,8 @@ interface SourceDocument {
   crawledAt: Date;
   geoJson?: string | GeoJSONFeatureCollection; // Can be stored as string in Firestore
   markdownText?: string; // Markdown-formatted message for display
+  categories?: string[]; // Categories for precomputed GeoJSON sources
+  isRelevant?: boolean; // Whether source is relevant for precomputed GeoJSON sources
 }
 
 interface IngestOptions {
@@ -92,6 +94,8 @@ async function fetchSources(
       crawledAt: data.crawledAt?.toDate() ?? new Date(),
       geoJson: data.geoJson,
       markdownText: data.markdownText,
+      categories: data.categories,
+      isRelevant: data.isRelevant,
     });
   }
 
@@ -104,10 +108,14 @@ async function isAlreadyIngested(
   adminDb: Firestore,
   sourceUrl: string
 ): Promise<boolean> {
-  // Check if a message already exists for this source URL
+  // Import encodeDocumentId to generate consistent source document ID
+  const { encodeDocumentId } = await import("../crawlers/shared/firestore");
+  const sourceDocumentId = encodeDocumentId(sourceUrl);
+
+  // Check if any messages exist with this sourceDocumentId
   const messagesSnapshot = await adminDb
     .collection("messages")
-    .where("sourceUrl", "==", sourceUrl)
+    .where("sourceDocumentId", "==", sourceDocumentId)
     .limit(1)
     .get();
 
@@ -153,7 +161,7 @@ async function ingestSource(
   const { messageIngest } = await import("./index");
 
   // Use the sourceType as the source identifier for messageIngest
-  const message = await messageIngest(
+  const result = await messageIngest(
     source.message,
     source.sourceType,
     SYSTEM_USER_ID,
@@ -164,11 +172,20 @@ async function ingestSource(
       boundaryFilter: boundaries ?? undefined,
       crawledAt: source.crawledAt,
       markdownText: source.markdownText,
+      categories: source.categories,
+      isRelevant: source.isRelevant,
     }
   );
 
   console.log(`\n✅ COMPLETED: ${source.title}`);
-  console.log(`   Message ID: ${message.id}`);
+  console.log(`   Messages created: ${result.messages.length}`);
+  console.log(`   Total categorized: ${result.totalCategorized}`);
+  console.log(
+    `   Relevant: ${result.totalRelevant}, Irrelevant: ${result.totalIrrelevant}`
+  );
+  for (const message of result.messages) {
+    console.log(`   Message ID: ${message.id}`);
+  }
   console.log(`${"=".repeat(80)}\n`);
   return true;
 }

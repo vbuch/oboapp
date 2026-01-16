@@ -1,3 +1,6 @@
+import { CategorizedMessage } from "./categorize.schema";
+import type { Timestamp } from "firebase-admin/firestore";
+
 export interface Message {
   id?: string;
   text: string;
@@ -9,11 +12,13 @@ export interface Message {
   finalizedAt?: Date | string;
   source?: string;
   sourceUrl?: string;
+  sourceDocumentId?: string;
   markdownText?: string;
-  messageFilter?: {
-    isRelevant: boolean;
-    normalizedText: string;
-  };
+  categorize?: CategorizedMessage;
+  // Root-level fields flattened from categorize for Firestore indexes
+  categories?: string[];
+  relations?: string[];
+  isRelevant?: boolean;
 }
 
 export interface Address {
@@ -169,4 +174,117 @@ export interface SourceConfig {
   id: string;
   url: string;
   name: string;
+}
+
+// Firebase Types
+export interface FirestoreTimestamp {
+  _seconds: number;
+  _nanoseconds: number;
+  toDate(): Date;
+}
+
+export type FirestoreValue = FirestoreTimestamp | Timestamp | string | Date;
+
+export interface FirebaseNotificationPayload {
+  notification?: {
+    title?: string;
+    body?: string;
+    icon?: string;
+  };
+  data?: Record<string, string>;
+}
+
+// Overpass API Types
+export interface OverpassElement {
+  type: "node" | "way" | "relation";
+  id: number;
+  lat?: number;
+  lon?: number;
+  geometry?: OverpassGeometry[];
+  tags?: Record<string, string>;
+}
+
+export interface OverpassGeometry {
+  lat: number;
+  lon: number;
+}
+
+export interface OverpassResponse {
+  version: number;
+  generator: string;
+  elements: OverpassElement[];
+}
+
+export interface SnapPoint {
+  lat: number;
+  lng: number;
+  distance: number;
+}
+
+// AI Service Types
+export interface RawPin {
+  address: string;
+  timespans: RawTimespan[];
+}
+
+export interface RawStreet {
+  street: string;
+  from: string;
+  to: string;
+  timespans: RawTimespan[];
+}
+
+export interface RawCadastralProperty {
+  identifier: string;
+  timespans: RawTimespan[];
+}
+
+export interface RawTimespan {
+  start: string;
+  end: string;
+}
+
+export interface RawExtractedData {
+  responsible_entity: string;
+  pins?: RawPin[];
+  streets?: RawStreet[];
+  cadastralProperties?: RawCadastralProperty[];
+  markdown_text?: string;
+}
+
+// Message Processing Types
+export interface MessageProcessingOptions {
+  categorizedMessage?: CategorizedMessage;
+}
+
+export interface CadastralGeometryCollection {
+  features: Array<{
+    geometry: GeoJSONGeometry;
+    properties: Record<string, unknown>;
+  }>;
+}
+
+export interface IngestOptions {
+  boundariesPath?: string;
+  dryRun?: boolean;
+  sourceType?: string;
+  sourceName?: string;
+  limit?: number;
+  since?: Date;
+  until?: Date;
+}
+
+export interface FirestoreDocumentData {
+  text: string;
+  sourceUrl?: string;
+  sourceDocumentId?: string;
+  createdAt: Date;
+  [key: string]: unknown;
+}
+
+// Cadastre Service Types
+export interface CadastreProperty {
+  identifier: string;
+  geometry?: GeoJSONGeometry;
+  [key: string]: unknown;
 }

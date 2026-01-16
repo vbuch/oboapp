@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { NotificationHistoryItem } from "@/lib/types";
+import { NotificationHistoryItem, DeviceNotification } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
 import { convertTimestamp } from "@/lib/firestore-utils";
 
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       // Calculate successful devices count
       const deviceNotifications = data.deviceNotifications || [];
       const successfulDevicesCount = deviceNotifications.filter(
-        (d: any) => d.success
+        (d: DeviceNotification) => d.success
       ).length;
 
       return {

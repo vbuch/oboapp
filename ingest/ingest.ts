@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { verifyEnvSet } from "@/lib/verify-env";
+import type { IngestOptions } from "@/lib/types";
 
 const program = new Command();
 
@@ -52,7 +53,7 @@ Examples:
       // Dynamically import to avoid loading dependencies at parse time
       const { ingest } = await import("./messageIngest/from-sources");
 
-      const ingestOptions: any = {
+      const ingestOptions: IngestOptions = {
         dryRun: options.dryRun,
         sourceType: options.sourceName,
         boundariesPath: options.boundaries,

@@ -2,19 +2,26 @@ import { GoogleGenAI } from "@google/genai";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ExtractedData } from "./types";
+import {
+  CategorizationResponseSchema,
+  CategorizationResult,
+} from "./categorize.schema";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || "" });
 
-// Read the message filter prompt template
-let filterSystemInstruction: string;
+// Read the message categorization prompt template
+let categorizeSystemInstruction: string;
 try {
-  filterSystemInstruction = readFileSync(
-    join(process.cwd(), "prompts/message-filter.md"),
+  categorizeSystemInstruction = readFileSync(
+    join(process.cwd(), "prompts/categorize.md"),
     "utf-8"
   );
 } catch (error) {
-  console.error("Failed to load message filter prompt template:", error);
-  throw new Error("Message filter prompt template file not found");
+  console.error(
+    "Failed to load message categorization prompt template:",
+    error
+  );
+  throw new Error("Message categorization prompt template file not found");
 }
 
 // Read the data extraction prompt template
@@ -30,25 +37,20 @@ try {
   throw new Error("Data extraction prompt template file not found");
 }
 
-export interface FilterResult {
-  isRelevant: boolean;
-  normalizedText: string;
-}
-
-export async function filterMessage(
+export async function categorize(
   text: string
-): Promise<FilterResult | null> {
+): Promise<CategorizationResult | null> {
   try {
     // Validate message
     if (!text || typeof text !== "string") {
-      console.error("Invalid text parameter for message filtering");
+      console.error("Invalid text parameter for message categorization");
       return null;
     }
 
     // Validate message length
     if (text.length > 10000) {
       console.error(
-        "Text is too long for message filtering (max 10000 characters)"
+        "Text is too long for message categorization (max 10000 characters)"
       );
       return null;
     }
@@ -65,42 +67,31 @@ export async function filterMessage(
       model: model,
       contents: text,
       config: {
-        systemInstruction: filterSystemInstruction,
+        systemInstruction: categorizeSystemInstruction,
         responseMimeType: "application/json",
       },
     });
     const responseText = response.text || "";
 
-    // Parse the JSON response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const parsedResponse = JSON.parse(jsonMatch[0]);
+    try {
+      // Parse the JSON response
+      const parsedResponse = JSON.parse(responseText);
 
-        // Validate response structure
-        if (
-          typeof parsedResponse.isRelevant !== "boolean" ||
-          typeof parsedResponse.normalizedText !== "string"
-        ) {
-          console.error("Invalid filter response structure:", parsedResponse);
-          return null;
-        }
+      // Strict validation using Zod schema - fails fast on any validation error
+      const validatedResponse =
+        CategorizationResponseSchema.parse(parsedResponse);
 
-        return {
-          isRelevant: parsedResponse.isRelevant,
-          normalizedText: parsedResponse.normalizedText,
-        };
-      } catch (parseError) {
-        console.error("Failed to parse JSON response from AI:", parseError);
-        console.error("Raw JSON that failed to parse:", jsonMatch[0]);
-        console.error("Full AI response:", responseText);
-        return null;
-      }
+      return validatedResponse;
+    } catch (parseError) {
+      console.error(
+        "Failed to parse or validate JSON response from AI:",
+        parseError
+      );
+      console.error("Full AI response:", responseText);
+      return null;
     }
-
-    return null;
   } catch (error) {
-    console.error("Error filtering message:", error);
+    console.error("Error categorizing message:", error);
     return null;
   }
 }

@@ -240,7 +240,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updates: any = {
+    const updates: Partial<Interest> = {
       updatedAt: new Date(),
     };
 
