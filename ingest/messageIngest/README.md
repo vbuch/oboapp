@@ -1,71 +1,67 @@
 # Message Ingest Pipeline
 
-This directory contains the message ingest pipeline that filters, extracts, geocodes, and generates GeoJSON data from messages about public infrastructure disruptions in Sofia, Bulgaria.
-
-## Usage
-
-```typescript
-import { messageIngest } from "@/lib/messageIngest";
-
-const message = await messageIngest(text, "web-interface", userId, userEmail);
-
-// If you already have GeoJSON (e.g., from a crawler), provide it to skip filtering/AI/geocoding:
-const precomputed = await fetchGeoJsonFromSource();
-await messageIngest(text, "sofiyska-voda", userId, userEmail, {
-  precomputedGeoJson: precomputed,
-  markdownText: "formatted text",
-});
-```
+This directory contains the message ingest pipeline that categorizes, extracts, geocodes, and generates GeoJSON data from messages about public infrastructure disruptions in Sofia, Bulgaria.
 
 ## Pipeline Flow
 
 ```mermaid
 flowchart TD
-    A[Input: Text Message] --> B[Store Incoming Message]
-    B --> C{Has Precomputed GeoJSON?}
+    A[Input: Text Message] --> B{Has Precomputed GeoJSON?}
 
-    C -->|No| D[Filter & Normalize Message]
-    C -->|Yes| M[Store Markdown Text]
+    B -->|Yes| C[Create Single Message]
+    C --> D[Store with Deterministic ID]
+    D --> E[Process Single Message]
 
-    D --> E{Is Relevant?}
-    E -->|No| F[Store Filter Result]
-    F --> G[Mark as Finalized]
-    G --> Z[Return Early]
+    B -->|No| F[AI Categorization]
+    F --> G[Multiple Categorized Messages]
+    G --> H[For Each Categorized Message]
 
-    E -->|Yes| H[Extract Structured Data]
-    H --> I[Store Extracted Data & Markdown]
-    I --> J{Extraction Success?}
+    H --> I[Generate Message ID: sourceId-index]
+    I --> J[Store Categorization Result]
+    J --> K{Is Relevant?}
 
-    J -->|No| K[Mark as Finalized]
-    K --> Z2[Return Early]
+    K -->|No| L[Mark as Finalized]
+    L --> M[Build Basic Response]
 
-    J -->|Yes| L[Geocode Addresses]
-    L --> N[Filter Outlier Coordinates]
-    N --> O[Store Geocoding Results]
-    O --> P[Convert to GeoJSON]
+    K -->|Yes| N[Extract Structured Data]
+    N --> O[Store Extracted Data & Markdown]
+    O --> P{Extraction Success?}
 
-    M --> P
+    P -->|No| Q[Mark as Finalized]
+    Q --> R[Build Basic Response]
 
-    P --> Q{Boundary Filter?}
-    Q -->|Yes| R[Filter by Boundaries]
-    Q -->|No| S[Store GeoJSON]
+    P -->|Yes| S[Geocode Addresses]
+    S --> T[Filter Outlier Coordinates]
+    T --> U[Store Geocoding Results]
+    U --> V[Convert to GeoJSON]
 
-    R --> T{Has Features?}
-    T -->|No| U[Error: Outside Bounds]
-    T -->|Yes| S
+    E --> V
+    V --> W{Boundary Filter?}
+    W -->|Yes| X[Filter by Boundaries]
+    W -->|No| Y[Store GeoJSON]
 
-    S --> V[Mark as Finalized]
-    V --> W[Build Response]
-    W --> X[Output: Complete Message]
+    X --> Z{Has Features?}
+    Z -->|No| AA[Error: Outside Bounds]
+    Z -->|Yes| Y
+
+    Y --> BB[Mark as Finalized]
+    BB --> CC[Build Complete Response]
+
+    M --> DD[Return All Messages]
+    R --> DD
+    CC --> DD
 ```
 
 ## Pipeline Stages
 
-### Filtering Stage (AI-powered)
+### Categorization Stage (AI-powered)
 
-- **Filter Message** - Determine if message is relevant to public infrastructure
-- **Normalize Text** - Remove transport-only details (bus routes, metro schedules)
-- **Store Filter Result** - Save filter decision and normalized text for debugging
+- **AI Categorization** - Single text input → multiple categorized messages with rich metadata
+- **Categories** - Infrastructure types: water, heating, traffic, construction, etc.
+- **Relations** - Extracted relationship terms for message clustering
+- **Geographic Scope** - City-wide vs. specific addresses, coordinates, bus stops, УПИ properties
+- **Relevance Decision** - Each categorized message marked as relevant/irrelevant
+- **Normalized Text** - Clean text for downstream processing
 - **Early Exit** - If irrelevant, finalize and skip geocoding
 
 ### Extraction Stage (AI-powered)
@@ -93,6 +89,7 @@ See [Geocoding System Overview](../../docs/features/geocoding-overview.md) for s
 
 ### Precomputed GeoJSON Path
 
-- Crawlers with ready GeoJSON (sofiyska-voda, toplo-bg, erm-zapad) skip filtering and extraction
+- Crawlers with ready GeoJSON (sofiyska-voda, toplo-bg, erm-zapad) skip categorization
+- Single message created per source (maintains 1:1 for precomputed data)
 - Markdown text stored directly if provided
 - Proceed to boundary filtering and finalization
