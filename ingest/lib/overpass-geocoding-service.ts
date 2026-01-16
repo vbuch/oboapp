@@ -1,9 +1,7 @@
 import {
   Address,
   OverpassResponse,
-  OverpassElement,
   OverpassGeometry,
-  SnapPoint,
 } from "./types";
 import * as turf from "@turf/turf";
 import type { Feature, MultiLineString, Position } from "geojson";
