@@ -162,3 +162,13 @@ export interface SourceConfig {
   url: string;
   name: string;
 }
+
+// Firebase Types
+export interface FirebaseNotificationPayload {
+  notification?: {
+    title?: string;
+    body?: string;
+    icon?: string;
+  };
+  data?: Record<string, string>;
+}

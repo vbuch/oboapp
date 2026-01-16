@@ -48,7 +48,7 @@ describe("useInterestManagement", () => {
   let deleteInterest: Mock<(id: string) => Promise<void>>;
   let originalInnerWidth: number;
   let originalInnerHeight: number;
-  let mockAlert: (message?: any) => void;
+  let mockAlert: typeof globalThis.alert;
   let mockReload: () => void;
 
   beforeEach(() => {

@@ -1,4 +1,10 @@
-import { Address } from "./types";
+import {
+  Address,
+  OverpassResponse,
+  OverpassElement,
+  OverpassGeometry,
+  SnapPoint,
+} from "./types";
 import * as turf from "@turf/turf";
 import type { Feature, MultiLineString, Position } from "geojson";
 import {
@@ -87,7 +93,7 @@ async function getStreetGeometryFromOverpass(
     }
 
     // Try each Overpass instance until one works
-    let responseData: any = null;
+    let responseData: OverpassResponse | null = null;
     let lastError: Error | null = null;
 
     for (const instance of OVERPASS_INSTANCES) {
@@ -129,7 +135,11 @@ async function getStreetGeometryFromOverpass(
     let totalPoints = 0;
 
     for (const element of responseData.elements) {
-      if (element.type === "node") {
+      if (
+        element.type === "node" &&
+        element.lat !== undefined &&
+        element.lon !== undefined
+      ) {
         // Square represented as a point - create a small box around it
         const lat = element.lat;
         const lon = element.lon;
@@ -145,10 +155,12 @@ async function getStreetGeometryFromOverpass(
         element.geometry.length >= 2
       ) {
         // Round coordinates to 6 decimal places (≈ 0.1m accuracy)
-        const coordinates: Position[] = element.geometry.map((point: any) => [
-          Math.round(point.lon * 1000000) / 1000000,
-          Math.round(point.lat * 1000000) / 1000000,
-        ]);
+        const coordinates: Position[] = element.geometry.map(
+          (point: OverpassGeometry) => [
+            Math.round(point.lon * 1000000) / 1000000,
+            Math.round(point.lat * 1000000) / 1000000,
+          ]
+        );
         lineStrings.push(coordinates);
         totalPoints += coordinates.length;
       }
@@ -475,7 +487,7 @@ export async function getStreetSectionGeometry(
       // Find nearest unused segment to current point
       let nearestSegmentIdx = -1;
       let nearestDist = Infinity;
-      let nearestSnap: any = null;
+      let nearestSnap: unknown = null;
 
       for (let i = 0; i < allSegments.length; i++) {
         if (usedSegments.has(i)) continue;
