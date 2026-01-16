@@ -298,8 +298,13 @@ async function storeCategorizedMessage(
     sourceDocumentId
   );
 
+  // Store categorization data - both nested object and flattened fields for Firestore indexes
   await updateMessage(storedMessageId, {
     categorize: categorizedMessage,
+    // Flatten fields to root level for Firestore index queries
+    categories: categorizedMessage.categories,
+    relations: categorizedMessage.relations,
+    isRelevant: categorizedMessage.isRelevant,
   });
 
   return storedMessageId;
@@ -313,7 +318,10 @@ async function handleIrrelevantMessage(
   text: string
 ): Promise<Message> {
   console.log("ℹ️  Message filtered as irrelevant, marking as finalized");
-  await updateMessage(messageId, { finalizedAt: new Date() });
+  await updateMessage(messageId, {
+    finalizedAt: new Date(),
+    isRelevant: false,
+  });
 
   const { buildMessageResponse } = await import("./build-response");
   return await buildMessageResponse(messageId, text, [], null, null);

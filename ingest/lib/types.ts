@@ -14,6 +14,10 @@ export interface Message {
   sourceDocumentId?: string;
   markdownText?: string;
   categorize?: CategorizedMessage;
+  // Root-level fields flattened from categorize for Firestore indexes
+  categories?: string[];
+  relations?: string[];
+  isRelevant?: boolean;
 }
 
 export interface Address {
