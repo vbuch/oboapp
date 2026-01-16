@@ -2,6 +2,10 @@ import { GoogleGenAI } from "@google/genai";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ExtractedData } from "./types";
+import {
+  CategorizationResponseSchema,
+  CategorizationResult,
+} from "./categorize.schema";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || "" });
 
@@ -120,7 +124,9 @@ export async function filterMessage(
   }
 }
 
-export async function categorize(text: string): Promise<FilterResult | null> {
+export async function categorize(
+  text: string
+): Promise<CategorizationResult | null> {
   try {
     // Validate message
     if (!text || typeof text !== "string") {
@@ -158,16 +164,21 @@ export async function categorize(text: string): Promise<FilterResult | null> {
       // Parse the JSON response
       const parsedResponse = JSON.parse(responseText);
 
-      // Validate response structure
-      // TODO: Need to iterate over each item an verify.
-      return parsedResponse;
+      // Strict validation using Zod schema - fails fast on any validation error
+      const validatedResponse =
+        CategorizationResponseSchema.parse(parsedResponse);
+
+      return validatedResponse;
     } catch (parseError) {
-      console.error("Failed to parse JSON response from AI:", parseError);
+      console.error(
+        "Failed to parse or validate JSON response from AI:",
+        parseError
+      );
       console.error("Full AI response:", responseText);
       return null;
     }
   } catch (error) {
-    console.error("Error filtering message:", error);
+    console.error("Error categorizing message:", error);
     return null;
   }
 }
