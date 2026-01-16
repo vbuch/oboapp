@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Messages - public read (for map), no direct writes allowed
+    // All writes go through API routes with Admin SDK
+    match /messages/{messageId} {
+      allow read: if true;
+      allow write: if false;  // Only via Admin SDK (API routes)
+    }
+    
+    // Users collection - no direct access
+    // All access via API routes with Admin SDK  
+    match /users/{userId} {
+      allow read, write: if false;
+      
+      // User sub-collections also blocked
+      match /interests/{interestId} {
+        allow read, write: if false;
+      }
+      
+      match /notifications/{notificationId} {
+        allow read, write: if false;
+      }
+      
+      match /subscriptions/{subscriptionId} {
+        allow read, write: if false;
+      }
+    }
+    
+    // Top-level collections (used by new API structure)
+    match /interests/{interestId} {
+      allow read, write: if false;  // Only via Admin SDK
+    }
+    
+    match /notificationSubscriptions/{subscriptionId} {
+      allow read, write: if false;  // Only via Admin SDK
+    }
+    
+    match /notificationMatches/{matchId} {
+      allow read, write: if false;  // Only via Admin SDK
+    }
+    
+    // Sources - no direct access
+    match /sources/{sourceId} {
+      allow read, write: if false;  // Only via Admin SDK
+    }
+  }
+}

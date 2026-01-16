@@ -34,11 +34,11 @@ Convert the downloaded JSON key to a single-line string for the environment vari
 FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"your-project",...}
 ```
 
-## Firestore Index Deployment
+## Firestore Setup & Deployment
 
 ### Overview
 
-The application requires custom Firestore indexes for efficient querying of categorized messages. These indexes support features like category-based filtering and relations clustering.
+The application requires custom Firestore indexes and security rules. The project includes pre-configured `firebase.json`, `firestore.rules`, and `firestore.indexes.json` files in the `ingest/` directory, eliminating the need for manual Firebase initialization.
 
 ### Required Indexes
 
@@ -46,12 +46,14 @@ The project includes a [`firestore.indexes.json`](./firestore.indexes.json) file
 
 ### Deployment Process
 
-**Important**: Deploy indexes **before** deploying code changes to prevent query failures.
+**Important**: Deploy indexes and rules **before** deploying code changes to prevent query failures.
 
-1. `npm install -g firebase-tools`
-2. `firebase login`
-3. `firebase init firestore`
-4. `firebase deploy --only firestore:indexes`
+1. Install Firebase CLI: `npm install -g firebase-tools`
+2. Login to Firebase: `firebase login`
+3. Navigate to ingest directory: `cd ingest`
+4. Deploy Firestore configuration: `firebase deploy --only firestore`
+   - This deploys both indexes and security rules automatically
+   - Alternative: `firebase deploy --only firestore:indexes,firestore:rules`
 5. **Monitor deployment**:
    - Visit [Firebase Console](https://console.firebase.google.com/) → Firestore → Indexes
    - Wait for all indexes to show "Enabled" status (can take several minutes)
