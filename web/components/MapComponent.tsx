@@ -173,16 +173,25 @@ export default function MapComponent({
       gestureHandling: "greedy" as google.maps.MapOptions["gestureHandling"],
     } as const;
 
+    // Only include center if map hasn't loaded yet (mapInstance is null)
+    // This prevents re-centering when target mode changes
+    const optionsWithConditionalCenter = mapInstance
+      ? (() => {
+          const { center, ...optionsWithoutCenter } = baseOptions;
+          return optionsWithoutCenter;
+        })()
+      : baseOptions;
+
     if (targetMode?.active) {
       return {
-        ...baseOptions,
+        ...optionsWithConditionalCenter,
         scrollwheel: true,
         disableDoubleClickZoom: false,
       };
     }
 
-    return baseOptions;
-  }, [targetMode?.active, mapOptions]);
+    return optionsWithConditionalCenter;
+  }, [targetMode?.active, mapOptions, mapInstance]);
 
   const handleCenterChanged = useCallback(() => {
     if (!mapRef.current) return;

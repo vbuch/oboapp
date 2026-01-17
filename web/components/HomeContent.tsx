@@ -44,8 +44,13 @@ export default function HomeContent() {
   const { messages, isLoading, error, handleBoundsChanged } = useMessages();
 
   // Map navigation and centering
-  const { initialMapCenter, centerMapFn, handleMapReady, handleAddressClick } =
-    useMapNavigation();
+  const {
+    initialMapCenter,
+    centerMapFn,
+    mapInstance,
+    handleMapReady,
+    handleAddressClick,
+  } = useMapNavigation();
 
   // Interest/zone management
   const {
@@ -61,6 +66,7 @@ export default function HomeContent() {
     handleCloseInterestMenu,
   } = useInterestManagement(
     centerMapFn,
+    mapInstance,
     addInterest,
     updateInterest,
     deleteInterest,

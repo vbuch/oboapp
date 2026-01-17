@@ -24,6 +24,7 @@ export function useMapNavigation() {
     lng: number;
   } | null>(null);
   const [centerMapFn, setCenterMapFn] = useState<CenterMapFn | null>(null);
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const hasProcessedUrlRef = useRef(false);
   const searchParams = useSearchParams();
 
@@ -53,8 +54,9 @@ export function useMapNavigation() {
 
   // Handle map ready - receive centerMap function and map instance
   const handleMapReady = useCallback(
-    (centerMap: CenterMapFn, _map: google.maps.Map | null) => {
+    (centerMap: CenterMapFn, map: google.maps.Map | null) => {
       setCenterMapFn(() => centerMap);
+      setMapInstance(map);
     },
     [],
   );
@@ -72,6 +74,7 @@ export function useMapNavigation() {
   return {
     initialMapCenter,
     centerMapFn,
+    mapInstance,
     handleMapReady,
     handleAddressClick,
   };

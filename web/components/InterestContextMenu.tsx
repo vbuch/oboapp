@@ -29,7 +29,6 @@ export default function InterestContextMenu({
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
-          transform: "translate(-50%, -50%)",
         }}
       >
         <button
