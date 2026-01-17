@@ -1,6 +1,6 @@
 // Google Analytics utility functions
 
-import { debounce } from "./debounce";
+import { debounce, type DebouncedFunction } from "./debounce";
 
 // Event names and their parameters
 export type AnalyticsEvent =
@@ -202,4 +202,5 @@ export function trackEvent<T extends AnalyticsEvent>(event: T): void {
 }
 
 // Create a debounced version of trackEvent for high-frequency events
-export const trackEventDebounced = debounce(trackEvent, 300);
+export const trackEventDebounced: DebouncedFunction<typeof trackEvent> =
+  debounce(trackEvent, 300);

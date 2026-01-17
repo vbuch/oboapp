@@ -58,4 +58,42 @@ describe("debounce", () => {
     expect(callback).toHaveBeenCalledTimes(1);
     expect(callback).toHaveBeenCalledWith("third");
   });
+
+  it("should cancel pending executions when cancel is called", () => {
+    const callback = vi.fn();
+    const debounced = debounce(callback, 300);
+
+    debounced("test");
+    expect(callback).not.toHaveBeenCalled();
+
+    debounced.cancel();
+    vi.advanceTimersByTime(300);
+
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it("should allow new executions after cancel", () => {
+    const callback = vi.fn();
+    const debounced = debounce(callback, 300);
+
+    debounced("first");
+    debounced.cancel();
+    debounced("second");
+    vi.advanceTimersByTime(300);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith("second");
+  });
+
+  it("should handle multiple cancel calls gracefully", () => {
+    const callback = vi.fn();
+    const debounced = debounce(callback, 300);
+
+    debounced("test");
+    debounced.cancel();
+    debounced.cancel(); // Should not throw
+    vi.advanceTimersByTime(300);
+
+    expect(callback).not.toHaveBeenCalled();
+  });
 });
