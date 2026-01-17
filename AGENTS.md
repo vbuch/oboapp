@@ -72,6 +72,7 @@ If you identify a recurring pattern or developer preference:
 
 - **Strict Mode:** No implicit `any`.
 - **Imports:** Prefer named exports.
+- **No Barrel Files:** Avoid `index.ts` files that re-export other modules. Use direct imports instead (e.g., `import Button from "@/components/Button"` not `import { Button } from "@/components"`).
 
 ### Tailwind Theme System
 
