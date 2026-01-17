@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-  useEffect,
-} from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { GoogleMap } from "@react-google-maps/api";
 import { Message, Interest } from "@/lib/types";
 import { SOFIA_BOUNDS } from "@/lib/bounds-utils";
@@ -114,9 +108,6 @@ export default function MapComponent({
   const latestCenterRef = useRef(SOFIA_CENTER);
   const [currentZoom, setCurrentZoom] = useState<number>(14);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
-  const [preservedCenter, setPreservedCenter] = useState(
-    initialCenter || SOFIA_CENTER,
-  );
   const mapOptions: google.maps.MapOptions = useMemo(
     () => ({
       zoom: 14,
@@ -135,16 +126,6 @@ export default function MapComponent({
     }),
     [initialCenter],
   );
-
-  // Update preserved center when map center changes
-  useEffect(() => {
-    if (mapRef.current) {
-      const currentCenter = latestCenterRef.current;
-      if (currentCenter) {
-        setPreservedCenter(currentCenter);
-      }
-    }
-  }, [mapInstance]); // Trigger when map loads
 
   const centerMap = useCallback(
     (
@@ -188,7 +169,6 @@ export default function MapComponent({
   const dynamicMapOptions = useMemo(() => {
     const baseOptions = {
       ...mapOptions,
-      center: preservedCenter,
       disableDefaultUI: true,
       gestureHandling: "greedy" as google.maps.MapOptions["gestureHandling"],
     } as const;
@@ -202,7 +182,7 @@ export default function MapComponent({
     }
 
     return baseOptions;
-  }, [targetMode?.active, mapOptions, preservedCenter]);
+  }, [targetMode?.active, mapOptions]);
 
   const handleCenterChanged = useCallback(() => {
     if (!mapRef.current) return;
