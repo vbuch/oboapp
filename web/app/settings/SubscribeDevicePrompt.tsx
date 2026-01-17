@@ -18,11 +18,13 @@ export default function SubscribeDevicePrompt({
   onSubscribe,
   hasAnySubscriptions,
 }: SubscribeDevicePromptProps) {
-  const [platformInfo, setPlatformInfo] = useState<PlatformInfo | null>(null);
-
-  useEffect(() => {
-    setPlatformInfo(getPlatformInfo());
-  }, []);
+  const [platformInfo, setPlatformInfo] = useState<PlatformInfo | null>(() => {
+    // Only run on client side
+    if (typeof window !== "undefined") {
+      return getPlatformInfo();
+    }
+    return null;
+  });
 
   // Don't show anything during SSR
   if (!platformInfo) {
@@ -46,12 +48,13 @@ export default function SubscribeDevicePrompt({
         </div>
       )}
 
-      {!platformInfo.supportsNotifications && !platformInfo.requiresPWAInstall && (
-        <div className="mb-3 p-3 bg-error-light border border-error-border rounded text-sm text-error">
-          <p className="font-semibold mb-1">⚠️ Известията не са поддържани</p>
-          <p>{instructions}</p>
-        </div>
-      )}
+      {!platformInfo.supportsNotifications &&
+        !platformInfo.requiresPWAInstall && (
+          <div className="mb-3 p-3 bg-error-light border border-error-border rounded text-sm text-error">
+            <p className="font-semibold mb-1">⚠️ Известията не са поддържани</p>
+            <p>{instructions}</p>
+          </div>
+        )}
 
       {platformInfo.supportsNotifications && (
         <button

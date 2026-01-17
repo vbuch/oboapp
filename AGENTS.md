@@ -74,6 +74,16 @@ If you identify a recurring pattern or developer preference:
 - **Imports:** Prefer named exports.
 - **No Barrel Files:** Avoid `index.ts` files that re-export other modules. Use direct imports instead (e.g., `import Button from "@/components/Button"` not `import { Button } from "@/components"`).
 
+### ESLint & Code Quality
+
+**CRITICAL: NEVER use `eslint-disable` comments.**
+
+- ESLint rules exist for good reasons (performance, bugs, maintainability)
+- `eslint-disable` masks problems instead of fixing them
+- Always fix the underlying issue, never suppress the warning
+- If a rule seems wrong for the entire project, configure it in `eslint.config.mjs`
+- **Exception:** Only disable rules in generated code or vendor files you cannot modify
+
 ### Tailwind Theme System
 
 **Always use theme colors from `lib/colors.ts` - never hardcode colors.**
@@ -139,6 +149,10 @@ import { buttonStyles, buttonSizes, borderRadius } from "@/lib/theme";
 - Import from `lib/colors.ts`: `opacity`, `borderRadius`
 - Use for consistent spacing and transparency across the app
 
+### Adding dependencies
+
+When adding npm dependencies always prefer running `npm install` over directly editing `package.json`.
+
 ---
 
 ## 3. Domain Guidelines
@@ -150,7 +164,6 @@ The pipeline processes messages about public infrastructure disruptions in Sofia
 **Two-Stage LLM Processing:**
 
 1. **Categorization Stage** (`ingest/lib/ai-service.ts` + `ingest/prompts/categorize.md`)
-
    - Single AI call processes entire message
    - Determines if message contains public infrastructure information
    - Returns array of categorized messages with rich metadata

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { trackEvent } from "@/lib/analytics";
 
@@ -62,9 +63,11 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
         <div className="px-6 py-4 border-b border-neutral-border">
           <div className="flex items-center gap-3 mb-2">
             {user.photoURL && (
-              <img
+              <Image
                 src={user.photoURL}
                 alt={user.displayName || "Потребител"}
+                width={40}
+                height={40}
                 className="w-12 h-12 rounded-full"
               />
             )}

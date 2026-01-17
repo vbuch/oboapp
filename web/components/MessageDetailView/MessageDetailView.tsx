@@ -23,9 +23,6 @@ export default function MessageDetailView({
   onClose,
   onAddressClick,
 }: Readonly<MessageDetailViewProps>) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [shouldRender, setShouldRender] = useState(false);
-
   // Create a wrapper for drag-to-close that tracks the event
   const handleDragClose = () => {
     if (message) {
@@ -46,16 +43,21 @@ export default function MessageDetailView({
   });
 
   // Handle animation states
+  const [isVisible, setIsVisible] = useState(() => Boolean(message));
+
+  // Handle visibility animation only when message appears
   useEffect(() => {
     if (message) {
-      setShouldRender(true);
-      requestAnimationFrame(() => setIsVisible(true));
-    } else {
-      setIsVisible(false);
-      const timer = setTimeout(() => setShouldRender(false), 300);
-      return () => clearTimeout(timer);
+      // Use requestAnimationFrame to ensure DOM is ready for animation
+      const frame = requestAnimationFrame(() => setIsVisible(true));
+      return () => cancelAnimationFrame(frame);
     }
-  }, [message]);
+  }, [message, setIsVisible]);
+
+  // Reset visibility when message changes to null (outside of effect)
+  if (!message && isVisible) {
+    setIsVisible(false);
+  }
 
   // Close on ESC key
   useEffect(() => {
@@ -76,7 +78,6 @@ export default function MessageDetailView({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [message, onClose]);
 
-  if (!shouldRender) return null;
   if (!message) return null;
 
   const formatDate = (date: Date | string) => {

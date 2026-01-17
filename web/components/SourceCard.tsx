@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { trackEvent } from "@/lib/analytics";
 import { SourceConfig } from "@/lib/types";
 
@@ -46,9 +47,11 @@ export default function SourceCard({ source }: SourceCardProps) {
               </svg>
             </div>
           ) : (
-            <img
+            <Image
               src={logoPath}
               alt={source.name}
+              width={128}
+              height={128}
               className="w-32 h-32 object-contain rounded-lg"
               onError={() => setLogoError(true)}
             />

@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
   useMemo,
+  useCallback,
 } from "react";
 import {
   User,
@@ -43,7 +44,7 @@ export function AuthProvider({
     return unsubscribe;
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
@@ -51,9 +52,9 @@ export function AuthProvider({
       console.error("Error signing in with Google:", error);
       throw error;
     }
-  };
+  }, []);
 
-  const reauthenticateWithGoogle = async () => {
+  const reauthenticateWithGoogle = useCallback(async () => {
     if (!user) {
       throw new Error("No user to reauthenticate");
     }
@@ -65,17 +66,16 @@ export function AuthProvider({
       console.error("Error reauthenticating with Google:", error);
       throw error;
     }
-  };
+  }, [user]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       // Unsubscribe from push notifications before signing out
       if (user) {
         try {
           const idToken = await user.getIdToken();
-          const { unsubscribeOnSignOut } = await import(
-            "./notification-service"
-          );
+          const { unsubscribeOnSignOut } =
+            await import("./notification-service");
           await unsubscribeOnSignOut(user.uid, idToken);
         } catch (notifError) {
           // Don't block sign-out if notification cleanup fails
@@ -88,7 +88,7 @@ export function AuthProvider({
       console.error("Error signing out:", error);
       throw error;
     }
-  };
+  }, [user]);
 
   const value = useMemo(
     () => ({
@@ -98,7 +98,7 @@ export function AuthProvider({
       reauthenticateWithGoogle,
       signOut,
     }),
-    [user, loading]
+    [user, loading, signInWithGoogle, reauthenticateWithGoogle, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
