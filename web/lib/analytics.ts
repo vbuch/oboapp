@@ -28,8 +28,6 @@ export type AnalyticsEvent =
       name: "notification_permission_declined";
       params: { zones_count?: number };
     }
-  | { name: "blocked_notifications_login_clicked"; params: {} }
-  | { name: "blocked_notifications_dismissed"; params: {} }
   // Geolocation
   | { name: "geolocation_prompt_shown"; params: {} }
   | { name: "geolocation_prompt_accepted"; params: {} }
@@ -96,7 +94,7 @@ declare global {
     gtag?: (
       command: "config" | "event" | "js" | "consent",
       targetId: string | Date,
-      config?: Record<string, unknown>
+      config?: Record<string, unknown>,
     ) => void;
   }
 }

@@ -9,11 +9,11 @@ interface PromptCardProps {
   readonly title: string;
   readonly description: string;
   readonly note?: string;
-  readonly primaryButton: {
+  readonly primaryButton?: {
     readonly text: string;
     readonly onClick: () => void;
   };
-  readonly secondaryButton: {
+  readonly secondaryButton?: {
     readonly text: string;
     readonly onClick: () => void;
   };
@@ -35,20 +35,26 @@ export default function PromptCard({
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
           <p className="text-sm text-gray-600 mb-4">{description}</p>
           {note && <p className="text-xs text-gray-500 mb-4">{note}</p>}
-          <div className="flex gap-3">
-            <button
-              onClick={secondaryButton.onClick}
-              className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.secondary} ${borderRadius.sm}`}
-            >
-              {secondaryButton.text}
-            </button>
-            <button
-              onClick={primaryButton.onClick}
-              className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.primary} ${borderRadius.sm}`}
-            >
-              {primaryButton.text}
-            </button>
-          </div>
+          {(primaryButton || secondaryButton) && (
+            <div className="flex gap-3">
+              {secondaryButton && (
+                <button
+                  onClick={secondaryButton.onClick}
+                  className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.secondary} ${borderRadius.sm}`}
+                >
+                  {secondaryButton.text}
+                </button>
+              )}
+              {primaryButton && (
+                <button
+                  onClick={primaryButton.onClick}
+                  className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.primary} ${borderRadius.sm}`}
+                >
+                  {primaryButton.text}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -50,7 +50,7 @@ export default function OnboardingPrompt({
       );
 
     case "blocked":
-      return <BlockedNotificationsPrompt onDismiss={onDismiss} />;
+      return <BlockedNotificationsPrompt />;
 
     case "loginPrompt":
       return <LoginPrompt onDismiss={onDismiss} />;

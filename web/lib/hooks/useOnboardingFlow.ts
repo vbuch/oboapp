@@ -134,7 +134,6 @@ export function computeStateFromContext(
 /** States that can be dismissed to idle */
 const DISMISSIBLE_STATES: ReadonlySet<OnboardingState> = new Set([
   "notificationPrompt",
-  "blocked",
   "loginPrompt",
   "zoneCreation",
 ]);

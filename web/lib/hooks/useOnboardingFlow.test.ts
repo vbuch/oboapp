@@ -211,7 +211,7 @@ describe("onboardingReducer", () => {
   });
 
   describe("DISMISS action", () => {
-    it.each(["notificationPrompt", "blocked", "loginPrompt", "zoneCreation"])(
+    it.each(["notificationPrompt", "loginPrompt", "zoneCreation"])(
       "transitions from %s to idle",
       (fromState) => {
         const initialState = createInitialState(fromState);
@@ -222,6 +222,15 @@ describe("onboardingReducer", () => {
         expect(result.state).toBe("idle");
       },
     );
+
+    it("ignores action from blocked state (blocked is not dismissible)", () => {
+      const initialState = createInitialState("blocked");
+      const action: OnboardingAction = { type: "DISMISS" };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("blocked");
+    });
 
     it("ignores action from complete state", () => {
       const initialState = createInitialState("complete");

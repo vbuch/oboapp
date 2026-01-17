@@ -38,7 +38,6 @@ stateDiagram-v2
 
     blocked --> zoneCreation : RE_EVALUATE [user logged in, zones=0]
     blocked --> complete : RE_EVALUATE [user, zones>0, permission=granted]
-    blocked --> idle : DISMISS
 
     loginPrompt --> idle : DISMISS
     loginPrompt --> zoneCreation : RE_EVALUATE [user, zones=0]
@@ -74,10 +73,12 @@ stateDiagram-v2
 
 ## Actions
 
-| Action              | Description                                | Valid From           |
-| ------------------- | ------------------------------------------ | -------------------- |
-| `LOADED`            | Initial load with context                  | `loading`            |
-| `PERMISSION_RESULT` | Browser permission result                  | `notificationPrompt` |
-| `DISMISS`           | User dismissed current prompt              | Most states          |
-| `RESTART`           | Re-enter flow from idle                    | `idle`               |
-| `RE_EVALUATE`       | External state changed (user, zones, etc.) | All except `idle`    |
+| Action              | Description                                | Valid From                                          |
+| ------------------- | ------------------------------------------ | --------------------------------------------------- |
+| `LOADED`            | Initial load with context                  | `loading`                                           |
+| `PERMISSION_RESULT` | Browser permission result                  | `notificationPrompt`                                |
+| `DISMISS`           | User dismissed current prompt              | `notificationPrompt`, `loginPrompt`, `zoneCreation` |
+| `RESTART`           | Re-enter flow from idle                    | `idle`                                              |
+| `RE_EVALUATE`       | External state changed (user, zones, etc.) | All except `idle`                                   |
+
+> **Note:** The `blocked` state has no user actions. Users can only exit via `RE_EVALUATE` when they enable notifications in browser settings.
