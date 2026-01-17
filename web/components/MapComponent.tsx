@@ -175,11 +175,9 @@ export default function MapComponent({
 
     // Only include center if map hasn't loaded yet (mapInstance is null)
     // This prevents re-centering when target mode changes
+    const { center, ...optionsWithoutCenter } = baseOptions;
     const optionsWithConditionalCenter = mapInstance
-      ? (() => {
-          const { center, ...optionsWithoutCenter } = baseOptions;
-          return optionsWithoutCenter;
-        })()
+      ? optionsWithoutCenter
       : baseOptions;
 
     if (targetMode?.active) {
