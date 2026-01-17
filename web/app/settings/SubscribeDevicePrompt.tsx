@@ -18,7 +18,7 @@ export default function SubscribeDevicePrompt({
   onSubscribe,
   hasAnySubscriptions,
 }: SubscribeDevicePromptProps) {
-  const [platformInfo, _setPlatformInfo] = useState<PlatformInfo | null>(() => {
+  const [platformInfo] = useState<PlatformInfo | null>(() => {
     // Only run on client side
     if (typeof window !== "undefined") {
       return getPlatformInfo();
