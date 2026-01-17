@@ -7,7 +7,6 @@ import NotificationButton from "./NotificationButton";
 import NotificationPrompt from "./NotificationPrompt";
 import BlockedNotificationsPrompt from "./BlockedNotificationsPrompt";
 import LoginPrompt from "./LoginPrompt";
-import SubscribePrompt from "./SubscribePrompt";
 import { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
 
 interface OnboardingPromptProps {
@@ -63,9 +62,6 @@ export default function OnboardingPrompt({
           onDismiss={onDismiss}
         />
       );
-
-    case "subscribePrompt":
-      return <SubscribePrompt onClose={onDismiss} />;
 
     case "idle":
       return <NotificationButton onClick={onAddInterestClick} visible={true} />;

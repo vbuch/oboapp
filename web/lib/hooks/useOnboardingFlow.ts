@@ -14,7 +14,6 @@ export type OnboardingState =
   | "blocked"
   | "loginPrompt"
   | "zoneCreation"
-  | "subscribePrompt"
   | "complete"
   | "idle";
 
@@ -67,7 +66,7 @@ interface ReducerState {
  */
 function computeUnauthenticatedState(
   permission: NotificationPermission | undefined,
-  isRestart: boolean
+  isRestart: boolean,
 ): OnboardingState {
   // No Notification API or permission already granted → go to login
   if (permission === undefined || permission === "granted") {
@@ -87,24 +86,27 @@ function computeUnauthenticatedState(
 /**
  * Determine state for authenticated users.
  *
- * Flow: zoneCreation → subscribePrompt → complete
+ * Flow: zoneCreation → notificationPrompt/blocked → complete
  */
 function computeAuthenticatedState(
   zonesCount: number,
-  hasSubscriptions: boolean,
-  permission: NotificationPermission | undefined
+  permission: NotificationPermission | undefined,
 ): OnboardingState {
   // No zones yet → prompt to create one
   if (zonesCount === 0) {
     return "zoneCreation";
   }
 
-  // Has zones but no subscriptions (and notifications not blocked) → prompt to subscribe
-  if (!hasSubscriptions && permission !== "denied") {
-    return "subscribePrompt";
+  // Has zones - check notification permission
+  if (permission === "default") {
+    return "notificationPrompt";
   }
 
-  // Fully onboarded
+  if (permission === "denied") {
+    return "blocked";
+  }
+
+  // Permission granted or API unavailable → fully onboarded
   return "complete";
 }
 
@@ -116,18 +118,12 @@ function computeAuthenticatedState(
  * when the user clicks the AddInterestButton (RESTART action with isRestart=true).
  */
 export function computeStateFromContext(
-  context: OnboardingContext
+  context: OnboardingContext,
 ): OnboardingState {
-  const {
-    permission,
-    isLoggedIn,
-    zonesCount,
-    hasSubscriptions,
-    isRestart = false,
-  } = context;
+  const { permission, isLoggedIn, zonesCount, isRestart = false } = context;
 
   return isLoggedIn
-    ? computeAuthenticatedState(zonesCount, hasSubscriptions, permission)
+    ? computeAuthenticatedState(zonesCount, permission)
     : computeUnauthenticatedState(permission, isRestart);
 }
 
@@ -141,30 +137,30 @@ const DISMISSIBLE_STATES: ReadonlySet<OnboardingState> = new Set([
   "blocked",
   "loginPrompt",
   "zoneCreation",
-  "subscribePrompt",
 ]);
 
 /**
  * State progression order for RE_EVALUATE.
  * Higher number = further along in onboarding.
  * idle = -1 (special case, never progressed into via RE_EVALUATE)
+ *
+ * Note: notificationPrompt and blocked share order 3 with zoneCreation
+ * because authenticated users with zones can reach these states.
  */
 const STATE_ORDER: Record<OnboardingState, number> = {
   idle: -1,
   loading: 0,
-  notificationPrompt: 1,
-  blocked: 2,
-  loginPrompt: 2,
-  zoneCreation: 3,
-  subscribePrompt: 4,
-
-  complete: 5,
+  loginPrompt: 1,
+  zoneCreation: 2,
+  notificationPrompt: 3,
+  blocked: 3,
+  complete: 4,
 };
 
 /** Check if new state represents forward progress */
 function isProgressingForward(
   currentState: OnboardingState,
-  newState: OnboardingState
+  newState: OnboardingState,
 ): boolean {
   return STATE_ORDER[newState] >= STATE_ORDER[currentState];
 }
@@ -178,7 +174,7 @@ function handleLoaded(action: { payload: OnboardingContext }): ReducerState {
 
 function handlePermissionResult(
   state: ReducerState,
-  permission: NotificationPermission
+  permission: NotificationPermission,
 ): ReducerState {
   if (state.state !== "notificationPrompt") return state;
 
@@ -193,7 +189,7 @@ function handleDismiss(state: ReducerState): ReducerState {
 
 function handleRestart(
   state: ReducerState,
-  context: OnboardingContext
+  context: OnboardingContext,
 ): ReducerState {
   if (state.state !== "idle") return state;
 
@@ -203,7 +199,7 @@ function handleRestart(
 
 function handleReEvaluate(
   state: ReducerState,
-  context: OnboardingContext
+  context: OnboardingContext,
 ): ReducerState {
   // Don't re-evaluate if user dismissed (in idle)
   if (state.state === "idle") {
@@ -230,7 +226,7 @@ function handleReEvaluate(
  */
 export function onboardingReducer(
   state: ReducerState,
-  action: OnboardingAction
+  action: OnboardingAction,
 ): ReducerState {
   switch (action.type) {
     case "LOADED":
@@ -319,7 +315,7 @@ function getNotificationPermission(): NotificationPermission | undefined {
  * ```
  */
 export function useOnboardingFlow(
-  input: UseOnboardingFlowInput
+  input: UseOnboardingFlowInput,
 ): UseOnboardingFlowReturn {
   const { user, interests, subscriptionsLoaded, hasSubscriptions } = input;
 
@@ -354,7 +350,7 @@ export function useOnboardingFlow(
     (permission: NotificationPermission) => {
       dispatch({ type: "PERMISSION_RESULT", payload: { permission } });
     },
-    []
+    [],
   );
 
   const handleDismiss = useCallback(() => {
@@ -362,8 +358,13 @@ export function useOnboardingFlow(
   }, []);
 
   const handleRestart = useCallback(() => {
-    // Need to pass current context for RESTART to re-evaluate
-    dispatch({ type: "RESTART", payload: context });
+    // Read fresh permission to avoid stale memoized context
+    // (permission can change after PERMISSION_RESULT but context won't update)
+    const freshContext = {
+      ...context,
+      permission: getNotificationPermission(),
+    };
+    dispatch({ type: "RESTART", payload: freshContext });
   }, [context]);
 
   return {
