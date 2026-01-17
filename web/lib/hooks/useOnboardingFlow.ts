@@ -150,14 +150,15 @@ const DISMISSIBLE_STATES: ReadonlySet<OnboardingState> = new Set([
  * idle = -1 (special case, never progressed into via RE_EVALUATE)
  */
 const STATE_ORDER: Record<OnboardingState, number> = {
+  idle: -1,
   loading: 0,
   notificationPrompt: 1,
   blocked: 2,
   loginPrompt: 2,
   zoneCreation: 3,
   subscribePrompt: 4,
+
   complete: 5,
-  idle: -1,
 };
 
 /** Check if new state represents forward progress */
@@ -165,10 +166,7 @@ function isProgressingForward(
   currentState: OnboardingState,
   newState: OnboardingState
 ): boolean {
-  return (
-    STATE_ORDER[newState] >= STATE_ORDER[currentState] ||
-    newState === "complete"
-  );
+  return STATE_ORDER[newState] >= STATE_ORDER[currentState];
 }
 
 function handleLoaded(action: { payload: OnboardingContext }): ReducerState {
