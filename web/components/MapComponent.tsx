@@ -113,6 +113,8 @@ export default function MapComponent({
   const mapRef = useRef<google.maps.Map | null>(null);
   const latestCenterRef = useRef(SOFIA_CENTER);
   const [currentZoom, setCurrentZoom] = useState<number>(14);
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+  const [preservedCenter, setPreservedCenter] = useState(initialCenter || SOFIA_CENTER);
   const mapOptions: google.maps.MapOptions = useMemo(
     () => ({
       zoom: 14,
@@ -132,6 +134,16 @@ export default function MapComponent({
     [initialCenter]
   );
 
+  // Update preserved center when map center changes
+  useEffect(() => {
+    if (mapRef.current) {
+      const currentCenter = latestCenterRef.current;
+      if (currentCenter) {
+        setPreservedCenter(currentCenter);
+      }
+    }
+  }, [mapInstance]); // Trigger when map loads
+
   const centerMap = useCallback(
     (
       lat: number,
@@ -145,11 +157,12 @@ export default function MapComponent({
 
       const nextCenter = { lat, lng };
       latestCenterRef.current = nextCenter;
+      const gmapsCenter = new google.maps.LatLng(lat, lng);
 
       if (options?.animate === false) {
-        mapRef.current.setCenter(nextCenter);
+        mapRef.current.setCenter(gmapsCenter);
       } else {
-        mapRef.current.panTo(nextCenter);
+        mapRef.current.panTo(gmapsCenter);
       }
 
       mapRef.current.setZoom(zoom);
@@ -160,6 +173,7 @@ export default function MapComponent({
   const onMapLoad = useCallback(
     (map: google.maps.Map) => {
       mapRef.current = map;
+      setMapInstance(map);
       // Notify parent that map is ready and pass the centerMap function and map instance
       if (onMapReady) {
         onMapReady(centerMap, map);
@@ -170,14 +184,6 @@ export default function MapComponent({
 
   // Get dynamic map options based on target mode
   const dynamicMapOptions = useMemo(() => {
-    const currentMapCenter = mapRef.current?.getCenter();
-    const preservedCenter = currentMapCenter
-      ? {
-          lat: currentMapCenter.lat(),
-          lng: currentMapCenter.lng(),
-        }
-      : latestCenterRef.current;
-
     const baseOptions = {
       ...mapOptions,
       center: preservedCenter,
@@ -194,7 +200,7 @@ export default function MapComponent({
     }
 
     return baseOptions;
-  }, [targetMode?.active, mapOptions]);
+  }, [targetMode?.active, mapOptions, preservedCenter]);
 
   const handleCenterChanged = useCallback(() => {
     if (!mapRef.current) return;
@@ -240,7 +246,7 @@ export default function MapComponent({
           <GeoJSONLayer
             messages={messages}
             onFeatureClick={onFeatureClick}
-            map={mapRef.current}
+            map={mapInstance}
             currentZoom={currentZoom}
           />
 
@@ -257,7 +263,7 @@ export default function MapComponent({
           {/* Render target mode overlay when active */}
           {targetMode?.active && (
             <InterestTargetMode
-              map={mapRef.current}
+              map={mapInstance}
               initialRadius={targetMode.initialRadius}
               onSave={targetMode.onSave}
               onCancel={targetMode.onCancel}

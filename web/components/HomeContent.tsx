@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapContainer from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView";
@@ -27,8 +27,6 @@ import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
  * This ensures the map is visible immediately while messages load based on viewport.
  */
 export default function HomeContent() {
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -74,8 +72,7 @@ export default function HomeContent() {
     (messageId: string) => {
       const message = messages.find((m) => m.id === messageId);
       if (message) {
-        setSelectedMessage(message);
-        // Update URL with query parameter
+        // Update URL with query parameter - this will trigger selectedMessage derivation
         router.push(`/?messageId=${messageId}`, { scroll: false });
       }
     },
@@ -84,27 +81,18 @@ export default function HomeContent() {
 
   // Handle closing detail view
   const handleCloseDetail = useCallback(() => {
-    setSelectedMessage(null);
-    // Remove query parameter from URL
+    // Remove query parameter from URL - this will trigger selectedMessage derivation
     router.push("/", { scroll: false });
   }, [router]);
 
-  // Sync selected message with URL parameter
-  useEffect(() => {
+  // Derive selected message from URL parameter
+  const selectedMessage = useMemo(() => {
     const messageId = searchParams.get("messageId");
     if (messageId && messages.length > 0) {
-      const message = messages.find((m) => m.id === messageId);
-      if (message) {
-        setSelectedMessage(message);
-      } else {
-        // Message not found, clear the parameter
-        setSelectedMessage(null);
-      }
-    } else if (!messageId && selectedMessage) {
-      // URL was changed (e.g., back button) without messageId
-      setSelectedMessage(null);
+      return messages.find((m) => m.id === messageId) || null;
     }
-  }, [searchParams, messages, selectedMessage]);
+    return null;
+  }, [searchParams, messages]);
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto" ref={containerRef}>
@@ -151,7 +139,6 @@ export default function HomeContent() {
         messages={messages}
         isLoading={isLoading}
         onMessageClick={(message) => {
-          setSelectedMessage(message);
           router.push(`/?messageId=${message.id}`, { scroll: false });
         }}
       />
