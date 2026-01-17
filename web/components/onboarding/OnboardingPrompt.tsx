@@ -8,11 +8,12 @@ import NotificationPrompt from "./NotificationPrompt";
 import BlockedNotificationsPrompt from "./BlockedNotificationsPrompt";
 import LoginPrompt from "./LoginPrompt";
 import { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
+import { User } from "firebase/auth";
 
 interface OnboardingPromptProps {
   readonly state: OnboardingState;
   readonly targetModeActive: boolean;
-  readonly user: any;
+  readonly user: User | null;
   readonly onPermissionResult: (permission: NotificationPermission) => void;
   readonly onDismiss: () => void;
   readonly onAddInterests: () => void;
