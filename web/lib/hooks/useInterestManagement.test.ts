@@ -36,6 +36,7 @@ const createMockInterest = (overrides: Partial<Interest> = {}): Interest => ({
 
 describe("useInterestManagement", () => {
   let centerMapFn: Mock<CenterMapFn>;
+  let mapInstance: google.maps.Map | null;
   let addInterest: Mock<
     (coordinates: { lat: number; lng: number }, radius: number) => Promise<void>
   >;
@@ -53,6 +54,7 @@ describe("useInterestManagement", () => {
 
   beforeEach(() => {
     centerMapFn = vi.fn();
+    mapInstance = null; // Default to null for most tests
     addInterest = vi.fn().mockResolvedValue(undefined);
     updateInterest = vi.fn().mockResolvedValue(undefined);
     deleteInterest = vi.fn().mockResolvedValue(undefined);
@@ -103,6 +105,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -120,6 +123,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -145,6 +149,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -161,7 +166,7 @@ describe("useInterestManagement", () => {
 
     it("should do nothing if centerMapFn is null", () => {
       const { result } = renderHook(() =>
-        useInterestManagement(null, addInterest, updateInterest, deleteInterest)
+        useInterestManagement(null, mapInstance, addInterest, updateInterest, deleteInterest)
       );
 
       const mockInterest = createMockInterest();
@@ -183,6 +188,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -224,6 +230,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -243,6 +250,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -277,6 +285,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -305,6 +314,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -333,6 +343,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -356,6 +367,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -388,6 +400,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -431,6 +444,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -461,6 +475,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -497,6 +512,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -522,6 +538,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -551,6 +568,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -581,6 +599,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -614,6 +633,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
@@ -636,6 +656,7 @@ describe("useInterestManagement", () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
+          mapInstance,
           addInterest,
           updateInterest,
           deleteInterest
