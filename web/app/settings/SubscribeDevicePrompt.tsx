@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   getPlatformInfo,
   getNotificationInstructions,
@@ -18,7 +18,7 @@ export default function SubscribeDevicePrompt({
   onSubscribe,
   hasAnySubscriptions,
 }: SubscribeDevicePromptProps) {
-  const [platformInfo, setPlatformInfo] = useState<PlatformInfo | null>(() => {
+  const [platformInfo, _setPlatformInfo] = useState<PlatformInfo | null>(() => {
     // Only run on client side
     if (typeof window !== "undefined") {
       return getPlatformInfo();

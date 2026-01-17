@@ -9,6 +9,16 @@ const eslintConfig = [
       "prefer-const": "error",
       "no-var": "error",
 
+      // Code quality rules
+      "no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
+
       // TODO: Custom rules needed for React cleanup patterns:
       // - Detect useMemo/useCallback creating functions with .cancel() method
       // - Require cleanup in useEffect for such functions

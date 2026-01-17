@@ -22,9 +22,9 @@ interface MapComponentProps {
       lat: number,
       lng: number,
       zoom?: number,
-      options?: { animate?: boolean }
+      options?: { animate?: boolean },
     ) => void,
-    mapInstance: google.maps.Map | null
+    mapInstance: google.maps.Map | null,
   ) => void;
   readonly onBoundsChanged?: (bounds: {
     north: number;
@@ -114,7 +114,9 @@ export default function MapComponent({
   const latestCenterRef = useRef(SOFIA_CENTER);
   const [currentZoom, setCurrentZoom] = useState<number>(14);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
-  const [preservedCenter, setPreservedCenter] = useState(initialCenter || SOFIA_CENTER);
+  const [preservedCenter, setPreservedCenter] = useState(
+    initialCenter || SOFIA_CENTER,
+  );
   const mapOptions: google.maps.MapOptions = useMemo(
     () => ({
       zoom: 14,
@@ -131,7 +133,7 @@ export default function MapComponent({
       minZoom: 12,
       maxZoom: 18,
     }),
-    [initialCenter]
+    [initialCenter],
   );
 
   // Update preserved center when map center changes
@@ -149,7 +151,7 @@ export default function MapComponent({
       lat: number,
       lng: number,
       zoom: number = 17,
-      options?: { animate?: boolean }
+      options?: { animate?: boolean },
     ) => {
       if (!mapRef.current) {
         return;
@@ -167,7 +169,7 @@ export default function MapComponent({
 
       mapRef.current.setZoom(zoom);
     },
-    []
+    [],
   );
 
   const onMapLoad = useCallback(
@@ -179,7 +181,7 @@ export default function MapComponent({
         onMapReady(centerMap, map);
       }
     },
-    [onMapReady, centerMap]
+    [onMapReady, centerMap],
   );
 
   // Get dynamic map options based on target mode

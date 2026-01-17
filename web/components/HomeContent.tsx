@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapContainer from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView";
 import MessagesGrid from "@/components/MessagesGrid";
 import InterestContextMenu from "@/components/InterestContextMenu";
-import { Message } from "@/lib/types";
 import { useInterests } from "@/lib/hooks/useInterests";
 import { useAuth } from "@/lib/auth-context";
 import { useMessages } from "@/lib/hooks/useMessages";
@@ -64,7 +63,7 @@ export default function HomeContent() {
     centerMapFn,
     addInterest,
     updateInterest,
-    deleteInterest
+    deleteInterest,
   );
 
   // Handle feature click - update URL and select message
@@ -76,7 +75,7 @@ export default function HomeContent() {
         router.push(`/?messageId=${messageId}`, { scroll: false });
       }
     },
-    [messages, router]
+    [messages, router],
   );
 
   // Handle closing detail view

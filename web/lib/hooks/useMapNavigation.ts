@@ -6,7 +6,7 @@ type CenterMapFn = (
   lat: number,
   lng: number,
   zoom?: number,
-  options?: { animate?: boolean }
+  options?: { animate?: boolean },
 ) => void;
 
 /**
@@ -30,10 +30,10 @@ export function useMapNavigation() {
   // Handle URL-based map centering (from settings page zone clicks)
   useEffect(() => {
     if (hasProcessedUrlRef.current) return;
-    
+
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
-    
+
     const center = parseMapCenterFromParams(lat, lng);
     if (center) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -56,7 +56,7 @@ export function useMapNavigation() {
     (centerMap: CenterMapFn, _map: google.maps.Map | null) => {
       setCenterMapFn(() => centerMap);
     },
-    []
+    [],
   );
 
   // Handle address click - center map on coordinates
@@ -66,7 +66,7 @@ export function useMapNavigation() {
         centerMapFn(lat, lng, 18);
       }
     },
-    [centerMapFn]
+    [centerMapFn],
   );
 
   return {
