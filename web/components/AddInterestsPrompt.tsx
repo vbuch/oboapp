@@ -1,31 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { borderRadius } from "@/lib/colors";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 
 interface AddInterestsPromptProps {
+  /** Called when user clicks the add zone button */
   readonly onAddInterests: () => void;
+  /** Called when user dismisses the prompt */
+  readonly onDismiss: () => void;
 }
 
+/**
+ * Prompt for logged-in users who have no zones yet
+ * Explains what zones are and how to add them
+ */
 export default function AddInterestsPrompt({
   onAddInterests,
+  onDismiss,
 }: AddInterestsPromptProps) {
-  const [isVisible, setIsVisible] = useState(true);
-
-  if (!isVisible) {
-    return null;
-  }
-
-  const handleAddInterests = () => {
+  const handleAddInterests = useCallback(() => {
     trackEvent({
       name: "prompt_add_zones_clicked",
       params: { prompt_type: "first_zone" },
     });
-    setIsVisible(false);
     onAddInterests();
-  };
+  }, [onAddInterests]);
+
+  const handleDismiss = useCallback(() => {
+    trackEvent({
+      name: "prompt_add_zones_dismissed",
+      params: {},
+    });
+    onDismiss();
+  }, [onDismiss]);
 
   return (
     <div className="absolute bottom-4 right-4 z-40 bg-white rounded-lg shadow-xl p-6 pb-4 pr-4 max-w-sm">
@@ -54,7 +63,13 @@ export default function AddInterestsPrompt({
           </p>
         </div>
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={handleDismiss}
+          className={`${buttonSizes.md} ${buttonStyles.secondary} ${borderRadius.md} font-medium`}
+        >
+          По-късно
+        </button>
         <button
           onClick={handleAddInterests}
           className={`${buttonSizes.lg} ${buttonStyles.primary} ${borderRadius.md} shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium`}

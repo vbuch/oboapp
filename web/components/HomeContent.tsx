@@ -4,14 +4,10 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapContainer from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView";
-import NotificationPrompt from "@/components/NotificationPrompt";
-import LoginPrompt from "@/components/LoginPrompt";
-import SubscribePrompt from "@/components/SubscribePrompt";
 import MessagesGrid from "@/components/MessagesGrid";
 import InterestContextMenu from "@/components/InterestContextMenu";
 import { Message } from "@/lib/types";
 import { useInterests } from "@/lib/hooks/useInterests";
-import { useNotificationPrompt } from "@/lib/hooks/useNotificationPrompt";
 import { useAuth } from "@/lib/auth-context";
 import { useMessages } from "@/lib/hooks/useMessages";
 import { useMapNavigation } from "@/lib/hooks/useMapNavigation";
@@ -32,19 +28,20 @@ import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
  */
 export default function HomeContent() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [showSubscribePrompt, setShowSubscribePrompt] = useState(false);
-  const [hasCheckedSubscriptions, setHasCheckedSubscriptions] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   // Core hooks
-  const { interests, addInterest, updateInterest, deleteInterest } =
-    useInterests();
+  const {
+    interests,
+    hasInitialized: interestsLoaded,
+    addInterest,
+    updateInterest,
+    deleteInterest,
+  } = useInterests();
   const { user } = useAuth();
-  const { showPrompt, onAccept, onDecline, checkAndPromptForNotifications } =
-    useNotificationPrompt();
 
   // Message fetching and viewport management
   const { messages, isLoading, error, handleBoundsChanged } = useMessages();
@@ -71,55 +68,6 @@ export default function HomeContent() {
     updateInterest,
     deleteInterest
   );
-
-  // Check for notification permission when user has circles
-  useEffect(() => {
-    if (user && interests.length > 0) {
-      user
-        .getIdToken()
-        .then((idToken) => {
-          checkAndPromptForNotifications(user.uid, idToken, true);
-        })
-        .catch((err) => {
-          console.error("Failed to check notification permissions:", err);
-        });
-    }
-  }, [user, interests.length, checkAndPromptForNotifications]);
-
-  // Check if user has zones but no subscriptions
-  useEffect(() => {
-    if (
-      !user ||
-      interests.length === 0 ||
-      hasCheckedSubscriptions ||
-      showPrompt
-    ) {
-      return;
-    }
-
-    const checkSubscriptions = async () => {
-      try {
-        const token = await user.getIdToken();
-        const response = await fetch("/api/notifications/subscription/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (response.ok) {
-          const subscriptions = await response.json();
-          if (Array.isArray(subscriptions) && subscriptions.length === 0) {
-            // User has zones but no subscriptions - show prompt
-            setShowSubscribePrompt(true);
-          }
-        }
-      } catch (error) {
-        console.error("Error checking subscriptions:", error);
-      } finally {
-        setHasCheckedSubscriptions(true);
-      }
-    };
-
-    checkSubscriptions();
-  }, [user, interests.length, hasCheckedSubscriptions, showPrompt]);
 
   // Handle feature click - update URL and select message
   const handleFeatureClick = useCallback(
@@ -179,6 +127,7 @@ export default function HomeContent() {
         <MapContainer
           messages={messages}
           interests={interests}
+          interestsLoaded={interestsLoaded}
           user={user}
           targetMode={targetMode}
           initialMapCenter={initialMapCenter}
@@ -224,23 +173,6 @@ export default function HomeContent() {
           onClose={handleCloseInterestMenu}
         />
       )}
-
-      {/* Notification permission prompt */}
-      {showPrompt && (
-        <NotificationPrompt
-          onAccept={onAccept}
-          onDecline={onDecline}
-          zonesCount={interests.length}
-        />
-      )}
-
-      {/* Subscribe prompt - shown when user has zones but no subscriptions */}
-      {showSubscribePrompt && (
-        <SubscribePrompt onClose={() => setShowSubscribePrompt(false)} />
-      )}
-
-      {/* Login prompt for non-authenticated users */}
-      {!user && <LoginPrompt />}
     </div>
   );
 }

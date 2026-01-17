@@ -20,12 +20,14 @@ export type AnalyticsEvent =
   // Notifications
   | {
       name: "notification_permission_accepted";
-      params: { zones_count: number };
+      params: { zones_count?: number };
     }
   | {
       name: "notification_permission_declined";
-      params: { zones_count: number };
+      params: { zones_count?: number };
     }
+  | { name: "blocked_notifications_login_clicked"; params: {} }
+  | { name: "blocked_notifications_dismissed"; params: {} }
   // Geolocation
   | { name: "geolocation_prompt_shown"; params: {} }
   | { name: "geolocation_prompt_accepted"; params: {} }
@@ -42,6 +44,7 @@ export type AnalyticsEvent =
     }
   // Prompts
   | { name: "prompt_add_zones_clicked"; params: { prompt_type: "first_zone" } }
+  | { name: "prompt_add_zones_dismissed"; params: {} }
   // Content Engagement
   | {
       name: "message_clicked";

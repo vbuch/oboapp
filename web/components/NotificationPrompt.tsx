@@ -1,36 +1,62 @@
 "use client";
 
+import { useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
+import { subscribeToPushNotifications } from "@/lib/notification-service";
+import { useAuth } from "@/lib/auth-context";
 import PromptCard from "./PromptCard";
 
 interface NotificationPromptProps {
-  readonly onAccept: () => void;
-  readonly onDecline: () => void;
-  readonly zonesCount?: number;
+  /** Called with the permission result after browser prompt */
+  readonly onPermissionResult: (permission: NotificationPermission) => void;
+  /** Called when user clicks "Not now" */
+  readonly onDismiss: () => void;
 }
 
+/**
+ * First-time visitor notification prompt
+ * Asks permission and handles FCM registration on success
+ */
 export default function NotificationPrompt({
-  onAccept,
-  onDecline,
-  zonesCount = 0,
+  onPermissionResult,
+  onDismiss,
 }: NotificationPromptProps) {
-  const handleAccept = () => {
+  const { user } = useAuth();
+
+  const handleAccept = useCallback(async () => {
     trackEvent({
       name: "notification_permission_accepted",
-      params: { zones_count: zonesCount },
+      params: {},
     });
-    onAccept();
-  };
 
-  const handleDecline = () => {
+    try {
+      // Request browser permission
+      const permission = await Notification.requestPermission();
+
+      // If granted and user is logged in, register FCM token
+      if (permission === "granted" && user) {
+        const idToken = await user.getIdToken();
+        await subscribeToPushNotifications(user.uid, idToken);
+      }
+
+      onPermissionResult(permission);
+    } catch (error) {
+      console.error("Error requesting notification permission:", error);
+      // Treat errors as denied
+      onPermissionResult("denied");
+    }
+  }, [user, onPermissionResult]);
+
+  const handleDecline = useCallback(() => {
     trackEvent({
       name: "notification_permission_declined",
-      params: { zones_count: zonesCount },
+      params: {},
     });
-    onDecline();
-  };
+    onDismiss();
+  }, [onDismiss]);
+
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="absolute bottom-4 right-4 z-40 max-w-sm">
       <PromptCard
         icon={
           <svg
@@ -45,9 +71,9 @@ export default function NotificationPrompt({
             <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           </svg>
         }
-        title="Получавай известия за събития в района"
-        description="Искаш ли да получаваш известия, когато има нови съобщения за зоните, които следиш?"
-        note="Можеш да промениш това по всяко време в настройките на браузъра."
+        title="Маркирай зони на картата"
+        description="Добави зони на интерес и получавай известия за събития в тях — спиране на вода, ток, ремонти и други."
+        note="Ще поискаме разрешение за известия от браузъра."
         primaryButton={{
           text: "Разреши известия",
           onClick: handleAccept,

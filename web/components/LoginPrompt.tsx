@@ -1,30 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
 import PromptCard from "./PromptCard";
 import { useAuth } from "@/lib/auth-context";
 
-export default function LoginPrompt() {
-  const [isVisible, setIsVisible] = useState(true);
+interface LoginPromptProps {
+  /** Called when user clicks "Later" */
+  readonly onDismiss: () => void;
+}
+
+/**
+ * Prompt for unauthenticated users to log in
+ * Fully controlled by parent via onDismiss prop
+ */
+export default function LoginPrompt({ onDismiss }: LoginPromptProps) {
   const { signInWithGoogle } = useAuth();
 
-  if (!isVisible) {
-    return null;
-  }
-
-  const handleLogin = () => {
+  const handleLogin = useCallback(() => {
     trackEvent({ name: "login_initiated", params: { source: "prompt" } });
     signInWithGoogle();
-  };
+  }, [signInWithGoogle]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     trackEvent({ name: "login_prompt_dismissed", params: {} });
-    setIsVisible(false);
-  };
+    onDismiss();
+  }, [onDismiss]);
 
   return (
-    <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-40 p-4 w-full max-w-md">
+    <div className="absolute bottom-4 right-4 z-40 max-w-sm">
       <PromptCard
         icon={
           <svg

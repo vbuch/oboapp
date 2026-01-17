@@ -1,0 +1,430 @@
+import { describe, it, expect } from "vitest";
+import {
+  onboardingReducer,
+  computeStateFromContext,
+  OnboardingContext,
+  OnboardingAction,
+} from "./useOnboardingFlow";
+
+describe("computeStateFromContext", () => {
+  describe("when user is not logged in", () => {
+    it("returns idle on initial load when permission is default", () => {
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      expect(computeStateFromContext(context)).toBe("idle");
+    });
+
+    it("returns notificationPrompt on restart when permission is default", () => {
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+        isRestart: true,
+      };
+      expect(computeStateFromContext(context)).toBe("notificationPrompt");
+    });
+
+    it("returns loginPrompt when permission is granted", () => {
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      expect(computeStateFromContext(context)).toBe("loginPrompt");
+    });
+
+    it("returns blocked when permission is denied", () => {
+      const context: OnboardingContext = {
+        permission: "denied",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      expect(computeStateFromContext(context)).toBe("blocked");
+    });
+
+    it("returns loginPrompt when Notification API is unavailable", () => {
+      const context: OnboardingContext = {
+        permission: undefined,
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      expect(computeStateFromContext(context)).toBe("loginPrompt");
+    });
+  });
+
+  describe("when user is logged in", () => {
+    it("returns zoneCreation when user has no zones", () => {
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      expect(computeStateFromContext(context)).toBe("zoneCreation");
+    });
+
+    it("returns subscribePrompt when user has zones but no subscriptions", () => {
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 2,
+        hasSubscriptions: false,
+      };
+      expect(computeStateFromContext(context)).toBe("subscribePrompt");
+    });
+
+    it("returns complete when user has zones and subscriptions", () => {
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 2,
+        hasSubscriptions: true,
+      };
+      expect(computeStateFromContext(context)).toBe("complete");
+    });
+
+    it("returns complete when permission is denied but has zones (skip subscribePrompt)", () => {
+      const context: OnboardingContext = {
+        permission: "denied",
+        isLoggedIn: true,
+        zonesCount: 2,
+        hasSubscriptions: false,
+      };
+      expect(computeStateFromContext(context)).toBe("complete");
+    });
+  });
+});
+
+describe("onboardingReducer", () => {
+  const createInitialState = (
+    state: string,
+    lastPermission?: NotificationPermission
+  ) => ({
+    state: state as ReturnType<typeof computeStateFromContext>,
+    lastPermission,
+  });
+
+  describe("LOADED action", () => {
+    it("transitions from loading to idle for unauthenticated user with default permission", () => {
+      const initialState = createInitialState("loading");
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = { type: "LOADED", payload: context };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("idle");
+      expect(result.lastPermission).toBe("default");
+    });
+
+    it("transitions to loginPrompt when permission already granted", () => {
+      const initialState = createInitialState("loading");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = { type: "LOADED", payload: context };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("loginPrompt");
+    });
+
+    it("transitions to complete when user is fully onboarded", () => {
+      const initialState = createInitialState("loading");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 3,
+        hasSubscriptions: true,
+      };
+      const action: OnboardingAction = { type: "LOADED", payload: context };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("complete");
+    });
+  });
+
+  describe("PERMISSION_RESULT action", () => {
+    it("transitions to blocked when permission denied", () => {
+      const initialState = createInitialState("notificationPrompt", "default");
+      const action: OnboardingAction = {
+        type: "PERMISSION_RESULT",
+        payload: { permission: "denied" },
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("blocked");
+      expect(result.lastPermission).toBe("denied");
+    });
+
+    it("transitions to loginPrompt when permission granted", () => {
+      const initialState = createInitialState("notificationPrompt", "default");
+      const action: OnboardingAction = {
+        type: "PERMISSION_RESULT",
+        payload: { permission: "granted" },
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("loginPrompt");
+      expect(result.lastPermission).toBe("granted");
+    });
+
+    it("ignores action from non-notificationPrompt states", () => {
+      const initialState = createInitialState("loginPrompt", "default");
+      const action: OnboardingAction = {
+        type: "PERMISSION_RESULT",
+        payload: { permission: "granted" },
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("loginPrompt");
+    });
+  });
+
+  describe("DISMISS action", () => {
+    it.each([
+      "notificationPrompt",
+      "blocked",
+      "loginPrompt",
+      "zoneCreation",
+      "subscribePrompt",
+    ])("transitions from %s to idle", (fromState) => {
+      const initialState = createInitialState(fromState);
+      const action: OnboardingAction = { type: "DISMISS" };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("idle");
+    });
+
+    it("ignores action from complete state", () => {
+      const initialState = createInitialState("complete");
+      const action: OnboardingAction = { type: "DISMISS" };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("complete");
+    });
+
+    it("ignores action from idle state", () => {
+      const initialState = createInitialState("idle");
+      const action: OnboardingAction = { type: "DISMISS" };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("idle");
+    });
+  });
+
+  describe("RESTART action", () => {
+    it("re-evaluates from idle to notificationPrompt", () => {
+      const initialState = createInitialState("idle");
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      // RESTART uses payload as context
+      const action = { type: "RESTART", payload: context } as OnboardingAction;
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("notificationPrompt");
+    });
+
+    it("re-evaluates from idle to loginPrompt when permission granted", () => {
+      const initialState = createInitialState("idle", "granted");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action = { type: "RESTART", payload: context } as OnboardingAction;
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("loginPrompt");
+    });
+
+    it("re-evaluates from idle to complete when fully onboarded", () => {
+      const initialState = createInitialState("idle", "granted");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 2,
+        hasSubscriptions: true,
+      };
+      const action = { type: "RESTART", payload: context } as OnboardingAction;
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("complete");
+    });
+
+    it("ignores action from non-idle states", () => {
+      const initialState = createInitialState("notificationPrompt");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 2,
+        hasSubscriptions: true,
+      };
+      const action = { type: "RESTART", payload: context } as OnboardingAction;
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("notificationPrompt");
+    });
+  });
+
+  describe("RE_EVALUATE action", () => {
+    it("progresses from loginPrompt to zoneCreation when user logs in", () => {
+      const initialState = createInitialState("loginPrompt", "granted");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = {
+        type: "RE_EVALUATE",
+        payload: context,
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("zoneCreation");
+    });
+
+    it("progresses from zoneCreation to subscribePrompt when zone added", () => {
+      const initialState = createInitialState("zoneCreation", "granted");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 1,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = {
+        type: "RE_EVALUATE",
+        payload: context,
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("subscribePrompt");
+    });
+
+    it("progresses from subscribePrompt to complete when subscribed", () => {
+      const initialState = createInitialState("subscribePrompt", "granted");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 1,
+        hasSubscriptions: true,
+      };
+      const action: OnboardingAction = {
+        type: "RE_EVALUATE",
+        payload: context,
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("complete");
+    });
+
+    it("does not re-evaluate from idle state", () => {
+      const initialState = createInitialState("idle", "granted");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 1,
+        hasSubscriptions: true,
+      };
+      const action: OnboardingAction = {
+        type: "RE_EVALUATE",
+        payload: context,
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("idle");
+      expect(result.lastPermission).toBe("granted");
+    });
+
+    it("does not regress state", () => {
+      const initialState = createInitialState("zoneCreation", "granted");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: false, // Would normally go back to loginPrompt
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = {
+        type: "RE_EVALUATE",
+        payload: context,
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      // Should not regress to loginPrompt
+      expect(result.state).toBe("zoneCreation");
+    });
+
+    it("allows progression to complete even from higher order state", () => {
+      const initialState = createInitialState("subscribePrompt", "granted");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 5,
+        hasSubscriptions: true,
+      };
+      const action: OnboardingAction = {
+        type: "RE_EVALUATE",
+        payload: context,
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("complete");
+    });
+
+    it("skips subscribePrompt when permission is denied", () => {
+      const initialState = createInitialState("zoneCreation", "denied");
+      const context: OnboardingContext = {
+        permission: "denied",
+        isLoggedIn: true,
+        zonesCount: 1,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = {
+        type: "RE_EVALUATE",
+        payload: context,
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("complete");
+    });
+  });
+});

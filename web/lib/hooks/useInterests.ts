@@ -5,9 +5,10 @@ import { Interest } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 
 export function useInterests() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [interests, setInterests] = useState<Interest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Helper to get auth header
@@ -18,10 +19,17 @@ export function useInterests() {
   }, [user]);
 
   // Fetch interests for the current user
+  // Wait for auth to settle before initializing to avoid flash
   const fetchInterests = useCallback(async () => {
+    // Don't initialize until auth state is determined
+    if (authLoading) {
+      return;
+    }
+
     if (!user) {
       setInterests([]);
       setIsLoading(false);
+      setHasInitialized(true);
       return;
     }
 
@@ -93,8 +101,9 @@ export function useInterests() {
       }
     } finally {
       setIsLoading(false);
+      setHasInitialized(true);
     }
-  }, [user, getAuthHeader]);
+  }, [user, authLoading, getAuthHeader]);
 
   // Add a new interest
   const addInterest = useCallback(
@@ -260,6 +269,7 @@ export function useInterests() {
   return {
     interests,
     isLoading,
+    hasInitialized,
     error,
     addInterest,
     updateInterest,
