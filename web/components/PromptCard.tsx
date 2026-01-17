@@ -37,16 +37,16 @@ export default function PromptCard({
           {note && <p className="text-xs text-gray-500 mb-4">{note}</p>}
           <div className="flex gap-3">
             <button
-              onClick={primaryButton.onClick}
-              className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.primary} ${borderRadius.sm}`}
-            >
-              {primaryButton.text}
-            </button>
-            <button
               onClick={secondaryButton.onClick}
               className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.secondary} ${borderRadius.sm}`}
             >
               {secondaryButton.text}
+            </button>
+            <button
+              onClick={primaryButton.onClick}
+              className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.primary} ${borderRadius.sm}`}
+            >
+              {primaryButton.text}
             </button>
           </div>
         </div>
