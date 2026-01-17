@@ -257,6 +257,7 @@ flowchart LR
 - **Composition:** Break large components into smaller, focused files (e.g., `SettingsPage.tsx` → `NotificationsSection.tsx`).
 - **Location:** Colocate components with their page if specific; move to `web/components/` if shared.
 - **Props:** Use `readonly` interfaces.
+- **No render functions:** Prefer extracting JSX into separate components instead of `render...()` functions inside components. Components are more idiomatic React and easier to test/reuse.
 
 ---
 
