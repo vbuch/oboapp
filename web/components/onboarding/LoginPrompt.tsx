@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
 import PromptCard from "../PromptCard";
 import { useAuth } from "@/lib/auth-context";
+import BellIcon from "@/components/icons/BellIcon";
 
 interface LoginPromptProps {
   /** Called when user clicks "Later" */
@@ -30,19 +31,7 @@ export default function LoginPrompt({ onDismiss }: LoginPromptProps) {
   return (
     <div className="absolute bottom-4 right-4 z-40 max-w-sm">
       <PromptCard
-        icon={
-          <svg
-            className="w-12 h-12 text-primary"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-        }
+        icon={<BellIcon className="w-12 h-12 text-primary" />}
         title="Следи местните съобщения"
         description="Влез, абонирай се и получавай известия, когато има съобщения за зоните, които те интересуват."
         primaryButton={{

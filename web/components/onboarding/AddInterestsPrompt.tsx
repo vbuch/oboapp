@@ -4,6 +4,8 @@ import { useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { borderRadius } from "@/lib/colors";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
+import LocationPinIcon from "@/components/icons/LocationPinIcon";
+import PlusIcon from "@/components/icons/PlusIcon";
 
 interface AddInterestsPromptProps {
   /** Called when user clicks the add zone button */
@@ -40,18 +42,7 @@ export default function AddInterestsPrompt({
     <div className="absolute bottom-4 right-4 z-40 bg-white rounded-lg shadow-xl p-6 pb-4 pr-4 max-w-sm">
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-shrink-0">
-          <svg
-            className="w-10 h-10 text-primary"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-            <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
+          <LocationPinIcon className="w-10 h-10 text-primary" />
         </div>
         <div className="flex-1">
           <h3 className="text-base font-semibold text-gray-900 mb-2">
@@ -74,17 +65,7 @@ export default function AddInterestsPrompt({
           onClick={handleAddInterests}
           className={`${buttonSizes.lg} ${buttonStyles.primary} ${borderRadius.md} shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium`}
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path d="M12 4v16m8-8H4"></path>
-          </svg>
+          <PlusIcon className="w-5 h-5" />
           Добави зона
         </button>
       </div>
