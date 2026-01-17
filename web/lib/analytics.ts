@@ -44,6 +44,8 @@ export type AnalyticsEvent =
       name: "geolocation_error";
       params: { error_type: string; had_cached_permission: boolean };
     }
+  // Onboarding
+  | { name: "onboarding_notification_clicked"; params: {} }
   // Prompts
   | { name: "prompt_add_zones_clicked"; params: { prompt_type: "first_zone" } }
   | { name: "prompt_add_zones_dismissed"; params: {} }

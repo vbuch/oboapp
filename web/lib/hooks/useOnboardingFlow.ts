@@ -6,7 +6,7 @@ import { User } from "firebase/auth";
 /**
  * Onboarding flow states
  *
- * See useOnboardingFlow.README.md for state machine diagram
+ * See docs/features/onboarding-flow.md for state machine diagram
  */
 export type OnboardingState =
   | "loading"

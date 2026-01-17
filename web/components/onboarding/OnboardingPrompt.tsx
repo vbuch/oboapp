@@ -2,6 +2,8 @@
 
 import AddInterestButton from "@/components/AddInterestButton";
 import AddInterestsPrompt from "./AddInterestsPrompt";
+import LoadingButton from "./LoadingButton";
+import NotificationButton from "./NotificationButton";
 import NotificationPrompt from "./NotificationPrompt";
 import BlockedNotificationsPrompt from "./BlockedNotificationsPrompt";
 import LoginPrompt from "./LoginPrompt";
@@ -38,7 +40,7 @@ export default function OnboardingPrompt({
 
   switch (state) {
     case "loading":
-      return null;
+      return <LoadingButton visible={true} />;
 
     case "notificationPrompt":
       return (
@@ -66,6 +68,8 @@ export default function OnboardingPrompt({
       return <SubscribePrompt onClose={onDismiss} />;
 
     case "idle":
+      return <NotificationButton onClick={onAddInterestClick} visible={true} />;
+
     case "complete":
       return (
         <AddInterestButton

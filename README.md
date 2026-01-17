@@ -37,6 +37,7 @@ See [web/](web) for details.
 
 - [Message Filtering](docs/features/message-filtering.md) - AI-powered content filtering, address extraction, geocoding, and time-based relevance
 - [Geocoding System](docs/features/geocoding-overview.md) - Multi-service geocoding with Google, OpenStreetMap, and Bulgarian Cadastre APIs
+- [Onboarding Flow](docs/features/onboarding-flow.md) - User onboarding state machine for notifications and zone creation
 
 ### Pipeline
 
