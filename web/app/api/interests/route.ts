@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         .where("userId", "==", userId)
         .orderBy("createdAt", "desc")
         .get();
-    } catch (indexError) {
+    } catch {
       // If index doesn't exist, fall back to query without orderBy
       snapshot = await interestsRef.where("userId", "==", userId).get();
     }
@@ -69,13 +69,13 @@ export async function GET(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: `Unauthorized - ${error.message}` },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to fetch interests" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Invalid coordinates" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -137,13 +137,13 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: `Unauthorized - ${error.message}` },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to create interest" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -160,7 +160,7 @@ export async function DELETE(request: NextRequest) {
     if (!interestId) {
       return NextResponse.json(
         { error: "Interest ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -170,7 +170,7 @@ export async function DELETE(request: NextRequest) {
     if (!doc.exists) {
       return NextResponse.json(
         { error: "Interest not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -178,7 +178,7 @@ export async function DELETE(request: NextRequest) {
     if (data?.userId !== userId) {
       return NextResponse.json(
         { error: "Unauthorized - You can only delete your own interests" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -195,13 +195,13 @@ export async function DELETE(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: `Unauthorized - ${error.message}` },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to delete interest" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -218,7 +218,7 @@ export async function PATCH(request: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { error: "Interest ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -228,7 +228,7 @@ export async function PATCH(request: NextRequest) {
     if (!doc.exists) {
       return NextResponse.json(
         { error: "Interest not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -236,7 +236,7 @@ export async function PATCH(request: NextRequest) {
     if (data?.userId !== userId) {
       return NextResponse.json(
         { error: "Unauthorized - You can only update your own interests" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -252,7 +252,7 @@ export async function PATCH(request: NextRequest) {
       ) {
         return NextResponse.json(
           { error: "Invalid coordinates" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       updates.coordinates = {
@@ -292,13 +292,13 @@ export async function PATCH(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: `Unauthorized - ${error.message}` },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to update interest" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -89,16 +89,6 @@ export type AnalyticsEvent =
       };
     };
 
-declare global {
-  interface Window {
-    gtag?: (
-      command: "config" | "event" | "js" | "consent",
-      targetId: string | Date,
-      config?: Record<string, unknown>,
-    ) => void;
-  }
-}
-
 const CONSENT_KEY = "ga_consent";
 const CONSENT_GRANTED = "granted";
 const CONSENT_DENIED = "denied";

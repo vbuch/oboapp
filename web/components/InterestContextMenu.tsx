@@ -9,7 +9,6 @@ interface InterestContextMenuProps {
 }
 
 export default function InterestContextMenu({
-  interest,
   position,
   onMove,
   onDelete,

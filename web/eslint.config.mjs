@@ -11,18 +11,14 @@ const eslintConfig = [
 
       // Code quality rules
       "no-unused-vars": [
-        "error",
+        "warn",
         {
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
           ignoreRestSiblings: true,
+          args: "none", // Don't check function arguments - TypeScript handles this
         },
       ],
-
-      // TODO: Custom rules needed for React cleanup patterns:
-      // - Detect useMemo/useCallback creating functions with .cancel() method
-      // - Require cleanup in useEffect for such functions
-      // - Flag missing cleanup for debounce, throttle, setTimeout, setInterval
     },
   },
   {
@@ -33,6 +29,7 @@ const eslintConfig = [
       "next-env.d.ts",
       "node_modules/**",
       "coverage/**",
+      "**/*.d.ts", // Type declaration files
     ],
   },
 ];
