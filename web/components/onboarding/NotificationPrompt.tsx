@@ -57,7 +57,7 @@ export default function NotificationPrompt({
   }, [onDismiss]);
 
   return (
-    <div className="absolute bottom-4 right-4 z-40 max-w-sm">
+    <div className="animate-fade-in absolute bottom-4 right-4 z-40 max-w-sm">
       <PromptCard
         icon={<BellIcon className="w-12 h-12 text-primary" />}
         title="Маркирай зони на картата"

@@ -3,25 +3,23 @@
 import { trackEvent } from "@/lib/analytics";
 import { borderRadius } from "@/lib/colors";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
-import BellIcon from "@/components/icons/BellIcon";
+import PlusIcon from "@/components/icons/PlusIcon";
 
-interface NotificationButtonProps {
+interface AddInterestButtonProps {
   readonly onClick: () => void;
+  readonly isUserAuthenticated?: boolean;
   readonly visible?: boolean;
 }
 
-/**
- * Button shown to unauthenticated users in idle state to start onboarding flow.
- * Displays "Получавай известия" with a bell icon.
- */
-export default function NotificationButton({
+export default function AddInterestButton({
   onClick,
+  isUserAuthenticated = false,
   visible = true,
-}: NotificationButtonProps) {
+}: AddInterestButtonProps) {
   const handleClick = () => {
     trackEvent({
-      name: "onboarding_notification_clicked",
-      params: {},
+      name: "zone_add_initiated",
+      params: { user_authenticated: isUserAuthenticated },
     });
     onClick();
   };
@@ -36,11 +34,11 @@ export default function NotificationButton({
       } shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium ${
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
-      aria-label="Получавай известия"
+      aria-label="Добави зона"
       aria-hidden={!visible}
     >
-      <BellIcon className="w-5 h-5" />
-      Получавай известия
+      <PlusIcon className="w-5 h-5" />
+      Добави зона
     </button>
   );
 }

@@ -15,9 +15,9 @@ export default function LoadingButton({ visible = true }: LoadingButtonProps) {
   return (
     <button
       disabled
-      className={`absolute bottom-8 right-8 z-30 ${buttonSizes.lg} ${
-        buttonStyles.primary
-      } ${
+      className={`animate-fade-in absolute bottom-8 right-8 z-30 ${
+        buttonSizes.lg
+      } ${buttonStyles.primary} ${
         borderRadius.md
       } shadow-lg flex items-center gap-2 font-medium disabled:opacity-100 ${
         visible ? "opacity-100" : "opacity-0 pointer-events-none"

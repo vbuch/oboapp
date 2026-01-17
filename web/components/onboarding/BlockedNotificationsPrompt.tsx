@@ -36,7 +36,7 @@ export default function BlockedNotificationsPrompt({
   };
 
   return (
-    <div className="absolute bottom-4 right-4 z-40 max-w-sm">
+    <div className="animate-fade-in absolute bottom-4 right-4 z-40 max-w-sm">
       <PromptCard
         icon={<NoNotificationsIcon className="w-12 h-12 text-warning" />}
         title="Известията са блокирани"

@@ -1,6 +1,6 @@
 "use client";
 
-import AddInterestButton from "@/components/AddInterestButton";
+import AddInterestButton from "./AddInterestButton";
 import AddInterestsPrompt from "./AddInterestsPrompt";
 import LoadingButton from "./LoadingButton";
 import NotificationButton from "./NotificationButton";

@@ -6,43 +6,43 @@
   --foreground: #171717;
 
   /* Theme colors from colors.ts */
-  --color-primary: #1976D2; /* colors.interaction.circle - for primary buttons and interactive UI */
-  --color-primary-hover: #1565C0; /* Darker shade for hover states */
-  --color-destructive: #E74C3C; /* colors.primary.red - for destructive actions */
-  --color-destructive-hover: #C0392B; /* colors.primary.redDark - for destructive hover */
+  --color-primary: #1976d2; /* colors.interaction.circle - for primary buttons and interactive UI */
+  --color-primary-hover: #1565c0; /* Darker shade for hover states */
+  --color-destructive: #e74c3c; /* colors.primary.red - for destructive actions */
+  --color-destructive-hover: #c0392b; /* colors.primary.redDark - for destructive hover */
 
   /* Semantic colors from colors.semantic */
-  --color-neutral: #6B7280;
-  --color-neutral-hover: #4B5563;
-  --color-neutral-light: #F3F4F6;
-  --color-neutral-border: #E5E7EB;
+  --color-neutral: #6b7280;
+  --color-neutral-hover: #4b5563;
+  --color-neutral-light: #f3f4f6;
+  --color-neutral-border: #e5e7eb;
 
-  --color-error: #DC2626;
-  --color-error-hover: #B91C1C;
-  --color-error-light: #FEE2E2;
-  --color-error-border: #FECACA;
+  --color-error: #dc2626;
+  --color-error-hover: #b91c1c;
+  --color-error-light: #fee2e2;
+  --color-error-border: #fecaca;
 
-  --color-warning: #F59E0B;
-  --color-warning-hover: #D97706;
-  --color-warning-light: #FEF3C7;
-  --color-warning-border: #FDE68A;
+  --color-warning: #f59e0b;
+  --color-warning-hover: #d97706;
+  --color-warning-light: #fef3c7;
+  --color-warning-border: #fde68a;
 
-  --color-success: #10B981;
+  --color-success: #10b981;
   --color-success-hover: #059669;
-  --color-success-light: #D1FAE5;
-  --color-success-border: #A7F3D0;
+  --color-success-light: #d1fae5;
+  --color-success-border: #a7f3d0;
 
-  --color-info: #3B82F6;
-  --color-info-hover: #2563EB;
-  --color-info-light: #DBEAFE;
-  --color-info-border: #BFDBFE;
+  --color-info: #3b82f6;
+  --color-info-hover: #2563eb;
+  --color-info-light: #dbeafe;
+  --color-info-border: #bfdbfe;
 
   /* Layout-specific colors from colors.primary and colors.ui */
-  --color-header-bg: #2c3e50;      /* colors.primary.blueDark */
-  --color-nav-bg: #5DADE2;         /* colors.primary.blue */
-  --color-footer-bg: #f8f9fa;      /* colors.ui.footerBg */
-  --color-link: #5DADE2;           /* colors.primary.blue */
-  --color-link-hover: #3498DB;     /* slightly darker for hover */
+  --color-header-bg: #2c3e50; /* colors.primary.blueDark */
+  --color-nav-bg: #5dade2; /* colors.primary.blue */
+  --color-footer-bg: #f8f9fa; /* colors.ui.footerBg */
+  --color-link: #5dade2; /* colors.primary.blue */
+  --color-link-hover: #3498db; /* slightly darker for hover */
 }
 
 @theme inline {
@@ -125,4 +125,18 @@ body {
 
 .animate-geolocation-loading-spin {
   animation: geolocation-loading-spin 2.5s linear infinite;
+}
+
+/* Onboarding fade-in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 200ms ease-out;
 }

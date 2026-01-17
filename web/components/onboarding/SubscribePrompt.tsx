@@ -12,7 +12,7 @@ interface SubscribePromptProps {
  */
 export default function SubscribePrompt({ onClose }: SubscribePromptProps) {
   return (
-    <div className="absolute bottom-4 right-4 z-40 max-w-sm">
+    <div className="animate-fade-in absolute bottom-4 right-4 z-40 max-w-sm">
       <div className="bg-warning-light border-2 border-warning-border rounded-lg shadow-xl p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 text-2xl">⚠️</div>
