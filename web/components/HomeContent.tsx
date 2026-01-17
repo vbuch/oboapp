@@ -158,7 +158,6 @@ export default function HomeContent() {
       {/* Interest Context Menu */}
       {interestMenuPosition && selectedInterest && (
         <InterestContextMenu
-          interest={selectedInterest}
           position={interestMenuPosition}
           onMove={handleMoveInterest}
           onDelete={handleDeleteInterest}

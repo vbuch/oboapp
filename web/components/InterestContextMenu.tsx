@@ -1,7 +1,4 @@
-import { Interest } from "@/lib/types";
-
 interface InterestContextMenuProps {
-  readonly interest: Interest;
   readonly position: { x: number; y: number };
   readonly onMove: () => void;
   readonly onDelete: () => void;
