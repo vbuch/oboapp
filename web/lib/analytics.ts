@@ -1,5 +1,7 @@
 // Google Analytics utility functions
 
+import { debounce } from "./debounce";
+
 // Event names and their parameters
 export type AnalyticsEvent =
   // Zone Management
@@ -197,25 +199,6 @@ export function trackEvent<T extends AnalyticsEvent>(event: T): void {
   } else if (process.env.NODE_ENV === "development") {
     console.log("[GA] Event (gtag not loaded):", event.name, event.params);
   }
-}
-
-// Debounce helper for high-frequency events
-export function debounce<T extends AnalyticsEvent>(
-  callback: (event: T) => void,
-  delay: number
-): (event: T) => void {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-  return (event: T) => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    timeoutId = setTimeout(() => {
-      callback(event);
-      timeoutId = null;
-    }, delay);
-  };
 }
 
 // Create a debounced version of trackEvent for high-frequency events

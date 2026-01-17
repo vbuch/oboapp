@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Message } from "@/lib/types";
 import { buildMessagesUrl } from "./useMessages.utils";
+import { debounce } from "@/lib/debounce";
 
 interface ViewportBounds {
   north: number;
@@ -26,7 +27,6 @@ export function useMessages() {
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(
     null
   );
-  const boundsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchMessages = useCallback(async (bounds?: ViewportBounds | null) => {
     try {
@@ -63,17 +63,10 @@ export function useMessages() {
   }, []);
 
   // Handle map bounds change - debounced at 300ms
-  const handleBoundsChanged = useCallback((bounds: ViewportBounds) => {
-    // Clear existing timeout
-    if (boundsTimeoutRef.current) {
-      clearTimeout(boundsTimeoutRef.current);
-    }
-
-    // Set new timeout for debounced fetch
-    boundsTimeoutRef.current = setTimeout(() => {
-      setViewportBounds(bounds);
-    }, 300);
-  }, []);
+  const handleBoundsChanged = useMemo(
+    () => debounce((bounds: ViewportBounds) => setViewportBounds(bounds), 300),
+    []
+  );
 
   // Fetch messages when viewport bounds change
   useEffect(() => {
