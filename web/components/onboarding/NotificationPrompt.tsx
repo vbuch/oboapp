@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { subscribeToPushNotifications } from "@/lib/notification-service";
 import { useAuth } from "@/lib/auth-context";
-import PromptCard from "./PromptCard";
+import PromptCard from "../PromptCard";
 
 interface NotificationPromptProps {
   /** Called with the permission result after browser prompt */

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import MapComponent from "@/components/MapComponent";
 import GeolocationButton from "@/components/GeolocationButton";
 import GeolocationPrompt from "@/components/GeolocationPrompt";
-import OnboardingPrompt from "@/components/OnboardingPrompt";
+import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
 import { useGeolocationPrompt } from "@/lib/hooks/useGeolocationPrompt";
 import { useOnboardingFlow } from "@/lib/hooks/useOnboardingFlow";
 import { useAuth } from "@/lib/auth-context";

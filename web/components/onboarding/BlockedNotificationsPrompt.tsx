@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/lib/auth-context";
-import PromptCard from "./PromptCard";
+import PromptCard from "../PromptCard";
 
 interface BlockedNotificationsPromptProps {
   readonly onDismiss: () => void;

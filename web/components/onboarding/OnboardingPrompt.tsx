@@ -1,11 +1,11 @@
 "use client";
 
 import AddInterestButton from "@/components/AddInterestButton";
-import AddInterestsPrompt from "@/components/AddInterestsPrompt";
-import NotificationPrompt from "@/components/NotificationPrompt";
-import BlockedNotificationsPrompt from "@/components/BlockedNotificationsPrompt";
-import LoginPrompt from "@/components/LoginPrompt";
-import SubscribePrompt from "@/components/SubscribePrompt";
+import AddInterestsPrompt from "./AddInterestsPrompt";
+import NotificationPrompt from "./NotificationPrompt";
+import BlockedNotificationsPrompt from "./BlockedNotificationsPrompt";
+import LoginPrompt from "./LoginPrompt";
+import SubscribePrompt from "./SubscribePrompt";
 import { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
 
 interface OnboardingPromptProps {

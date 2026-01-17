@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
-import PromptCard from "./PromptCard";
+import PromptCard from "../PromptCard";
 import { useAuth } from "@/lib/auth-context";
 
 interface LoginPromptProps {
