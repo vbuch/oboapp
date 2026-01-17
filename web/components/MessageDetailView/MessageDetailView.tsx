@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { Message } from "@/lib/types";
 import { classifyMessage } from "@/lib/message-classification";
 import { useDragToClose } from "@/lib/hooks/useDragToClose";
+import { useMessageAnimation } from "@/lib/hooks/useMessageAnimation";
 import Header from "./Header";
 import SourceDisplay from "./Source";
 import Locations from "./Locations";
@@ -42,36 +43,8 @@ export default function MessageDetailView({
     onClose: handleDragClose,
   });
 
-  // Handle animation states - track previous message to detect changes
-  const [animationState, setAnimationState] = useState<{
-    isVisible: boolean;
-    prevMessageId: string | null;
-  }>({
-    isVisible: false,
-    prevMessageId: null,
-  });
-
-  const messageId = message?.id || null;
-
-  // Reset visibility when message changes (using getDerivedStateFromProps pattern)
-  if (messageId !== animationState.prevMessageId) {
-    // Message changed - update tracking and reset visibility for animation
-    setAnimationState({
-      isVisible: false,
-      prevMessageId: messageId,
-    });
-  }
-
-  // Handle visibility animation only when message appears
-  useEffect(() => {
-    if (message && !animationState.isVisible) {
-      // Use requestAnimationFrame to ensure DOM is ready for animation
-      const frame = requestAnimationFrame(() =>
-        setAnimationState((prev) => ({ ...prev, isVisible: true }))
-      );
-      return () => cancelAnimationFrame(frame);
-    }
-  }, [message, animationState.isVisible]);
+  // Handle animation state
+  const isVisible = useMessageAnimation(message);
 
   // Close on ESC key
   useEffect(() => {
@@ -109,7 +82,7 @@ export default function MessageDetailView({
     <>
       <div
         className={`fixed inset-0 z-30 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${
-          animationState.isVisible ? "opacity-100" : "opacity-0"
+          isVisible ? "opacity-100" : "opacity-0"
         }`}
         onClick={() => {
           if (message) {
@@ -132,7 +105,7 @@ export default function MessageDetailView({
           bottom-0 left-0 right-0 max-h-[85vh] rounded-t-2xl
           sm:inset-y-0 sm:left-auto sm:right-0 sm:w-96 sm:max-h-none sm:rounded-none
           ${
-            animationState.isVisible
+            isVisible
               ? "translate-y-0 sm:translate-y-0 sm:translate-x-0"
               : "translate-y-full sm:translate-y-0 sm:translate-x-full"
           }
@@ -151,7 +124,7 @@ export default function MessageDetailView({
 
         <div
           className={`px-4 sm:px-6 py-4 pb-6 sm:pb-4 space-y-6 transition-opacity duration-500 delay-100 ${
-            animationState.isVisible ? "opacity-100" : "opacity-0"
+            isVisible ? "opacity-100" : "opacity-0"
           }`}
         >
           {message.finalizedAt && (
