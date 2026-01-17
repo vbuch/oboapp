@@ -45,7 +45,7 @@ function SourceContent({
       width={24}
       height={24}
       className="w-6 h-6 object-contain rounded flex-shrink-0"
-      onError={onLogoError}
+      onError={() => onLogoError()}
     />
   );
 
