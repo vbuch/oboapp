@@ -46,11 +46,11 @@ export default function AddInterestsPrompt({
         </div>
         <div className="flex-1">
           <h3 className="text-base font-semibold text-gray-900 mb-2">
-            Получавай известия за местни съобщения
+            Следи избрани зони
           </h3>
           <p className="text-sm text-gray-600">
-            Добави зони, които следиш, и се абонирай, за да получаваш известия,
-            когато има съобщение в тях. Следи това, което ти е важно.
+            Избери важните за теб места и получавай известия, когато има нещо
+            ново там.
           </p>
         </div>
       </div>

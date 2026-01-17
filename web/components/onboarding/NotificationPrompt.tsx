@@ -60,9 +60,9 @@ export default function NotificationPrompt({
     <div className="animate-fade-in absolute bottom-4 right-4 z-40 max-w-sm">
       <PromptCard
         icon={<BellIcon className="w-12 h-12 text-primary" />}
-        title="Маркирай зони на картата"
-        description="Добави зони на интерес и получавай известия за събития в тях — спиране на вода, ток, ремонти и други."
-        note="Ще поискаме разрешение за известия от браузъра."
+        title="Получавай известия"
+        description="Ще поискаме разрешение за известия от браузъра."
+        note="След това ще можеш да добавиш зони на интерес и да получаваш известия за събития в тях."
         primaryButton={{
           text: "Разреши известия",
           onClick: handleAccept,

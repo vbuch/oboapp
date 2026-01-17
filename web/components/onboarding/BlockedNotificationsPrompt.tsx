@@ -40,7 +40,7 @@ export default function BlockedNotificationsPrompt({
       <PromptCard
         icon={<NoNotificationsIcon className="w-12 h-12 text-warning" />}
         title="Известията са блокирани"
-        description="Браузърът или устройството ти не позволява известия. Можеш да ги включиш от настройките на браузъра. Междувременно можеш да влезеш и да добавиш зони — известията ще работят на друго устройство."
+        description="Браузърът или устройството ти не позволява известия. Можеш да ги включиш от настройките на браузъра."
         primaryButton={{
           text: "Влез в профила си",
           onClick: handleLogin,
