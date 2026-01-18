@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-  useEffect,
-} from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { GoogleMap } from "@react-google-maps/api";
 import { Message, Interest } from "@/lib/types";
 import { SOFIA_BOUNDS } from "@/lib/bounds-utils";
@@ -22,9 +16,9 @@ interface MapComponentProps {
       lat: number,
       lng: number,
       zoom?: number,
-      options?: { animate?: boolean }
+      options?: { animate?: boolean },
     ) => void,
-    mapInstance: google.maps.Map | null
+    mapInstance: google.maps.Map | null,
   ) => void;
   readonly onBoundsChanged?: (bounds: {
     north: number;
@@ -113,6 +107,7 @@ export default function MapComponent({
   const mapRef = useRef<google.maps.Map | null>(null);
   const latestCenterRef = useRef(SOFIA_CENTER);
   const [currentZoom, setCurrentZoom] = useState<number>(14);
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const mapOptions: google.maps.MapOptions = useMemo(
     () => ({
       zoom: 14,
@@ -129,7 +124,7 @@ export default function MapComponent({
       minZoom: 12,
       maxZoom: 18,
     }),
-    [initialCenter]
+    [initialCenter],
   );
 
   const centerMap = useCallback(
@@ -137,7 +132,7 @@ export default function MapComponent({
       lat: number,
       lng: number,
       zoom: number = 17,
-      options?: { animate?: boolean }
+      options?: { animate?: boolean },
     ) => {
       if (!mapRef.current) {
         return;
@@ -145,56 +140,56 @@ export default function MapComponent({
 
       const nextCenter = { lat, lng };
       latestCenterRef.current = nextCenter;
+      const gmapsCenter = new google.maps.LatLng(lat, lng);
 
       if (options?.animate === false) {
-        mapRef.current.setCenter(nextCenter);
+        mapRef.current.setCenter(gmapsCenter);
       } else {
-        mapRef.current.panTo(nextCenter);
+        mapRef.current.panTo(gmapsCenter);
       }
 
       mapRef.current.setZoom(zoom);
     },
-    []
+    [],
   );
 
   const onMapLoad = useCallback(
     (map: google.maps.Map) => {
       mapRef.current = map;
+      setMapInstance(map);
       // Notify parent that map is ready and pass the centerMap function and map instance
       if (onMapReady) {
         onMapReady(centerMap, map);
       }
     },
-    [onMapReady, centerMap]
+    [onMapReady, centerMap],
   );
 
   // Get dynamic map options based on target mode
   const dynamicMapOptions = useMemo(() => {
-    const currentMapCenter = mapRef.current?.getCenter();
-    const preservedCenter = currentMapCenter
-      ? {
-          lat: currentMapCenter.lat(),
-          lng: currentMapCenter.lng(),
-        }
-      : latestCenterRef.current;
-
     const baseOptions = {
       ...mapOptions,
-      center: preservedCenter,
       disableDefaultUI: true,
       gestureHandling: "greedy" as google.maps.MapOptions["gestureHandling"],
     } as const;
 
+    // Only include center if map hasn't loaded yet (mapInstance is null)
+    // This prevents re-centering when target mode changes
+    const { center, ...optionsWithoutCenter } = baseOptions;
+    const optionsWithConditionalCenter = mapInstance
+      ? optionsWithoutCenter
+      : baseOptions;
+
     if (targetMode?.active) {
       return {
-        ...baseOptions,
+        ...optionsWithConditionalCenter,
         scrollwheel: true,
         disableDoubleClickZoom: false,
       };
     }
 
-    return baseOptions;
-  }, [targetMode?.active, mapOptions]);
+    return optionsWithConditionalCenter;
+  }, [targetMode?.active, mapOptions, mapInstance]);
 
   const handleCenterChanged = useCallback(() => {
     if (!mapRef.current) return;
@@ -240,7 +235,7 @@ export default function MapComponent({
           <GeoJSONLayer
             messages={messages}
             onFeatureClick={onFeatureClick}
-            map={mapRef.current}
+            map={mapInstance}
             currentZoom={currentZoom}
           />
 
@@ -257,7 +252,7 @@ export default function MapComponent({
           {/* Render target mode overlay when active */}
           {targetMode?.active && (
             <InterestTargetMode
-              map={mapRef.current}
+              map={mapInstance}
               initialRadius={targetMode.initialRadius}
               onSave={targetMode.onSave}
               onCancel={targetMode.onCancel}

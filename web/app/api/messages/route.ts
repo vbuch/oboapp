@@ -9,7 +9,6 @@ import {
   type ViewportBounds,
 } from "@/lib/bounds-utils";
 
-const INGEST_SOURCE = "web-interface";
 const DEFAULT_RELEVANCE_DAYS = 7;
 
 /**
@@ -28,7 +27,7 @@ function parseTimespanDate(dateStr: string): Date | null {
       Number.parseInt(month) - 1, // JS months are 0-indexed
       Number.parseInt(day),
       Number.parseInt(hours),
-      Number.parseInt(minutes)
+      Number.parseInt(minutes),
     );
   } catch {
     return null;
@@ -148,7 +147,7 @@ export async function GET(request: Request) {
 
     // Filter messages by relevance
     const relevantMessages = allMessages.filter((message) =>
-      isMessageRelevant(message, cutoffDate)
+      isMessageRelevant(message, cutoffDate),
     );
 
     // Include all messages with valid GeoJSON
@@ -163,7 +162,7 @@ export async function GET(request: Request) {
 
         // Check if any feature intersects with viewport bounds
         return message.geoJson.features.some((feature) =>
-          featureIntersectsBounds(feature, viewportBounds)
+          featureIntersectsBounds(feature, viewportBounds),
         );
       });
     }
@@ -192,7 +191,7 @@ export async function GET(request: Request) {
               // Polygon
               const coords = feature.geometry.coordinates[0] as [
                 number,
-                number
+                number,
               ][];
               const avgLng =
                 coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
@@ -231,7 +230,7 @@ export async function GET(request: Request) {
     console.error("Error fetching messages:", error);
     return NextResponse.json(
       { error: "Failed to fetch messages" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

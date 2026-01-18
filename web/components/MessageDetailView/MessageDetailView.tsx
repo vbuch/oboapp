@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { Message } from "@/lib/types";
 import { classifyMessage } from "@/lib/message-classification";
 import { useDragToClose } from "@/lib/hooks/useDragToClose";
+import { useMessageAnimation } from "@/lib/hooks/useMessageAnimation";
 import Header from "./Header";
 import SourceDisplay from "./Source";
 import Locations from "./Locations";
@@ -23,9 +24,6 @@ export default function MessageDetailView({
   onClose,
   onAddressClick,
 }: Readonly<MessageDetailViewProps>) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [shouldRender, setShouldRender] = useState(false);
-
   // Create a wrapper for drag-to-close that tracks the event
   const handleDragClose = () => {
     if (message) {
@@ -45,17 +43,8 @@ export default function MessageDetailView({
     onClose: handleDragClose,
   });
 
-  // Handle animation states
-  useEffect(() => {
-    if (message) {
-      setShouldRender(true);
-      requestAnimationFrame(() => setIsVisible(true));
-    } else {
-      setIsVisible(false);
-      const timer = setTimeout(() => setShouldRender(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
+  // Handle animation state
+  const isVisible = useMessageAnimation(message);
 
   // Close on ESC key
   useEffect(() => {
@@ -76,7 +65,6 @@ export default function MessageDetailView({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [message, onClose]);
 
-  if (!shouldRender) return null;
   if (!message) return null;
 
   const formatDate = (date: Date | string) => {

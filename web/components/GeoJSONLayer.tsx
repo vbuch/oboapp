@@ -11,7 +11,7 @@ import GeometryRenderer from "./GeometryRenderer";
 
 interface GeoJSONLayerProps {
   readonly messages: Message[];
-  readonly onFeatureClick?: (messageId: string) => void;
+  readonly onFeatureClick?: (_messageId: string) => void;
   readonly map?: google.maps.Map | null;
   readonly currentZoom: number;
 }
@@ -42,7 +42,7 @@ export default function GeoJSONLayer({
   // Split features by classification
   const activeFeatures = features.filter((f) => f.classification === "active");
   const archivedFeatures = features.filter(
-    (f) => f.classification === "archived"
+    (f) => f.classification === "archived",
   );
 
   /**
@@ -51,7 +51,7 @@ export default function GeoJSONLayer({
   const createMarkersForFeatures = (
     featuresList: FeatureData[],
     classification: "active" | "archived",
-    markerMap: Map<string, google.maps.Marker>
+    markerMap: Map<string, google.maps.Marker>,
   ): google.maps.Marker[] => {
     const markers: google.maps.Marker[] = [];
 
@@ -128,14 +128,14 @@ export default function GeoJSONLayer({
     const archivedMarkers = createMarkersForFeatures(
       archivedFeatures,
       "archived",
-      archivedMarkersRef.current
+      archivedMarkersRef.current,
     );
 
     // Create active markers second (will be rendered above)
     const activeMarkers = createMarkersForFeatures(
       activeFeatures,
       "active",
-      activeMarkersRef.current
+      activeMarkersRef.current,
     );
 
     // Create archived clusterer FIRST (lower z-index)
@@ -278,22 +278,28 @@ export default function GeoJSONLayer({
     map.addListener("zoom_changed", updateUnclusteredState);
     map.addListener("bounds_changed", updateUnclusteredState);
 
+    // Capture ref values for cleanup to avoid stale closures
+    const currentActiveMarkers = activeMarkersRef.current;
+    const currentArchivedMarkers = archivedMarkersRef.current;
+    const activeClusterer = activeClustererRef.current;
+    const archivedClusterer = archivedClustererRef.current;
+
     return () => {
       // Cleanup
-      activeMarkersRef.current.forEach((marker) => marker.setMap(null));
-      archivedMarkersRef.current.forEach((marker) => marker.setMap(null));
-      activeMarkersRef.current.clear();
-      archivedMarkersRef.current.clear();
-      if (activeClustererRef.current) {
-        activeClustererRef.current.clearMarkers();
+      currentActiveMarkers.forEach((marker) => marker.setMap(null));
+      currentArchivedMarkers.forEach((marker) => marker.setMap(null));
+      currentActiveMarkers.clear();
+      currentArchivedMarkers.clear();
+      if (activeClusterer) {
+        activeClusterer.clearMarkers();
         activeClustererRef.current = null;
       }
-      if (archivedClustererRef.current) {
-        archivedClustererRef.current.clearMarkers();
+      if (archivedClusterer) {
+        archivedClusterer.clearMarkers();
         archivedClustererRef.current = null;
       }
     };
-  }, [messages, onFeatureClick, map]);
+  }, [messages, onFeatureClick, map]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Only show full geometry at high zoom levels (>=15) to avoid visual clutter
   const shouldShowFullGeometry = currentZoom >= 15;

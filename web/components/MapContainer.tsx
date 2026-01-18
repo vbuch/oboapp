@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import MapComponent from "@/components/MapComponent";
-import AddInterestButton from "@/components/AddInterestButton";
-import AddInterestsPrompt from "@/components/AddInterestsPrompt";
 import GeolocationButton from "@/components/GeolocationButton";
 import GeolocationPrompt from "@/components/GeolocationPrompt";
+import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
 import { useGeolocationPrompt } from "@/lib/hooks/useGeolocationPrompt";
+import { useOnboardingFlow } from "@/lib/hooks/useOnboardingFlow";
+import { useAuth } from "@/lib/auth-context";
 import { Message, Interest } from "@/lib/types";
 
 interface MapContainerProps {
   readonly messages: Message[];
   readonly interests: Interest[];
+  readonly interestsLoaded: boolean;
   readonly user: any;
   readonly targetMode: {
     active: boolean;
@@ -48,6 +50,7 @@ interface MapContainerProps {
 export default function MapContainer({
   messages,
   interests,
+  interestsLoaded,
   user,
   targetMode,
   initialMapCenter,
@@ -68,6 +71,63 @@ export default function MapContainer({
       ) => void)
     | null
   >(null);
+
+  // Subscription check state
+  const [subscriptionsLoaded, setSubscriptionsLoaded] = useState(false);
+  const [hasSubscriptions, setHasSubscriptions] = useState(false);
+
+  const { user: authUser, loading: authLoading } = useAuth();
+
+  // Check subscriptions when user is authenticated
+  // Wait for auth and interests to finish loading first to avoid flickering
+  useEffect(() => {
+    // Don't do anything until auth state and interests are determined
+    if (authLoading || !interestsLoaded) {
+      return;
+    }
+
+    if (!authUser) {
+      // Not logged in - mark as loaded with no subscriptions
+      setSubscriptionsLoaded(true);
+      setHasSubscriptions(false);
+      return;
+    }
+
+    const checkSubscriptions = async () => {
+      try {
+        const token = await authUser.getIdToken();
+        const response = await fetch("/api/notifications/subscription/all", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.ok) {
+          const subscriptions = await response.json();
+          setHasSubscriptions(
+            Array.isArray(subscriptions) && subscriptions.length > 0
+          );
+        }
+      } catch (error) {
+        console.error("Error checking subscriptions:", error);
+      } finally {
+        setSubscriptionsLoaded(true);
+      }
+    };
+
+    checkSubscriptions();
+  }, [authUser, authLoading, interestsLoaded]);
+
+  // Onboarding state machine
+  const {
+    state: onboardingState,
+    handlePermissionResult,
+    handleDismiss,
+    handleRestart,
+  } = useOnboardingFlow({
+    user: authUser,
+    interests,
+    subscriptionsLoaded,
+    hasSubscriptions,
+  });
 
   const { showPrompt, onAccept, onDecline, requestGeolocation, isLocating } =
     useGeolocationPrompt();
@@ -90,6 +150,24 @@ export default function MapContainer({
       requestGeolocation(centerMap);
     }
   };
+
+  // Handle add interest button click in idle state
+  // If logged in, go directly to creation mode (skip showing AddInterestsPrompt again)
+  // If not logged in, restart the onboarding flow
+  const handleAddInterestClick = useCallback(() => {
+    if (onboardingState === "idle") {
+      if (authUser) {
+        // User already dismissed AddInterestsPrompt, go straight to creation
+        onStartAddInterest();
+      } else {
+        // Not logged in, restart onboarding flow
+        handleRestart();
+      }
+    } else {
+      onStartAddInterest();
+    }
+  }, [onboardingState, authUser, handleRestart, onStartAddInterest]);
+
   return (
     <div className="absolute inset-0">
       <MapComponent
@@ -113,19 +191,16 @@ export default function MapContainer({
         }
       />
 
-      {/* Add interests prompt - shown when user is logged in but has no interests */}
-      {user && interests.length === 0 && (
-        <AddInterestsPrompt onAddInterests={onStartAddInterest} />
-      )}
-
-      {/* Add interests button - shown when user is logged in and has interests */}
-      {user && interests.length > 0 && (
-        <AddInterestButton
-          onClick={onStartAddInterest}
-          isUserAuthenticated={!!user}
-          visible={!targetMode.active}
-        />
-      )}
+      {/* Onboarding prompts - controlled by state machine */}
+      <OnboardingPrompt
+        state={onboardingState}
+        targetModeActive={targetMode.active}
+        user={user}
+        onPermissionResult={handlePermissionResult}
+        onDismiss={handleDismiss}
+        onAddInterests={onStartAddInterest}
+        onAddInterestClick={handleAddInterestClick}
+      />
 
       {/* Geolocation button - always visible */}
       <GeolocationButton

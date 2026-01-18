@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Image from "next/image";
 import { trackEvent } from "@/lib/analytics";
 import sources from "@/lib/sources.json";
 import DetailItem from "./DetailItem";
@@ -38,11 +39,13 @@ function SourceContent({
       </svg>
     </div>
   ) : (
-    <img
+    <Image
       src={logoPath}
       alt={source?.name || sourceId}
+      width={24}
+      height={24}
       className="w-6 h-6 object-contain rounded flex-shrink-0"
-      onError={onLogoError}
+      onError={() => onLogoError()}
     />
   );
 

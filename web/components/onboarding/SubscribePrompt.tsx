@@ -6,9 +6,13 @@ interface SubscribePromptProps {
   readonly onClose: () => void;
 }
 
+/**
+ * Shown when user has zones but no push notification subscriptions
+ * Guides them to Settings to enable notifications
+ */
 export default function SubscribePrompt({ onClose }: SubscribePromptProps) {
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 p-4 w-full max-w-md">
+    <div className="animate-fade-in absolute bottom-4 right-4 z-40 max-w-sm">
       <div className="bg-warning-light border-2 border-warning-border rounded-lg shadow-xl p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 text-2xl">⚠️</div>

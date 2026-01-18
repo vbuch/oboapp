@@ -10,7 +10,6 @@ import {
   getGeometryStyle,
   createCustomGeometryStyle,
   type MarkerIconConfig,
-  type ClusterIconConfig,
   type GeometryStyleConfig,
 } from "./marker-config";
 import { colors, opacity } from "./colors";
@@ -38,10 +37,10 @@ describe("marker-config", () => {
 
     it("should have higher zIndex for hover states", () => {
       expect(GEOJSON_STYLES.lineStringHover.zIndex).toBeGreaterThan(
-        GEOJSON_STYLES.lineString.zIndex
+        GEOJSON_STYLES.lineString.zIndex,
       );
       expect(GEOJSON_STYLES.polygonHover.zIndex).toBeGreaterThan(
-        GEOJSON_STYLES.polygon.zIndex
+        GEOJSON_STYLES.polygon.zIndex,
       );
     });
   });
@@ -90,13 +89,13 @@ describe("marker-config", () => {
         false,
         "active",
         colors,
-        customOpacity as any
+        customOpacity as any,
       );
       const hoverConfig = createMarkerIcon(
         true,
         "active",
         colors,
-        customOpacity as any
+        customOpacity as any,
       );
 
       expect(normalConfig.fillOpacity).toBe(0.5);
@@ -248,10 +247,10 @@ describe("marker-config", () => {
 
       // Should keep other properties unchanged
       expect(customStyle.strokeColor).toBe(
-        GEOJSON_STYLES.lineString.strokeColor
+        GEOJSON_STYLES.lineString.strokeColor,
       );
       expect(customStyle.strokeWeight).toBe(
-        GEOJSON_STYLES.lineString.strokeWeight
+        GEOJSON_STYLES.lineString.strokeWeight,
       );
     });
   });

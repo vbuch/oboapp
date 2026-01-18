@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import UserMenu from "@/components/UserMenu";
 
@@ -19,19 +21,22 @@ export default function Header() {
             {/* Left side - Logo and Title */}
             <div className="flex items-center gap-2 sm:gap-4">
               {/* Logo - overlapping content below */}
-              <a
+              <Link
                 href="/"
                 className="flex-shrink-0 relative -mb-8 sm:-mb-16 md:-mb-20 cursor-pointer hover:opacity-90 transition-opacity"
               >
                 {logoError ? null : (
-                  <img
+                  <Image
                     src="/logo.png"
                     alt="OboApp"
+                    width={128}
+                    height={128}
                     className="h-16 sm:h-24 md:h-32 w-auto object-contain relative z-30"
                     onError={() => setLogoError(true)}
+                    priority
                   />
                 )}
-              </a>
+              </Link>
               <div>
                 <h1 className="text-base sm:text-lg md:text-xl font-bold">
                   OboApp
@@ -48,9 +53,11 @@ export default function Header() {
                   aria-label="User menu"
                 >
                   {user.photoURL && (
-                    <img
+                    <Image
                       src={user.photoURL}
                       alt={user.displayName || "Потребител"}
+                      width={32}
+                      height={32}
                       className="w-8 h-8 rounded-full"
                     />
                   )}

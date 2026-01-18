@@ -1,5 +1,7 @@
 // Google Analytics utility functions
 
+import { debounce, type DebouncedFunction } from "./debounce";
+
 // Event names and their parameters
 export type AnalyticsEvent =
   // Zone Management
@@ -20,11 +22,11 @@ export type AnalyticsEvent =
   // Notifications
   | {
       name: "notification_permission_accepted";
-      params: { zones_count: number };
+      params: { zones_count?: number };
     }
   | {
       name: "notification_permission_declined";
-      params: { zones_count: number };
+      params: { zones_count?: number };
     }
   // Geolocation
   | { name: "geolocation_prompt_shown"; params: {} }
@@ -40,8 +42,11 @@ export type AnalyticsEvent =
       name: "geolocation_error";
       params: { error_type: string; had_cached_permission: boolean };
     }
+  // Onboarding
+  | { name: "onboarding_notification_clicked"; params: {} }
   // Prompts
   | { name: "prompt_add_zones_clicked"; params: { prompt_type: "first_zone" } }
+  | { name: "prompt_add_zones_dismissed"; params: {} }
   // Content Engagement
   | {
       name: "message_clicked";
@@ -83,16 +88,6 @@ export type AnalyticsEvent =
         link_text?: string;
       };
     };
-
-declare global {
-  interface Window {
-    gtag?: (
-      command: "config" | "event" | "js" | "consent",
-      targetId: string | Date,
-      config?: Record<string, unknown>
-    ) => void;
-  }
-}
 
 const CONSENT_KEY = "ga_consent";
 const CONSENT_GRANTED = "granted";
@@ -196,24 +191,6 @@ export function trackEvent<T extends AnalyticsEvent>(event: T): void {
   }
 }
 
-// Debounce helper for high-frequency events
-export function debounce<T extends AnalyticsEvent>(
-  callback: (event: T) => void,
-  delay: number
-): (event: T) => void {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-  return (event: T) => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    timeoutId = setTimeout(() => {
-      callback(event);
-      timeoutId = null;
-    }, delay);
-  };
-}
-
 // Create a debounced version of trackEvent for high-frequency events
-export const trackEventDebounced = debounce(trackEvent, 300);
+export const trackEventDebounced: DebouncedFunction<typeof trackEvent> =
+  debounce(trackEvent, 300);

@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Message } from "@/lib/types";
 import { buildMessagesUrl } from "./useMessages.utils";
+import { debounce } from "@/lib/debounce";
 
 interface ViewportBounds {
   north: number;
@@ -24,9 +25,8 @@ export function useMessages() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(
-    null
+    null,
   );
-  const boundsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchMessages = useCallback(async (bounds?: ViewportBounds | null) => {
     try {
@@ -47,11 +47,11 @@ export function useMessages() {
       // Check if it's a network error (offline)
       if (!navigator.onLine) {
         setError(
-          "Няма интернет връзка. Моля, свържете се към интернет и презаредете страницата."
+          "Няма интернет връзка. Моля, свържете се към интернет и презаредете страницата.",
         );
       } else if (err instanceof TypeError && err.message.includes("fetch")) {
         setError(
-          "Не успях да заредя сигналите. Проверете интернет връзката си и презаредете страницата."
+          "Не успях да заредя сигналите. Проверете интернет връзката си и презаредете страницата.",
         );
       } else {
         setError("Не успях да заредя сигналите. Презареди страницата.");
@@ -63,17 +63,16 @@ export function useMessages() {
   }, []);
 
   // Handle map bounds change - debounced at 300ms
-  const handleBoundsChanged = useCallback((bounds: ViewportBounds) => {
-    // Clear existing timeout
-    if (boundsTimeoutRef.current) {
-      clearTimeout(boundsTimeoutRef.current);
-    }
+  const [handleBoundsChanged] = useState(() =>
+    debounce((bounds: ViewportBounds) => setViewportBounds(bounds), 300),
+  );
 
-    // Set new timeout for debounced fetch
-    boundsTimeoutRef.current = setTimeout(() => {
-      setViewportBounds(bounds);
-    }, 300);
-  }, []);
+  // Cleanup debounced function on unmount
+  useEffect(() => {
+    return () => {
+      handleBoundsChanged.cancel();
+    };
+  }, [handleBoundsChanged]);
 
   // Fetch messages when viewport bounds change
   useEffect(() => {
@@ -95,7 +94,7 @@ export function useMessages() {
     return () => {
       globalThis.removeEventListener(
         "messageSubmitted",
-        handleMessageSubmitted
+        handleMessageSubmitted,
       );
     };
   }, [fetchMessages, viewportBounds]);

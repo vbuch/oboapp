@@ -1,17 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapContainer from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView";
-import NotificationPrompt from "@/components/NotificationPrompt";
-import LoginPrompt from "@/components/LoginPrompt";
-import SubscribePrompt from "@/components/SubscribePrompt";
 import MessagesGrid from "@/components/MessagesGrid";
 import InterestContextMenu from "@/components/InterestContextMenu";
-import { Message } from "@/lib/types";
 import { useInterests } from "@/lib/hooks/useInterests";
-import { useNotificationPrompt } from "@/lib/hooks/useNotificationPrompt";
 import { useAuth } from "@/lib/auth-context";
 import { useMessages } from "@/lib/hooks/useMessages";
 import { useMapNavigation } from "@/lib/hooks/useMapNavigation";
@@ -31,27 +26,31 @@ import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
  * This ensures the map is visible immediately while messages load based on viewport.
  */
 export default function HomeContent() {
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [showSubscribePrompt, setShowSubscribePrompt] = useState(false);
-  const [hasCheckedSubscriptions, setHasCheckedSubscriptions] = useState(false);
-
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   // Core hooks
-  const { interests, addInterest, updateInterest, deleteInterest } =
-    useInterests();
+  const {
+    interests,
+    hasInitialized: interestsLoaded,
+    addInterest,
+    updateInterest,
+    deleteInterest,
+  } = useInterests();
   const { user } = useAuth();
-  const { showPrompt, onAccept, onDecline, checkAndPromptForNotifications } =
-    useNotificationPrompt();
 
   // Message fetching and viewport management
   const { messages, isLoading, error, handleBoundsChanged } = useMessages();
 
   // Map navigation and centering
-  const { initialMapCenter, centerMapFn, handleMapReady, handleAddressClick } =
-    useMapNavigation();
+  const {
+    initialMapCenter,
+    centerMapFn,
+    mapInstance,
+    handleMapReady,
+    handleAddressClick,
+  } = useMapNavigation();
 
   // Interest/zone management
   const {
@@ -67,96 +66,38 @@ export default function HomeContent() {
     handleCloseInterestMenu,
   } = useInterestManagement(
     centerMapFn,
+    mapInstance,
     addInterest,
     updateInterest,
-    deleteInterest
+    deleteInterest,
   );
-
-  // Check for notification permission when user has circles
-  useEffect(() => {
-    if (user && interests.length > 0) {
-      user
-        .getIdToken()
-        .then((idToken) => {
-          checkAndPromptForNotifications(user.uid, idToken, true);
-        })
-        .catch((err) => {
-          console.error("Failed to check notification permissions:", err);
-        });
-    }
-  }, [user, interests.length, checkAndPromptForNotifications]);
-
-  // Check if user has zones but no subscriptions
-  useEffect(() => {
-    if (
-      !user ||
-      interests.length === 0 ||
-      hasCheckedSubscriptions ||
-      showPrompt
-    ) {
-      return;
-    }
-
-    const checkSubscriptions = async () => {
-      try {
-        const token = await user.getIdToken();
-        const response = await fetch("/api/notifications/subscription/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (response.ok) {
-          const subscriptions = await response.json();
-          if (Array.isArray(subscriptions) && subscriptions.length === 0) {
-            // User has zones but no subscriptions - show prompt
-            setShowSubscribePrompt(true);
-          }
-        }
-      } catch (error) {
-        console.error("Error checking subscriptions:", error);
-      } finally {
-        setHasCheckedSubscriptions(true);
-      }
-    };
-
-    checkSubscriptions();
-  }, [user, interests.length, hasCheckedSubscriptions, showPrompt]);
 
   // Handle feature click - update URL and select message
   const handleFeatureClick = useCallback(
     (messageId: string) => {
       const message = messages.find((m) => m.id === messageId);
       if (message) {
-        setSelectedMessage(message);
-        // Update URL with query parameter
+        // Update URL with query parameter - this will trigger selectedMessage derivation
         router.push(`/?messageId=${messageId}`, { scroll: false });
       }
     },
-    [messages, router]
+    [messages, router],
   );
 
   // Handle closing detail view
   const handleCloseDetail = useCallback(() => {
-    setSelectedMessage(null);
-    // Remove query parameter from URL
+    // Remove query parameter from URL - this will trigger selectedMessage derivation
     router.push("/", { scroll: false });
   }, [router]);
 
-  // Sync selected message with URL parameter
-  useEffect(() => {
+  // Derive selected message from URL parameter
+  const selectedMessage = useMemo(() => {
     const messageId = searchParams.get("messageId");
     if (messageId && messages.length > 0) {
-      const message = messages.find((m) => m.id === messageId);
-      if (message) {
-        setSelectedMessage(message);
-      } else {
-        // Message not found, clear the parameter
-        setSelectedMessage(null);
-      }
-    } else if (!messageId && selectedMessage) {
-      // URL was changed (e.g., back button) without messageId
-      setSelectedMessage(null);
+      return messages.find((m) => m.id === messageId) || null;
     }
-  }, [searchParams, messages, selectedMessage]);
+    return null;
+  }, [searchParams, messages]);
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto" ref={containerRef}>
@@ -179,6 +120,7 @@ export default function HomeContent() {
         <MapContainer
           messages={messages}
           interests={interests}
+          interestsLoaded={interestsLoaded}
           user={user}
           targetMode={targetMode}
           initialMapCenter={initialMapCenter}
@@ -202,7 +144,6 @@ export default function HomeContent() {
         messages={messages}
         isLoading={isLoading}
         onMessageClick={(message) => {
-          setSelectedMessage(message);
           router.push(`/?messageId=${message.id}`, { scroll: false });
         }}
       />
@@ -217,30 +158,12 @@ export default function HomeContent() {
       {/* Interest Context Menu */}
       {interestMenuPosition && selectedInterest && (
         <InterestContextMenu
-          interest={selectedInterest}
           position={interestMenuPosition}
           onMove={handleMoveInterest}
           onDelete={handleDeleteInterest}
           onClose={handleCloseInterestMenu}
         />
       )}
-
-      {/* Notification permission prompt */}
-      {showPrompt && (
-        <NotificationPrompt
-          onAccept={onAccept}
-          onDecline={onDecline}
-          zonesCount={interests.length}
-        />
-      )}
-
-      {/* Subscribe prompt - shown when user has zones but no subscriptions */}
-      {showSubscribePrompt && (
-        <SubscribePrompt onClose={() => setShowSubscribePrompt(false)} />
-      )}
-
-      {/* Login prompt for non-authenticated users */}
-      {!user && <LoginPrompt />}
     </div>
   );
 }

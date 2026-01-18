@@ -1,7 +1,4 @@
-import { Interest } from "@/lib/types";
-
 interface InterestContextMenuProps {
-  readonly interest: Interest;
   readonly position: { x: number; y: number };
   readonly onMove: () => void;
   readonly onDelete: () => void;
@@ -9,7 +6,6 @@ interface InterestContextMenuProps {
 }
 
 export default function InterestContextMenu({
-  interest,
   position,
   onMove,
   onDelete,
@@ -30,7 +26,6 @@ export default function InterestContextMenu({
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
-          transform: "translate(-50%, -50%)",
         }}
       >
         <button

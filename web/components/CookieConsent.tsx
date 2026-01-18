@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { hasConsentDecision, setConsent, initGA } from "@/lib/analytics";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { borderRadius } from "@/lib/colors";
 
 export default function CookieConsent() {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    // Show banner only if user hasn't made a decision yet
-    setIsVisible(!hasConsentDecision());
-  }, []);
+  const [isVisible, setIsVisible] = useState(() => {
+    // Only check on client side and show banner only if user hasn't made a decision yet
+    if (typeof window !== "undefined") {
+      return !hasConsentDecision();
+    }
+    return false;
+  });
 
   const handleAccept = () => {
     setConsent(true);

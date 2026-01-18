@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { parseMapCenterFromParams } from "./useMapNavigation.utils";
 
@@ -6,7 +6,7 @@ type CenterMapFn = (
   lat: number,
   lng: number,
   zoom?: number,
-  options?: { animate?: boolean }
+  options?: { animate?: boolean },
 ) => void;
 
 /**
@@ -24,17 +24,22 @@ export function useMapNavigation() {
     lng: number;
   } | null>(null);
   const [centerMapFn, setCenterMapFn] = useState<CenterMapFn | null>(null);
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+  const hasProcessedUrlRef = useRef(false);
   const searchParams = useSearchParams();
 
   // Handle URL-based map centering (from settings page zone clicks)
   useEffect(() => {
+    if (hasProcessedUrlRef.current) return;
+
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
 
     const center = parseMapCenterFromParams(lat, lng);
     if (center) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInitialMapCenter(center);
-
+      hasProcessedUrlRef.current = true;
       // Clear query params after setting initial center
       globalThis.history.replaceState({}, "", "/");
     }
@@ -49,10 +54,11 @@ export function useMapNavigation() {
 
   // Handle map ready - receive centerMap function and map instance
   const handleMapReady = useCallback(
-    (centerMap: CenterMapFn, _map: google.maps.Map | null) => {
+    (centerMap: CenterMapFn, map: google.maps.Map | null) => {
       setCenterMapFn(() => centerMap);
+      setMapInstance(map);
     },
-    []
+    [],
   );
 
   // Handle address click - center map on coordinates
@@ -62,12 +68,13 @@ export function useMapNavigation() {
         centerMapFn(lat, lng, 18);
       }
     },
-    [centerMapFn]
+    [centerMapFn],
   );
 
   return {
     initialMapCenter,
     centerMapFn,
+    mapInstance,
     handleMapReady,
     handleAddressClick,
   };

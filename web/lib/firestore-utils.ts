@@ -2,11 +2,6 @@
  * Shared Firestore utility functions
  */
 
-/**
- * Convert Firestore timestamp to ISO string
- */
-import type { FirebaseNotificationPayload } from "@/lib/types";
-
 export type FirestoreValue =
   | {
       _seconds: number;

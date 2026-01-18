@@ -6,7 +6,7 @@ type CenterMapFn = (
   lat: number,
   lng: number,
   zoom?: number,
-  options?: { animate?: boolean }
+  options?: { animate?: boolean },
 ) => void;
 
 interface TargetMode {
@@ -25,33 +25,70 @@ interface TargetMode {
  */
 export function useInterestManagement(
   centerMapFn: CenterMapFn | null,
+  mapInstance: google.maps.Map | null,
   addInterest: (
     coordinates: { lat: number; lng: number },
-    radius: number
+    radius: number,
   ) => Promise<void>,
   updateInterest: (
     id: string,
-    updates: { coordinates?: { lat: number; lng: number }; radius?: number }
+    updates: { coordinates?: { lat: number; lng: number }; radius?: number },
   ) => Promise<void>,
-  deleteInterest: (id: string) => Promise<void>
+  deleteInterest: (id: string) => Promise<void>,
 ) {
   const [targetMode, setTargetMode] = useState<TargetMode>({ active: false });
   const [selectedInterest, setSelectedInterest] = useState<Interest | null>(
-    null
+    null,
   );
   const [interestMenuPosition, setInterestMenuPosition] = useState<{
     x: number;
     y: number;
   } | null>(null);
 
-  const handleInterestClick = useCallback((interest: Interest) => {
-    setSelectedInterest(interest);
-    // Show context menu at center of viewport
-    setInterestMenuPosition({
-      x: window.innerWidth / 2,
-      y: window.innerHeight / 2,
-    });
-  }, []);
+  const handleInterestClick = useCallback(
+    (interest: Interest) => {
+      setSelectedInterest(interest);
+
+      if (mapInstance) {
+        // Use OverlayView to convert lat/lng to screen coordinates
+        const overlay = new google.maps.OverlayView();
+        overlay.setMap(mapInstance);
+        overlay.onAdd = function () {};
+        overlay.onRemove = function () {};
+        overlay.draw = function () {
+          const projection = this.getProjection();
+          if (projection) {
+            const latLng = new google.maps.LatLng(
+              interest.coordinates.lat,
+              interest.coordinates.lng,
+            );
+            const point = projection.fromLatLngToContainerPixel(latLng);
+
+            if (point) {
+              // Get map container position
+              const mapDiv = mapInstance.getDiv();
+              const bounds = mapDiv.getBoundingClientRect();
+
+              setInterestMenuPosition({
+                x: bounds.left + point.x,
+                y: bounds.top + point.y,
+              });
+            }
+          }
+          // Clean up
+          overlay.setMap(null);
+        };
+        return;
+      }
+
+      // Fallback to center if map is not available
+      setInterestMenuPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      });
+    },
+    [mapInstance],
+  );
 
   const handleMoveInterest = useCallback(() => {
     if (!selectedInterest || !centerMapFn) return;
@@ -64,12 +101,12 @@ export function useInterestManagement(
       },
     });
 
-    // Center map on the interest
+    // Center map on the interest so it stays in the same visual position
     centerMapFn(
       selectedInterest.coordinates.lat,
       selectedInterest.coordinates.lng,
       17,
-      { animate: false }
+      { animate: false },
     );
 
     // Enter target mode with the interest being edited
@@ -106,7 +143,7 @@ export function useInterestManagement(
         error instanceof Error ? error.message : String(error);
       if (errorMessage.includes("404")) {
         console.warn(
-          "Interest already deleted (likely a duplicate), removing from local state"
+          "Interest already deleted (likely a duplicate), removing from local state",
         );
         setInterestMenuPosition(null);
         setSelectedInterest(null);
@@ -149,7 +186,7 @@ export function useInterestManagement(
         }
       })();
     },
-    [targetMode.editingInterestId, addInterest, updateInterest]
+    [targetMode.editingInterestId, addInterest, updateInterest],
   );
 
   const handleCancelTargetMode = useCallback(() => {

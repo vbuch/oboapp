@@ -72,6 +72,17 @@ If you identify a recurring pattern or developer preference:
 
 - **Strict Mode:** No implicit `any`.
 - **Imports:** Prefer named exports.
+- **No Barrel Files:** Avoid `index.ts` files that re-export other modules. Use direct imports instead (e.g., `import Button from "@/components/Button"` not `import { Button } from "@/components"`).
+
+### ESLint & Code Quality
+
+**CRITICAL: NEVER use `eslint-disable` comments.**
+
+- ESLint rules exist for good reasons (performance, bugs, maintainability)
+- `eslint-disable` masks problems instead of fixing them
+- Always fix the underlying issue, never suppress the warning
+- If a rule seems wrong for the entire project, configure it in `eslint.config.mjs`
+- **Exception:** Only disable rules in generated code or vendor files you cannot modify
 
 ### Tailwind Theme System
 
@@ -138,6 +149,10 @@ import { buttonStyles, buttonSizes, borderRadius } from "@/lib/theme";
 - Import from `lib/colors.ts`: `opacity`, `borderRadius`
 - Use for consistent spacing and transparency across the app
 
+### Adding dependencies
+
+When adding npm dependencies always prefer running `npm install` over directly editing `package.json`.
+
 ---
 
 ## 3. Domain Guidelines
@@ -149,7 +164,6 @@ The pipeline processes messages about public infrastructure disruptions in Sofia
 **Two-Stage LLM Processing:**
 
 1. **Categorization Stage** (`ingest/lib/ai-service.ts` + `ingest/prompts/categorize.md`)
-
    - Single AI call processes entire message
    - Determines if message contains public infrastructure information
    - Returns array of categorized messages with rich metadata
@@ -257,6 +271,7 @@ flowchart LR
 - **Composition:** Break large components into smaller, focused files (e.g., `SettingsPage.tsx` → `NotificationsSection.tsx`).
 - **Location:** Colocate components with their page if specific; move to `web/components/` if shared.
 - **Props:** Use `readonly` interfaces.
+- **No render functions:** Prefer extracting JSX into separate components instead of `render...()` functions inside components. Components are more idiomatic React and easier to test/reuse.
 
 ---
 

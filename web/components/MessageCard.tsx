@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { trackEvent } from "@/lib/analytics";
 import { Message } from "@/lib/types";
 import sources from "@/lib/sources.json";
@@ -119,9 +120,11 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
         {/* Source */}
         <div className="flex items-center space-x-3">
           {logoPath && !logoError ? (
-            <img
+            <Image
               src={logoPath}
-              alt={sourceInfo?.name || message.source}
+              alt={sourceInfo?.name || message.source || "Source"}
+              width={40}
+              height={40}
               className="w-10 h-10 object-contain flex-shrink-0"
               onError={() => setLogoError(true)}
             />
