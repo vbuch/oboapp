@@ -20,13 +20,15 @@ export default function DeviceSubscriptionCard({
       day: "numeric",
       month: "short",
       year: "numeric",
-    }
+    },
   );
 
   return (
     <div
       className={`border rounded-lg p-3 flex items-center justify-between gap-4 ${
-        isCurrentDevice ? "border-info-border bg-info-light" : "border-neutral-border"
+        isCurrentDevice
+          ? "border-info-border bg-info-light"
+          : "border-neutral-border"
       }`}
     >
       <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:gap-2">
@@ -43,6 +45,7 @@ export default function DeviceSubscriptionCard({
         </p>
       </div>
       <button
+        type="button"
         onClick={() => onUnsubscribe(subscription.token)}
         className={`text-xs whitespace-nowrap flex-shrink-0 ${buttonStyles.linkDestructive}`}
       >

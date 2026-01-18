@@ -58,6 +58,7 @@ export default function SubscribeDevicePrompt({
 
       {platformInfo.supportsNotifications && (
         <button
+          type="button"
           onClick={onSubscribe}
           className={`${buttonSizes.md} ${buttonStyles.primary} ${borderRadius.md}`}
         >

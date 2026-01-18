@@ -9,6 +9,7 @@ export default function UnsubscribeAllButton({
 }: UnsubscribeAllButtonProps) {
   return (
     <button
+      type="button"
       onClick={onUnsubscribeAll}
       className={`text-sm ${buttonStyles.linkDestructive}`}
     >

@@ -6,8 +6,8 @@
   --foreground: #171717;
 
   /* Theme colors from colors.ts */
-  --color-primary: #1976d2; /* colors.interaction.circle - for primary buttons and interactive UI */
-  --color-primary-hover: #1565c0; /* Darker shade for hover states */
+  --color-primary: #2c3e50; /* colors.primary.blueDark - matches header background */
+  --color-primary-hover: #243447; /* darker hover state */
   --color-destructive: #e74c3c; /* colors.primary.red - for destructive actions */
   --color-destructive-hover: #c0392b; /* colors.primary.redDark - for destructive hover */
 
@@ -139,4 +139,12 @@ body {
 
 .animate-fade-in {
   animation: fade-in 200ms ease-out;
+}
+
+/* Drag handle utility for touch-enabled draggable elements */
+.drag-handle {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }

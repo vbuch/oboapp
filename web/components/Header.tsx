@@ -48,6 +48,7 @@ export default function Header() {
             <div>
               {user && (
                 <button
+                  type="button"
                   onClick={() => setShowUserMenu(true)}
                   className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                   aria-label="User menu"

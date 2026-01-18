@@ -52,6 +52,7 @@ export default function DeleteAccountSection({
           />
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={handleConfirm}
               disabled={isDeleting || confirmText !== "ИЗТРИЙ"}
               className={`${buttonSizes.md} ${buttonStyles.destructive} ${borderRadius.md}`}
@@ -59,6 +60,7 @@ export default function DeleteAccountSection({
               {isDeleting ? "Изтриване..." : "Потвърди изтриването"}
             </button>
             <button
+              type="button"
               onClick={() => {
                 setShowConfirm(false);
                 setConfirmText("");
@@ -72,6 +74,7 @@ export default function DeleteAccountSection({
         </div>
       ) : (
         <button
+          type="button"
           onClick={() => setShowConfirm(true)}
           className={`${buttonSizes.md} ${buttonStyles.destructive} ${borderRadius.md}`}
         >

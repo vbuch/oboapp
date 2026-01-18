@@ -8,6 +8,9 @@ import {
   featureIntersectsBounds,
   type ViewportBounds,
 } from "@/lib/bounds-utils";
+import admin from "firebase-admin";
+
+const { or, where } = admin.firestore.Filter;
 
 const DEFAULT_RELEVANCE_DAYS = 7;
 
@@ -61,17 +64,27 @@ function isMessageRelevant(message: Message, cutoffDate: Date): boolean {
       });
     }
 
-    // If we have timespans, check if any end date is after cutoff
+    // If we have timespans, check if any have valid end dates
     if (allTimespans.length > 0) {
-      return allTimespans.some((timespan) => {
+      const hasAnyValidTimespan = allTimespans.some((timespan) => {
         if (!timespan.end) return false;
         const endDate = parseTimespanDate(timespan.end);
-        return endDate && endDate >= cutoffDate;
+        return endDate !== null;
       });
+
+      // If we have at least one valid timespan, use timespan-based logic
+      if (hasAnyValidTimespan) {
+        return allTimespans.some((timespan) => {
+          if (!timespan.end) return false;
+          const endDate = parseTimespanDate(timespan.end);
+          return endDate && endDate >= cutoffDate;
+        });
+      }
+      // All timespans are invalid - fall back to createdAt
     }
   }
 
-  // No timespans found - use createdAt date
+  // No timespans found or all timespans invalid - use createdAt date
   const createdAt = new Date(message.createdAt);
   return createdAt >= cutoffDate;
 }
@@ -88,6 +101,15 @@ export async function GET(request: Request) {
     };
     const zoomParam = searchParams.get("zoom");
     const zoom = zoomParam ? Number.parseFloat(zoomParam) : undefined;
+
+    // Parse categories filter
+    const categoriesParam = searchParams.get("categories");
+    const selectedCategories = categoriesParam
+      ? categoriesParam
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : null;
 
     let viewportBounds: ViewportBounds | null = null;
     if (
@@ -118,32 +140,174 @@ export async function GET(request: Request) {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - relevanceDays);
 
+    // If categories are selected but empty array, return empty result
+    if (selectedCategories && selectedCategories.length === 0) {
+      return NextResponse.json({ messages: [] });
+    }
+
     // Use Admin SDK for reading messages
     const messagesRef = adminDb.collection("messages");
-    const snapshot = await messagesRef.orderBy("createdAt", "desc").get();
 
-    const allMessages: Message[] = [];
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      allMessages.push({
-        id: doc.id,
-        text: data.text,
-        addresses: data.addresses ? JSON.parse(data.addresses) : [],
-        extractedData: data.extractedData
-          ? JSON.parse(data.extractedData)
-          : undefined,
-        geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
-        createdAt: convertTimestamp(data.createdAt),
-        crawledAt: data.crawledAt
-          ? convertTimestamp(data.crawledAt)
-          : undefined,
-        finalizedAt: data.finalizedAt
-          ? convertTimestamp(data.finalizedAt)
-          : undefined,
-        source: data.source,
-        sourceUrl: data.sourceUrl,
+    let allMessages: Message[] = [];
+
+    // Apply category filtering if categories are selected
+    if (selectedCategories && selectedCategories.length > 0) {
+      // Separate uncategorized from real categories
+      const realCategories = selectedCategories.filter(
+        (c) => c !== "uncategorized",
+      );
+      const includeUncategorized = selectedCategories.includes("uncategorized");
+
+      // If only uncategorized is selected, we need to fetch all and filter in memory
+      // because Firestore doesn't have an index for categories == null with finalizedAt ordering
+      if (includeUncategorized && realCategories.length === 0) {
+        // Fetch all finalized messages and filter for uncategorized in memory
+        const snapshot = await messagesRef
+          .where("finalizedAt", "!=", null)
+          .orderBy("finalizedAt", "desc")
+          .get();
+
+        const uncategorizedMessages: Message[] = [];
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const categories = data.categories;
+
+          // Check if message is uncategorized
+          const isUncategorized =
+            !categories ||
+            (Array.isArray(categories) && categories.length === 0);
+
+          if (isUncategorized) {
+            uncategorizedMessages.push({
+              id: doc.id,
+              text: data.text,
+              addresses: data.addresses ? JSON.parse(data.addresses) : [],
+              extractedData: data.extractedData
+                ? JSON.parse(data.extractedData)
+                : undefined,
+              geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
+              createdAt: convertTimestamp(data.createdAt),
+              crawledAt: data.crawledAt
+                ? convertTimestamp(data.crawledAt)
+                : undefined,
+              finalizedAt: data.finalizedAt
+                ? convertTimestamp(data.finalizedAt)
+                : undefined,
+              source: data.source,
+              sourceUrl: data.sourceUrl,
+              categories: Array.isArray(data.categories) ? data.categories : [],
+            });
+          }
+        });
+
+        allMessages = uncategorizedMessages;
+      } else {
+        // We have real categories (and possibly uncategorized)
+        const queryPromises: Promise<FirebaseFirestore.QuerySnapshot>[] = [];
+
+        // Query for real categories using OR filter
+        if (realCategories.length > 0) {
+          const categoryFilters = realCategories.map((cat) =>
+            where("categories", "array-contains", cat),
+          );
+
+          const categoriesQuery = messagesRef
+            .where(or(...categoryFilters))
+            .where("finalizedAt", "!=", null)
+            .orderBy("finalizedAt", "desc");
+
+          queryPromises.push(categoriesQuery.get());
+        }
+
+        // If uncategorized is also selected, fetch all and filter in memory
+        if (includeUncategorized) {
+          const allMessagesQuery = messagesRef
+            .where("finalizedAt", "!=", null)
+            .orderBy("finalizedAt", "desc");
+
+          queryPromises.push(allMessagesQuery.get());
+        }
+
+        // Execute queries in parallel
+        const snapshots = await Promise.all(queryPromises);
+
+        // Merge results and deduplicate by message ID
+        const messagesMap = new Map<string, Message>();
+
+        for (let i = 0; i < snapshots.length; i++) {
+          const snapshot = snapshots[i];
+          const isUncategorizedSnapshot =
+            includeUncategorized && i === snapshots.length - 1;
+
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+
+            // If this is the uncategorized snapshot, filter for uncategorized only
+            if (isUncategorizedSnapshot) {
+              const categories = data.categories;
+              const isUncategorized =
+                !categories ||
+                (Array.isArray(categories) && categories.length === 0);
+              if (!isUncategorized) return; // Skip categorized messages
+            }
+
+            // Only add if not already present (deduplication)
+            if (!messagesMap.has(doc.id)) {
+              messagesMap.set(doc.id, {
+                id: doc.id,
+                text: data.text,
+                addresses: data.addresses ? JSON.parse(data.addresses) : [],
+                extractedData: data.extractedData
+                  ? JSON.parse(data.extractedData)
+                  : undefined,
+                geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
+                createdAt: convertTimestamp(data.createdAt),
+                crawledAt: data.crawledAt
+                  ? convertTimestamp(data.crawledAt)
+                  : undefined,
+                finalizedAt: data.finalizedAt
+                  ? convertTimestamp(data.finalizedAt)
+                  : undefined,
+                source: data.source,
+                sourceUrl: data.sourceUrl,
+                categories: Array.isArray(data.categories)
+                  ? data.categories
+                  : [],
+              });
+            }
+          });
+        }
+
+        allMessages = Array.from(messagesMap.values());
+      }
+    } else {
+      // No category filter - fetch all messages (original behavior)
+      const snapshot = await messagesRef.orderBy("createdAt", "desc").get();
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        allMessages.push({
+          id: doc.id,
+          text: data.text,
+          addresses: data.addresses ? JSON.parse(data.addresses) : [],
+          extractedData: data.extractedData
+            ? JSON.parse(data.extractedData)
+            : undefined,
+          geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
+          createdAt: convertTimestamp(data.createdAt),
+          crawledAt: data.crawledAt
+            ? convertTimestamp(data.crawledAt)
+            : undefined,
+          finalizedAt: data.finalizedAt
+            ? convertTimestamp(data.finalizedAt)
+            : undefined,
+          source: data.source,
+          sourceUrl: data.sourceUrl,
+          categories: Array.isArray(data.categories) ? data.categories : [],
+        });
       });
-    });
+    }
 
     // Filter messages by relevance
     const relevantMessages = allMessages.filter((message) =>

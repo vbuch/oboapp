@@ -56,12 +56,14 @@ export default function AddInterestsPrompt({
       </div>
       <div className="flex justify-end gap-2">
         <button
+          type="button"
           onClick={handleDismiss}
           className={`${buttonSizes.md} ${buttonStyles.secondary} ${borderRadius.md} font-medium`}
         >
           По-късно
         </button>
         <button
+          type="button"
           onClick={handleAddInterests}
           className={`${buttonSizes.lg} ${buttonStyles.primary} ${borderRadius.md} shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium`}
         >

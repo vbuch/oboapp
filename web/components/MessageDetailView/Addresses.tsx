@@ -23,6 +23,7 @@ export default function Addresses({
       <div className="space-y-2">
         {addresses.map((address, index) => (
           <button
+            type="button"
             key={`address-${address.formattedAddress}-${index}`}
             onClick={() => {
               trackEvent({
@@ -34,13 +35,15 @@ export default function Addresses({
               });
               onAddressClick?.(
                 address.coordinates.lat,
-                address.coordinates.lng
+                address.coordinates.lng,
               );
               onClose();
             }}
             className="w-full text-left bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
           >
-            <p className="text-sm text-foreground">{address.formattedAddress}</p>
+            <p className="text-sm text-foreground">
+              {address.formattedAddress}
+            </p>
             {address.coordinates && (
               <p className="text-xs text-neutral mt-1">
                 {address.coordinates.lat.toFixed(6)},{" "}

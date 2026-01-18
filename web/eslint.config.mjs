@@ -11,12 +11,22 @@ const eslintConfig = [
 
       // Code quality rules
       "no-unused-vars": [
-        "warn",
+        "error",
         {
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
           ignoreRestSiblings: true,
           args: "none", // Don't check function arguments - TypeScript handles this
+        },
+      ],
+
+      // React/JSX rules
+      "react/button-has-type": [
+        "error",
+        {
+          button: true,
+          submit: true,
+          reset: true,
         },
       ],
     },

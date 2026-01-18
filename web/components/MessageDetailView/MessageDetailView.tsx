@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { Message } from "@/lib/types";
 import { classifyMessage } from "@/lib/message-classification";
-import { useDragToClose } from "@/lib/hooks/useDragToClose";
+import { useDragPanel } from "@/lib/hooks/useDragPanel";
 import { useMessageAnimation } from "@/lib/hooks/useMessageAnimation";
 import Header from "./Header";
 import SourceDisplay from "./Source";
@@ -39,8 +39,10 @@ export default function MessageDetailView({
   };
 
   // Drag to close functionality
-  const { isDragging, dragOffset, handlers } = useDragToClose({
-    onClose: handleDragClose,
+  const { isDragging, dragOffset, handlers } = useDragPanel({
+    direction: "vertical",
+    isOpen: true,
+    onAction: handleDragClose,
   });
 
   // Handle animation state

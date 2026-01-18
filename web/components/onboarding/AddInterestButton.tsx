@@ -26,6 +26,7 @@ export default function AddInterestButton({
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       className={`animate-fade-in absolute bottom-8 right-8 z-30 ${
         buttonSizes.lg

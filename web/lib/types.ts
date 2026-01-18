@@ -10,6 +10,7 @@ export interface Message {
   finalizedAt?: Date | string;
   source?: string;
   sourceUrl?: string;
+  categories?: string[];
 }
 
 export interface Address {

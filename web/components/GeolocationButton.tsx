@@ -16,6 +16,7 @@ export default function GeolocationButton({
 }: GeolocationButtonProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={isLocating}
       className={`absolute bottom-8 left-8 z-30 p-4 ${borderRadius.full} shadow-lg hover:shadow-xl transition-all duration-200 ${

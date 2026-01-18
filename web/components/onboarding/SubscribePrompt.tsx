@@ -32,6 +32,7 @@ export default function SubscribePrompt({ onClose }: SubscribePromptProps) {
                 Отиди в настройки
               </Link>
               <button
+                type="button"
                 onClick={onClose}
                 className={`${buttonSizes.md} font-medium ${buttonStyles.warning} ${borderRadius.md}`}
               >

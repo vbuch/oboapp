@@ -29,6 +29,7 @@ export default function InterestContextMenu({
         }}
       >
         <button
+          type="button"
           onClick={onMove}
           className="w-full px-4 py-2 text-sm text-left text-neutral hover:bg-neutral-light flex items-center gap-2"
         >
@@ -46,6 +47,7 @@ export default function InterestContextMenu({
           Премести
         </button>
         <button
+          type="button"
           onClick={onDelete}
           className="w-full px-4 py-2 text-sm text-left text-error hover:bg-error-light flex items-center gap-2"
         >

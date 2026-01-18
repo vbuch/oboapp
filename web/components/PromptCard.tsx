@@ -39,6 +39,7 @@ export default function PromptCard({
             <div className="flex gap-3">
               {secondaryButton && (
                 <button
+                  type="button"
                   onClick={secondaryButton.onClick}
                   className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.secondary} ${borderRadius.sm}`}
                 >
@@ -47,6 +48,7 @@ export default function PromptCard({
               )}
               {primaryButton && (
                 <button
+                  type="button"
                   onClick={primaryButton.onClick}
                   className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.primary} ${borderRadius.sm}`}
                 >

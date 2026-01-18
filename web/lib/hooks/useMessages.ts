@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { Message } from "@/lib/types";
 import { buildMessagesUrl } from "./useMessages.utils";
 import { debounce } from "@/lib/debounce";
+import type { Category } from "@/lib/category-constants";
+import { UNCATEGORIZED } from "@/lib/category-constants";
 
 interface ViewportBounds {
   north: number;
@@ -15,52 +17,71 @@ interface ViewportBounds {
  * Custom hook for managing message fetching and viewport-based filtering
  *
  * Handles:
- * - Message fetching with viewport bounds
+ * - Message fetching with viewport bounds and category filtering
+ * - Fetching available categories from /api/categories
  * - Loading and error states
  * - Debounced bounds changes (300ms)
  * - Message submission event listener
  */
 export function useMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<
+    (Category | typeof UNCATEGORIZED)[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(
     null,
   );
+  const [selectedCategories, setSelectedCategories] = useState<Set<
+    Category | typeof UNCATEGORIZED
+  > | null>(null);
 
-  const fetchMessages = useCallback(async (bounds?: ViewportBounds | null) => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const fetchMessages = useCallback(
+    async (
+      bounds?: ViewportBounds | null,
+      categories?: Set<Category | typeof UNCATEGORIZED> | null,
+    ) => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      const url = buildMessagesUrl(bounds);
+        // Build URL with optional categories
+        let url = buildMessagesUrl(bounds);
+        if (categories && categories.size > 0) {
+          const categoriesParam = Array.from(categories).join(",");
+          url = `${url}${bounds ? "&" : "?"}categories=${encodeURIComponent(categoriesParam)}`;
+        }
 
-      const response = await fetch(url);
+        const response = await fetch(url);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch messages");
+        if (!response.ok) {
+          throw new Error("Failed to fetch messages");
+        }
+
+        const data = await response.json();
+        setMessages(data.messages || []);
+      } catch (err) {
+        // Check if it's a network error (offline)
+        if (!navigator.onLine) {
+          setError(
+            "Няма интернет връзка. Моля, свържете се към интернет и презаредете страницата.",
+          );
+        } else if (err instanceof TypeError && err.message.includes("fetch")) {
+          setError(
+            "Не успях да заредя сигналите. Проверете интернет връзката си и презаредете страницата.",
+          );
+        } else {
+          setError("Не успях да заредя сигналите. Презареди страницата.");
+        }
+        console.error("Error fetching messages:", err);
+      } finally {
+        setIsLoading(false);
       }
-
-      const data = await response.json();
-      setMessages(data.messages || []);
-    } catch (err) {
-      // Check if it's a network error (offline)
-      if (!navigator.onLine) {
-        setError(
-          "Няма интернет връзка. Моля, свържете се към интернет и презаредете страницата.",
-        );
-      } else if (err instanceof TypeError && err.message.includes("fetch")) {
-        setError(
-          "Не успях да заредя сигналите. Проверете интернет връзката си и презаредете страницата.",
-        );
-      } else {
-        setError("Не успях да заредя сигналите. Презареди страницата.");
-      }
-      console.error("Error fetching messages:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Handle map bounds change - debounced at 300ms
   const [handleBoundsChanged] = useState(() =>
@@ -74,18 +95,38 @@ export function useMessages() {
     };
   }, [handleBoundsChanged]);
 
-  // Fetch messages when viewport bounds change
+  // Fetch available categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch("/api/categories");
+        if (!response.ok) {
+          throw new Error("Failed to fetch categories");
+        }
+        const data = await response.json();
+        setAvailableCategories(data.categories || []);
+      } catch (err) {
+        setCategoriesError(
+          "Възникна грешка при зареждане на категориите. Филтърът по категории може да не работи коректно.",
+        );
+        console.error("Error fetching categories:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Fetch messages when viewport bounds or selected categories change
   useEffect(() => {
     if (viewportBounds) {
-      fetchMessages(viewportBounds);
+      fetchMessages(viewportBounds, selectedCategories);
     }
-  }, [viewportBounds, fetchMessages]);
+  }, [viewportBounds, selectedCategories, fetchMessages]);
 
   // Listen for message submission events
   useEffect(() => {
     const handleMessageSubmitted = () => {
       setTimeout(() => {
-        fetchMessages(viewportBounds);
+        fetchMessages(viewportBounds, selectedCategories);
       }, 2000);
     };
 
@@ -97,12 +138,15 @@ export function useMessages() {
         handleMessageSubmitted,
       );
     };
-  }, [fetchMessages, viewportBounds]);
+  }, [fetchMessages, viewportBounds, selectedCategories]);
 
   return {
     messages,
+    availableCategories,
     isLoading,
     error,
+    categoriesError,
     handleBoundsChanged,
+    setSelectedCategories,
   };
 }

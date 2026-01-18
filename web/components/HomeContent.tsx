@@ -6,11 +6,13 @@ import MapContainer from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView";
 import MessagesGrid from "@/components/MessagesGrid";
 import InterestContextMenu from "@/components/InterestContextMenu";
+import CategoryFilterBox from "@/components/CategoryFilterBox";
 import { useInterests } from "@/lib/hooks/useInterests";
 import { useAuth } from "@/lib/auth-context";
 import { useMessages } from "@/lib/hooks/useMessages";
 import { useMapNavigation } from "@/lib/hooks/useMapNavigation";
 import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
+import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
 
 /**
  * HomeContent - Main application component managing map, messages, and user interactions
@@ -41,7 +43,24 @@ export default function HomeContent() {
   const { user } = useAuth();
 
   // Message fetching and viewport management
-  const { messages, isLoading, error, handleBoundsChanged } = useMessages();
+  const {
+    messages,
+    availableCategories,
+    isLoading,
+    error,
+    categoriesError,
+    handleBoundsChanged,
+    setSelectedCategories,
+  } = useMessages();
+
+  // Category filtering
+  // - availableCategories: From /api/categories (all categories that exist)
+  // - messages: Viewport messages (used for counting per category)
+  const categoryFilter = useCategoryFilter(
+    availableCategories,
+    messages,
+    setSelectedCategories,
+  );
 
   // Map navigation and centering
   const {
@@ -91,6 +110,7 @@ export default function HomeContent() {
   }, [router]);
 
   // Derive selected message from URL parameter
+  // Note: We search in unfiltered 'messages' to preserve selection even when filtered out
   const selectedMessage = useMemo(() => {
     const messageId = searchParams.get("messageId");
     if (messageId && messages.length > 0) {
@@ -101,16 +121,35 @@ export default function HomeContent() {
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto" ref={containerRef}>
-      {/* Error message if any */}
-      {error && (
+      {/* Error messages */}
+      {(error || categoriesError) && (
         <div className="bg-white border-b shadow-sm z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="p-4 bg-error-light text-error rounded-md">
-              {error}
-            </div>
+            {error && (
+              <div className="p-4 bg-error-light text-error rounded-md mb-2">
+                {error}
+              </div>
+            )}
+            {categoriesError && (
+              <div className="p-4 bg-warning-light text-warning rounded-md">
+                {categoriesError}
+              </div>
+            )}
           </div>
         </div>
       )}
+
+      {/* Category Filter Box */}
+      <CategoryFilterBox
+        isOpen={categoryFilter.isOpen}
+        selectedCategories={categoryFilter.selectedCategories}
+        categoryCounts={categoryFilter.categoryCounts}
+        hasActiveFilters={categoryFilter.hasActiveFilters}
+        isInitialLoad={categoryFilter.isInitialLoad}
+        isLoadingCounts={categoryFilter.isLoadingCounts}
+        onTogglePanel={categoryFilter.togglePanel}
+        onToggleCategory={categoryFilter.toggleCategory}
+      />
 
       {/* Map - Takes viewport height to allow scrolling */}
       <div

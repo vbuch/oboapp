@@ -26,6 +26,7 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
       {/* Backdrop */}
       {isOpen && (
         <button
+          type="button"
           className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
           onClick={onClose}
           aria-label="Close menu"
@@ -40,6 +41,7 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
       >
         {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-4 right-4 text-neutral hover:text-neutral transition-colors"
           aria-label="Close menu"
@@ -98,6 +100,7 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
 
           {/* Sign Out */}
           <button
+            type="button"
             onClick={handleSignOut}
             className="w-full px-6 py-3 text-left text-sm text-error hover:bg-error-light transition-colors"
           >

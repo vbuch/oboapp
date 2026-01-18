@@ -9,7 +9,7 @@ import { borderRadius } from "./colors";
  * Button style variants using Tailwind theme colors
  *
  * Colors are defined in globals.css @theme inline and sourced from colors.ts:
- * - Primary buttons: colors.interaction.circle (#1976D2) - consistent with interactive UI elements
+ * - Primary buttons: colors.primary.blueDark (#2C3E50) - consistent with header background
  * - Destructive buttons: colors.primary.red (#E74C3C) and redDark - for destructive actions
  * - Secondary/Warning: Standard Tailwind grays and yellows for neutral states
  */
@@ -67,7 +67,7 @@ export function getButtonClasses(
   variant: keyof typeof buttonStyles = "primary",
   size: keyof typeof buttonSizes = "md",
   radius: keyof typeof borderRadius = "sm",
-  additionalClasses = ""
+  additionalClasses = "",
 ): string {
   const classes = [
     buttonStyles[variant],

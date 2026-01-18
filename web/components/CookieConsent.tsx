@@ -39,6 +39,7 @@ export default function CookieConsent() {
           </p>
           <div className="flex gap-1.5">
             <button
+              type="button"
               onClick={handleDecline}
               className="w-8 h-8 flex items-center justify-center bg-neutral-light hover:bg-neutral-border text-neutral rounded-lg font-bold text-lg"
               aria-label="Откажи"
@@ -46,6 +47,7 @@ export default function CookieConsent() {
               ✕
             </button>
             <button
+              type="button"
               onClick={handleAccept}
               className="w-8 h-8 flex items-center justify-center bg-primary hover:bg-primary-hover text-white rounded-lg font-bold text-lg"
               aria-label="Приеми"
@@ -62,12 +64,14 @@ export default function CookieConsent() {
           </p>
           <div className="flex gap-2 whitespace-nowrap">
             <button
+              type="button"
               onClick={handleDecline}
               className={`${buttonSizes.sm} font-medium ${buttonStyles.secondary} ${borderRadius.md}`}
             >
               Откажи
             </button>
             <button
+              type="button"
               onClick={handleAccept}
               className={`${buttonSizes.sm} font-medium ${buttonStyles.primary} ${borderRadius.md}`}
             >

@@ -32,7 +32,7 @@ export default function Header({
     <div className="sticky top-0 bg-white border-b border-neutral-border px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm z-10">
       <button
         type="button"
-        className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-neutral-border rounded-full sm:hidden cursor-grab active:cursor-grabbing"
+        className="drag-handle absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-neutral-border rounded-full sm:hidden cursor-grab active:cursor-grabbing"
         {...handlers}
         onClick={handleClose}
         aria-label="Плъзни, за да затвориш, или натисни, за да затвориш"
@@ -48,6 +48,7 @@ export default function Header({
         Детайли за сигнала
       </h2>
       <button
+        type="button"
         onClick={handleClose}
         className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-neutral-light rounded-full mt-3 sm:mt-0"
         aria-label="Затвори детайлите"

@@ -11,7 +11,7 @@ interface InterestTargetModeProps {
   readonly initialRadius?: number;
   readonly onSave: (
     coordinates: { lat: number; lng: number },
-    radius: number
+    radius: number,
   ) => void;
   readonly onCancel: () => void;
 }
@@ -63,7 +63,7 @@ export default function InterestTargetMode({
             lng: e.latLng.lng(),
           });
         }
-      }
+      },
     );
 
     return () => {
@@ -164,6 +164,7 @@ export default function InterestTargetMode({
           {/* Action Buttons */}
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={handleCancel}
               disabled={isSaving}
               className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.ghost} ${borderRadius.sm}`}
@@ -171,6 +172,7 @@ export default function InterestTargetMode({
               Отказ
             </button>
             <button
+              type="button"
               onClick={handleSave}
               disabled={!currentCenter || isSaving}
               className={`flex-1 ${buttonSizes.md} font-medium ${buttonStyles.primary} ${borderRadius.sm}`}
