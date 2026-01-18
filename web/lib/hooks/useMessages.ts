@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Message } from "@/lib/types";
 import { buildMessagesUrl } from "./useMessages.utils";
 import { debounce } from "@/lib/debounce";
@@ -63,9 +63,8 @@ export function useMessages() {
   }, []);
 
   // Handle map bounds change - debounced at 300ms
-  const handleBoundsChanged = useMemo(
-    () => debounce((bounds: ViewportBounds) => setViewportBounds(bounds), 300),
-    [],
+  const [handleBoundsChanged] = useState(() =>
+    debounce((bounds: ViewportBounds) => setViewportBounds(bounds), 300),
   );
 
   // Cleanup debounced function on unmount
