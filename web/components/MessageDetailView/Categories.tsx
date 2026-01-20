@@ -5,6 +5,10 @@ interface CategoriesProps {
   readonly categories?: string[];
 }
 
+function isCategory(value: string): value is Category {
+  return value in CATEGORY_LABELS;
+}
+
 export default function Categories({ categories }: CategoriesProps) {
   if (!categories || categories.length === 0) {
     return null;
@@ -17,7 +21,7 @@ export default function Categories({ categories }: CategoriesProps) {
           key={category}
           className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full border border-primary/20"
         >
-          {CATEGORY_LABELS[category as Category] || category}
+          {isCategory(category) ? CATEGORY_LABELS[category] : category}
         </span>
       ))}
     </div>
