@@ -12,6 +12,7 @@ import Locations from "./Locations";
 import Addresses from "./Addresses";
 import DetailItem from "./DetailItem";
 import MessageText from "./MessageText";
+import Categories from "./Categories";
 
 interface MessageDetailViewProps {
   readonly message: Message | null;
@@ -142,6 +143,12 @@ export default function MessageDetailView({
               sourceId={message.source}
               sourceUrl={message.sourceUrl}
             />
+          )}
+
+          {message.categories && message.categories.length > 0 && (
+            <DetailItem title="Категории">
+              <Categories categories={message.categories} />
+            </DetailItem>
           )}
 
           <DetailItem title="Текст">
