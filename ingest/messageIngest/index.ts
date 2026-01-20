@@ -8,6 +8,14 @@ import { storeIncomingMessage, updateMessage } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
 import { generateMessageId, formatCategorizedMessageLogInfo } from "./utils";
 
+/**
+ * Check if an error is a boundary filtering error (not a real failure)
+ */
+function isBoundaryFilterError(error: unknown): boolean {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  return errorMessage.includes("No features within specified boundaries");
+}
+
 export { extractAddressesFromMessage } from "./extract-addresses";
 export {
   geocodeAddressesFromExtractedData,
@@ -205,8 +213,8 @@ async function processPrecomputedGeoJsonMessage(
     const failureReason =
       error instanceof Error ? error.message : String(error);
     
-    // Store failure reason if not already stored
-    if (!failureReason.includes("No features within specified boundaries")) {
+    // Store failure reason only if it's not a boundary filter error
+    if (!isBoundaryFilterError(error)) {
       await updateMessage(storedMessageId, {
         finalizedAt: new Date(),
         failureReason,
@@ -328,8 +336,8 @@ async function processCategorizedMessages(
         const failureReason =
           error instanceof Error ? error.message : String(error);
         
-        // Store failure reason if not already stored
-        if (!failureReason.includes("No features within specified boundaries")) {
+        // Store failure reason only if it's not a boundary filter error
+        if (!isBoundaryFilterError(error)) {
           await updateMessage(storedMessageId, {
             finalizedAt: new Date(),
             failureReason,
