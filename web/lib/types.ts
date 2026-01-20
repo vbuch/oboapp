@@ -11,6 +11,7 @@ export interface Message {
   source?: string;
   sourceUrl?: string;
   categories?: string[];
+  failureReason?: string;
 }
 
 export interface Address {

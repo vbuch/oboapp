@@ -122,7 +122,11 @@ async function processSingleMessage(
     const extractionResult = await extractAndGeocodeFromText(messageId, text);
 
     if (!extractionResult) {
-      return await finalizeFailedMessage(messageId, text);
+      return await finalizeFailedMessage(
+        messageId,
+        text,
+        "Failed to extract data from message text"
+      );
     }
 
     extractedData = extractionResult.extractedData;
@@ -183,19 +187,48 @@ async function processPrecomputedGeoJsonMessage(
     });
   }
 
-  const message = await processSingleMessage(
-    storedMessageId,
-    text,
-    options.precomputedGeoJson || null,
-    options
-  );
+  try {
+    const message = await processSingleMessage(
+      storedMessageId,
+      text,
+      options.precomputedGeoJson || null,
+      options
+    );
 
-  return {
-    messages: [message],
-    totalCategorized: 1,
-    totalRelevant: 1,
-    totalIrrelevant: 0,
-  };
+    return {
+      messages: [message],
+      totalCategorized: 1,
+      totalRelevant: 1,
+      totalIrrelevant: 0,
+    };
+  } catch (error) {
+    const failureReason =
+      error instanceof Error ? error.message : String(error);
+    
+    // Store failure reason if not already stored
+    if (!failureReason.includes("No features within specified boundaries")) {
+      await updateMessage(storedMessageId, {
+        finalizedAt: new Date(),
+        failureReason,
+      });
+    }
+    
+    const { buildMessageResponse } = await import("./build-response");
+    const failedMessage = await buildMessageResponse(
+      storedMessageId,
+      text,
+      [],
+      null,
+      null
+    );
+    
+    return {
+      messages: [failedMessage],
+      totalCategorized: 1,
+      totalRelevant: 0,
+      totalIrrelevant: 0,
+    };
+  }
 }
 
 /**
@@ -214,7 +247,40 @@ async function processCategorizedMessages(
 
   if (!categorizedMessages || categorizedMessages.length === 0) {
     console.error("❌ Failed to categorize message");
-    throw new Error("Message categorization failed");
+    
+    // Store the message with failure reason
+    const messageId = generateMessageId(sourceDocumentId, 1);
+    const storedMessageId = await storeIncomingMessage(
+      text,
+      userId,
+      userEmail,
+      source,
+      options.sourceUrl,
+      options.crawledAt,
+      messageId,
+      sourceDocumentId
+    );
+    
+    await updateMessage(storedMessageId, {
+      finalizedAt: new Date(),
+      failureReason: "Message categorization failed",
+    });
+    
+    const { buildMessageResponse } = await import("./build-response");
+    const failedMessage = await buildMessageResponse(
+      storedMessageId,
+      text,
+      [],
+      null,
+      null
+    );
+    
+    return {
+      messages: [failedMessage],
+      totalCategorized: 0,
+      totalRelevant: 0,
+      totalIrrelevant: 0,
+    };
   }
 
   console.log(`📊 Categorized into ${categorizedMessages.length} message(s)`);
@@ -247,14 +313,37 @@ async function processCategorizedMessages(
 
     if (categorizedMessage.isRelevant) {
       totalRelevant++;
-      const message = await processSingleMessage(
-        storedMessageId,
-        categorizedMessage.normalizedText,
-        null,
-        options,
-        categorizedMessage
-      );
-      messages.push(message);
+      try {
+        const message = await processSingleMessage(
+          storedMessageId,
+          categorizedMessage.normalizedText,
+          null,
+          options,
+          categorizedMessage
+        );
+        messages.push(message);
+      } catch (error) {
+        const failureReason =
+          error instanceof Error ? error.message : String(error);
+        
+        // Store failure reason if not already stored
+        if (!failureReason.includes("No features within specified boundaries")) {
+          await updateMessage(storedMessageId, {
+            finalizedAt: new Date(),
+            failureReason,
+          });
+        }
+        
+        const { buildMessageResponse } = await import("./build-response");
+        const failedMessage = await buildMessageResponse(
+          storedMessageId,
+          categorizedMessage.normalizedText,
+          [],
+          null,
+          null
+        );
+        messages.push(failedMessage);
+      }
     } else {
       totalIrrelevant++;
       const message = await handleIrrelevantMessage(
@@ -451,10 +540,14 @@ async function convertToGeoJson(
  */
 async function finalizeFailedMessage(
   messageId: string,
-  text: string
+  text: string,
+  failureReason: string
 ): Promise<Message> {
   console.error("❌ Failed to extract data from message, marking as finalized");
-  await updateMessage(messageId, { finalizedAt: new Date() });
+  await updateMessage(messageId, {
+    finalizedAt: new Date(),
+    failureReason,
+  });
 
   const { buildMessageResponse } = await import("./build-response");
   return await buildMessageResponse(messageId, text, [], null, null);
@@ -505,6 +598,13 @@ async function applyBoundaryFilteringIfNeeded(
     console.log(
       `⏭️  Message ${messageId} has no features within boundaries, skipping storage`
     );
+    
+    // Store failure reason for boundary filtering
+    await updateMessage(messageId, {
+      finalizedAt: new Date(),
+      failureReason: "No features within specified boundaries",
+    });
+    
     throw new Error("No features within specified boundaries");
   }
 

@@ -19,6 +19,7 @@ export interface Message {
   categories?: string[];
   relations?: string[];
   isRelevant?: boolean;
+  failureReason?: string;
 }
 
 export interface Address {
