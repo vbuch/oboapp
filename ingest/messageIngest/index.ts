@@ -219,7 +219,8 @@ async function processPrecomputedGeoJsonMessage(
       text,
       [],
       null,
-      null
+      null,
+      failureReason
     );
     
     return {
@@ -272,7 +273,8 @@ async function processCategorizedMessages(
       text,
       [],
       null,
-      null
+      null,
+      "Message categorization failed"
     );
     
     return {
@@ -340,7 +342,8 @@ async function processCategorizedMessages(
           categorizedMessage.normalizedText,
           [],
           null,
-          null
+          null,
+          failureReason
         );
         messages.push(failedMessage);
       }
@@ -550,7 +553,7 @@ async function finalizeFailedMessage(
   });
 
   const { buildMessageResponse } = await import("./build-response");
-  return await buildMessageResponse(messageId, text, [], null, null);
+  return await buildMessageResponse(messageId, text, [], null, null, failureReason);
 }
 
 /**

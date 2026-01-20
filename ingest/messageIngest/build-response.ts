@@ -13,7 +13,8 @@ export async function buildMessageResponse(
   text: string,
   addresses: Address[],
   extractedData: ExtractedData | null,
-  geoJson: GeoJSONFeatureCollection | null
+  geoJson: GeoJSONFeatureCollection | null,
+  failureReason?: string
 ): Promise<Message> {
   return {
     id: messageId,
@@ -22,5 +23,6 @@ export async function buildMessageResponse(
     extractedData: extractedData || undefined,
     geoJson: geoJson || undefined,
     createdAt: new Date().toISOString(),
+    failureReason,
   };
 }
