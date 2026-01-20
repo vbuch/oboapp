@@ -58,15 +58,9 @@ export default function GeoJSONLayer({
   ): google.maps.Marker[] => {
     const markers: google.maps.Marker[] = [];
 
-    // Apply jittering to Point features to prevent overlapping markers
-    const featuresWithCentroids = featuresList.map((feature) => ({
-      ...feature,
-      centroid: feature.centroid,
-    }));
-
-    // Extract centroids, jitter duplicates, then map back to features
+    // Apply jittering to prevent overlapping markers at identical positions
     const jitteredCentroids = jitterDuplicatePositions(
-      featuresWithCentroids.map((f) => f.centroid)
+      featuresList.map((f) => f.centroid)
     );
 
     featuresList.forEach((feature, index) => {

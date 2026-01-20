@@ -163,10 +163,12 @@ export const jitterDuplicatePositions = <
         const angle = Math.random() * 2 * Math.PI;
 
         // Random distance between 5 and 10 meters
-        // At Sofia's latitude (~42.7°), 1 degree ≈ 111km
-        // So ~7.5m average ≈ 0.0000675 degrees
+        // Approximate conversion from meters to degrees at mid-latitudes
+        // Note: This is a simplification that assumes Earth is spherical.
+        // More precise conversion would account for latitude-specific scaling.
+        const METERS_TO_DEGREES_APPROX = 1 / 111000;
         const distanceMeters = 5 + Math.random() * 5;
-        const distanceDegrees = distanceMeters / 111000;
+        const distanceDegrees = distanceMeters * METERS_TO_DEGREES_APPROX;
 
         // Calculate offset in lat/lng
         const latOffset = distanceDegrees * Math.cos(angle);
