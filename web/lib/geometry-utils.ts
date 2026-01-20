@@ -109,3 +109,77 @@ export const createFeatureKey = (
 
   return `${messageId}-${featureIndex}`;
 };
+
+/**
+ * Apply jittering to duplicate positions to prevent overlapping markers.
+ * Positions are considered duplicates if they have identical lat/lng coordinates.
+ * Each duplicate gets a small random offset (~5-10 meters) in a random direction.
+ *
+ * @param positions - Array of position objects with lat and lng properties
+ * @returns Array of positions with jittering applied to duplicates
+ */
+export const jitterDuplicatePositions = <
+  T extends { lat: number; lng: number },
+>(
+  positions: T[]
+): T[] => {
+  if (!Array.isArray(positions)) {
+    throw new Error("Invalid input: positions must be an array");
+  }
+
+  // Group positions by their coordinates
+  const positionGroups = new Map<string, T[]>();
+
+  positions.forEach((pos) => {
+    if (
+      typeof pos.lat !== "number" ||
+      typeof pos.lng !== "number" ||
+      !Number.isFinite(pos.lat) ||
+      !Number.isFinite(pos.lng)
+    ) {
+      throw new Error(
+        "Invalid position: lat and lng must be finite numbers"
+      );
+    }
+
+    const key = `${pos.lat.toFixed(6)},${pos.lng.toFixed(6)}`;
+    if (!positionGroups.has(key)) {
+      positionGroups.set(key, []);
+    }
+    positionGroups.get(key)!.push(pos);
+  });
+
+  // Apply jittering to groups with duplicates
+  const result: T[] = [];
+
+  positionGroups.forEach((group) => {
+    if (group.length === 1) {
+      // No duplicates, keep original position
+      result.push(group[0]);
+    } else {
+      // Duplicates found, apply jittering to each
+      group.forEach((pos) => {
+        // Random angle between 0 and 2π
+        const angle = Math.random() * 2 * Math.PI;
+
+        // Random distance between 5 and 10 meters
+        // At Sofia's latitude (~42.7°), 1 degree ≈ 111km
+        // So ~7.5m average ≈ 0.0000675 degrees
+        const distanceMeters = 5 + Math.random() * 5;
+        const distanceDegrees = distanceMeters / 111000;
+
+        // Calculate offset in lat/lng
+        const latOffset = distanceDegrees * Math.cos(angle);
+        const lngOffset = distanceDegrees * Math.sin(angle);
+
+        result.push({
+          ...pos,
+          lat: pos.lat + latOffset,
+          lng: pos.lng + lngOffset,
+        });
+      });
+    }
+  });
+
+  return result;
+};
