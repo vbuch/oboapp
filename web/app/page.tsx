@@ -1,15 +1,10 @@
 import { Suspense } from "react";
 import HomeContent from "@/components/HomeContent";
+import SplashScreen from "@/components/SplashScreen";
 
 export default function Home() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <p className="text-gray-600">Зареждане...</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<SplashScreen />}>
       <HomeContent />
     </Suspense>
   );
