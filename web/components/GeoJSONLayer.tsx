@@ -4,7 +4,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { trackEvent } from "@/lib/analytics";
 import { Message } from "@/lib/types";
-import { createFeatureKey } from "@/lib/geometry-utils";
+import {
+  createFeatureKey,
+  jitterDuplicatePositions,
+} from "@/lib/geometry-utils";
 import { extractFeaturesFromMessages, FeatureData } from "@/lib/feature-utils";
 import { createMarkerIcon, createClusterIcon } from "@/lib/marker-config";
 import GeometryRenderer from "./GeometryRenderer";
@@ -55,11 +58,16 @@ export default function GeoJSONLayer({
   ): google.maps.Marker[] => {
     const markers: google.maps.Marker[] = [];
 
-    featuresList.forEach((feature) => {
+    // Apply jittering to prevent overlapping markers at identical positions
+    const jitteredCentroids = jitterDuplicatePositions(
+      featuresList.map((f) => f.centroid)
+    );
+
+    featuresList.forEach((feature, index) => {
       const key = createFeatureKey(feature.messageId, feature.featureIndex);
 
       const marker = new google.maps.Marker({
-        position: feature.centroid,
+        position: jitteredCentroids[index], // Use jittered position
         map: null, // Will be managed by clusterer
         icon: createMarkerIcon(false, classification),
         title:

@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { toLatLng, getCentroid, createFeatureKey } from "./geometry-utils";
+import {
+  toLatLng,
+  getCentroid,
+  createFeatureKey,
+  jitterDuplicatePositions,
+} from "./geometry-utils";
 
 describe("geometry-utils", () => {
   describe("toLatLng", () => {
@@ -365,6 +370,177 @@ describe("geometry-utils", () => {
 
         consoleSpy.mockRestore();
       });
+    });
+  });
+
+  describe("jitterDuplicatePositions", () => {
+    it("should not modify unique positions", () => {
+      const positions = [
+        { lat: 42.6977, lng: 23.3219, id: "1" },
+        { lat: 42.6978, lng: 23.3220, id: "2" },
+        { lat: 42.6979, lng: 23.3221, id: "3" },
+      ];
+
+      const result = jitterDuplicatePositions(positions);
+
+      expect(result).toHaveLength(3);
+      expect(result[0]).toEqual(positions[0]);
+      expect(result[1]).toEqual(positions[1]);
+      expect(result[2]).toEqual(positions[2]);
+    });
+
+    it("should jitter duplicate positions", () => {
+      const positions = [
+        { lat: 42.6977, lng: 23.3219, id: "1" },
+        { lat: 42.6977, lng: 23.3219, id: "2" },
+        { lat: 42.6977, lng: 23.3219, id: "3" },
+      ];
+
+      const result = jitterDuplicatePositions(positions);
+
+      expect(result).toHaveLength(3);
+
+      // Check that all positions are different after jittering
+      const coords = result.map((p) => `${p.lat},${p.lng}`);
+      const uniqueCoords = new Set(coords);
+      expect(uniqueCoords.size).toBe(3);
+
+      // Check that jittered positions are close to original (within ~10 meters)
+      const maxDistance = 15 / 111000; // ~15 meters in degrees
+      result.forEach((pos) => {
+        const latDiff = Math.abs(pos.lat - 42.6977);
+        const lngDiff = Math.abs(pos.lng - 23.3219);
+        expect(latDiff).toBeLessThan(maxDistance);
+        expect(lngDiff).toBeLessThan(maxDistance);
+      });
+
+      // Check that original metadata is preserved
+      expect(result[0].id).toBe("1");
+      expect(result[1].id).toBe("2");
+      expect(result[2].id).toBe("3");
+    });
+
+    it("should handle mix of unique and duplicate positions", () => {
+      const positions = [
+        { lat: 42.6977, lng: 23.3219, id: "1" }, // Unique
+        { lat: 42.6978, lng: 23.3220, id: "2" }, // Duplicate group 1
+        { lat: 42.6978, lng: 23.3220, id: "3" }, // Duplicate group 1
+        { lat: 42.6979, lng: 23.3221, id: "4" }, // Unique
+        { lat: 42.6978, lng: 23.3220, id: "5" }, // Duplicate group 1
+      ];
+
+      const result = jitterDuplicatePositions(positions);
+
+      expect(result).toHaveLength(5);
+
+      // Unique positions should remain unchanged
+      const pos1 = result.find((p) => p.id === "1");
+      expect(pos1).toEqual(positions[0]);
+
+      const pos4 = result.find((p) => p.id === "4");
+      expect(pos4).toEqual(positions[3]);
+
+      // Duplicate positions should be different from each other
+      const duplicateGroup = result.filter((p) =>
+        ["2", "3", "5"].includes(p.id)
+      );
+      const duplicateCoords = duplicateGroup.map((p) => `${p.lat},${p.lng}`);
+      const uniqueDuplicateCoords = new Set(duplicateCoords);
+      expect(uniqueDuplicateCoords.size).toBe(3);
+    });
+
+    it("should handle two pairs of duplicates", () => {
+      const positions = [
+        { lat: 42.6977, lng: 23.3219, id: "1" },
+        { lat: 42.6977, lng: 23.3219, id: "2" },
+        { lat: 42.6978, lng: 23.3220, id: "3" },
+        { lat: 42.6978, lng: 23.3220, id: "4" },
+      ];
+
+      const result = jitterDuplicatePositions(positions);
+
+      expect(result).toHaveLength(4);
+
+      // Check that both pairs are separated
+      const coords = result.map((p) => `${p.lat},${p.lng}`);
+      const uniqueCoords = new Set(coords);
+      expect(uniqueCoords.size).toBe(4);
+    });
+
+    it("should handle empty array", () => {
+      const positions: Array<{ lat: number; lng: number }> = [];
+      const result = jitterDuplicatePositions(positions);
+      expect(result).toEqual([]);
+    });
+
+    it("should handle single position", () => {
+      const positions = [{ lat: 42.6977, lng: 23.3219, id: "1" }];
+      const result = jitterDuplicatePositions(positions);
+      expect(result).toEqual(positions);
+    });
+
+    it("should throw error for non-array input", () => {
+      expect(() => jitterDuplicatePositions(null as any)).toThrow(
+        "Invalid input: positions must be an array"
+      );
+    });
+
+    it("should throw error for invalid position with non-number lat", () => {
+      const positions = [{ lat: "42.6977" as any, lng: 23.3219 }];
+      expect(() => jitterDuplicatePositions(positions)).toThrow(
+        "Invalid position: lat and lng must be finite numbers"
+      );
+    });
+
+    it("should throw error for invalid position with NaN", () => {
+      const positions = [{ lat: NaN, lng: 23.3219 }];
+      expect(() => jitterDuplicatePositions(positions)).toThrow(
+        "Invalid position: lat and lng must be finite numbers"
+      );
+    });
+
+    it("should throw error for invalid position with Infinity", () => {
+      const positions = [{ lat: 42.6977, lng: Infinity }];
+      expect(() => jitterDuplicatePositions(positions)).toThrow(
+        "Invalid position: lat and lng must be finite numbers"
+      );
+    });
+
+    it("should preserve additional properties", () => {
+      interface CustomPosition {
+        lat: number;
+        lng: number;
+        messageId: string;
+        featureIndex: number;
+        isActive: boolean;
+      }
+
+      const positions: CustomPosition[] = [
+        {
+          lat: 42.6977,
+          lng: 23.3219,
+          messageId: "msg1",
+          featureIndex: 0,
+          isActive: true,
+        },
+        {
+          lat: 42.6977,
+          lng: 23.3219,
+          messageId: "msg2",
+          featureIndex: 1,
+          isActive: false,
+        },
+      ];
+
+      const result = jitterDuplicatePositions(positions);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].messageId).toBe("msg1");
+      expect(result[0].featureIndex).toBe(0);
+      expect(result[0].isActive).toBe(true);
+      expect(result[1].messageId).toBe("msg2");
+      expect(result[1].featureIndex).toBe(1);
+      expect(result[1].isActive).toBe(false);
     });
   });
 
