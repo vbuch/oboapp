@@ -30,13 +30,10 @@ output "notify_job" {
 
 output "scheduler_jobs" {
   description = "Cloud Scheduler job names"
-  value = merge(
-    { for k, v in google_cloud_scheduler_job.crawler_schedules : k => v.name },
-    {
-      ingest = google_cloud_scheduler_job.ingest_schedule.name
-      notify = google_cloud_scheduler_job.notify_schedule.name
-    }
-  )
+  value = {
+    pipeline_emergent = google_cloud_scheduler_job.pipeline_emergent_schedule.name
+    pipeline_all      = google_cloud_scheduler_job.pipeline_all_schedule.name
+  }
 }
 
 output "next_steps" {
