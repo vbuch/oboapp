@@ -475,7 +475,7 @@ resource "google_cloud_run_v2_job" "pipeline_emergent" {
   template {
     template {
       service_account = google_service_account.ingest_runner.email
-      timeout         = "3600s"  # 1 hour for emergent pipeline
+      timeout         = "2400s"  # 40 minutes for emergent pipeline (3 crawlers + ingest + notify)
       
       containers {
         image = local.full_image_url
@@ -567,7 +567,7 @@ resource "google_cloud_run_v2_job" "pipeline_all" {
   template {
     template {
       service_account = google_service_account.ingest_runner.email
-      timeout         = "7200s"  # 2 hours for full pipeline
+      timeout         = "10800s"  # 3 hours for full pipeline (8 crawlers + ingest + notify)
       
       containers {
         image = local.full_image_url

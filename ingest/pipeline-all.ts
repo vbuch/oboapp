@@ -20,7 +20,7 @@ verifyEnvSet([
  * Get available crawler sources by reading the crawlers directory
  */
 function getAvailableSources(): string[] {
-  const crawlersDir = join(__dirname, "crawlers");
+  const crawlersDir = join(process.cwd(), "crawlers");
   const entries = readdirSync(crawlersDir);
 
   return entries.filter((entry) => {
