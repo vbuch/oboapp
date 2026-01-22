@@ -139,52 +139,51 @@ locals {
   crawlers = {
     rayon-oborishte = {
       source       = "rayon-oborishte-bg"
-      schedule     = var.schedules.crawl_rayon_oborishte
       memory       = "1Gi"
       timeout      = "1800s"
       description  = "Crawl Rayon Oborishte website"
     }
     sofia = {
       source       = "sofia-bg"
-      schedule     = var.schedules.crawl_sofia
       memory       = "1Gi"
       timeout      = "1800s"
       description  = "Crawl Sofia municipality"
     }
     sofiyska-voda = {
       source       = "sofiyska-voda"
-      schedule     = var.schedules.crawl_sofiyska_voda
       memory       = "512Mi"
       timeout      = "1800s"
       description  = "Crawl Sofiyska Voda"
     }
     toplo = {
       source       = "toplo-bg"
-      schedule     = var.schedules.crawl_toplo
       memory       = "512Mi"
       timeout      = "1800s"
       description  = "Crawl Toplo BG"
     }
     erm-zapad = {
       source       = "erm-zapad"
-      schedule     = var.schedules.crawl_erm_zapad
       memory       = "512Mi"
       timeout      = "1800s"
       description  = "Crawl ERM-Zapad power outages"
     }
     mladost = {
       source       = "mladost-bg"
-      schedule     = var.schedules.crawl_mladost
       memory       = "1Gi"
       timeout      = "1800s"
       description  = "Crawl Mladost district"
     }
     studentski = {
       source       = "studentski-bg"
-      schedule     = var.schedules.crawl_studentski
       memory       = "1Gi"
       timeout      = "1800s"
       description  = "Crawl Studentski district"
+    }
+    sredec = {
+      source       = "sredec-sofia-org"
+      memory       = "1Gi"
+      timeout      = "1800s"
+      description  = "Crawl Sredec district"
     }
   }
 }
@@ -468,67 +467,197 @@ resource "google_cloud_run_v2_job" "notify" {
   ]
 }
 
-# Cloud Scheduler Jobs
-resource "google_cloud_scheduler_job" "crawler_schedules" {
-  for_each = local.crawlers
-  
-  name             = "crawl-${each.key}-schedule"
-  description      = each.value.description
-  schedule         = each.value.schedule
-  time_zone        = var.schedule_timezone
-  attempt_deadline = "320s"
-  region           = var.region
+# Pipeline Cloud Run Jobs
+resource "google_cloud_run_v2_job" "pipeline_emergent" {
+  name     = "pipeline-emergent"
+  location = var.region
 
-  retry_config {
-    retry_count = 1
-  }
+  template {
+    template {
+      service_account = google_service_account.ingest_runner.email
+      timeout         = "3600s"  # 1 hour for emergent pipeline
+      
+      containers {
+        image = local.full_image_url
+        args  = ["npm", "run", "prebuilt:pipeline:emergent"]
+        
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "1Gi"
+          }
+        }
 
-  http_target {
-    http_method = "POST"
-    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/crawl-${each.key}:run"
-
-    oauth_token {
-      service_account_email = google_service_account.ingest_runner.email
+        env {
+          name  = "NODE_ENV"
+          value = "production"
+        }
+        
+        # Secret environment variables from Secret Manager
+        env {
+          name = "FIREBASE_SERVICE_ACCOUNT_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.firebase_sa_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "GOOGLE_AI_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_ai_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "GOOGLE_AI_MODEL"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_ai_model.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          value = var.firebase_project_id
+        }
+        
+        env {
+          name  = "NEXT_PUBLIC_APP_URL"
+          value = "https://oboapp.online"
+        }
+      }
+      
+      max_retries = 1
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      launch_stage,
+    ]
+  }
+
   depends_on = [
-    google_project_service.cloudscheduler,
-    google_cloud_run_v2_job.crawlers
+    google_project_service.run
   ]
 }
 
-resource "google_cloud_scheduler_job" "ingest_schedule" {
-  name             = "ingest-schedule"
-  description      = "Process all messages through AI ingestion pipeline"
-  schedule         = var.schedules.ingest
-  time_zone        = var.schedule_timezone
-  attempt_deadline = "320s"
-  region           = var.region
+resource "google_cloud_run_v2_job" "pipeline_all" {
+  name     = "pipeline-all"
+  location = var.region
 
-  retry_config {
-    retry_count = 1
-  }
+  template {
+    template {
+      service_account = google_service_account.ingest_runner.email
+      timeout         = "7200s"  # 2 hours for full pipeline
+      
+      containers {
+        image = local.full_image_url
+        args  = ["npm", "run", "prebuilt:pipeline:all"]
+        
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "1Gi"
+          }
+        }
 
-  http_target {
-    http_method = "POST"
-    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/ingest-messages:run"
-
-    oauth_token {
-      service_account_email = google_service_account.ingest_runner.email
+        env {
+          name  = "NODE_ENV"
+          value = "production"
+        }
+        
+        # Secret environment variables from Secret Manager
+        env {
+          name = "FIREBASE_SERVICE_ACCOUNT_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.firebase_sa_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "GOOGLE_AI_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_ai_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "GOOGLE_AI_MODEL"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_ai_model.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name = "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          value = var.firebase_project_id
+        }
+        
+        env {
+          name  = "NEXT_PUBLIC_APP_URL"
+          value = "https://oboapp.online"
+        }
+      }
+      
+      max_retries = 1
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      launch_stage,
+    ]
+  }
+
   depends_on = [
-    google_project_service.cloudscheduler,
-    google_cloud_run_v2_job.ingest
+    google_project_service.run
   ]
 }
 
-resource "google_cloud_scheduler_job" "notify_schedule" {
-  name             = "notify-schedule"
-  description      = "Match and send notifications to users"
-  schedule         = var.schedules.notify
+# Cloud Scheduler Jobs - Pipeline Schedules Only
+# Individual crawler, ingest, and notify jobs remain available for manual triggering
+resource "google_cloud_scheduler_job" "pipeline_emergent_schedule" {
+  name             = "pipeline-emergent-schedule"
+  description      = "Run emergent crawlers (ERM, Toplo, Sofiyska Voda) + ingest + notify every 30 minutes"
+  schedule         = var.schedules.pipeline_emergent
   time_zone        = var.schedule_timezone
   attempt_deadline = "320s"
   region           = var.region
@@ -539,7 +668,7 @@ resource "google_cloud_scheduler_job" "notify_schedule" {
 
   http_target {
     http_method = "POST"
-    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/send-notifications:run"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/pipeline-emergent:run"
 
     oauth_token {
       service_account_email = google_service_account.ingest_runner.email
@@ -548,6 +677,33 @@ resource "google_cloud_scheduler_job" "notify_schedule" {
 
   depends_on = [
     google_project_service.cloudscheduler,
-    google_cloud_run_v2_job.notify
+    google_cloud_run_v2_job.pipeline_emergent
+  ]
+}
+
+resource "google_cloud_scheduler_job" "pipeline_all_schedule" {
+  name             = "pipeline-all-schedule"
+  description      = "Run all crawlers + ingest + notify 3 times daily"
+  schedule         = var.schedules.pipeline_all
+  time_zone        = var.schedule_timezone
+  attempt_deadline = "320s"
+  region           = var.region
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/pipeline-all:run"
+
+    oauth_token {
+      service_account_email = google_service_account.ingest_runner.email
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler,
+    google_cloud_run_v2_job.pipeline_all
   ]
 }
