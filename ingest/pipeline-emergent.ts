@@ -33,8 +33,8 @@ async function runCrawler(source: string): Promise<void> {
 async function runIngest(): Promise<void> {
   console.log("\n📥 Running ingest pipeline");
   try {
-    const { main } = await import("./ingestion/ingest-sources");
-    await main({});
+    const { ingest } = await import("./messageIngest/from-sources");
+    await ingest({});
     console.log("✅ Ingest completed");
   } catch (error) {
     console.error("❌ Error running ingest:", error);

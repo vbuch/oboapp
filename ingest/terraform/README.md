@@ -60,8 +60,13 @@ terraform apply
 Type `yes` when prompted. This will create:
 
 - Service account with appropriate permissions
-- 6 Cloud Run Jobs (4 crawlers + ingest + notify)
-- 6 Cloud Scheduler jobs for daily automation
+- Cloud Run Jobs:
+  - Individual crawler jobs (for manual triggering)
+  - Individual ingest and notify jobs (for manual triggering)
+  - Pipeline jobs: `pipeline-emergent` and `pipeline-all`
+- Cloud Scheduler jobs:
+  - `pipeline-emergent-schedule` - Every 30 minutes (for emergency crawlers)
+  - `pipeline-all-schedule` - 3 times daily (for all crawlers)
 - Enable required Google Cloud APIs
 
 ### 5. Build and Deploy Container Image
@@ -99,6 +104,9 @@ gcloud builds submit --tag europe-west1-docker.pkg.dev/my-project/oborishte-inge
 
 ```bash
 # Test a job
+gcloud run jobs execute pipeline-emergent --region=europe-west1 --wait
+
+# Or test individual crawler
 gcloud run jobs execute crawl-rayon-oborishte --region=europe-west1 --wait
 
 # View all jobs
@@ -168,15 +176,17 @@ All variables are defined in `variables.tf`. Override them in `terraform.tfvars`
 
 ### Modifying Schedules
 
-Edit schedules in `main.tf`:
+Edit schedules in `variables.tf`:
 
 ```hcl
-locals {
-  crawlers = {
-    rayon-oborishte = {
-      schedule = "0 6 * * *"  # 6 AM daily
-      # ... other config
-    }
+variable "schedules" {
+  type = object({
+    pipeline_emergent = string  # Emergent crawlers + ingest + notify
+    pipeline_all      = string  # All crawlers + ingest + notify
+  })
+  default = {
+    pipeline_emergent = "*/30 * * * *"     # Every 30 minutes
+    pipeline_all      = "0 10,14,16 * * *" # 3x daily at 10:00, 14:00, 16:00
   }
 }
 ```
@@ -188,7 +198,10 @@ Examples:
 - `0 6 * * *` - Daily at 6:00 AM
 - `0 6 * * 1` - Weekly on Mondays at 6:00 AM
 - `0 */6 * * *` - Every 6 hours
+- `*/30 * * * *` - Every 30 minutes
 - `30 8 * * 1-5` - Weekdays at 8:30 AM
+
+**Note:** Individual crawler, ingest, and notify jobs remain available for manual triggering but are not scheduled. Only the two pipeline jobs run on schedule.
 
 ### Modifying Resources
 
@@ -306,15 +319,15 @@ gcloud scheduler jobs run crawl-rayon-oborishte-schedule \
 
 ## Cost Optimization
 
-The infrastructure defined here should cost **~$0.60/month**:
+The infrastructure defined here should cost **~$0.20/month**:
 
 - Cloud Run Jobs: FREE (within free tier)
-- Cloud Scheduler: $0.10/month × 6 jobs = $0.60/month
+- Cloud Scheduler: $0.10/month × 2 pipeline schedules = $0.20/month
 
 To reduce costs further:
 
-1. Reduce schedule frequency (weekly instead of daily)
-2. Consolidate jobs where possible
+1. Reduce pipeline frequency (e.g., emergent every hour instead of 30 minutes)
+2. Reduce full pipeline to 2x daily instead of 3x
 3. Use smaller memory allocations
 
 ## Security Best Practices
