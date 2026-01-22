@@ -9,14 +9,14 @@
     "ingest": "tsx ingest",
     "notify": "tsx notify",
     "categorize": "tsx categorize",
-    "pipeline:emergent": "tsx pipeline-emergent",
-    "pipeline:all": "tsx pipeline-all",
+    "pipeline:emergent": "tsx pipeline --emergent",
+    "pipeline:all": "tsx pipeline --all",
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "prebuilt:crawl": "node dist/crawl.js",
     "prebuilt:ingest": "node dist/ingest.js",
     "prebuilt:notify": "node dist/notify.js",
-    "prebuilt:pipeline:emergent": "node dist/pipeline-emergent.js",
-    "prebuilt:pipeline:all": "node dist/pipeline-all.js"
+    "prebuilt:pipeline:emergent": "node dist/pipeline.js --emergent",
+    "prebuilt:pipeline:all": "node dist/pipeline.js --all"
   },
   "dependencies": {
     "@google/genai": "^1.33.0",

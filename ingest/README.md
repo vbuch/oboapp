@@ -47,7 +47,7 @@ npm run pipeline:all
 
 The system runs two automated pipelines via Cloud Scheduler:
 
-- **Emergent Pipeline** (`pipeline:emergent`) - Every 30 minutes
+- **Emergent Pipeline** (`pipeline:emergent`) - Every 30 minutes, 7AM-10PM
   - Crawlers: erm-zapad, toplo-bg, sofiyska-voda
   - Runs ingest and notify after crawling
   - Handles short-lived messages and emergency works
