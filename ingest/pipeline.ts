@@ -15,7 +15,7 @@ const EMERGENT_CRAWLERS = ["erm-zapad", "toplo-bg", "sofiyska-voda"];
  * Get available crawler sources by reading the crawlers directory
  */
 function getAvailableSources(): string[] {
-  const crawlersDir = join(process.cwd(), "crawlers");
+  const crawlersDir = join(__dirname, "crawlers");
   const entries = readdirSync(crawlersDir);
 
   return entries.filter((entry) => {
