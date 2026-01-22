@@ -185,7 +185,7 @@ variable "schedules" {
     pipeline_all      = string  # All crawlers + ingest + notify
   })
   default = {
-    pipeline_emergent = "*/30 7-22 * * *"    # Every 30 minutes, 7AM-10PM
+    pipeline_emergent = "*/30 7-22 * * *"    # Every 30 minutes, 7:00 AM–10:30 PM
     pipeline_all      = "0 10,14,16 * * *"   # 3x daily at 10:00, 14:00, 16:00
   }
 }
