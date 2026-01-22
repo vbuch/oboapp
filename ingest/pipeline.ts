@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
 import dotenv from "dotenv";
 import { verifyEnvSet } from "@/lib/verify-env";
 import { readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
 
 const program = new Command();
 
@@ -26,10 +25,6 @@ function getAvailableSources(): string[] {
     return isDirectory && entry !== "shared";
   });
 }
-
-const LONG_FLOW_CRAWLERS = getAvailableSources().filter(
-  (crawler) => !EMERGENT_CRAWLERS.includes(crawler)
-);
 
 async function runCrawler(source: string): Promise<boolean> {
   console.log(`\n🚀 Running crawler: ${source}`);
@@ -120,18 +115,23 @@ program
   .option("--all", "Run all crawlers")
   .addHelpText(
     "after",
-    `
+    () => {
+      const longFlowCrawlers = getAvailableSources().filter(
+        (crawler) => !EMERGENT_CRAWLERS.includes(crawler)
+      );
+      return `
 Crawler Groups:
   Emergent crawlers (short-lived messages, run every 30 minutes):
     ${EMERGENT_CRAWLERS.map((c) => `- ${c}`).join("\n    ")}
   
   Long-flow crawlers (WordPress-based, run 3x daily):
-    ${LONG_FLOW_CRAWLERS.map((c) => `- ${c}`).join("\n    ")}
+    ${longFlowCrawlers.map((c) => `- ${c}`).join("\n    ")}
 
 Examples:
   $ npx tsx pipeline --emergent
   $ npx tsx pipeline --all
-`
+`;
+    }
   )
   .action(async (options) => {
     // Ensure environment variables are loaded and required keys are present
