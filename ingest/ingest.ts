@@ -77,4 +77,29 @@ Examples:
     }
   });
 
+program
+  .command("gtfs-stops")
+  .description("Sync GTFS bus stops from Sofia Traffic to Firestore")
+  .action(async () => {
+    // Ensure environment variables are loaded
+    dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+    verifyEnvSet([
+      "FIREBASE_SERVICE_ACCOUNT_KEY",
+      "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+    ]);
+
+    try {
+      // Dynamically import to avoid loading dependencies at parse time
+      const { syncGTFSStopsToFirestore } = await import("./lib/gtfs-service");
+
+      await syncGTFSStopsToFirestore();
+
+      console.log("✅ GTFS stops sync completed successfully");
+      process.exit(0);
+    } catch (error) {
+      console.error("❌ GTFS stops sync failed:", error);
+      process.exit(1);
+    }
+  });
+
 program.parse();

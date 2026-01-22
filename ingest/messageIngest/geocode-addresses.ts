@@ -2,9 +2,11 @@ import {
   geocodeAddresses,
   geocodeIntersectionsForStreets,
   geocodeCadastralPropertiesFromIdentifiers,
+  geocodeBusStops,
 } from "@/lib/geocoding-router";
 import { Address, ExtractedData, StreetSection } from "@/lib/types";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
+import type { CategorizedMessage } from "@/lib/categorize.schema";
 
 // Internal types for the geocoding pipeline
 export interface GeocodingResult {
@@ -37,10 +39,11 @@ export function findMissingStreetEndpoints(
 
 /**
  * Step 4: Geocode addresses from extracted data using hybrid approach
- * Google for pins, Overpass for street intersections, Cadastre for УПИ
+ * Google for pins, Overpass for street intersections, Cadastre for УПИ, GTFS for bus stops
  */
 export async function geocodeAddressesFromExtractedData(
-  extractedData: ExtractedData | null
+  extractedData: ExtractedData | null,
+  categorize?: CategorizedMessage | null
 ): Promise<GeocodingResult> {
   const preGeocodedMap = new Map<string, { lat: number; lng: number }>();
   let addresses: Address[] = [];
@@ -113,6 +116,20 @@ export async function geocodeAddressesFromExtractedData(
 
     console.log(
       `[Geocoding] Geocoded ${cadastralGeometries.size}/${identifiers.length} cadastral properties`
+    );
+  }
+
+  // Geocode bus stops using GTFS
+  if (categorize?.busStops && categorize.busStops.length > 0) {
+    const geocodedBusStops = await geocodeBusStops(categorize.busStops);
+    addresses.push(...geocodedBusStops);
+
+    geocodedBusStops.forEach((addr) => {
+      preGeocodedMap.set(addr.originalText, addr.coordinates);
+    });
+
+    console.log(
+      `[Geocoding] Geocoded ${geocodedBusStops.length}/${categorize.busStops.length} bus stops`
     );
   }
 

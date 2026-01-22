@@ -8,6 +8,9 @@ import type { ExtractedData } from "@/lib/types";
 // Mock dependencies
 vi.mock("@/lib/geojson-service");
 vi.mock("../crawlers/shared/geojson-validation");
+vi.mock("@/lib/firebase-admin", () => ({
+  adminDb: vi.fn(),
+}));
 
 describe(validateAllAddressesGeocoded, () => {
   it("should return empty array when all addresses are geocoded", () => {

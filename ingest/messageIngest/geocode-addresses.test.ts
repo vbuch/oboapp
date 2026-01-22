@@ -1,6 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { findMissingStreetEndpoints } from "./geocode-addresses";
 import type { StreetSection } from "@/lib/types";
+
+// Mock firebase-admin to avoid requiring env vars
+vi.mock("@/lib/firebase-admin", () => ({
+  adminDb: vi.fn(),
+}));
 
 describe(findMissingStreetEndpoints, () => {
   it("should return empty array when all endpoints are geocoded", () => {

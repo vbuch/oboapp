@@ -707,3 +707,93 @@ resource "google_cloud_scheduler_job" "pipeline_all_schedule" {
     google_cloud_run_v2_job.pipeline_all
   ]
 }
+
+# GTFS Bus Stops Sync Job
+resource "google_cloud_run_v2_job" "gtfs_sync" {
+  name     = "gtfs-sync"
+  location = var.region
+
+  template {
+    template {
+      service_account = google_service_account.ingest_runner.email
+      timeout         = "300s"  # 5 minutes for GTFS download and sync
+      
+      containers {
+        image = local.full_image_url
+        args  = ["npm", "run", "prebuilt:gtfs-stops"]
+        
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
+
+        env {
+          name  = "NODE_ENV"
+          value = "production"
+        }
+        
+        # Only need Firebase credentials for GTFS sync
+        env {
+          name = "FIREBASE_SERVICE_ACCOUNT_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.firebase_sa_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+        
+        env {
+          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          value = var.firebase_project_id
+        }
+        
+        env {
+          name  = "FIREBASE_DATABASE_ID"
+          value = var.firebase_database_id
+        }
+      }
+      
+      max_retries = 1
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      launch_stage,
+    ]
+  }
+
+  depends_on = [
+    google_project_service.run
+  ]
+}
+
+resource "google_cloud_scheduler_job" "gtfs_sync_schedule" {
+  name             = "gtfs-sync-schedule"
+  description      = "Sync GTFS bus stops from Sofia Traffic daily at 3 AM"
+  schedule         = var.schedules.gtfs_sync
+  time_zone        = var.schedule_timezone
+  attempt_deadline = "320s"
+  region           = var.region
+
+  retry_config {
+    retry_count = 2  # Allow retries for network issues
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/gtfs-sync:run"
+
+    oauth_token {
+      service_account_email = google_service_account.ingest_runner.email
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler,
+    google_cloud_run_v2_job.gtfs_sync
+  ]
+}

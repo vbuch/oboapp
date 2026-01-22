@@ -30,6 +30,9 @@ graph LR
 # Run a specific crawler
 npm run crawl -- --source rayon-oborishte-bg
 
+# Sync GTFS bus stop data
+npm run gtfs-stops
+
 # Process all sources into messages
 npm run ingest
 
@@ -46,6 +49,11 @@ npm run pipeline:all
 ## Pipeline Schedules
 
 The system runs two automated pipelines via Cloud Scheduler:
+
+- **GTFS Sync** (`gtfs-stops`) - Daily at 3:00 AM EET
+  - Downloads latest GTFS static data from Sofia Traffic
+  - Updates bus stop coordinates in Firestore
+  - Enables geocoding of messages containing bus stop codes
 
 - **Emergent Pipeline** (`pipeline:emergent`) - Every 30 minutes, 7:00AM-10:30PM
   - Crawlers: erm-zapad, toplo-bg, sofiyska-voda

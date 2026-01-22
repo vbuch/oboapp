@@ -3,6 +3,7 @@ import {
   ExtractedData,
   GeoJSONFeatureCollection,
   GeoJSONFeature,
+  Address,
 } from "@/lib/types";
 import { validateAndFixGeoJSON } from "../crawlers/shared/geojson-validation";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
@@ -42,7 +43,8 @@ export function validateAllAddressesGeocoded(
 export async function convertMessageGeocodingToGeoJson(
   extractedData: ExtractedData | null,
   preGeocodedMap: Map<string, { lat: number; lng: number }>,
-  cadastralGeometries?: Map<string, CadastralGeometry>
+  cadastralGeometries?: Map<string, CadastralGeometry>,
+  geocodedBusStops?: Address[]
 ): Promise<GeoJSONFeatureCollection | null> {
   if (!extractedData) {
     return null;
@@ -68,7 +70,8 @@ export async function convertMessageGeocodingToGeoJson(
   const hasFeatures =
     filteredData.pins.length > 0 ||
     filteredData.streets.length > 0 ||
-    (cadastralGeometries && cadastralGeometries.size > 0);
+    (cadastralGeometries && cadastralGeometries.size > 0) ||
+    (geocodedBusStops && geocodedBusStops.length > 0);
 
   if (!hasFeatures) {
     console.error(
@@ -133,6 +136,33 @@ export async function convertMessageGeocodingToGeoJson(
           features: cadastralFeatures,
         };
       }
+    }
+  }
+
+  // Add bus stop features
+  if (geocodedBusStops && geocodedBusStops.length > 0) {
+    const busStopFeatures: GeoJSONFeature[] = geocodedBusStops.map((stop) => ({
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: [stop.coordinates.lng, stop.coordinates.lat],
+      },
+      properties: {
+        feature_type: "bus_stop",
+        locationType: "bus_stop",
+        stop_code: stop.originalText.replace("Спирка ", ""),
+        stop_name: stop.formattedAddress,
+      },
+    }));
+
+    if (geoJson) {
+      geoJson.features.push(...busStopFeatures);
+    } else {
+      // Only bus stop features
+      return {
+        type: "FeatureCollection",
+        features: busStopFeatures,
+      };
     }
   }
 

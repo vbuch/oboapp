@@ -71,7 +71,7 @@ export async function messageIngest(
   source: string,
   userId: string,
   userEmail: string | null,
-  options: MessageIngestOptions = {}
+  options: MessageIngestOptions = {},
 ): Promise<MessageIngestResult> {
   const hasPrecomputedGeoJson = Boolean(options.precomputedGeoJson);
   let sourceDocumentId: string | undefined;
@@ -89,7 +89,7 @@ export async function messageIngest(
       userEmail,
       source,
       sourceDocumentId,
-      options
+      options,
     );
   }
 
@@ -100,7 +100,7 @@ export async function messageIngest(
     userEmail,
     source,
     sourceDocumentId,
-    options
+    options,
   );
 }
 
@@ -112,14 +112,18 @@ async function processSingleMessage(
   text: string,
   precomputedGeoJson: GeoJSONFeatureCollection | null,
   options: MessageIngestOptions,
-  categorizedMessage?: any
+  categorizedMessage?: any,
 ): Promise<Message> {
   let extractedData: ExtractedData | null = null;
   let addresses: Address[] = [];
   let geoJson: GeoJSONFeatureCollection | null = precomputedGeoJson;
 
   if (!precomputedGeoJson) {
-    const extractionResult = await extractAndGeocodeFromText(messageId, text);
+    const extractionResult = await extractAndGeocodeFromText(
+      messageId,
+      text,
+      categorizedMessage,
+    );
 
     if (!extractionResult) {
       return await finalizeFailedMessage(messageId, text);
@@ -131,14 +135,14 @@ async function processSingleMessage(
   } else {
     extractedData = await handlePrecomputedGeoJsonData(
       messageId,
-      options.markdownText
+      options.markdownText,
     );
   }
 
   geoJson = await applyBoundaryFilteringIfNeeded(
     messageId,
     geoJson,
-    options.boundaryFilter
+    options.boundaryFilter,
   );
 
   await finalizeMessageWithResults(messageId, geoJson);
@@ -148,7 +152,7 @@ async function processSingleMessage(
     text,
     addresses,
     extractedData,
-    geoJson
+    geoJson,
   );
 }
 /**
@@ -160,7 +164,7 @@ async function processPrecomputedGeoJsonMessage(
   userEmail: string | null,
   source: string,
   sourceDocumentId: string | undefined,
-  options: MessageIngestOptions
+  options: MessageIngestOptions,
 ): Promise<MessageIngestResult> {
   const messageId = sourceDocumentId ? `${sourceDocumentId}-1` : undefined;
 
@@ -172,7 +176,7 @@ async function processPrecomputedGeoJsonMessage(
     options.sourceUrl,
     options.crawledAt,
     messageId,
-    sourceDocumentId
+    sourceDocumentId,
   );
 
   // Store categories and isRelevant for precomputed GeoJSON sources (for Firestore indexes)
@@ -187,7 +191,7 @@ async function processPrecomputedGeoJsonMessage(
     storedMessageId,
     text,
     options.precomputedGeoJson || null,
-    options
+    options,
   );
 
   return {
@@ -207,7 +211,7 @@ async function processCategorizedMessages(
   userEmail: string | null,
   source: string,
   sourceDocumentId: string | undefined,
-  options: MessageIngestOptions
+  options: MessageIngestOptions,
 ): Promise<MessageIngestResult> {
   const { categorize } = await import("../lib/ai-service");
   const categorizedMessages = await categorize(text);
@@ -232,7 +236,7 @@ async function processCategorizedMessages(
       categorizedMessage,
       messageIndex,
       categorizedMessages.length,
-      messageId
+      messageId,
     );
 
     const storedMessageId = await storeCategorizedMessage(
@@ -242,7 +246,7 @@ async function processCategorizedMessages(
       source,
       messageId,
       sourceDocumentId,
-      options
+      options,
     );
 
     if (categorizedMessage.isRelevant) {
@@ -252,14 +256,14 @@ async function processCategorizedMessages(
         categorizedMessage.normalizedText,
         null,
         options,
-        categorizedMessage
+        categorizedMessage,
       );
       messages.push(message);
     } else {
       totalIrrelevant++;
       const message = await handleIrrelevantMessage(
         storedMessageId,
-        categorizedMessage.normalizedText
+        categorizedMessage.normalizedText,
       );
       messages.push(message);
     }
@@ -280,13 +284,13 @@ function logCategorizedMessageInfo(
   categorizedMessage: any,
   messageIndex: number,
   totalMessages: number,
-  messageId: string | undefined
+  messageId: string | undefined,
 ): void {
   const logMessages = formatCategorizedMessageLogInfo(
     categorizedMessage,
     messageIndex,
     totalMessages,
-    messageId
+    messageId,
   );
   logMessages.forEach((message) => console.log(message));
 }
@@ -301,7 +305,7 @@ async function storeCategorizedMessage(
   source: string,
   messageId: string | undefined,
   sourceDocumentId: string | undefined,
-  options: MessageIngestOptions
+  options: MessageIngestOptions,
 ): Promise<string> {
   const storedMessageId = await storeIncomingMessage(
     categorizedMessage.normalizedText,
@@ -311,7 +315,7 @@ async function storeCategorizedMessage(
     options.sourceUrl,
     options.crawledAt,
     messageId,
-    sourceDocumentId
+    sourceDocumentId,
   );
 
   // Store categorization data - both nested object and flattened fields for Firestore indexes
@@ -331,7 +335,7 @@ async function storeCategorizedMessage(
  */
 async function handleIrrelevantMessage(
   messageId: string,
-  text: string
+  text: string,
 ): Promise<Message> {
   console.log("ℹ️  Message filtered as irrelevant, marking as finalized");
   await updateMessage(messageId, {
@@ -348,7 +352,8 @@ async function handleIrrelevantMessage(
  */
 async function extractAndGeocodeFromText(
   messageId: string,
-  text: string
+  text: string,
+  categorizedMessage?: any,
 ): Promise<{
   extractedData: ExtractedData;
   addresses: Address[];
@@ -363,16 +368,27 @@ async function extractAndGeocodeFromText(
     return null;
   }
 
-  const geocodingResults = await performGeocoding(extractedData);
+  const geocodingResults = await performGeocoding(
+    extractedData,
+    categorizedMessage,
+  );
   const addresses = await filterAndStoreAddresses(
     messageId,
     geocodingResults.addresses,
-    geocodingResults.preGeocodedMap
+    geocodingResults.preGeocodedMap,
   );
+
+  // Extract geocoded bus stops for GeoJSON conversion
+  const geocodedBusStops =
+    categorizedMessage?.busStops && categorizedMessage.busStops.length > 0
+      ? addresses.filter((addr) => addr.originalText.startsWith("Спирка "))
+      : undefined;
+
   const geoJson = await convertToGeoJson(
     extractedData,
     geocodingResults.preGeocodedMap,
-    geocodingResults.cadastralGeometries
+    geocodingResults.cadastralGeometries,
+    geocodedBusStops,
   );
 
   return { extractedData, addresses, geoJson };
@@ -383,7 +399,7 @@ async function extractAndGeocodeFromText(
  */
 async function storeExtractedData(
   messageId: string,
-  extractedData: ExtractedData | null
+  extractedData: ExtractedData | null,
 ): Promise<void> {
   const markdownText = extractedData?.markdown_text || "";
   await updateMessage(messageId, {
@@ -395,11 +411,16 @@ async function storeExtractedData(
 /**
  * Perform geocoding on extracted data
  */
-async function performGeocoding(extractedData: ExtractedData) {
-  const { geocodeAddressesFromExtractedData } = await import(
-    "./geocode-addresses"
+async function performGeocoding(
+  extractedData: ExtractedData,
+  categorizedMessage?: any,
+) {
+  const { geocodeAddressesFromExtractedData } =
+    await import("./geocode-addresses");
+  return await geocodeAddressesFromExtractedData(
+    extractedData,
+    categorizedMessage,
   );
-  return await geocodeAddressesFromExtractedData(extractedData);
 }
 
 /**
@@ -408,7 +429,7 @@ async function performGeocoding(extractedData: ExtractedData) {
 async function filterAndStoreAddresses(
   messageId: string,
   geocodedAddresses: Address[],
-  preGeocodedMap: Map<string, any>
+  preGeocodedMap: Map<string, any>,
 ): Promise<Address[]> {
   const { filterOutlierCoordinates } = await import("./filter-outliers");
   const addresses = filterOutlierCoordinates(geocodedAddresses);
@@ -434,15 +455,16 @@ async function filterAndStoreAddresses(
 async function convertToGeoJson(
   extractedData: ExtractedData,
   preGeocodedMap: Map<string, any>,
-  cadastralGeometries: any
+  cadastralGeometries: any,
+  geocodedBusStops?: Address[],
 ): Promise<GeoJSONFeatureCollection | null> {
-  const { convertMessageGeocodingToGeoJson } = await import(
-    "./convert-to-geojson"
-  );
+  const { convertMessageGeocodingToGeoJson } =
+    await import("./convert-to-geojson");
   return await convertMessageGeocodingToGeoJson(
     extractedData,
     preGeocodedMap,
-    cadastralGeometries
+    cadastralGeometries,
+    geocodedBusStops,
   );
 }
 
@@ -451,7 +473,7 @@ async function convertToGeoJson(
  */
 async function finalizeFailedMessage(
   messageId: string,
-  text: string
+  text: string,
 ): Promise<Message> {
   console.error("❌ Failed to extract data from message, marking as finalized");
   await updateMessage(messageId, { finalizedAt: new Date() });
@@ -465,7 +487,7 @@ async function finalizeFailedMessage(
  */
 async function handlePrecomputedGeoJsonData(
   messageId: string,
-  markdownText: string | undefined
+  markdownText: string | undefined,
 ): Promise<ExtractedData | null> {
   if (markdownText) {
     const extractedData: ExtractedData = {
@@ -492,7 +514,7 @@ async function handlePrecomputedGeoJsonData(
 async function applyBoundaryFilteringIfNeeded(
   messageId: string,
   geoJson: GeoJSONFeatureCollection | null,
-  boundaryFilter: GeoJSONFeatureCollection | undefined
+  boundaryFilter: GeoJSONFeatureCollection | undefined,
 ): Promise<GeoJSONFeatureCollection | null> {
   if (!boundaryFilter || !geoJson) {
     return geoJson;
@@ -503,7 +525,7 @@ async function applyBoundaryFilteringIfNeeded(
 
   if (!filteredGeoJson) {
     console.log(
-      `⏭️  Message ${messageId} has no features within boundaries, skipping storage`
+      `⏭️  Message ${messageId} has no features within boundaries, skipping storage`,
     );
     throw new Error("No features within specified boundaries");
   }
@@ -516,7 +538,7 @@ async function applyBoundaryFilteringIfNeeded(
  */
 async function finalizeMessageWithResults(
   messageId: string,
-  geoJson: GeoJSONFeatureCollection | null
+  geoJson: GeoJSONFeatureCollection | null,
 ): Promise<void> {
   if (geoJson) {
     await updateMessage(messageId, { geoJson, finalizedAt: new Date() });
@@ -531,7 +553,7 @@ async function buildFinalMessageResponse(
   text: string,
   addresses: Address[],
   extractedData: ExtractedData | null,
-  geoJson: GeoJSONFeatureCollection | null
+  geoJson: GeoJSONFeatureCollection | null,
 ): Promise<Message> {
   const { buildMessageResponse } = await import("./build-response");
   return await buildMessageResponse(
@@ -539,6 +561,6 @@ async function buildFinalMessageResponse(
     text,
     addresses,
     extractedData,
-    geoJson
+    geoJson,
   );
 }

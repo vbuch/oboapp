@@ -4,6 +4,7 @@
  * Google Geocoding API for pins (specific addresses)
  * OpenStreetMap Overpass API for streets (intersections and geometries)
  * Bulgarian Cadastre API for cadastral properties (УПИ)
+ * GTFS for bus stops (public transport)
  */
 
 import { Address, StreetSection } from "./types";
@@ -16,12 +17,13 @@ import {
   geocodeCadastralProperties,
   type CadastralGeometry,
 } from "./cadastre-geocoding-service";
+import { geocodeBusStops as geocodeBusStopsService } from "./gtfs-geocoding-service";
 
 /**
  * Geocode a list of addresses (pins) using Google Geocoding API
  */
 export async function geocodeAddresses(
-  addresses: string[]
+  addresses: string[],
 ): Promise<Address[]> {
   return geocodeAddressesTraditional(addresses);
 }
@@ -30,7 +32,7 @@ export async function geocodeAddresses(
  * Geocode street sections using Overpass (geocode endpoints)
  */
 export async function geocodeStreets(
-  streets: StreetSection[]
+  streets: StreetSection[],
 ): Promise<Address[]> {
   const endpointAddresses = streets.flatMap((s) => [s.from, s.to]);
   return overpassGeocodeAddresses(endpointAddresses);
@@ -42,15 +44,14 @@ export async function geocodeStreets(
 export async function getStreetGeometry(
   streetName: string,
   startCoords: { lat: number; lng: number },
-  endCoords: { lat: number; lng: number }
+  endCoords: { lat: number; lng: number },
 ): Promise<[number, number][] | null> {
-  const { getStreetSectionGeometry } = await import(
-    "./overpass-geocoding-service"
-  );
+  const { getStreetSectionGeometry } =
+    await import("./overpass-geocoding-service");
   const geometry = await getStreetSectionGeometry(
     streetName,
     startCoords,
-    endCoords
+    endCoords,
   );
   return geometry as [number, number][] | null;
 }
@@ -59,7 +60,7 @@ export async function getStreetGeometry(
  * Geocode street section intersections using Overpass
  */
 export async function geocodeIntersectionsForStreets(
-  streets: StreetSection[]
+  streets: StreetSection[],
 ): Promise<Map<string, { lat: number; lng: number }>> {
   const geocodedMap = new Map<string, { lat: number; lng: number }>();
 
@@ -103,11 +104,22 @@ export async function geocodeIntersectionsForStreets(
  * Geocode cadastral properties using Bulgarian Cadastre API
  */
 export async function geocodeCadastralPropertiesFromIdentifiers(
-  identifiers: string[]
+  identifiers: string[],
 ): Promise<Map<string, CadastralGeometry>> {
   if (identifiers.length === 0) {
     return new Map();
   }
 
   return geocodeCadastralProperties(identifiers);
+}
+
+/**
+ * Geocode bus stops using GTFS data
+ */
+export async function geocodeBusStops(stopCodes: string[]): Promise<Address[]> {
+  if (stopCodes.length === 0) {
+    return [];
+  }
+
+  return geocodeBusStopsService(stopCodes);
 }

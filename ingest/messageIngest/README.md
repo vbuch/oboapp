@@ -72,9 +72,9 @@ flowchart TD
 
 ### Geocoding Stage
 
-Converts extracted locations to map coordinates using three specialized services:
+Converts extracted locations to map coordinates using four specialized services:
 
-- **Geocode Addresses** - Google API for pins, Overpass API for streets, Cadastre API for УПИ properties
+- **Geocode Addresses** - Google API for pins, Overpass API for streets, Cadastre API for УПИ properties, GTFS data for bus stops
 - **Filter Outliers** - Remove coordinates >1km from others
 - **Store Geocoding** - Save validated coordinates
 
