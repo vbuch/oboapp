@@ -33,6 +33,38 @@ describe("processFieldsForFirestore", () => {
         _methodName: "FieldValue.serverTimestamp",
       });
     });
+
+    it("should preserve timespanStart and timespanEnd as Date objects", () => {
+      const timespanStart = new Date("2026-01-20T08:00:00Z");
+      const timespanEnd = new Date("2026-01-20T12:00:00Z");
+      const input = {
+        timespanStart,
+        timespanEnd,
+      };
+
+      const result = processFieldsForFirestore(input);
+
+      expect(FieldValue.serverTimestamp).not.toHaveBeenCalled();
+      expect(result.timespanStart).toBe(timespanStart);
+      expect(result.timespanEnd).toBe(timespanEnd);
+    });
+
+    it("should preserve timespanStart/timespanEnd but convert other Date fields", () => {
+      const timespanStart = new Date("2026-01-20T08:00:00Z");
+      const finalizedAt = new Date("2026-01-23T10:00:00Z");
+      const input = {
+        timespanStart,
+        finalizedAt,
+      };
+
+      const result = processFieldsForFirestore(input);
+
+      expect(FieldValue.serverTimestamp).toHaveBeenCalledTimes(1);
+      expect(result.timespanStart).toBe(timespanStart);
+      expect(result.finalizedAt).toEqual({
+        _methodName: "FieldValue.serverTimestamp",
+      });
+    });
   });
 
   describe("categories and relations array handling", () => {

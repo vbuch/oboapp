@@ -3,7 +3,8 @@ import { normalizeCategoriesInput } from "@/lib/category-utils";
 
 /**
  * Process fields for Firestore storage
- * - Converts Date objects to Firestore server timestamps
+ * - Converts Date objects to Firestore server timestamps (except timespanStart/timespanEnd)
+ * - Preserves timespanStart/timespanEnd as Date for server-side filtering
  * - Stringifies complex objects (extractedData, geoJson, categorize)
  * - Keeps categories and relations as native arrays for Firestore indexes
  *   (array-contains queries require native arrays, not stringified JSON)
@@ -15,7 +16,13 @@ export function processFieldsForFirestore(
   const processedFields: Record<string, any> = {};
   for (const [key, value] of Object.entries(fields)) {
     if (value instanceof Date) {
-      processedFields[key] = FieldValue.serverTimestamp();
+      // Preserve Date objects for timespanStart/timespanEnd (needed for server-side filtering)
+      if (key === "timespanStart" || key === "timespanEnd") {
+        processedFields[key] = value;
+      } else {
+        // Convert other Date fields to server timestamp
+        processedFields[key] = FieldValue.serverTimestamp();
+      }
     } else if (key === "categories") {
       processedFields[key] = normalizeCategoriesInput(value);
     } else if (key === "relations") {
