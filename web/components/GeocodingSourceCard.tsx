@@ -2,18 +2,10 @@
 
 import { trackEvent } from "@/lib/analytics";
 import { SourceConfig } from "@/lib/types";
+import { extractHostname } from "@/lib/url-utils";
 
 interface GeocodingSourceCardProps {
   readonly source: SourceConfig;
-}
-
-function extractHostname(url: string): string {
-  try {
-    const { hostname } = new URL(url);
-    return hostname.replace("www.", "");
-  } catch {
-    return url;
-  }
 }
 
 export default function GeocodingSourceCard({
