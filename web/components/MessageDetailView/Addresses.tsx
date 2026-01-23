@@ -33,11 +33,14 @@ export default function Addresses({
                   formatted_address: address.formattedAddress,
                 },
               });
-              onAddressClick?.(
-                address.coordinates.lat,
-                address.coordinates.lng,
-              );
-              onClose();
+              if (onAddressClick) {
+                onAddressClick(
+                  address.coordinates.lat,
+                  address.coordinates.lng,
+                );
+              } else {
+                onClose();
+              }
             }}
             className="w-full text-left bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
           >
