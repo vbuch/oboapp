@@ -66,25 +66,46 @@ export async function crawl(dryRun = false): Promise<void> {
       );
 
       // Extract timespans from incident info
+      const { validateTimespanRange } = await import("@/lib/timespan-utils");
       let timespanStart: Date;
       let timespanEnd: Date;
 
       try {
-        timespanStart = new Date(info.FromDate);
+        const parsed = new Date(info.FromDate);
+        if (validateTimespanRange(parsed)) {
+          timespanStart = parsed;
+        } else {
+          console.warn(
+            `   ⚠️  FromDate outside valid range for ${info.ContentItemId}: ${info.FromDate}`,
+          );
+          timespanStart = new Date();
+        }
       } catch (error) {
-        console.warn(`   ⚠️  Invalid FromDate: ${info.FromDate}`);
+        console.warn(
+          `   ⚠️  Invalid FromDate for ${info.ContentItemId}: ${info.FromDate} - ${error}`,
+        );
         timespanStart = new Date();
       }
 
       try {
         // UntilDate can be null
         if (info.UntilDate) {
-          timespanEnd = new Date(info.UntilDate);
+          const parsed = new Date(info.UntilDate);
+          if (validateTimespanRange(parsed)) {
+            timespanEnd = parsed;
+          } else {
+            console.warn(
+              `   ⚠️  UntilDate outside valid range for ${info.ContentItemId}: ${info.UntilDate}`,
+            );
+            timespanEnd = timespanStart;
+          }
         } else {
           timespanEnd = timespanStart; // Use start date for both
         }
       } catch (error) {
-        console.warn(`   ⚠️  Invalid UntilDate: ${info.UntilDate}`);
+        console.warn(
+          `   ⚠️  Invalid UntilDate for ${info.ContentItemId}: ${info.UntilDate} - ${error}`,
+        );
         timespanEnd = timespanStart;
       }
 

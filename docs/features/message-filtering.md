@@ -1,10 +1,10 @@
-# Message Filtering and Relevance System
+# Message Filtering
 
 ## Overview
 
-The message filtering system determines which infrastructure disruption announcements appear on the map by evaluating their time relevance. Messages remain visible while their associated timespans are active, and for a configurable grace period after they end. This ensures the map shows current and recent disruptions while automatically hiding outdated information.
+Server-side Firestore queries filter messages by denormalized timespan fields, returning only messages with `timespanEnd >= cutoffDate`. Messages remain visible while events are ongoing plus a configurable grace period (`MESSAGE_RELEVANCE_DAYS`).
 
-**Core Behavior**: A message with a water shutoff scheduled for January 15, 2026 from 08:00 to 18:00 will remain visible on the map until January 22, 2026 at 18:00 (the end time plus a 7-day default grace period).
+See [Geocoding System Overview](geocoding-overview.md) for location resolution details.
 
 ## Message Lifecycle
 
@@ -21,11 +21,11 @@ graph TD
     G --> H[/GeoJSON Conversion/]
     H --> D
     D --> I[(messages Collection)]
-    I -->|GET /api/messages| J[/Relevance Filtering/]
+    I -->|GET /api/messages| J[/Server-Side Query: timespanEnd >= cutoff/]
     J -->|Recent/Active| K{{Frontend Display}}
 
     style C fill:#f9f,stroke:#333
-    style J fill:#ff9,stroke:#333
+    style J fill:#9f9,stroke:#333
 ```
 
 ## Processing Paths
@@ -46,7 +46,23 @@ Municipal announcements and HTML content require natural language processing to 
 
 ## Relevance Filtering Logic
 
-The relevance filter is the primary mechanism that keeps the map current by hiding outdated messages. It operates on the frontend API and uses a dual-criteria evaluation system.
+The relevance filter uses **server-side Firestore queries** to retrieve only messages with active or recent timespans. This eliminates the need to transfer and filter thousands of outdated messages on the client.
+
+### Field Storage
+
+**Denormalized Timespan Fields** (stored at message root):
+
+- `timespanStart`: MIN start time across all timespans in the message (Date/Timestamp)
+- `timespanEnd`: MAX end time across all timespans in the message (Date/Timestamp)
+
+**Extraction Strategy**:
+
+- **AI-extracted messages**: Computed from `extractedData.pins[].timespans` and `extractedData.streets[].timespans` during ingestion
+- **Precomputed sources**: Copied from source document root fields (erm-zapad, toplo-bg, sofiyska-voda crawlers parse dates during crawl)
+- **Fallback**: Uses `crawledAt` when no timespans available or dates invalid (outside 2025-2027 range)
+- **Single date handling**: When only start OR end available, duplicates to both fields
+
+**Example**: Message with pin timespans `10.01.2026 08:00 - 10.01.2026 12:00` and `15.01.2026 14:00 - 15.01.2026 18:00` → `timespanStart: 2026-01-10 08:00`, `timespanEnd: 2026-01-15 18:00`
 
 ### Configuration
 
@@ -58,38 +74,40 @@ The relevance filter is the primary mechanism that keeps the map current by hidi
 
 ### Filtering Algorithm
 
-The system evaluates each message using this decision tree:
+The system uses Firestore composite indexes to execute server-side queries:
 
 ```mermaid
 graph TD
-    A[(Message)] --> B{Has extractedData?}
-    B -->|No| C[/Use createdAt timestamp/]
-    B -->|Yes| D{Has timespans in pins or streets?}
-    D -->|No| C
-    D -->|Yes| E[/Collect ALL timespans from pins and streets/]
-    E --> F[/Parse each timespan end date/]
-    F --> G{ANY end date >= cutoffDate?}
-    G -->|Yes| H[SHOW MESSAGE]
-    G -->|No| I[HIDE MESSAGE]
-    C --> J{createdAt >= cutoffDate?}
-    J -->|Yes| H
-    J -->|No| I
+    A[API Request] --> B[/Calculate cutoffDate = now - MESSAGE_RELEVANCE_DAYS/]
+    B --> C{Has category filter?}
+    C -->|Yes| D[/Query: categories contains X AND timespanEnd >= cutoffDate/]
+    C -->|No| E[/Query: timespanEnd >= cutoffDate/]
+    D --> F[/ORDER BY timespanEnd DESC/]
+    E --> F
+    F --> G[Return matching messages]
 
-    K[/Current Date - MESSAGE_RELEVANCE_DAYS/] -.->|cutoffDate| G
-    K -.->|cutoffDate| J
-
-    style H fill:#9f9,stroke:#333
-    style I fill:#f99,stroke:#333
-    style G fill:#ff9,stroke:#333
+    style D fill:#9f9,stroke:#333
+    style E fill:#9f9,stroke:#333
+    style F fill:#ff9,stroke:#333
 ```
+
+**Firestore Query Pattern**:
+
+```typescript
+messagesRef
+  .where("categories", "array-contains", category) // Optional
+  .where("timespanEnd", ">=", cutoffDate)
+  .orderBy("timespanEnd", "desc");
+```
+
+**Composite Index Required**:
+
+- Fields: `categories` (array-contains) + `timespanEnd` (descending)
+- OR: `timespanEnd` (descending) for uncategorized queries
 
 ### Dual-Criteria System
 
-**Timespan-Based** (primary): Collects all timespans from pins and streets. If ANY timespan end date is within `MESSAGE_RELEVANCE_DAYS` of current date, message is visible. Format: `DD.MM.YYYY HH:MM`.
-
-**Creation-Date** (fallback): Uses `createdAt` timestamp when no timespans exist or extraction failed. Same cutoff logic applies.
-
-**Example**: Construction project with timespans January 5-8 and January 12-15. Created January 1, viewed January 10: visible (second timespan active). Viewed January 20: visible (last end date + 7 days = January 22). Viewed January 23: hidden (grace period expired).
+Timespan-based filtering uses denormalized `timespanEnd` field (MAX end time across all extracted timespans). Messages without valid timespans fall back to `timespanEnd = crawledAt`.
 
 ## Additional Filtering
 
@@ -117,22 +135,11 @@ Messages appear as red map features (points, lines, polygons). Clicking shows de
 
 ## Edge Cases
 
-**Mixed Timespans**: Messages with multiple timespans remain visible if ANY timespan is current. The entire message shows/hides as a unit.
-
-**Invalid Dates**: Malformed timespans are ignored; valid ones are evaluated. If all fail, falls back to `createdAt`.
-
-**Partial Geocoding**: Successfully geocoded features display; failed addresses are omitted from map but may appear in detail text.
-
-**Boundary Cases**: Messages at exact cutoff time are visible (uses `>=` comparison).
-
-**Pre-geocoded Sources**: Often lack extracted timespans and use `createdAt` for filtering.
-
-**Non-geocodable Content**: Messages without extractable locations are stored but never displayed.
+- Mixed timespans: Uses MAX end date (`timespanEnd`)
+- Invalid dates: Ignored; falls back to `crawledAt` if all invalid
+- Boundary cases: Inclusive comparison (`timespanEnd >= cutoffDate`)
+- Precomputed sources: Timespans extracted by crawlers, transferred to messages
 
 ## Configuration
 
-**MESSAGE_RELEVANCE_DAYS** (default: 7)
-
-- Controls visibility window for both timespan and creation-date filtering
-- Applies server-side to all users uniformly
-- Requires server restart to take effect
+`MESSAGE_RELEVANCE_DAYS` (default: 7) - Number of days messages remain visible after `timespanEnd`. Server restart required for changes.

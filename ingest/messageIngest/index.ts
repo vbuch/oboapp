@@ -424,7 +424,7 @@ async function storeExtractedData(
   messageId: string,
   extractedData: ExtractedData | null,
 ): Promise<void> {
-  const { extractTimespanRangeFromExtractedData, validateTimespanRange } =
+  const { extractTimespanRangeFromExtractedData, validateAndFallback } =
     await import("@/lib/timespan-utils");
 
   const markdownText = extractedData?.markdown_text || "";
@@ -439,14 +439,13 @@ async function storeExtractedData(
   );
 
   // Validate and fallback to crawledAt if invalid
-  const isStartValid = validateTimespanRange(timespanStart);
-  const isEndValid = validateTimespanRange(timespanEnd);
+  const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
 
   await updateMessage(messageId, {
     extractedData,
     markdownText,
-    timespanStart: isStartValid ? timespanStart : crawledAt,
-    timespanEnd: isEndValid ? timespanEnd : crawledAt,
+    timespanStart: validated.timespanStart,
+    timespanEnd: validated.timespanEnd,
   });
 }
 
@@ -533,7 +532,7 @@ async function handlePrecomputedGeoJsonData(
   timespanStart: Date | undefined,
   timespanEnd: Date | undefined,
 ): Promise<ExtractedData | null> {
-  const { validateTimespanRange } = await import("@/lib/timespan-utils");
+  const { validateAndFallback } = await import("@/lib/timespan-utils");
 
   if (markdownText) {
     const extractedData: ExtractedData = {
@@ -547,16 +546,17 @@ async function handlePrecomputedGeoJsonData(
     const message = await getMessageById(messageId);
     const crawledAt = ensureCrawledAtDate(message?.crawledAt);
 
-    const isStartValid = timespanStart
-      ? validateTimespanRange(timespanStart)
-      : false;
-    const isEndValid = timespanEnd ? validateTimespanRange(timespanEnd) : false;
+    const validated = validateAndFallback(
+      timespanStart,
+      timespanEnd,
+      crawledAt,
+    );
 
     await updateMessage(messageId, {
       markdownText,
       extractedData,
-      timespanStart: isStartValid && timespanStart ? timespanStart : crawledAt,
-      timespanEnd: isEndValid && timespanEnd ? timespanEnd : crawledAt,
+      timespanStart: validated.timespanStart,
+      timespanEnd: validated.timespanEnd,
     });
 
     return extractedData;

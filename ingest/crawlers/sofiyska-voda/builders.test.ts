@@ -21,7 +21,7 @@ describe("sofiyska-voda/builders", () => {
   describe("getFeatureUrl", () => {
     it("should build correct URL", () => {
       expect(getFeatureUrl(2, 12345)).toBe(
-        "https://gispx.sofiyskavoda.bg/arcgis/rest/services/WSI_PUBLIC/InfoCenter_Public/MapServer/2/12345"
+        "https://gispx.sofiyskavoda.bg/arcgis/rest/services/WSI_PUBLIC/InfoCenter_Public/MapServer/2/12345",
       );
     });
   });
@@ -231,7 +231,7 @@ describe("sofiyska-voda/builders", () => {
   });
 
   describe("buildSourceDocument", () => {
-    it("should build complete document", () => {
+    it("should build full document", async () => {
       const feature: ArcGisFeature = {
         attributes: {
           OBJECTID: 12345,
@@ -241,7 +241,7 @@ describe("sofiyska-voda/builders", () => {
         geometry: { x: 23.32, y: 42.69 },
       };
 
-      const doc = buildSourceDocument(feature, mockLayer);
+      const doc = await buildSourceDocument(feature, mockLayer);
       expect(doc).not.toBeNull();
       expect(doc?.url).toContain("12345");
       expect(doc?.title).toContain("ул. Иван Вазов");
@@ -249,25 +249,25 @@ describe("sofiyska-voda/builders", () => {
       expect(doc?.geoJson).toBeDefined();
     });
 
-    it("should return null without OBJECTID", () => {
+    it("should return null without OBJECTID", async () => {
       const feature: ArcGisFeature = {
         attributes: {},
         geometry: { x: 23.32, y: 42.69 },
       };
 
-      expect(buildSourceDocument(feature, mockLayer)).toBeNull();
+      expect(await buildSourceDocument(feature, mockLayer)).toBeNull();
     });
 
-    it("should return null without geometry", () => {
+    it("should return null without geometry", async () => {
       const feature: ArcGisFeature = {
         attributes: { OBJECTID: 12345 },
         geometry: null,
       };
 
-      expect(buildSourceDocument(feature, mockLayer)).toBeNull();
+      expect(await buildSourceDocument(feature, mockLayer)).toBeNull();
     });
 
-    it("should use START_ if no LASTUPDATE", () => {
+    it("should use START_ if no LASTUPDATE", async () => {
       const startTime = new Date("2025-12-29T10:00:00");
       const feature: ArcGisFeature = {
         attributes: {
@@ -277,7 +277,7 @@ describe("sofiyska-voda/builders", () => {
         geometry: { x: 23.32, y: 42.69 },
       };
 
-      const doc = buildSourceDocument(feature, mockLayer);
+      const doc = await buildSourceDocument(feature, mockLayer);
       expect(doc?.datePublished).toContain("2025-12-29");
     });
   });

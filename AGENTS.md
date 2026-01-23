@@ -202,14 +202,18 @@ flowchart LR
 - `text` - Original user/crawler input
 - `categorize` - Rich categorization result if categorization was performed
 - `sourceDocumentId` - Links back to source document
-- `extractedData` - Structured data (pins, streets, responsible_entity, markdown_text)
+- `extractedData` - Structured data (pins, streets, cadastral properties with timespans)
 - `markdownText` - Denormalized from extractedData.markdown_text or crawler option
+- `timespanStart` - Denormalized MIN start time (enables Firestore queries)
+- `timespanEnd` - Denormalized MAX end time (enables Firestore queries)
 - `geoJson` - Final geometry (determines public visibility)
-- `finalizedAt` - Marks processing complete (relevant or irrelevant)
+- `finalizedAt` - Marks processing complete
 
 **Database Indexes:**
 
-- `categories` (array-contains) + `finalizedAt` (descending) - Category filtering
+- `categories` (array-contains) + `timespanEnd` (descending) - Category + time filtering
+- `timespanEnd` (descending) - Uncategorized time filtering
+- `categories` (array-contains) + `finalizedAt` (descending) - Legacy category filtering
 - `relations` (array-contains) + `finalizedAt` (descending) - Relations clustering
 - Deploy via `firebase deploy --only firestore:indexes` before code changes
 
@@ -217,8 +221,12 @@ flowchart LR
 
 - **Stable IDs:** Generate document IDs from stable data (e.g., CMS ID), not transient URLs.
 - **GeoJSON:** Parse and validate geometry immediately.
+- **Timespans:** Extract timespans in crawlers and store at source root as `timespanStart/End`.
+  - Use `extractTimespanBounds()` from `ingest/lib/timespan-utils.ts` to calculate MIN/MAX
+  - Validate against minimum date threshold
+  - Fall back to `crawledAt` if no valid timespans found
 - **Scripts:** Use the standard template (shebang, dotenv, dynamic imports). Run via `npm run tsx tmp/script.ts`.
-- **Precomputed GeoJSON:** If crawler provides GeoJSON, it bypasses message filtering and extraction stages.
+- **Precomputed GeoJSON:** If crawler provides GeoJSON, it bypasses message categorization and extraction stages. Timespans transfer from source to message during ingestion.
 
 ### Geocoding Services
 

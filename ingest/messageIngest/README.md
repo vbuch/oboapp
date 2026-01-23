@@ -66,9 +66,14 @@ flowchart TD
 
 ### Extraction Stage (AI-powered)
 
-- **Extract Structured Data** - Parse locations, times, responsible entities from normalized text
-- **Store Extracted Data** - Save pins, streets, timespans, and markdown formatting
-- **Early Exit** - If extraction fails, finalize without GeoJSON
+Extracts structured data and denormalizes timespans for Firestore queries:
+
+- Parse locations, times, entities from normalized text
+- Extract ALL timespans from pins, streets, cadastral properties
+- Denormalize: `timespanStart = MIN(all starts)`, `timespanEnd = MAX(all ends)`
+- Validate against minimum date threshold
+- Fallback: `timespanStart/End = crawledAt` if no valid timespans
+- Early exit if extraction fails
 
 ### Geocoding Stage
 
@@ -89,7 +94,9 @@ See [Geocoding System Overview](../../docs/features/geocoding-overview.md) for s
 
 ### Precomputed GeoJSON Path
 
-- Crawlers with ready GeoJSON (sofiyska-voda, toplo-bg, erm-zapad) skip categorization
-- Single message created per source (maintains 1:1 for precomputed data)
-- Markdown text stored directly if provided
-- Proceed to boundary filtering and finalization
+Sources with ready GeoJSON bypass AI categorization:
+
+- Single message per source (1:1 relationship)
+- Timespans transfer from source to message if present
+- Validation against minimum date threshold
+- Fallback to `crawledAt` if source lacks valid timespans

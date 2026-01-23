@@ -4,6 +4,8 @@ import type {
   Timespan,
 } from "./types";
 
+const TIMESPAN_MIN_DATE = new Date("2025-01-01T00:00:00Z");
+
 /**
  * Parse Bulgarian date format "DD.MM.YYYY HH:MM" to Date object
  * @param dateStr - Date string in Bulgarian format
@@ -57,15 +59,35 @@ export function parseBulgarianDate(dateStr: string): Date | null {
 }
 
 /**
- * Validate timespan is within acceptable range (2025-01-01 to 2027-01-01)
+ * Validate timespan is not before 2025-01-01 (filters out parsing errors that create dates in 1970s/2020s)
  * @param date - Date to validate
- * @returns true if date is within range, false otherwise
+ * @returns true if date is valid, false otherwise
  */
 export function validateTimespanRange(date: Date): boolean {
-  const minDate = new Date("2025-01-01T00:00:00Z");
-  const maxDate = new Date("2027-01-02T00:00:00Z"); // End of day Jan 1, 2027
+  return date >= TIMESPAN_MIN_DATE;
+}
 
-  return date >= minDate && date < maxDate;
+/**
+ * Validate timespans and fallback to a default date if invalid
+ * @param timespanStart - Start date to validate
+ * @param timespanEnd - End date to validate
+ * @param fallbackDate - Date to use if validation fails
+ * @returns Validated timespan bounds
+ */
+export function validateAndFallback(
+  timespanStart: Date | undefined,
+  timespanEnd: Date | undefined,
+  fallbackDate: Date,
+): { timespanStart: Date; timespanEnd: Date } {
+  const isStartValid = timespanStart
+    ? validateTimespanRange(timespanStart)
+    : false;
+  const isEndValid = timespanEnd ? validateTimespanRange(timespanEnd) : false;
+
+  return {
+    timespanStart: isStartValid && timespanStart ? timespanStart : fallbackDate,
+    timespanEnd: isEndValid && timespanEnd ? timespanEnd : fallbackDate,
+  };
 }
 
 /**
@@ -125,37 +147,36 @@ function parseTimespans(timespans: Timespan[]): Date[] {
  * @param extractedData - Extracted data containing pins, streets, cadastral properties
  * @returns Array of all timespan objects
  */
+function collectTimespansFromArray(
+  items: Array<{ timespans?: Timespan[] }>,
+): Timespan[] {
+  const timespans: Timespan[] = [];
+  for (const item of items) {
+    if (item.timespans && Array.isArray(item.timespans)) {
+      timespans.push(...item.timespans);
+    }
+  }
+  return timespans;
+}
+
 function collectAllTimespans(extractedData: ExtractedData): Timespan[] {
   const allTimespans: Timespan[] = [];
 
-  // Collect from pins
   if (extractedData.pins && Array.isArray(extractedData.pins)) {
-    for (const pin of extractedData.pins) {
-      if (pin.timespans && Array.isArray(pin.timespans)) {
-        allTimespans.push(...pin.timespans);
-      }
-    }
+    allTimespans.push(...collectTimespansFromArray(extractedData.pins));
   }
 
-  // Collect from streets
   if (extractedData.streets && Array.isArray(extractedData.streets)) {
-    for (const street of extractedData.streets) {
-      if (street.timespans && Array.isArray(street.timespans)) {
-        allTimespans.push(...street.timespans);
-      }
-    }
+    allTimespans.push(...collectTimespansFromArray(extractedData.streets));
   }
 
-  // Collect from cadastral properties
   if (
     extractedData.cadastralProperties &&
     Array.isArray(extractedData.cadastralProperties)
   ) {
-    for (const property of extractedData.cadastralProperties) {
-      if (property.timespans && Array.isArray(property.timespans)) {
-        allTimespans.push(...property.timespans);
-      }
-    }
+    allTimespans.push(
+      ...collectTimespansFromArray(extractedData.cadastralProperties),
+    );
   }
 
   return allTimespans;
@@ -207,49 +228,31 @@ function extractDatesFromFeature(feature: any): Date[] {
   const dates: Date[] = [];
   const props = feature.properties;
 
-  if (!props) {
-    return dates;
-  }
+  if (!props) return dates;
 
-  // Try ISO format (ERM-Zapad pattern)
-  if (props.startTimeISO) {
-    try {
-      const date = new Date(props.startTimeISO);
-      if (!Number.isNaN(date.getTime())) {
-        dates.push(date);
-      }
-    } catch {
-      // Ignore invalid ISO dates
-    }
-  }
-
-  if (props.endTimeISO) {
-    try {
-      const date = new Date(props.endTimeISO);
-      if (!Number.isNaN(date.getTime())) {
-        dates.push(date);
-      }
-    } catch {
-      // Ignore invalid ISO dates
-    }
-  }
+  // Try ISO format
+  const startISO = tryParseISODate(props.startTimeISO);
+  const endISO = tryParseISODate(props.endTimeISO);
+  if (startISO) dates.push(startISO);
+  if (endISO) dates.push(endISO);
 
   // Try Bulgarian format
-  if (props.startTime) {
-    const date = parseBulgarianDate(props.startTime);
-    if (date) {
-      dates.push(date);
-    }
-  }
-
-  if (props.endTime) {
-    const date = parseBulgarianDate(props.endTime);
-    if (date) {
-      dates.push(date);
-    }
-  }
+  const startBG = parseBulgarianDate(props.startTime);
+  const endBG = parseBulgarianDate(props.endTime);
+  if (startBG) dates.push(startBG);
+  if (endBG) dates.push(endBG);
 
   return dates;
+}
+
+function tryParseISODate(dateStr: string | undefined): Date | null {
+  if (!dateStr) return null;
+  try {
+    const date = new Date(dateStr);
+    return Number.isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
 }
 
 /**

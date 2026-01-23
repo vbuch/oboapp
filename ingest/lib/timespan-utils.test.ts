@@ -69,33 +69,23 @@ describe("validateTimespanRange", () => {
   });
 
   it("should reject dates before 2025", () => {
-    expect(validateTimespanRange(new Date("2024-12-31T23:59:59Z"))).toBe(
-      false
-    );
-    expect(validateTimespanRange(new Date("2020-01-01T00:00:00Z"))).toBe(
-      false
-    );
+    expect(validateTimespanRange(new Date("2024-12-31T23:59:59Z"))).toBe(false);
+    expect(validateTimespanRange(new Date("2020-01-01T00:00:00Z"))).toBe(false);
   });
 
-  it("should reject dates after 2027", () => {
-    expect(validateTimespanRange(new Date("2027-01-02T00:00:00Z"))).toBe(
-      false
-    );
-    expect(validateTimespanRange(new Date("2030-01-01T00:00:00Z"))).toBe(
-      false
-    );
+  it("should accept dates after 2025", () => {
+    expect(validateTimespanRange(new Date("2027-01-02T00:00:00Z"))).toBe(true);
+    expect(validateTimespanRange(new Date("2030-01-01T00:00:00Z"))).toBe(true);
   });
 
   it("should handle boundary dates correctly", () => {
     // First second of valid range
     expect(validateTimespanRange(new Date("2025-01-01T00:00:00.001Z"))).toBe(
-      true
+      true,
     );
 
-    // Last second of valid range
-    expect(validateTimespanRange(new Date("2027-01-01T23:59:59.999Z"))).toBe(
-      true
-    );
+    // Future dates are valid
+    expect(validateTimespanRange(new Date("2030-01-01T00:00:00Z"))).toBe(true);
   });
 });
 
@@ -154,7 +144,7 @@ describe("extractTimespanRangeFromExtractedData", () => {
 
     const result = extractTimespanRangeFromExtractedData(
       extractedData,
-      fallbackDate
+      fallbackDate,
     );
 
     expect(result.timespanStart).toBe(fallbackDate);
@@ -179,7 +169,7 @@ describe("extractTimespanRangeFromExtractedData", () => {
 
     const result = extractTimespanRangeFromExtractedData(
       extractedData,
-      fallbackDate
+      fallbackDate,
     );
 
     // Dates parsed in local timezone - just check year, month, day
@@ -211,7 +201,7 @@ describe("extractTimespanRangeFromExtractedData", () => {
 
     const result = extractTimespanRangeFromExtractedData(
       extractedData,
-      fallbackDate
+      fallbackDate,
     );
 
     expect(result.timespanStart.getFullYear()).toBe(2026);
@@ -240,7 +230,7 @@ describe("extractTimespanRangeFromExtractedData", () => {
 
     const result = extractTimespanRangeFromExtractedData(
       extractedData,
-      fallbackDate
+      fallbackDate,
     );
 
     expect(result.timespanStart.getFullYear()).toBe(2026);
@@ -274,7 +264,7 @@ describe("extractTimespanRangeFromExtractedData", () => {
 
     const result = extractTimespanRangeFromExtractedData(
       extractedData,
-      fallbackDate
+      fallbackDate,
     );
 
     // MIN from street (Jan 5 14:00), MAX from street (Jan 15 18:00)
@@ -303,7 +293,7 @@ describe("extractTimespanRangeFromExtractedData", () => {
 
     const result = extractTimespanRangeFromExtractedData(
       extractedData,
-      fallbackDate
+      fallbackDate,
     );
 
     // Should use valid timespan, ignore invalid
@@ -328,7 +318,7 @@ describe("extractTimespanRangeFromExtractedData", () => {
 
     const result = extractTimespanRangeFromExtractedData(
       extractedData,
-      fallbackDate
+      fallbackDate,
     );
 
     expect(result.timespanStart).toBe(fallbackDate);

@@ -6,6 +6,7 @@ import { validateAndFixGeoJSON } from "../shared/geojson-validation";
 import { launchBrowser } from "../shared/browser";
 import { saveSourceDocumentIfNew } from "../shared/firestore";
 import { parseBulgarianDateTime } from "../shared/date-utils";
+import { validateTimespanRange } from "@/lib/timespan-utils";
 import { buildGeoJSON, buildMessage, buildTitle } from "./builders";
 import type {
   ApiResponse,
@@ -174,7 +175,7 @@ function buildSourceDocument(
       datePublished = parseBulgarianDateTime(
         incident.begin_event,
       ).toISOString();
-    } catch (error) {
+    } catch {
       console.warn(
         `   ⚠️  Invalid date format for ${incident.ceo}: ${incident.begin_event}`,
       );
@@ -187,24 +188,39 @@ function buildSourceDocument(
 
   try {
     if (incident.begin_event) {
-      timespanStart = parseBulgarianDateTime(incident.begin_event);
+      const parsed = parseBulgarianDateTime(incident.begin_event);
+      if (validateTimespanRange(parsed)) {
+        timespanStart = parsed;
+      } else {
+        console.warn(
+          `   ⚠️  begin_event outside valid range for ${incident.ceo}: ${incident.begin_event}`,
+        );
+      }
     }
   } catch (error) {
     console.warn(
-      `   ⚠️  Invalid begin_event for ${incident.ceo}: ${incident.begin_event}`,
+      `   ⚠️  Invalid begin_event for ${incident.ceo}: ${incident.begin_event} - ${error}`,
     );
   }
 
   try {
     if (incident.end_event) {
-      timespanEnd = parseBulgarianDateTime(incident.end_event);
+      const parsed = parseBulgarianDateTime(incident.end_event);
+      if (validateTimespanRange(parsed)) {
+        timespanEnd = parsed;
+      } else {
+        console.warn(
+          `   ⚠️  end_event outside valid range for ${incident.ceo}: ${incident.end_event}`,
+        );
+        timespanEnd = timespanStart;
+      }
     } else if (incident.begin_event) {
       // Use start for both if only start available
       timespanEnd = timespanStart;
     }
   } catch (error) {
     console.warn(
-      `   ⚠️  Invalid end_event for ${incident.ceo}: ${incident.end_event}`,
+      `   ⚠️  Invalid end_event for ${incident.ceo}: ${incident.end_event} - ${error}`,
     );
     timespanEnd = timespanStart;
   }
@@ -335,10 +351,7 @@ async function crawl(): Promise<void> {
 
 // Run if called directly
 if (require.main === module) {
-  crawl().catch((error) => {
-    console.error("Fatal error:", error);
-    process.exit(1);
-  });
+  void crawl();
 }
 
 export { crawl };

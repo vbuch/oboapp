@@ -56,7 +56,7 @@ interface CrawlSummary {
 }
 
 async function fetchLayerFeatures(
-  layer: LayerConfig
+  layer: LayerConfig,
 ): Promise<ArcGisFeature[]> {
   let resultOffset = 0;
   const features: ArcGisFeature[] = [];
@@ -79,7 +79,7 @@ async function fetchLayerFeatures(
 
     if (payload.error) {
       throw new Error(
-        `ArcGIS returned error for layer ${layer.id}: ${payload.error.message}`
+        `ArcGIS returned error for layer ${layer.id}: ${payload.error.message}`,
       );
     }
 
@@ -108,7 +108,7 @@ async function callArcGis(url: string): Promise<ArcGisQueryResponse> {
 
     if (!response.ok) {
       throw new Error(
-        `ArcGIS request failed (${response.status} ${response.statusText})`
+        `ArcGIS request failed (${response.status} ${response.statusText})`,
       );
     }
 
@@ -120,7 +120,7 @@ async function callArcGis(url: string): Promise<ArcGisQueryResponse> {
 
 async function saveSourceDocument(
   doc: SofiyskaVodaSourceDocument,
-  adminDb: Firestore
+  adminDb: Firestore,
 ): Promise<void> {
   await saveSourceDocumentShared(doc, adminDb, {
     transformData: (d) => ({
@@ -158,7 +158,7 @@ async function maybeInitFirestore(): Promise<Firestore | null> {
 async function processLayer(
   layer: LayerConfig,
   seenUrls: Set<string>,
-  adminDb: Firestore | null
+  adminDb: Firestore | null,
 ): Promise<CrawlSummary> {
   console.log(`\n📡 Зареждане на слой ${layer.id} – ${layer.name}`);
   const features = await fetchLayerFeatures(layer);
@@ -182,9 +182,9 @@ async function handleFeature(
   layer: LayerConfig,
   seenUrls: Set<string>,
   adminDb: Firestore | null,
-  summary: CrawlSummary
+  summary: CrawlSummary,
 ): Promise<void> {
-  const document = buildSourceDocument(feature, layer, DATE_FORMATTER);
+  const document = await buildSourceDocument(feature, layer, DATE_FORMATTER);
   if (!document) {
     return;
   }

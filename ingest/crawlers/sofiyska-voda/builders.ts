@@ -148,11 +148,11 @@ export function buildGeoJsonFeatureCollection(
 /**
  * Build complete SourceDocument from ArcGIS feature
  */
-export function buildSourceDocument(
+export async function buildSourceDocument(
   feature: ArcGisFeature,
   layer: LayerConfig,
   dateFormatter?: Intl.DateTimeFormat,
-): SofiyskaVodaSourceDocument | null {
+): Promise<SofiyskaVodaSourceDocument | null> {
   const objectId = feature.attributes?.OBJECTID;
   if (typeof objectId !== "number") {
     console.warn(`⚠️ Skipping feature without OBJECTID in layer ${layer.id}`);
@@ -176,18 +176,37 @@ export function buildSourceDocument(
     new Date();
 
   // Extract timespans from ArcGIS attributes
-  let timespanStart = ensureDate(feature.attributes?.START_);
-  let timespanEnd = ensureDate(feature.attributes?.ALERTEND);
+  let timespanStart: Date | undefined =
+    ensureDate(feature.attributes?.START_) ?? undefined;
+  let timespanEnd: Date | undefined =
+    ensureDate(feature.attributes?.ALERTEND) ?? undefined;
 
-  // Use single date for both if only one available
-  if (timespanStart && !timespanEnd) {
+  // Validate extracted dates (import at top of file)
+  const { validateTimespanRange } = await import("@/lib/timespan-utils");
+  const isStartValid = timespanStart
+    ? validateTimespanRange(timespanStart)
+    : false;
+  const isEndValid = timespanEnd ? validateTimespanRange(timespanEnd) : false;
+
+  // Use single date for both if only one available and valid
+  if (isStartValid && !isEndValid) {
     timespanEnd = timespanStart;
-  } else if (!timespanStart && timespanEnd) {
+  } else if (!isStartValid && isEndValid) {
     timespanStart = timespanEnd;
   }
 
-  // Fallback to lastUpdate
-  if (!timespanStart || !timespanEnd) {
+  // Fallback to lastUpdate if invalid or missing
+  if (!isStartValid || !isEndValid) {
+    if (!isStartValid && feature.attributes?.START_) {
+      console.warn(
+        `   ⚠️  START_ outside valid range for ${feature.attributes.OBJECTID}: ${feature.attributes.START_}`,
+      );
+    }
+    if (!isEndValid && feature.attributes?.ALERTEND) {
+      console.warn(
+        `   ⚠️  ALERTEND outside valid range for ${feature.attributes.OBJECTID}: ${feature.attributes.ALERTEND}`,
+      );
+    }
     timespanStart = lastUpdate;
     timespanEnd = lastUpdate;
   }
