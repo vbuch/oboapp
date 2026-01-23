@@ -28,6 +28,14 @@
       "collectionGroup": "messages",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "timespanEnd", "order": "DESCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "messages",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "notificationsSent", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
