@@ -222,9 +222,6 @@ flowchart LR
 - **Stable IDs:** Generate document IDs from stable data (e.g., CMS ID), not transient URLs.
 - **GeoJSON:** Parse and validate geometry immediately.
 - **Timespans:** Extract timespans in crawlers and store at source root as `timespanStart/End`.
-  - Use `extractTimespanBounds()` from `ingest/lib/timespan-utils.ts` to calculate MIN/MAX
-  - Validate against minimum date threshold
-  - Fall back to `crawledAt` if no valid timespans found
 - **Scripts:** Use the standard template (shebang, dotenv, dynamic imports). Run via `npm run tsx tmp/script.ts`.
 - **Precomputed GeoJSON:** If crawler provides GeoJSON, it bypasses message categorization and extraction stages. Timespans transfer from source to message during ingestion.
 
