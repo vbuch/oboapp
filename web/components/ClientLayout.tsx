@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
 import { AuthProvider } from "@/lib/auth-context";
+import SplashScreen from "@/components/SplashScreen";
 
 export default function ClientLayout({
   children,
@@ -15,6 +16,7 @@ export default function ClientLayout({
     <div className="antialiased flex flex-col h-screen overflow-hidden">
       <LoadScript
         googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
+        loadingElement={<SplashScreen />}
       >
         <AuthProvider>
           <Header />
