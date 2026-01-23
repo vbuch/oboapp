@@ -19,7 +19,7 @@ export interface SourceDocumentWithGeoJson extends BaseSourceDocument {
 
 /**
  * Post link extracted from index/listing pages
- * Used by long-flow webpage crawlers (sofia-bg, rayon-oborishte-bg, mladost-bg, studentski-bg)
+ * Used by long-flow webpage crawlers (sofia-bg, rayon-oborishte-bg, mladost-bg, studentski-bg, sredec-sofia-org, so-slatina-org)
  */
 export interface PostLink {
   url: string;

@@ -194,7 +194,7 @@ flowchart LR
 **Crawler Integration:**
 
 - Crawlers with `precomputedGeoJson` (sofiyska-voda, toplo-bg, erm-zapad) **skip categorization**
-- Crawlers without GeoJSON (rayon-oborishte-bg, sofia-bg) **go through categorization**
+- Crawlers without GeoJSON (rayon-oborishte-bg, sofia-bg, mladost-bg, studentski-bg, sredec-sofia-org, so-slatina-org) **go through categorization**
 - Markdown text from crawlers is stored directly via `options.markdownText`
 
 **Field Storage:**
