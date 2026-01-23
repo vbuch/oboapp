@@ -4,7 +4,8 @@ import type {
   Timespan,
 } from "./types";
 
-const TIMESPAN_MIN_DATE = new Date("2025-01-01T00:00:00Z");
+// Use local time to match parseBulgarianDate() behavior
+const TIMESPAN_MIN_DATE = new Date(2025, 0, 1); // Jan 1, 2025 00:00:00 local time
 
 /**
  * Parse Bulgarian date format "DD.MM.YYYY HH:MM" to Date object
