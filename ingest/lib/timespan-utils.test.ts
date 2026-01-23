@@ -464,7 +464,7 @@ describe("extractTimespanRangeFromGeoJson", () => {
     expect(result.timespanEnd.toISOString()).toContain("2026-01-10T12:00");
   });
 
-  it("should prioritize ISO format over Bulgarian format", () => {
+  it("should extract MIN/MAX from both ISO and Bulgarian format properties", () => {
     const geoJson: GeoJSONFeatureCollection = {
       type: "FeatureCollection",
       features: [
