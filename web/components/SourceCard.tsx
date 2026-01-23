@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
 import { SourceConfig } from "@/lib/types";
 
@@ -9,24 +10,25 @@ interface SourceCardProps {
   readonly source: SourceConfig;
 }
 
-function extractHostname(url: string): string {
-  try {
-    const { hostname } = new URL(url);
-    return hostname.replace("www.", "");
-  } catch {
-    return url;
-  }
-}
-
 export default function SourceCard({ source }: SourceCardProps) {
   const [logoError, setLogoError] = useState(false);
   const logoPath = `/sources/${source.id}.png`;
 
-  // Extract display URL (remove protocol and trailing slash)
-  const displayUrl = extractHostname(source.url);
-
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-neutral-border hover:shadow-lg transition-shadow">
+    <Link
+      href={`/sources/${source.id}`}
+      className="block bg-white rounded-lg shadow-md p-6 border border-neutral-border hover:shadow-lg transition-shadow"
+      onClick={() => {
+        trackEvent({
+          name: "source_card_clicked",
+          params: {
+            source_id: source.id,
+            source_name: source.name,
+            location: "sources_page",
+          },
+        });
+      }}
+    >
       <div className="flex flex-col items-center text-center space-y-4">
         {/* Logo */}
         <div className="flex-shrink-0">
@@ -60,28 +62,7 @@ export default function SourceCard({ source }: SourceCardProps) {
 
         {/* Name */}
         <h3 className="text-lg font-semibold text-foreground">{source.name}</h3>
-
-        {/* URL */}
-        <a
-          href={source.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary hover:text-primary-hover text-sm font-medium underline break-all"
-          onClick={() => {
-            trackEvent({
-              name: "external_link_clicked",
-              params: {
-                url: source.url,
-                location: "sources_page",
-                source_id: source.id,
-                source_name: source.name,
-              },
-            });
-          }}
-        >
-          {displayUrl}
-        </a>
       </div>
-    </div>
+    </Link>
   );
 }

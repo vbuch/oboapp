@@ -77,6 +77,15 @@ export type AnalyticsEvent =
       name: "address_clicked";
       params: { message_id: string; formatted_address: string };
     }
+  // Source Card Clicks
+  | {
+      name: "source_card_clicked";
+      params: {
+        source_id: string;
+        source_name: string;
+        location: string;
+      };
+    }
   // External Links
   | {
       name: "external_link_clicked";
