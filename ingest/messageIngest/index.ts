@@ -126,18 +126,23 @@ async function processSingleMessage(
   let addresses: Address[] = [];
   let geoJson: GeoJSONFeatureCollection | null = precomputedGeoJson;
 
+  // Calculate crawledAt once for use in both branches
+  const crawledAt = ensureCrawledAtDate(options.crawledAt);
+
   if (precomputedGeoJson) {
     extractedData = await handlePrecomputedGeoJsonData(
       messageId,
       options.markdownText,
       options.timespanStart,
       options.timespanEnd,
+      crawledAt,
     );
   } else {
     const extractionResult = await extractAndGeocodeFromText(
       messageId,
       text,
       categorizedMessage,
+      crawledAt,
     );
 
     if (!extractionResult) {
@@ -363,7 +368,8 @@ async function handleIrrelevantMessage(
 async function extractAndGeocodeFromText(
   messageId: string,
   text: string,
-  categorizedMessage?: any,
+  categorizedMessage: any | undefined,
+  crawledAt: Date,
 ): Promise<{
   extractedData: ExtractedData;
   addresses: Address[];
@@ -372,7 +378,7 @@ async function extractAndGeocodeFromText(
   const { extractAddressesFromMessage } = await import("./extract-addresses");
   const extractedData = await extractAddressesFromMessage(text);
 
-  await storeExtractedData(messageId, extractedData);
+  await storeExtractedData(messageId, extractedData, crawledAt);
 
   if (!extractedData) {
     return null;
@@ -428,6 +434,7 @@ function ensureCrawledAtDate(crawledAt: Date | string | undefined): Date {
 async function storeExtractedData(
   messageId: string,
   extractedData: ExtractedData | null,
+  crawledAt: Date,
 ): Promise<void> {
   const { extractTimespanRangeFromExtractedData, validateAndFallback } =
     await import("@/lib/timespan-utils");
@@ -435,9 +442,6 @@ async function storeExtractedData(
   const markdownText = extractedData?.markdown_text || "";
 
   // Extract timespans from extractedData (pins/streets)
-  const message = await getMessageById(messageId);
-  const crawledAt = ensureCrawledAtDate(message?.crawledAt);
-
   const { timespanStart, timespanEnd } = extractTimespanRangeFromExtractedData(
     extractedData,
     crawledAt,
@@ -536,6 +540,7 @@ async function handlePrecomputedGeoJsonData(
   markdownText: string | undefined,
   timespanStart: Date | undefined,
   timespanEnd: Date | undefined,
+  crawledAt: Date,
 ): Promise<ExtractedData | null> {
   const { validateAndFallback } = await import("@/lib/timespan-utils");
 
@@ -548,9 +553,6 @@ async function handlePrecomputedGeoJsonData(
     };
 
     // Validate timespans from source
-    const message = await getMessageById(messageId);
-    const crawledAt = ensureCrawledAtDate(message?.crawledAt);
-
     const validated = validateAndFallback(
       timespanStart,
       timespanEnd,

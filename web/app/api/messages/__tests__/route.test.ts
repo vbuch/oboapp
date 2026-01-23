@@ -58,10 +58,9 @@ const setupFirebaseMock = async (mockMessages: any[]) => {
               if (!fieldValue) return false;
 
               // Convert Firestore timestamp to Date for comparison
-              const dateValue =
-                fieldValue._seconds
-                  ? new Date(fieldValue._seconds * 1000)
-                  : fieldValue;
+              const dateValue = fieldValue._seconds
+                ? new Date(fieldValue._seconds * 1000)
+                : fieldValue;
 
               if (whereOperator === ">=") {
                 return dateValue >= whereValue;
