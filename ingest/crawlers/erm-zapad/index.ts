@@ -40,7 +40,7 @@ async function discoverMunicipalities(): Promise<Municipality[]> {
       // Find the Sofia-City region card
       const headers = Array.from(document.querySelectorAll("h5.card-title"));
       const sofiaHeader = headers.find((h) =>
-        h.textContent?.includes("Област София-град")
+        h.textContent?.includes("Област София-град"),
       );
 
       if (!sofiaHeader) {
@@ -93,7 +93,7 @@ async function discoverMunicipalities(): Promise<Municipality[]> {
  * Fetch incidents for a specific municipality
  */
 async function fetchMunicipalityIncidents(
-  code: string
+  code: string,
 ): Promise<RawIncident[]> {
   const formData = new URLSearchParams({
     action: "draw",
@@ -113,7 +113,7 @@ async function fetchMunicipalityIncidents(
 
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch incidents for ${code}: ${response.status} ${response.statusText}`
+      `Failed to fetch incidents for ${code}: ${response.status} ${response.statusText}`,
     );
   }
 
@@ -134,7 +134,7 @@ async function fetchMunicipalityIncidents(
  * Convert raw incident to source document
  */
 function buildSourceDocument(
-  incident: RawIncident
+  incident: RawIncident,
 ): ErmZapadSourceDocument | null {
   // Validate required fields
   if (!incident.ceo || typeof incident.ceo !== "string") {
@@ -172,13 +172,41 @@ function buildSourceDocument(
   if (incident.begin_event) {
     try {
       datePublished = parseBulgarianDateTime(
-        incident.begin_event
+        incident.begin_event,
       ).toISOString();
     } catch (error) {
       console.warn(
-        `   ⚠️  Invalid date format for ${incident.ceo}: ${incident.begin_event}`
+        `   ⚠️  Invalid date format for ${incident.ceo}: ${incident.begin_event}`,
       );
     }
+  }
+
+  // Extract timespans from incident
+  let timespanStart = new Date(); // Default to crawledAt
+  let timespanEnd = new Date();
+
+  try {
+    if (incident.begin_event) {
+      timespanStart = parseBulgarianDateTime(incident.begin_event);
+    }
+  } catch (error) {
+    console.warn(
+      `   ⚠️  Invalid begin_event for ${incident.ceo}: ${incident.begin_event}`,
+    );
+  }
+
+  try {
+    if (incident.end_event) {
+      timespanEnd = parseBulgarianDateTime(incident.end_event);
+    } else if (incident.begin_event) {
+      // Use start for both if only start available
+      timespanEnd = timespanStart;
+    }
+  } catch (error) {
+    console.warn(
+      `   ⚠️  Invalid end_event for ${incident.ceo}: ${incident.end_event}`,
+    );
+    timespanEnd = timespanStart;
   }
 
   return {
@@ -192,6 +220,8 @@ function buildSourceDocument(
     geoJson: validation.geoJson,
     categories: ["electricity"],
     isRelevant: true,
+    timespanStart,
+    timespanEnd,
   };
 }
 
@@ -199,7 +229,7 @@ function buildSourceDocument(
  * Process incidents for a municipality
  */
 async function processMunicipality(
-  municipality: Municipality
+  municipality: Municipality,
 ): Promise<CrawlSummary> {
   console.log(`\n📍 Processing ${municipality.name} (${municipality.code})...`);
 
@@ -234,7 +264,7 @@ async function processMunicipality(
       } catch (error) {
         console.error(
           `   ❌ Failed to process incident ${incident.ceo}:`,
-          error
+          error,
         );
         summary.failed++;
       }
@@ -242,7 +272,7 @@ async function processMunicipality(
   } catch (error) {
     console.error(
       `   ❌ Failed to fetch incidents for ${municipality.code}:`,
-      error
+      error,
     );
     throw error; // Re-throw to fail the crawl
   }
@@ -285,7 +315,7 @@ async function crawl(): Promise<void> {
     // Final summary
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(
-      `\n✅ Crawl complete in ${duration}s. Saved: ${totalSummary.saved}; Skipped: ${totalSummary.skipped}; Failed: ${totalSummary.failed}`
+      `\n✅ Crawl complete in ${duration}s. Saved: ${totalSummary.saved}; Skipped: ${totalSummary.skipped}; Failed: ${totalSummary.failed}`,
     );
 
     // Exit with error if all failed

@@ -211,7 +211,7 @@ describe("buildGeoJSON", () => {
     expect(feature?.properties.endTime).toBe("29.12.2025 16:00");
   });
 
-  it("should parse dates to ISO format", () => {
+  it("should preserve original Bulgarian date format in properties", () => {
     const incident: RawIncident = {
       ceo: "12345",
       typedist: "Авария",
@@ -229,10 +229,12 @@ describe("buildGeoJSON", () => {
     const geoJson = buildGeoJSON(incident);
     const feature = geoJson?.features[0];
 
-    expect(feature?.properties.startTimeISO).toBeDefined();
-    expect(feature?.properties.endTimeISO).toBeDefined();
-    expect(feature?.properties.startTimeISO).toContain("2025-12-29");
-    expect(feature?.properties.endTimeISO).toContain("2025-12-29");
+    // Should keep original Bulgarian format for display
+    expect(feature?.properties.startTime).toBe("29.12.2025 10:00");
+    expect(feature?.properties.endTime).toBe("29.12.2025 16:00");
+    // ISO properties should NOT exist (timespans stored at source root now)
+    expect(feature?.properties.startTimeISO).toBeUndefined();
+    expect(feature?.properties.endTimeISO).toBeUndefined();
   });
 
   it("should handle invalid date formats gracefully", () => {

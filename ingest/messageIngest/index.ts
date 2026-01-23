@@ -4,7 +4,7 @@ import {
   GeoJSONFeatureCollection,
   Message,
 } from "@/lib/types";
-import { storeIncomingMessage, updateMessage } from "./db";
+import { storeIncomingMessage, updateMessage, getMessageById } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
 import { generateMessageId, formatCategorizedMessageLogInfo } from "./utils";
 
@@ -41,6 +41,14 @@ export interface MessageIngestOptions {
    * Optional markdown-formatted text for display (when crawler produces markdown)
    */
   markdownText?: string;
+  /**
+   * Optional timespan start from source (for precomputed GeoJSON crawlers)
+   */
+  timespanStart?: Date;
+  /**
+   * Optional timespan end from source (for precomputed GeoJSON crawlers)
+   */
+  timespanEnd?: Date;
   /**
    * Categories for sources with precomputed GeoJSON (for Firestore indexing)
    */
@@ -118,7 +126,14 @@ async function processSingleMessage(
   let addresses: Address[] = [];
   let geoJson: GeoJSONFeatureCollection | null = precomputedGeoJson;
 
-  if (!precomputedGeoJson) {
+  if (precomputedGeoJson) {
+    extractedData = await handlePrecomputedGeoJsonData(
+      messageId,
+      options.markdownText,
+      options.timespanStart,
+      options.timespanEnd,
+    );
+  } else {
     const extractionResult = await extractAndGeocodeFromText(
       messageId,
       text,
@@ -132,11 +147,6 @@ async function processSingleMessage(
     extractedData = extractionResult.extractedData;
     addresses = extractionResult.addresses;
     geoJson = extractionResult.geoJson;
-  } else {
-    extractedData = await handlePrecomputedGeoJsonData(
-      messageId,
-      options.markdownText,
-    );
   }
 
   geoJson = await applyBoundaryFilteringIfNeeded(
@@ -395,16 +405,48 @@ async function extractAndGeocodeFromText(
 }
 
 /**
+ * Convert crawledAt to Date object, handling string/Date/undefined cases
+ */
+function ensureCrawledAtDate(crawledAt: Date | string | undefined): Date {
+  if (crawledAt instanceof Date) {
+    return crawledAt;
+  }
+  if (crawledAt) {
+    return new Date(crawledAt);
+  }
+  return new Date();
+}
+
+/**
  * Store extracted data and markdown text in the message
  */
 async function storeExtractedData(
   messageId: string,
   extractedData: ExtractedData | null,
 ): Promise<void> {
+  const { extractTimespanRangeFromExtractedData, validateTimespanRange } =
+    await import("@/lib/timespan-utils");
+
   const markdownText = extractedData?.markdown_text || "";
+
+  // Extract timespans from extractedData (pins/streets)
+  const message = await getMessageById(messageId);
+  const crawledAt = ensureCrawledAtDate(message?.crawledAt);
+
+  const { timespanStart, timespanEnd } = extractTimespanRangeFromExtractedData(
+    extractedData,
+    crawledAt,
+  );
+
+  // Validate and fallback to crawledAt if invalid
+  const isStartValid = validateTimespanRange(timespanStart);
+  const isEndValid = validateTimespanRange(timespanEnd);
+
   await updateMessage(messageId, {
     extractedData,
     markdownText,
+    timespanStart: isStartValid ? timespanStart : crawledAt,
+    timespanEnd: isEndValid ? timespanEnd : crawledAt,
   });
 }
 
@@ -488,7 +530,11 @@ async function finalizeFailedMessage(
 async function handlePrecomputedGeoJsonData(
   messageId: string,
   markdownText: string | undefined,
+  timespanStart: Date | undefined,
+  timespanEnd: Date | undefined,
 ): Promise<ExtractedData | null> {
+  const { validateTimespanRange } = await import("@/lib/timespan-utils");
+
   if (markdownText) {
     const extractedData: ExtractedData = {
       responsible_entity: "",
@@ -497,9 +543,20 @@ async function handlePrecomputedGeoJsonData(
       markdown_text: markdownText,
     };
 
+    // Validate timespans from source
+    const message = await getMessageById(messageId);
+    const crawledAt = ensureCrawledAtDate(message?.crawledAt);
+
+    const isStartValid = timespanStart
+      ? validateTimespanRange(timespanStart)
+      : false;
+    const isEndValid = timespanEnd ? validateTimespanRange(timespanEnd) : false;
+
     await updateMessage(messageId, {
       markdownText,
       extractedData,
+      timespanStart: isStartValid && timespanStart ? timespanStart : crawledAt,
+      timespanEnd: isEndValid && timespanEnd ? timespanEnd : crawledAt,
     });
 
     return extractedData;

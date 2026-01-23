@@ -20,6 +20,8 @@ interface SourceDocument {
   markdownText?: string; // Markdown-formatted message for display
   categories?: string[]; // Categories for precomputed GeoJSON sources
   isRelevant?: boolean; // Whether source is relevant for precomputed GeoJSON sources
+  timespanStart?: Date; // Optional timespan start from source
+  timespanEnd?: Date; // Optional timespan end from source
 }
 
 interface IngestOptions {
@@ -65,7 +67,7 @@ async function parseArguments(): Promise<IngestOptions> {
 
 async function fetchSources(
   adminDb: Firestore,
-  options: IngestOptions
+  options: IngestOptions,
 ): Promise<SourceDocument[]> {
   let query = adminDb.collection("sources") as any;
   const filters: string[] = [];
@@ -96,6 +98,8 @@ async function fetchSources(
       markdownText: data.markdownText,
       categories: data.categories,
       isRelevant: data.isRelevant,
+      timespanStart: data.timespanStart?.toDate(),
+      timespanEnd: data.timespanEnd?.toDate(),
     });
   }
 
@@ -106,7 +110,7 @@ async function fetchSources(
 
 async function isAlreadyIngested(
   adminDb: Firestore,
-  sourceUrl: string
+  sourceUrl: string,
 ): Promise<boolean> {
   // Import encodeDocumentId to generate consistent source document ID
   const { encodeDocumentId } = await import("../crawlers/shared/firestore");
@@ -126,7 +130,7 @@ async function ingestSource(
   source: SourceDocument,
   adminDb: Firestore,
   dryRun: boolean,
-  boundaries: GeoJSONFeatureCollection | null
+  boundaries: GeoJSONFeatureCollection | null,
 ): Promise<boolean> {
   if (dryRun) {
     console.log(`   📝 [dry-run] Would ingest: ${source.title}`);
@@ -145,6 +149,15 @@ async function ingestSource(
   console.log(`   Title: ${source.title}`);
   console.log(`   URL: ${source.url}`);
   console.log(`   Source Type: ${source.sourceType}`);
+  if (source.timespanStart && source.timespanEnd) {
+    console.log(
+      `   Timespan: ${source.timespanStart.toISOString()} - ${source.timespanEnd.toISOString()}`,
+    );
+  } else if (source.geoJson) {
+    console.log(
+      `   ⚠️  Warning: Source has precomputed GeoJSON but missing timespans (will fallback to crawledAt)`,
+    );
+  }
   console.log(`${"=".repeat(80)}`);
 
   // Parse geoJson if it's a string
@@ -174,14 +187,16 @@ async function ingestSource(
       markdownText: source.markdownText,
       categories: source.categories,
       isRelevant: source.isRelevant,
-    }
+      timespanStart: source.timespanStart,
+      timespanEnd: source.timespanEnd,
+    },
   );
 
   console.log(`\n✅ COMPLETED: ${source.title}`);
   console.log(`   Messages created: ${result.messages.length}`);
   console.log(`   Total categorized: ${result.totalCategorized}`);
   console.log(
-    `   Relevant: ${result.totalRelevant}, Irrelevant: ${result.totalIrrelevant}`
+    `   Relevant: ${result.totalRelevant}, Irrelevant: ${result.totalIrrelevant}`,
   );
   for (const message of result.messages) {
     console.log(`   Message ID: ${message.id}`);
@@ -192,7 +207,7 @@ async function ingestSource(
 
 async function filterByAge(
   sources: SourceDocument[],
-  maxAgeInDays: number = 90
+  maxAgeInDays: number = 90,
 ): Promise<{ recentSources: SourceDocument[]; tooOld: number }> {
   const recentSources: SourceDocument[] = [];
   let tooOld = 0;
@@ -216,7 +231,7 @@ async function filterByAge(
 
   if (tooOld > 0) {
     console.log(
-      `📅 Age filter: ${recentSources.length} recent, ${tooOld} too old (>=${maxAgeInDays} days)`
+      `📅 Age filter: ${recentSources.length} recent, ${tooOld} too old (>=${maxAgeInDays} days)`,
     );
   }
 
@@ -225,7 +240,7 @@ async function filterByAge(
 
 async function filterByBoundaries(
   sources: SourceDocument[],
-  boundaries: GeoJSONFeatureCollection | null
+  boundaries: GeoJSONFeatureCollection | null,
 ): Promise<{ withinBounds: SourceDocument[]; outsideBounds: number }> {
   if (!boundaries) {
     return { withinBounds: sources, outsideBounds: 0 };
@@ -266,7 +281,7 @@ async function filterByBoundaries(
   }
 
   console.log(
-    `🗺️  Boundary filter: ${withinBounds.length} within, ${outsideBounds} outside`
+    `🗺️  Boundary filter: ${withinBounds.length} within, ${outsideBounds} outside`,
   );
 
   return { withinBounds, outsideBounds };
@@ -278,12 +293,12 @@ async function maybeInitFirestore(): Promise<Firestore> {
 }
 
 export async function ingest(
-  options: IngestOptions = {}
+  options: IngestOptions = {},
 ): Promise<IngestSummary> {
   console.log(
     `📥 Starting source ingestion (${
       options.dryRun ? "dry-run" : "production"
-    })`
+    })`,
   );
 
   const boundaries = loadBoundaries(options.boundariesPath);
@@ -303,7 +318,7 @@ export async function ingest(
   // filtering will happen during messageIngest after geocoding
   const { withinBounds, outsideBounds } = await filterByBoundaries(
     recentSources,
-    boundaries
+    boundaries,
   );
 
   const summary: IngestSummary = {
@@ -324,7 +339,7 @@ export async function ingest(
         source,
         adminDb,
         options.dryRun ?? false,
-        boundaries
+        boundaries,
       );
       if (wasIngested) {
         summary.ingested++;
@@ -339,7 +354,7 @@ export async function ingest(
       // Don't log as error if it's just outside boundaries or filtered as irrelevant
       if (errorMessage.includes("No features within specified boundaries")) {
         console.log(
-          `   ⏭️  ${source.title}: Outside boundaries after geocoding`
+          `   ⏭️  ${source.title}: Outside boundaries after geocoding`,
         );
       } else if (errorMessage.includes("Message filtering failed")) {
         summary.filtered++;
@@ -369,7 +384,7 @@ function logSummary(summary: IngestSummary, dryRun: boolean): void {
   }
   if (dryRun) {
     console.log(
-      `📝 Would ingest: ${summary.withinBounds - summary.alreadyIngested}`
+      `📝 Would ingest: ${summary.withinBounds - summary.alreadyIngested}`,
     );
   } else {
     console.log(`✅ Successfully ingested: ${summary.ingested}`);
@@ -398,7 +413,7 @@ function logSummary(summary: IngestSummary, dryRun: boolean): void {
 
   if (dryRun) {
     console.log(
-      "\n💡 Dry-run mode: no messages were created. Run without --dry-run to ingest."
+      "\n💡 Dry-run mode: no messages were created. Run without --dry-run to ingest.",
     );
   }
 }

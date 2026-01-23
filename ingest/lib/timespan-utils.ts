@@ -1,0 +1,288 @@
+import type {
+  ExtractedData,
+  GeoJSONFeatureCollection,
+  Timespan,
+} from "./types";
+
+/**
+ * Parse Bulgarian date format "DD.MM.YYYY HH:MM" to Date object
+ * @param dateStr - Date string in Bulgarian format
+ * @returns Date object or null if invalid format
+ * @example parseBulgarianDate("23.01.2026 14:30") // => Date(2026-01-23T14:30:00)
+ */
+export function parseBulgarianDate(dateStr: string): Date | null {
+  if (!dateStr || typeof dateStr !== "string") {
+    return null;
+  }
+
+  const regex = /^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/;
+  const parts = regex.exec(dateStr.trim());
+
+  if (!parts) {
+    return null;
+  }
+
+  const [, day, month, year, hours, minutes] = parts;
+  const parsedDay = Number.parseInt(day, 10);
+  const parsedMonth = Number.parseInt(month, 10);
+  const parsedYear = Number.parseInt(year, 10);
+  const parsedHours = Number.parseInt(hours, 10);
+  const parsedMinutes = Number.parseInt(minutes, 10);
+
+  const date = new Date(
+    parsedYear,
+    parsedMonth - 1, // Month is 0-indexed
+    parsedDay,
+    parsedHours,
+    parsedMinutes,
+  );
+
+  // Verify the date is valid (handles invalid dates like Feb 30)
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  // Verify the date components match (catches rollover like Feb 31 -> Mar 3)
+  if (
+    date.getDate() !== parsedDay ||
+    date.getMonth() !== parsedMonth - 1 ||
+    date.getFullYear() !== parsedYear ||
+    date.getHours() !== parsedHours ||
+    date.getMinutes() !== parsedMinutes
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+/**
+ * Validate timespan is within acceptable range (2025-01-01 to 2027-01-01)
+ * @param date - Date to validate
+ * @returns true if date is within range, false otherwise
+ */
+export function validateTimespanRange(date: Date): boolean {
+  const minDate = new Date("2025-01-01T00:00:00Z");
+  const maxDate = new Date("2027-01-02T00:00:00Z"); // End of day Jan 1, 2027
+
+  return date >= minDate && date < maxDate;
+}
+
+/**
+ * When only one date available, use it for both start and end
+ * @param start - Start date or null
+ * @param end - End date or null
+ * @returns Object with both dates, or null if both inputs are null
+ */
+export function duplicateSingleDate(
+  start: Date | null,
+  end: Date | null,
+): { start: Date; end: Date } | null {
+  if (start && !end) {
+    return { start, end: start };
+  }
+
+  if (!start && end) {
+    return { start: end, end };
+  }
+
+  if (start && end) {
+    return { start, end };
+  }
+
+  return null;
+}
+
+/**
+ * Parse all timespans from an array and return valid Date objects
+ * @param timespans - Array of timespan objects
+ * @returns Array of parsed Date objects
+ */
+function parseTimespans(timespans: Timespan[]): Date[] {
+  const dates: Date[] = [];
+
+  for (const timespan of timespans) {
+    if (timespan.start) {
+      const startDate = parseBulgarianDate(timespan.start);
+      if (startDate) {
+        dates.push(startDate);
+      }
+    }
+
+    if (timespan.end) {
+      const endDate = parseBulgarianDate(timespan.end);
+      if (endDate) {
+        dates.push(endDate);
+      }
+    }
+  }
+
+  return dates;
+}
+
+/**
+ * Collect all timespans from extractedData structure
+ * @param extractedData - Extracted data containing pins, streets, cadastral properties
+ * @returns Array of all timespan objects
+ */
+function collectAllTimespans(extractedData: ExtractedData): Timespan[] {
+  const allTimespans: Timespan[] = [];
+
+  // Collect from pins
+  if (extractedData.pins && Array.isArray(extractedData.pins)) {
+    for (const pin of extractedData.pins) {
+      if (pin.timespans && Array.isArray(pin.timespans)) {
+        allTimespans.push(...pin.timespans);
+      }
+    }
+  }
+
+  // Collect from streets
+  if (extractedData.streets && Array.isArray(extractedData.streets)) {
+    for (const street of extractedData.streets) {
+      if (street.timespans && Array.isArray(street.timespans)) {
+        allTimespans.push(...street.timespans);
+      }
+    }
+  }
+
+  // Collect from cadastral properties
+  if (
+    extractedData.cadastralProperties &&
+    Array.isArray(extractedData.cadastralProperties)
+  ) {
+    for (const property of extractedData.cadastralProperties) {
+      if (property.timespans && Array.isArray(property.timespans)) {
+        allTimespans.push(...property.timespans);
+      }
+    }
+  }
+
+  return allTimespans;
+}
+
+/**
+ * Extract MIN start and MAX end from extractedData timespans
+ * @param extractedData - Extracted data containing timespans
+ * @param fallbackDate - Date to use when no timespans exist or all are invalid
+ * @returns Object with timespanStart and timespanEnd dates
+ */
+export function extractTimespanRangeFromExtractedData(
+  extractedData: ExtractedData | null,
+  fallbackDate: Date,
+): { timespanStart: Date; timespanEnd: Date } {
+  if (!extractedData) {
+    return { timespanStart: fallbackDate, timespanEnd: fallbackDate };
+  }
+
+  const allTimespans = collectAllTimespans(extractedData);
+
+  if (allTimespans.length === 0) {
+    return { timespanStart: fallbackDate, timespanEnd: fallbackDate };
+  }
+
+  const dates = parseTimespans(allTimespans);
+
+  if (dates.length === 0) {
+    return { timespanStart: fallbackDate, timespanEnd: fallbackDate };
+  }
+
+  const timestamps = dates.map((d) => d.getTime());
+  const minTimestamp = Math.min(...timestamps);
+  const maxTimestamp = Math.max(...timestamps);
+
+  return {
+    timespanStart: new Date(minTimestamp),
+    timespanEnd: new Date(maxTimestamp),
+  };
+}
+
+/**
+ * Extract dates from GeoJSON feature properties
+ * Handles both ISO format (startTimeISO/endTimeISO) and Bulgarian format (startTime/endTime)
+ * @param feature - GeoJSON feature with properties
+ * @returns Array of parsed Date objects
+ */
+function extractDatesFromFeature(feature: any): Date[] {
+  const dates: Date[] = [];
+  const props = feature.properties;
+
+  if (!props) {
+    return dates;
+  }
+
+  // Try ISO format (ERM-Zapad pattern)
+  if (props.startTimeISO) {
+    try {
+      const date = new Date(props.startTimeISO);
+      if (!Number.isNaN(date.getTime())) {
+        dates.push(date);
+      }
+    } catch {
+      // Ignore invalid ISO dates
+    }
+  }
+
+  if (props.endTimeISO) {
+    try {
+      const date = new Date(props.endTimeISO);
+      if (!Number.isNaN(date.getTime())) {
+        dates.push(date);
+      }
+    } catch {
+      // Ignore invalid ISO dates
+    }
+  }
+
+  // Try Bulgarian format
+  if (props.startTime) {
+    const date = parseBulgarianDate(props.startTime);
+    if (date) {
+      dates.push(date);
+    }
+  }
+
+  if (props.endTime) {
+    const date = parseBulgarianDate(props.endTime);
+    if (date) {
+      dates.push(date);
+    }
+  }
+
+  return dates;
+}
+
+/**
+ * Extract MIN start and MAX end from GeoJSON feature properties
+ * @param geoJson - GeoJSON FeatureCollection
+ * @param fallbackDate - Date to use when no timespans exist or all are invalid
+ * @returns Object with timespanStart and timespanEnd dates
+ */
+export function extractTimespanRangeFromGeoJson(
+  geoJson: GeoJSONFeatureCollection | null,
+  fallbackDate: Date,
+): { timespanStart: Date; timespanEnd: Date } {
+  if (!geoJson?.features || geoJson.features.length === 0) {
+    return { timespanStart: fallbackDate, timespanEnd: fallbackDate };
+  }
+
+  const allDates: Date[] = [];
+
+  for (const feature of geoJson.features) {
+    const dates = extractDatesFromFeature(feature);
+    allDates.push(...dates);
+  }
+
+  if (allDates.length === 0) {
+    return { timespanStart: fallbackDate, timespanEnd: fallbackDate };
+  }
+
+  const timestamps = allDates.map((d) => d.getTime());
+  const minTimestamp = Math.min(...timestamps);
+  const maxTimestamp = Math.max(...timestamps);
+
+  return {
+    timespanStart: new Date(minTimestamp),
+    timespanEnd: new Date(maxTimestamp),
+  };
+}

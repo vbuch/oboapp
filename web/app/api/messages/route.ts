@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { Message, Timespan } from "@/lib/types";
+import { Message } from "@/lib/types";
 import { convertTimestamp } from "@/lib/firestore-utils";
 import {
   clampBounds,
@@ -13,81 +13,6 @@ import admin from "firebase-admin";
 const { or, where } = admin.firestore.Filter;
 
 const DEFAULT_RELEVANCE_DAYS = 7;
-
-/**
- * Parse a timespan end date string in format "DD.MM.YYYY HH:MM" to Date object
- */
-function parseTimespanDate(dateStr: string): Date | null {
-  try {
-    // Expected format: "DD.MM.YYYY HH:MM"
-    const regex = /^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/;
-    const parts = regex.exec(dateStr);
-    if (!parts) return null;
-
-    const [, day, month, year, hours, minutes] = parts;
-    return new Date(
-      Number.parseInt(year),
-      Number.parseInt(month) - 1, // JS months are 0-indexed
-      Number.parseInt(day),
-      Number.parseInt(hours),
-      Number.parseInt(minutes),
-    );
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Check if a message is still relevant based on its timespans or creation date
- */
-function isMessageRelevant(message: Message, cutoffDate: Date): boolean {
-  // If message has extracted data with timespans, check them
-  if (message.extractedData) {
-    const extractedData = message.extractedData;
-    const allTimespans: Timespan[] = [];
-
-    // Collect all timespans from pins
-    if (extractedData.pins) {
-      extractedData.pins.forEach((pin) => {
-        if (pin.timespans && Array.isArray(pin.timespans)) {
-          allTimespans.push(...pin.timespans);
-        }
-      });
-    }
-
-    // Collect all timespans from streets
-    if (extractedData.streets) {
-      extractedData.streets.forEach((street) => {
-        if (street.timespans && Array.isArray(street.timespans)) {
-          allTimespans.push(...street.timespans);
-        }
-      });
-    }
-
-    // If we have timespans, check if any have valid end dates
-    if (allTimespans.length > 0) {
-      const hasAnyValidTimespan = allTimespans.some((timespan) => {
-        if (!timespan.end) return false;
-        const endDate = parseTimespanDate(timespan.end);
-        return endDate !== null;
-      });
-
-      // If we have at least one valid timespan, use timespan-based logic
-      if (hasAnyValidTimespan) {
-        return allTimespans.some((timespan) => {
-          if (!timespan.end) return false;
-          const endDate = parseTimespanDate(timespan.end);
-          return endDate && endDate >= cutoffDate;
-        });
-      }
-      // All timespans are invalid - fall back to createdAt
-    }
-  }
-
-  // No timespans found or all timespans invalid - use createdAt date
-  const createdAt = new Date(message.createdAt);
-  return createdAt >= cutoffDate;
-}
 
 export async function GET(request: Request) {
   try {
@@ -136,7 +61,7 @@ export async function GET(request: Request) {
       ? Number.parseInt(process.env.MESSAGE_RELEVANCE_DAYS, 10)
       : DEFAULT_RELEVANCE_DAYS;
 
-    // Calculate cutoff date
+    // Calculate cutoff date for timespan filtering
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - relevanceDays);
 
@@ -159,12 +84,12 @@ export async function GET(request: Request) {
       const includeUncategorized = selectedCategories.includes("uncategorized");
 
       // If only uncategorized is selected, we need to fetch all and filter in memory
-      // because Firestore doesn't have an index for categories == null with finalizedAt ordering
+      // because Firestore doesn't have an index for categories == null with timespanEnd ordering
       if (includeUncategorized && realCategories.length === 0) {
-        // Fetch all finalized messages and filter for uncategorized in memory
+        // Fetch messages with timespanEnd >= cutoffDate (server-side filtering)
         const snapshot = await messagesRef
-          .where("finalizedAt", "!=", null)
-          .orderBy("finalizedAt", "desc")
+          .where("timespanEnd", ">=", cutoffDate)
+          .orderBy("timespanEnd", "desc")
           .get();
 
         const uncategorizedMessages: Message[] = [];
@@ -197,6 +122,12 @@ export async function GET(request: Request) {
               source: data.source,
               sourceUrl: data.sourceUrl,
               categories: Array.isArray(data.categories) ? data.categories : [],
+              timespanStart: data.timespanStart
+                ? convertTimestamp(data.timespanStart)
+                : undefined,
+              timespanEnd: data.timespanEnd
+                ? convertTimestamp(data.timespanEnd)
+                : undefined,
             });
           }
         });
@@ -206,7 +137,7 @@ export async function GET(request: Request) {
         // We have real categories (and possibly uncategorized)
         const queryPromises: Promise<FirebaseFirestore.QuerySnapshot>[] = [];
 
-        // Query for real categories using OR filter
+        // Query for real categories using OR filter with server-side timespan filtering
         if (realCategories.length > 0) {
           const categoryFilters = realCategories.map((cat) =>
             where("categories", "array-contains", cat),
@@ -214,17 +145,17 @@ export async function GET(request: Request) {
 
           const categoriesQuery = messagesRef
             .where(or(...categoryFilters))
-            .where("finalizedAt", "!=", null)
-            .orderBy("finalizedAt", "desc");
+            .where("timespanEnd", ">=", cutoffDate)
+            .orderBy("timespanEnd", "desc");
 
           queryPromises.push(categoriesQuery.get());
         }
 
-        // If uncategorized is also selected, fetch all and filter in memory
+        // If uncategorized is also selected, fetch with timespan filter
         if (includeUncategorized) {
           const allMessagesQuery = messagesRef
-            .where("finalizedAt", "!=", null)
-            .orderBy("finalizedAt", "desc");
+            .where("timespanEnd", ">=", cutoffDate)
+            .orderBy("timespanEnd", "desc");
 
           queryPromises.push(allMessagesQuery.get());
         }
@@ -274,6 +205,12 @@ export async function GET(request: Request) {
                 categories: Array.isArray(data.categories)
                   ? data.categories
                   : [],
+                timespanStart: data.timespanStart
+                  ? convertTimestamp(data.timespanStart)
+                  : undefined,
+                timespanEnd: data.timespanEnd
+                  ? convertTimestamp(data.timespanEnd)
+                  : undefined,
               });
             }
           });
@@ -282,8 +219,12 @@ export async function GET(request: Request) {
         allMessages = Array.from(messagesMap.values());
       }
     } else {
-      // No category filter - fetch all messages (original behavior)
-      const snapshot = await messagesRef.orderBy("createdAt", "desc").get();
+      // No category filter - fetch all messages with timespan filter (server-side)
+      const snapshot = await messagesRef
+        .where("timespanEnd", ">=", cutoffDate)
+        .orderBy("timespanEnd", "desc")
+        .orderBy("createdAt", "desc")
+        .get();
 
       snapshot.forEach((doc) => {
         const data = doc.data();
@@ -305,17 +246,18 @@ export async function GET(request: Request) {
           source: data.source,
           sourceUrl: data.sourceUrl,
           categories: Array.isArray(data.categories) ? data.categories : [],
+          timespanStart: data.timespanStart
+            ? convertTimestamp(data.timespanStart)
+            : undefined,
+          timespanEnd: data.timespanEnd
+            ? convertTimestamp(data.timespanEnd)
+            : undefined,
         });
       });
     }
 
-    // Filter messages by relevance
-    const relevantMessages = allMessages.filter((message) =>
-      isMessageRelevant(message, cutoffDate),
-    );
-
-    // Include all messages with valid GeoJSON
-    let messages = relevantMessages.filter((message) => {
+    // Include all messages with valid GeoJSON (no relevance filter needed - done in DB)
+    let messages = allMessages.filter((message) => {
       return message.geoJson !== null && message.geoJson !== undefined;
     });
 

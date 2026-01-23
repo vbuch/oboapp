@@ -19,6 +19,9 @@ export interface Message {
   categories?: string[];
   relations?: string[];
   isRelevant?: boolean;
+  // Timespan denormalization for server-side filtering
+  timespanStart?: Date | string;
+  timespanEnd?: Date | string;
 }
 
 export interface Address {

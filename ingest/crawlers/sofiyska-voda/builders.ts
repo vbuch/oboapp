@@ -28,7 +28,7 @@ export function getFeatureUrl(layerId: number, objectId: number): string {
  */
 export function buildTitle(
   attributes: ArcGisFeature["attributes"],
-  layer: LayerConfig
+  layer: LayerConfig,
 ): string {
   const parts = [
     layer.titlePrefix,
@@ -51,10 +51,10 @@ export function buildTitle(
  */
 export function buildFeatureProperties(
   attributes: ArcGisFeature["attributes"],
-  layer: LayerConfig
+  layer: LayerConfig,
 ): Record<string, FeatureProperty> {
   const sanitized = (
-    value?: NullableFeatureProperty
+    value?: NullableFeatureProperty,
   ): NullableFeatureProperty => {
     if (typeof value === "string") {
       return sanitizeText(value);
@@ -84,7 +84,7 @@ export function buildFeatureProperties(
  * Create a FeatureCollection from a single feature
  */
 export function createFeatureCollection(
-  feature: GeoJSONFeature
+  feature: GeoJSONFeature,
 ): GeoJSONFeatureCollection {
   return {
     type: "FeatureCollection",
@@ -97,7 +97,7 @@ export function createFeatureCollection(
  */
 export function buildGeoJsonFeatureCollection(
   feature: ArcGisFeature,
-  layer: LayerConfig
+  layer: LayerConfig,
 ): GeoJSONFeatureCollection | null {
   const geometry = feature.geometry;
   if (!geometry) {
@@ -151,7 +151,7 @@ export function buildGeoJsonFeatureCollection(
 export function buildSourceDocument(
   feature: ArcGisFeature,
   layer: LayerConfig,
-  dateFormatter?: Intl.DateTimeFormat
+  dateFormatter?: Intl.DateTimeFormat,
 ): SofiyskaVodaSourceDocument | null {
   const objectId = feature.attributes?.OBJECTID;
   if (typeof objectId !== "number") {
@@ -163,7 +163,7 @@ export function buildSourceDocument(
   const message = buildMessage(
     feature.attributes as Record<string, unknown>,
     layer,
-    dateFormatter
+    dateFormatter,
   );
   const geoJson = buildGeoJsonFeatureCollection(feature, layer);
   if (!geoJson) {
@@ -174,6 +174,23 @@ export function buildSourceDocument(
     ensureDate(feature.attributes?.LASTUPDATE) ??
     ensureDate(feature.attributes?.START_) ??
     new Date();
+
+  // Extract timespans from ArcGIS attributes
+  let timespanStart = ensureDate(feature.attributes?.START_);
+  let timespanEnd = ensureDate(feature.attributes?.ALERTEND);
+
+  // Use single date for both if only one available
+  if (timespanStart && !timespanEnd) {
+    timespanEnd = timespanStart;
+  } else if (!timespanStart && timespanEnd) {
+    timespanStart = timespanEnd;
+  }
+
+  // Fallback to lastUpdate
+  if (!timespanStart || !timespanEnd) {
+    timespanStart = lastUpdate;
+    timespanEnd = lastUpdate;
+  }
 
   return {
     url,
@@ -186,5 +203,7 @@ export function buildSourceDocument(
     geoJson,
     categories: ["water"],
     isRelevant: true,
+    timespanStart,
+    timespanEnd,
   };
 }

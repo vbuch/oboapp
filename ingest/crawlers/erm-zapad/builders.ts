@@ -1,5 +1,4 @@
 import type { GeoJSONFeature, GeoJSONFeatureCollection } from "@/lib/types";
-import { parseBulgarianDateTime } from "../shared/date-utils";
 import type { RawIncident } from "./types";
 import { createGeometry } from "./geometry";
 
@@ -7,31 +6,11 @@ import { createGeometry } from "./geometry";
  * Build GeoJSON FeatureCollection from incident
  */
 export function buildGeoJSON(
-  incident: RawIncident
+  incident: RawIncident,
 ): GeoJSONFeatureCollection | null {
   const geometry = createGeometry(incident);
   if (!geometry) {
     return null;
-  }
-
-  // Parse dates to ISO format for easier filtering in the app
-  let startTimeISO: string | undefined;
-  let endTimeISO: string | undefined;
-
-  try {
-    if (incident.begin_event) {
-      startTimeISO = parseBulgarianDateTime(incident.begin_event).toISOString();
-    }
-  } catch (error) {
-    console.warn(`   ⚠️  Invalid start date format: ${incident.begin_event}`);
-  }
-
-  try {
-    if (incident.end_event) {
-      endTimeISO = parseBulgarianDateTime(incident.end_event).toISOString();
-    }
-  } catch (error) {
-    console.warn(`   ⚠️  Invalid end date format: ${incident.end_event}`);
   }
 
   const feature: GeoJSONFeature = {
@@ -41,10 +20,8 @@ export function buildGeoJSON(
       eventId: incident.ceo,
       cityName: incident.city_name,
       eventType: incident.typedist,
-      startTime: incident.begin_event, // Original Bulgarian format for display
-      endTime: incident.end_event, // Original Bulgarian format for display
-      startTimeISO, // Parsed ISO format for filtering
-      endTimeISO, // Parsed ISO format for filtering
+      startTime: incident.begin_event, // Bulgarian format for display
+      endTime: incident.end_event, // Bulgarian format for display
     },
   };
 

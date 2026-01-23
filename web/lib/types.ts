@@ -11,6 +11,8 @@ export interface Message {
   source?: string;
   sourceUrl?: string;
   categories?: string[];
+  timespanStart?: Date | string;
+  timespanEnd?: Date | string;
 }
 
 export interface Address {

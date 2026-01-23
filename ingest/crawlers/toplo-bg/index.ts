@@ -62,8 +62,31 @@ export async function crawl(dryRun = false): Promise<void> {
         info.Name,
         info.FromDate,
         info.Addresses,
-        info.UntilDate
+        info.UntilDate,
       );
+
+      // Extract timespans from incident info
+      let timespanStart: Date;
+      let timespanEnd: Date;
+
+      try {
+        timespanStart = new Date(info.FromDate);
+      } catch (error) {
+        console.warn(`   ⚠️  Invalid FromDate: ${info.FromDate}`);
+        timespanStart = new Date();
+      }
+
+      try {
+        // UntilDate can be null
+        if (info.UntilDate) {
+          timespanEnd = new Date(info.UntilDate);
+        } else {
+          timespanEnd = timespanStart; // Use start date for both
+        }
+      } catch (error) {
+        console.warn(`   ⚠️  Invalid UntilDate: ${info.UntilDate}`);
+        timespanEnd = timespanStart;
+      }
 
       const doc: SourceDocument = {
         url: buildUrl(info.ContentItemId),
@@ -76,6 +99,8 @@ export async function crawl(dryRun = false): Promise<void> {
         geoJson,
         categories: ["heating"],
         isRelevant: true,
+        timespanStart,
+        timespanEnd,
       };
 
       if (dryRun) {
@@ -105,7 +130,7 @@ export async function crawl(dryRun = false): Promise<void> {
 
   // Print summary
   console.log(
-    `\n📈 Saved: ${summary.saved}; Skipped: ${summary.skipped}; Failed: ${summary.failed}`
+    `\n📈 Saved: ${summary.saved}; Skipped: ${summary.skipped}; Failed: ${summary.failed}`,
   );
 
   // Exit with error if all failed
