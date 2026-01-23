@@ -406,13 +406,18 @@ async function extractAndGeocodeFromText(
 
 /**
  * Convert crawledAt to Date object, handling string/Date/undefined cases
+ * Falls back to current date for invalid/missing values
  */
 function ensureCrawledAtDate(crawledAt: Date | string | undefined): Date {
   if (crawledAt instanceof Date) {
     return crawledAt;
   }
   if (crawledAt) {
-    return new Date(crawledAt);
+    const date = new Date(crawledAt);
+    // Check if date is valid (Invalid Date has NaN getTime())
+    if (!Number.isNaN(date.getTime())) {
+      return date;
+    }
   }
   return new Date();
 }
