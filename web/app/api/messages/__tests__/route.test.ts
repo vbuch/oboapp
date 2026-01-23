@@ -30,22 +30,71 @@ const createMockGeoJson = () => ({
   ],
 });
 
+// Format dates as DD.MM.YYYY HH:MM
+const formatDate = (date: Date) => {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}.${month}.${year} 08:00`;
+};
+
 // Helper to create Firebase mock structure
 const setupFirebaseMock = async (mockMessages: any[]) => {
   const { adminDb } = await import("@/lib/firebase-admin");
 
+  let whereField: string | null = null;
+  let whereOperator: string | null = null;
+  let whereValue: any = null;
+
   const mockSnapshot = {
     forEach: vi.fn((callback) => {
-      mockMessages.forEach((doc) => callback(doc));
+      // Filter messages based on where clause if it was called
+      const filteredMessages =
+        whereField && whereOperator && whereValue
+          ? mockMessages.filter((doc) => {
+              const data = doc.data();
+              const fieldValue = whereField ? data[whereField] : null;
+
+              if (!fieldValue) return false;
+
+              // Convert Firestore timestamp to Date for comparison
+              const dateValue =
+                fieldValue._seconds
+                  ? new Date(fieldValue._seconds * 1000)
+                  : fieldValue;
+
+              if (whereOperator === ">=") {
+                return dateValue >= whereValue;
+              }
+              return false;
+            })
+          : mockMessages;
+
+      filteredMessages.forEach((doc) => callback(doc));
     }),
   };
 
-  const mockQuery = {
+  const mockGet = {
     get: vi.fn().mockResolvedValue(mockSnapshot),
   };
 
+  // Support chained orderBy calls
+  const mockOrderBy2 = {
+    orderBy: vi.fn().mockReturnValue(mockGet),
+  };
+
+  const mockOrderBy1 = {
+    orderBy: vi.fn().mockReturnValue(mockOrderBy2),
+  };
+
   const mockCollection = {
-    orderBy: vi.fn().mockReturnValue(mockQuery),
+    where: vi.fn((field, operator, value) => {
+      whereField = field;
+      whereOperator = operator;
+      whereValue = value;
+      return mockOrderBy1;
+    }),
+    orderBy: vi.fn().mockReturnValue(mockGet),
   };
 
   vi.mocked(adminDb.collection).mockReturnValue(mockCollection as any);
@@ -65,14 +114,7 @@ describe("GET /api/messages - Date Filtering", () => {
     yesterday.setDate(yesterday.getDate() - 1);
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // Format dates as DD.MM.YYYY HH:MM
-    const formatDate = (date: Date) => {
-      const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = date.getFullYear();
-      return `${day}.${month}.${year} 08:00`;
-    };
+    const expiredDate = new Date("2024-01-01");
 
     const mockMessages = [
       {
@@ -92,7 +134,8 @@ describe("GET /api/messages - Date Filtering", () => {
             streets: [],
           }),
           geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: new Date("2024-01-01").getTime() / 1000 },
+          createdAt: { _seconds: expiredDate.getTime() / 1000 },
+          timespanEnd: { _seconds: expiredDate.getTime() / 1000 },
         }),
       },
       {
@@ -116,6 +159,7 @@ describe("GET /api/messages - Date Filtering", () => {
           }),
           geoJson: JSON.stringify(createMockGeoJson()),
           createdAt: { _seconds: yesterday.getTime() / 1000 },
+          timespanEnd: { _seconds: tomorrow.getTime() / 1000 },
         }),
       },
     ];
@@ -147,6 +191,7 @@ describe("GET /api/messages - Date Filtering", () => {
           text: "Recent message without timespans",
           geoJson: JSON.stringify(createMockGeoJson()),
           createdAt: { _seconds: recentDate.getTime() / 1000 },
+          timespanEnd: { _seconds: recentDate.getTime() / 1000 }, // Falls back to createdAt
         }),
       },
       {
@@ -155,6 +200,7 @@ describe("GET /api/messages - Date Filtering", () => {
           text: "Old message without timespans",
           geoJson: JSON.stringify(createMockGeoJson()),
           createdAt: { _seconds: oldDate.getTime() / 1000 },
+          timespanEnd: { _seconds: oldDate.getTime() / 1000 }, // Falls back to createdAt
         }),
       },
     ];
@@ -175,14 +221,6 @@ describe("GET /api/messages - Date Filtering", () => {
     yesterday.setDate(yesterday.getDate() - 1);
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // Format dates as DD.MM.YYYY HH:MM
-    const formatDate = (date: Date) => {
-      const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = date.getFullYear();
-      return `${day}.${month}.${year} 08:00`;
-    };
 
     const mockMessages = [
       {
@@ -212,6 +250,7 @@ describe("GET /api/messages - Date Filtering", () => {
           }),
           geoJson: JSON.stringify(createMockGeoJson()),
           createdAt: { _seconds: yesterday.getTime() / 1000 },
+          timespanEnd: { _seconds: tomorrow.getTime() / 1000 }, // MAX end time
         }),
       },
     ];
@@ -237,6 +276,7 @@ describe("GET /api/messages - Date Filtering", () => {
           text: "Message from 5 days ago",
           geoJson: JSON.stringify(createMockGeoJson()),
           createdAt: { _seconds: date5DaysAgo.getTime() / 1000 },
+          timespanEnd: { _seconds: date5DaysAgo.getTime() / 1000 },
         }),
       },
     ];
