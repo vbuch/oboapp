@@ -749,11 +749,6 @@ resource "google_cloud_run_v2_job" "gtfs_sync" {
           name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
           value = var.firebase_project_id
         }
-        
-        env {
-          name  = "FIREBASE_DATABASE_ID"
-          value = var.firebase_database_id
-        }
       }
       
       max_retries = 1
