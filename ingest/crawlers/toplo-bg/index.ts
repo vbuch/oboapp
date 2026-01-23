@@ -6,6 +6,7 @@ import { buildMessage, buildUrl, buildTitle } from "./builders";
 import { launchBrowser } from "../shared/browser";
 import { saveSourceDocumentIfNew } from "../shared/firestore";
 import type { SourceDocumentWithGeoJson } from "../shared/types";
+const { validateTimespanRange } = await import("@/lib/timespan-utils");
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
@@ -66,7 +67,6 @@ export async function crawl(dryRun = false): Promise<void> {
       );
 
       // Extract timespans from incident info
-      const { validateTimespanRange } = await import("@/lib/timespan-utils");
       let timespanStart: Date;
       let timespanEnd: Date;
 
