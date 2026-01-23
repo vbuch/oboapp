@@ -233,7 +233,7 @@ function buildSourceDocument(
     markdownText: message,
     sourceType: SOURCE_TYPE,
     crawledAt: new Date(),
-    geoJson: validation.geoJson,
+    geoJson: JSON.stringify(validation.geoJson),
     categories: ["electricity"],
     isRelevant: true,
     timespanStart,
