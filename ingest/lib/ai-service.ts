@@ -6,20 +6,27 @@ import {
   CategorizationResponseSchema,
   CategorizationResult,
 } from "./categorize.schema";
+import {
+  formatIngestErrorText,
+  getIngestErrorRecorder,
+  truncateIngestPayload,
+  type IngestErrorRecorder,
+} from "./ingest-errors";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || "" });
+const MAX_INGEST_ERROR_LENGTH = 1000;
 
 // Read the message categorization prompt template
 let categorizeSystemInstruction: string;
 try {
   categorizeSystemInstruction = readFileSync(
     join(process.cwd(), "prompts/categorize.md"),
-    "utf-8"
+    "utf-8",
   );
 } catch (error) {
   console.error(
     "Failed to load message categorization prompt template:",
-    error
+    error,
   );
   throw new Error("Message categorization prompt template file not found");
 }
@@ -30,7 +37,7 @@ let extractionSystemInstruction: string;
 try {
   extractionSystemInstruction = readFileSync(
     join(process.cwd(), "prompts/data-extraction-overpass.md"),
-    "utf-8"
+    "utf-8",
   );
 } catch (error) {
   console.error("Failed to load data extraction prompt template:", error);
@@ -38,19 +45,21 @@ try {
 }
 
 export async function categorize(
-  text: string
+  text: string,
+  ingestErrors?: IngestErrorRecorder,
 ): Promise<CategorizationResult | null> {
+  const recorder = getIngestErrorRecorder(ingestErrors);
   try {
     // Validate message
     if (!text || typeof text !== "string") {
-      console.error("Invalid text parameter for message categorization");
+      recorder.error("Invalid text parameter for message categorization");
       return null;
     }
 
     // Validate message length
     if (text.length > 10000) {
-      console.error(
-        "Text is too long for message categorization (max 10000 characters)"
+      recorder.error(
+        "Text is too long for message categorization (max 10000 characters)",
       );
       return null;
     }
@@ -58,7 +67,7 @@ export async function categorize(
     // Validate required environment variable
     const model = process.env.GOOGLE_AI_MODEL;
     if (!model) {
-      console.error("GOOGLE_AI_MODEL environment variable is not set");
+      recorder.error("GOOGLE_AI_MODEL environment variable is not set");
       return null;
     }
 
@@ -83,33 +92,44 @@ export async function categorize(
 
       return validatedResponse;
     } catch (parseError) {
-      console.error(
-        "Failed to parse or validate JSON response from AI:",
-        parseError
+      recorder.error(
+        `Failed to parse or validate JSON response from AI: ${formatIngestErrorText(
+          parseError,
+        )}`,
       );
-      console.error("Full AI response:", responseText);
+      const responseSummary = truncateIngestPayload(
+        responseText,
+        MAX_INGEST_ERROR_LENGTH,
+      );
+      recorder.error(
+        `Full AI response (${responseSummary.originalLength} chars): ${responseSummary.summary}`,
+      );
       return null;
     }
   } catch (error) {
-    console.error("Error categorizing message:", error);
+    recorder.error(
+      `Error categorizing message: ${formatIngestErrorText(error)}`,
+    );
     return null;
   }
 }
 
 export async function extractStructuredData(
-  text: string
+  text: string,
+  ingestErrors?: IngestErrorRecorder,
 ): Promise<ExtractedData | null> {
+  const recorder = getIngestErrorRecorder(ingestErrors);
   try {
     // Validate message
     if (!text || typeof text !== "string") {
-      console.error("Invalid text parameter for data extraction");
+      recorder.error("Invalid text parameter for data extraction");
       return null;
     }
 
     // Validate message length
     if (text.length > 5000) {
-      console.error(
-        "Text is too long for data extraction (max 5000 characters)"
+      recorder.error(
+        "Text is too long for data extraction (max 5000 characters)",
       );
       return null;
     }
@@ -120,7 +140,7 @@ export async function extractStructuredData(
     // Validate required environment variable
     const model = process.env.GOOGLE_AI_MODEL;
     if (!model) {
-      console.error("GOOGLE_AI_MODEL environment variable is not set");
+      recorder.error("GOOGLE_AI_MODEL environment variable is not set");
       return null;
     }
 
@@ -150,7 +170,7 @@ export async function extractStructuredData(
                   typeof pin === "object" &&
                   typeof pin.address === "string" &&
                   pin.address.trim().length > 0 &&
-                  Array.isArray(pin.timespans)
+                  Array.isArray(pin.timespans),
               )
               .map((pin: any) => ({
                 address: pin.address,
@@ -159,7 +179,7 @@ export async function extractStructuredData(
                     time &&
                     typeof time === "object" &&
                     typeof time.start === "string" &&
-                    typeof time.end === "string"
+                    typeof time.end === "string",
                 ),
               }))
           : [];
@@ -174,7 +194,7 @@ export async function extractStructuredData(
                   typeof street.street === "string" &&
                   typeof street.from === "string" &&
                   typeof street.to === "string" &&
-                  Array.isArray(street.timespans)
+                  Array.isArray(street.timespans),
               )
               .map((street: any) => ({
                 street: street.street,
@@ -185,14 +205,14 @@ export async function extractStructuredData(
                     time &&
                     typeof time === "object" &&
                     typeof time.start === "string" &&
-                    typeof time.end === "string"
+                    typeof time.end === "string",
                 ),
               }))
           : [];
 
         // Validate and filter cadastralProperties array
         const validCadastralProperties = Array.isArray(
-          parsedResponse.cadastralProperties
+          parsedResponse.cadastralProperties,
         )
           ? parsedResponse.cadastralProperties
               .filter(
@@ -201,7 +221,7 @@ export async function extractStructuredData(
                   typeof prop === "object" &&
                   typeof prop.identifier === "string" &&
                   prop.identifier.trim().length > 0 &&
-                  Array.isArray(prop.timespans)
+                  Array.isArray(prop.timespans),
               )
               .map((prop: any) => ({
                 identifier: prop.identifier,
@@ -210,7 +230,7 @@ export async function extractStructuredData(
                     time &&
                     typeof time === "object" &&
                     typeof time.start === "string" &&
-                    typeof time.end === "string"
+                    typeof time.end === "string",
                 ),
               }))
           : [];
@@ -226,16 +246,34 @@ export async function extractStructuredData(
 
         return extractedData;
       } catch (parseError) {
-        console.error("Failed to parse JSON response from AI:", parseError);
-        console.error("Raw JSON that failed to parse:", jsonMatch[0]);
-        console.error("Full AI response:", responseText);
+        recorder.error(
+          `Failed to parse JSON response from AI: ${formatIngestErrorText(
+            parseError,
+          )}`,
+        );
+        const rawJsonSummary = truncateIngestPayload(
+          jsonMatch[0],
+          MAX_INGEST_ERROR_LENGTH,
+        );
+        recorder.error(
+          `Raw JSON that failed to parse (${rawJsonSummary.originalLength} chars): ${rawJsonSummary.summary}`,
+        );
+        const fullResponseSummary = truncateIngestPayload(
+          responseText,
+          MAX_INGEST_ERROR_LENGTH,
+        );
+        recorder.error(
+          `Full AI response (${fullResponseSummary.originalLength} chars): ${fullResponseSummary.summary}`,
+        );
         return null;
       }
     }
 
     return null;
   } catch (error) {
-    console.error("Error extracting structured data:", error);
+    recorder.error(
+      `Error extracting structured data: ${formatIngestErrorText(error)}`,
+    );
     return null;
   }
 }

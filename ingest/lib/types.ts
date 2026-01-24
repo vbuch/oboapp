@@ -7,6 +7,7 @@ export interface Message {
   addresses?: Address[];
   extractedData?: ExtractedData;
   geoJson?: GeoJSONFeatureCollection;
+  ingestErrors?: IngestError[];
   createdAt: Date | string;
   crawledAt?: Date | string;
   finalizedAt?: Date | string;
@@ -22,6 +23,13 @@ export interface Message {
   // Timespan denormalization for server-side filtering
   timespanStart?: Date | string;
   timespanEnd?: Date | string;
+}
+
+export type IngestErrorType = "warning" | "error" | "exception";
+
+export interface IngestError {
+  text: string;
+  type: IngestErrorType;
 }
 
 export interface Address {

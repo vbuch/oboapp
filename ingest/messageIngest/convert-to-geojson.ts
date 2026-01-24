@@ -7,6 +7,10 @@ import {
 } from "@/lib/types";
 import { validateAndFixGeoJSON } from "../crawlers/shared/geojson-validation";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
+import {
+  getIngestErrorRecorder,
+  type IngestErrorRecorder,
+} from "@/lib/ingest-errors";
 
 /**
  * Helper: Validate that all addresses have been geocoded
@@ -14,7 +18,7 @@ import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
  */
 export function validateAllAddressesGeocoded(
   extractedData: ExtractedData,
-  preGeocodedMap: Map<string, { lat: number; lng: number }>
+  preGeocodedMap: Map<string, { lat: number; lng: number }>,
 ): string[] {
   const missingAddresses: string[] = [];
 
@@ -44,8 +48,10 @@ export async function convertMessageGeocodingToGeoJson(
   extractedData: ExtractedData | null,
   preGeocodedMap: Map<string, { lat: number; lng: number }>,
   cadastralGeometries?: Map<string, CadastralGeometry>,
-  geocodedBusStops?: Address[]
+  geocodedBusStops?: Address[],
+  ingestErrors?: IngestErrorRecorder,
 ): Promise<GeoJSONFeatureCollection | null> {
+  const recorder = getIngestErrorRecorder(ingestErrors);
   if (!extractedData) {
     return null;
   }
@@ -53,7 +59,7 @@ export async function convertMessageGeocodingToGeoJson(
   // Validate that all required addresses have been geocoded
   const missingAddresses = validateAllAddressesGeocoded(
     extractedData,
-    preGeocodedMap
+    preGeocodedMap,
   );
 
   // Filter out features with missing geocoding
@@ -62,7 +68,7 @@ export async function convertMessageGeocodingToGeoJson(
     pins: extractedData.pins.filter((pin) => preGeocodedMap.has(pin.address)),
     streets: extractedData.streets.filter(
       (street) =>
-        preGeocodedMap.has(street.from) && preGeocodedMap.has(street.to)
+        preGeocodedMap.has(street.from) && preGeocodedMap.has(street.to),
     ),
   };
 
@@ -74,19 +80,20 @@ export async function convertMessageGeocodingToGeoJson(
     (geocodedBusStops && geocodedBusStops.length > 0);
 
   if (!hasFeatures) {
-    console.error(
-      `❌ No geocoded features available (all ${missingAddresses.length} addresses failed)`
+    recorder.error(
+      `❌ No geocoded features available (all ${missingAddresses.length} addresses failed)`,
     );
     throw new Error(
-      `Failed to geocode all addresses: ${missingAddresses.join(", ")}`
+      `Failed to geocode all addresses: ${missingAddresses.join(", ")}`,
     );
   }
 
   // Log partial failures as warnings
   if (missingAddresses.length > 0) {
-    console.warn(
-      `⚠️  Partial geocoding: ${missingAddresses.length} addresses failed (showing ${filteredData.pins.length} pins + ${filteredData.streets.length} streets):`,
-      missingAddresses
+    recorder.warn(
+      `⚠️  Partial geocoding: ${missingAddresses.length} addresses failed (showing ${filteredData.pins.length} pins + ${filteredData.streets.length} streets): ${missingAddresses.join(
+        ", ",
+      )}`,
     );
   }
 
@@ -120,8 +127,8 @@ export async function convertMessageGeocodingToGeoJson(
           },
         });
       } else {
-        console.warn(
-          `⚠️  Cadastral property ${cadastralProp.identifier} failed to geocode`
+        recorder.warn(
+          `⚠️  Cadastral property ${cadastralProp.identifier} failed to geocode`,
         );
       }
     }
@@ -171,14 +178,14 @@ export async function convertMessageGeocodingToGeoJson(
     const validation = validateAndFixGeoJSON(geoJson, "AI-generated");
 
     if (!validation.isValid || !validation.geoJson) {
-      console.error("Invalid GeoJSON generated from AI extraction:");
-      validation.errors.forEach((err) => console.error(`  ${err}`));
+      recorder.error("Invalid GeoJSON generated from AI extraction:");
+      validation.errors.forEach((err) => recorder.error(`  ${err}`));
       throw new Error("Generated GeoJSON is invalid");
     }
 
     if (validation.warnings.length > 0) {
-      console.warn("Fixed GeoJSON from AI extraction:");
-      validation.warnings.forEach((warn) => console.warn(`  ${warn}`));
+      recorder.warn("Fixed GeoJSON from AI extraction:");
+      validation.warnings.forEach((warn) => recorder.warn(`  ${warn}`));
     }
 
     return validation.geoJson;

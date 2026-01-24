@@ -4,8 +4,8 @@ import type {
   Timespan,
 } from "./types";
 
-// Use local time to match parseBulgarianDate() behavior
-const TIMESPAN_MIN_DATE = new Date(2025, 0, 1); // Jan 1, 2025 00:00:00 local time
+// Use UTC to avoid timezone-dependent boundary behavior
+const TIMESPAN_MIN_DATE = new Date(Date.UTC(2025, 0, 1)); // 2025-01-01T00:00:00Z
 
 /**
  * Parse Bulgarian date format "DD.MM.YYYY HH:MM" to Date object
@@ -65,7 +65,7 @@ export function parseBulgarianDate(dateStr: string): Date | null {
  * @returns true if date is valid, false otherwise
  */
 export function validateTimespanRange(date: Date): boolean {
-  return date >= TIMESPAN_MIN_DATE;
+  return date.getTime() >= TIMESPAN_MIN_DATE.getTime();
 }
 
 /**

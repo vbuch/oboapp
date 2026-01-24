@@ -28,6 +28,9 @@ export function processFieldsForFirestore(
     } else if (key === "relations") {
       // Keep relations as native arrays for Firestore array indexes
       processedFields[key] = value;
+    } else if (key === "ingestErrors") {
+      // Keep ingestErrors as native arrays for error debugging
+      processedFields[key] = value;
     } else if (typeof value === "object" && value !== null) {
       // Stringify objects (extractedData, geoJson, categorize)
       processedFields[key] = JSON.stringify(value);

@@ -94,7 +94,7 @@ describe("processFieldsForFirestore", () => {
     expect(result.text).toBe("Original message");
     expect(result.finalizedAt).toBeInstanceOf(FieldValue);
     expect(result.extractedData).toBe(
-      JSON.stringify({ pins: [], streets: [] })
+      JSON.stringify({ pins: [], streets: [] }),
     );
     expect(result.source).toBe("rayon-oborishte-bg");
     expect(result.count).toBe(5);
@@ -124,6 +124,19 @@ describe("processFieldsForFirestore", () => {
 
     expect(result.addresses).toBe(JSON.stringify(fields.addresses));
     expect(JSON.parse(result.addresses)).toEqual(fields.addresses);
+  });
+
+  it("should keep ingestErrors as native array", () => {
+    const fields = {
+      ingestErrors: [
+        { text: "⚠️  Partial geocoding", type: "warning" },
+        { text: "❌ Failed to extract", type: "error" },
+      ],
+    };
+
+    const result = processFieldsForFirestore(fields);
+
+    expect(result.ingestErrors).toEqual(fields.ingestErrors);
   });
 
   it("should handle empty input", () => {

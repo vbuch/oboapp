@@ -122,6 +122,20 @@ describe("processFieldsForFirestore", () => {
       expect(result.categories).toEqual(["water", "traffic"]);
       expect(Array.isArray(result.categories)).toBe(true);
     });
+
+    it("should keep ingestErrors as native array", () => {
+      const input = {
+        ingestErrors: [
+          { text: "⚠️  Partial geocoding", type: "warning" },
+          { text: "❌ Failed to extract", type: "error" },
+        ],
+      };
+
+      const result = processFieldsForFirestore(input);
+
+      expect(result.ingestErrors).toEqual(input.ingestErrors);
+      expect(Array.isArray(result.ingestErrors)).toBe(true);
+    });
   });
 
   describe("object stringification", () => {

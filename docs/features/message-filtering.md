@@ -121,6 +121,10 @@ Beyond time-based relevance, several filters operate at different pipeline stage
 
 - **Source Age**: Applied during source ingestion, before message processing begins. Announcements older than 90 days from publication are ignored to reduce processing load on archived content.
 
+## Ingestion Error Tracking
+
+Messages that reach finalization (with or without GeoJSON) store internal ingestion issues in `ingestErrors`. Each entry has a human-readable `text` and a `type` (`warning`, `error`, or `exception`). This allows later inspection of why a message was finalized without appearing on the map.
+
 ## Frontend Display
 
 Messages appear as red map features (points, lines, polygons). Clicking shows details including source, dates, locations, and timespans. The message grid below the map displays a limited number of recent items.

@@ -4,7 +4,13 @@ import {
   GeoJSONFeatureCollection,
   Message,
 } from "@/lib/types";
-import { storeIncomingMessage, updateMessage, getMessageById } from "./db";
+import {
+  createIngestErrorCollector,
+  buildIngestErrorsField,
+  type IngestErrorCollector,
+  type IngestErrorRecorder,
+} from "@/lib/ingest-errors";
+import { storeIncomingMessage, updateMessage } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
 import { generateMessageId, formatCategorizedMessageLogInfo } from "./utils";
 
@@ -120,7 +126,8 @@ async function processSingleMessage(
   text: string,
   precomputedGeoJson: GeoJSONFeatureCollection | null,
   options: MessageIngestOptions,
-  categorizedMessage?: any,
+  categorizedMessage: any | undefined,
+  ingestErrors: IngestErrorCollector,
 ): Promise<Message> {
   let extractedData: ExtractedData | null = null;
   let addresses: Address[] = [];
@@ -138,20 +145,35 @@ async function processSingleMessage(
       crawledAt,
     );
   } else {
-    const extractionResult = await extractAndGeocodeFromText(
-      messageId,
-      text,
-      categorizedMessage,
-      crawledAt,
-    );
+    try {
+      const extractionResult = await extractAndGeocodeFromText(
+        messageId,
+        text,
+        categorizedMessage,
+        crawledAt,
+        ingestErrors,
+      );
 
-    if (!extractionResult) {
-      return await finalizeFailedMessage(messageId, text);
+      if (!extractionResult) {
+        return await finalizeFailedMessage(messageId, text, ingestErrors);
+      }
+
+      extractedData = extractionResult.extractedData;
+      addresses = extractionResult.addresses;
+      geoJson = extractionResult.geoJson;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      ingestErrors.exception(`Ingestion exception: ${errorMessage}`);
+      await finalizeMessageWithoutGeoJson(messageId, ingestErrors);
+      return await buildFinalMessageResponse(
+        messageId,
+        text,
+        addresses,
+        extractedData,
+        null,
+      );
     }
-
-    extractedData = extractionResult.extractedData;
-    addresses = extractionResult.addresses;
-    geoJson = extractionResult.geoJson;
   }
 
   geoJson = await applyBoundaryFilteringIfNeeded(
@@ -160,7 +182,7 @@ async function processSingleMessage(
     options.boundaryFilter,
   );
 
-  await finalizeMessageWithResults(messageId, geoJson);
+  await finalizeMessageWithResults(messageId, geoJson, ingestErrors);
 
   return await buildFinalMessageResponse(
     messageId,
@@ -207,6 +229,8 @@ async function processPrecomputedGeoJsonMessage(
     text,
     options.precomputedGeoJson || null,
     options,
+    undefined,
+    createIngestErrorCollector(),
   );
 
   return {
@@ -264,6 +288,8 @@ async function processCategorizedMessages(
       options,
     );
 
+    const ingestErrors = createIngestErrorCollector();
+
     if (categorizedMessage.isRelevant) {
       totalRelevant++;
       const message = await processSingleMessage(
@@ -272,6 +298,7 @@ async function processCategorizedMessages(
         null,
         options,
         categorizedMessage,
+        ingestErrors,
       );
       messages.push(message);
     } else {
@@ -279,6 +306,7 @@ async function processCategorizedMessages(
       const message = await handleIrrelevantMessage(
         storedMessageId,
         categorizedMessage.normalizedText,
+        ingestErrors,
       );
       messages.push(message);
     }
@@ -351,11 +379,13 @@ async function storeCategorizedMessage(
 async function handleIrrelevantMessage(
   messageId: string,
   text: string,
+  ingestErrors: IngestErrorCollector,
 ): Promise<Message> {
   console.log("ℹ️  Message filtered as irrelevant, marking as finalized");
   await updateMessage(messageId, {
     finalizedAt: new Date(),
     isRelevant: false,
+    ...buildIngestErrorsField(ingestErrors),
   });
 
   const { buildMessageResponse } = await import("./build-response");
@@ -370,13 +400,14 @@ async function extractAndGeocodeFromText(
   text: string,
   categorizedMessage: any | undefined,
   crawledAt: Date,
+  ingestErrors: IngestErrorRecorder,
 ): Promise<{
   extractedData: ExtractedData;
   addresses: Address[];
   geoJson: GeoJSONFeatureCollection | null;
 } | null> {
   const { extractAddressesFromMessage } = await import("./extract-addresses");
-  const extractedData = await extractAddressesFromMessage(text);
+  const extractedData = await extractAddressesFromMessage(text, ingestErrors);
 
   await storeExtractedData(messageId, extractedData, crawledAt);
 
@@ -405,6 +436,7 @@ async function extractAndGeocodeFromText(
     geocodingResults.preGeocodedMap,
     geocodingResults.cadastralGeometries,
     geocodedBusStops,
+    ingestErrors,
   );
 
   return { extractedData, addresses, geoJson };
@@ -507,6 +539,7 @@ async function convertToGeoJson(
   preGeocodedMap: Map<string, any>,
   cadastralGeometries: any,
   geocodedBusStops?: Address[],
+  ingestErrors?: IngestErrorRecorder,
 ): Promise<GeoJSONFeatureCollection | null> {
   const { convertMessageGeocodingToGeoJson } =
     await import("./convert-to-geojson");
@@ -515,6 +548,7 @@ async function convertToGeoJson(
     preGeocodedMap,
     cadastralGeometries,
     geocodedBusStops,
+    ingestErrors,
   );
 }
 
@@ -524,9 +558,15 @@ async function convertToGeoJson(
 async function finalizeFailedMessage(
   messageId: string,
   text: string,
+  ingestErrors: IngestErrorCollector,
 ): Promise<Message> {
-  console.error("❌ Failed to extract data from message, marking as finalized");
-  await updateMessage(messageId, { finalizedAt: new Date() });
+  ingestErrors.error(
+    "❌ Failed to extract data from message, marking as finalized",
+  );
+  await updateMessage(messageId, {
+    finalizedAt: new Date(),
+    ...buildIngestErrorsField(ingestErrors),
+  });
 
   const { buildMessageResponse } = await import("./build-response");
   return await buildMessageResponse(messageId, text, [], null, null);
@@ -603,10 +643,25 @@ async function applyBoundaryFilteringIfNeeded(
 async function finalizeMessageWithResults(
   messageId: string,
   geoJson: GeoJSONFeatureCollection | null,
+  ingestErrors: IngestErrorCollector,
 ): Promise<void> {
   if (geoJson) {
-    await updateMessage(messageId, { geoJson, finalizedAt: new Date() });
+    await updateMessage(messageId, {
+      geoJson,
+      finalizedAt: new Date(),
+      ...buildIngestErrorsField(ingestErrors),
+    });
   }
+}
+
+async function finalizeMessageWithoutGeoJson(
+  messageId: string,
+  ingestErrors: IngestErrorCollector,
+): Promise<void> {
+  await updateMessage(messageId, {
+    finalizedAt: new Date(),
+    ...buildIngestErrorsField(ingestErrors),
+  });
 }
 
 /**

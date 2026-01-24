@@ -29,6 +29,10 @@ export async function getMessageById(
       ? JSON.parse(data.extractedData)
       : undefined,
     geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
+    ingestErrors:
+      typeof data.ingestErrors === "string"
+        ? JSON.parse(data.ingestErrors)
+        : data.ingestErrors,
     createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
     crawledAt: data.crawledAt?.toDate?.() || data.crawledAt,
     finalizedAt: data.finalizedAt?.toDate?.() || data.finalizedAt,

@@ -1,4 +1,5 @@
 import { extractAddresses } from "@/lib/ai-service";
+import type { IngestErrorRecorder } from "@/lib/ingest-errors";
 import { ExtractedData } from "@/lib/types";
 
 /**
@@ -6,9 +7,10 @@ import { ExtractedData } from "@/lib/types";
  * Pure function that uses AI to extract structured data
  */
 export async function extractAddressesFromMessage(
-  text: string
+  text: string,
+  ingestErrors?: IngestErrorRecorder,
 ): Promise<ExtractedData | null> {
-  const extractedData = await extractAddresses(text);
+  const extractedData = await extractAddresses(text, ingestErrors);
 
   return extractedData;
 }
