@@ -1,7 +1,7 @@
 dist/
 
 # Copied during Docker build
-shared/
+docker-shared/
 
 # Terraform state
 terraform/terraform.tfstate

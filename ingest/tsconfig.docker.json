@@ -17,11 +17,11 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@shared/*": ["./shared/*"],
+      "@shared/*": ["./docker-shared/*"],
       "zod": ["./node_modules/zod"]
     }
   },
-  "include": ["**/*.ts", "**/*.mts", "./shared/**/*.ts"],
+  "include": ["**/*.ts", "**/*.mts", "./docker-shared/**/*.ts"],
   "exclude": [
     "node_modules",
     "dist",
