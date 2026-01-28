@@ -5,15 +5,15 @@ import {
   OpenApiGeneratorV3,
 } from "@asteasolutions/zod-to-openapi";
 import type { OpenAPIObject } from "openapi3-ts/oas30";
-import { MessageSchema } from "@/shared/schema/message.schema";
-import { NotificationHistoryItemSchema } from "@/shared/schema/notification-history.schema";
+import { MessageSchema } from "@shared/schema/message.schema";
+import { NotificationHistoryItemSchema } from "@shared/schema/notification-history.schema";
 import {
   DeleteSubscriptionResponseSchema,
   NotificationSubscriptionRequestSchema,
   NotificationSubscriptionSchema,
   NotificationSubscriptionStatusSchema,
-} from "@/shared/schema/notification-subscription.schema";
-import { SourceSchema } from "@/shared/schema/source.schema";
+} from "@shared/schema/notification-subscription.schema";
+import { SourceSchema } from "@shared/schema/source.schema";
 
 const ErrorResponseSchema = z.object({
   error: z.string(),

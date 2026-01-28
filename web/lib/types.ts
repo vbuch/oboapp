@@ -1,7 +1,7 @@
 import type { z } from "zod";
-import { AddressSchema } from "@/shared/schema/address.schema";
-import { CoordinatesSchema } from "@/shared/schema/coordinates.schema";
-import { ExtractedDataSchema } from "@/shared/schema/extracted-data.schema";
+import { AddressSchema } from "@shared/schema/address.schema";
+import { CoordinatesSchema } from "@shared/schema/coordinates.schema";
+import { ExtractedDataSchema } from "@shared/schema/extracted-data.schema";
 import {
   GeoJsonFeatureCollectionSchema,
   GeoJsonFeatureSchema,
@@ -10,12 +10,12 @@ import {
   GeoJsonMultiPointSchema,
   GeoJsonPointSchema,
   GeoJsonPolygonSchema,
-} from "@/shared/schema/geojson.schema";
-import { MessageSnapshotSchema } from "@/shared/schema/message-snapshot.schema";
-import { NotificationHistoryItemSchema } from "@/shared/schema/notification-history.schema";
-import { PinSchema } from "@/shared/schema/pin.schema";
-import { StreetSectionSchema } from "@/shared/schema/street-section.schema";
-import { TimespanSchema } from "@/shared/schema/timespan.schema";
+} from "@shared/schema/geojson.schema";
+import { MessageSnapshotSchema } from "@shared/schema/message-snapshot.schema";
+import { NotificationHistoryItemSchema } from "@shared/schema/notification-history.schema";
+import { PinSchema } from "@shared/schema/pin.schema";
+import { StreetSectionSchema } from "@shared/schema/street-section.schema";
+import { TimespanSchema } from "@shared/schema/timespan.schema";
 
 export type IngestErrorType = "warning" | "error" | "exception";
 
