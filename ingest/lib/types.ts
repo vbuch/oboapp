@@ -1,12 +1,59 @@
 import { CategorizedMessage } from "./categorize.schema";
 import type { Timestamp } from "firebase-admin/firestore";
 
+// Import shared types
+import type {
+  Address,
+  Timespan,
+  Pin,
+  StreetSection,
+  CadastralProperty,
+  ExtractedData,
+  Coordinates,
+  GeoJsonPoint,
+  GeoJsonMultiPoint,
+  GeoJsonLineString,
+  GeoJsonPolygon,
+  GeoJsonGeometry,
+  GeoJsonFeature,
+  GeoJsonFeatureCollection,
+} from "@shared/schema";
+
+// Re-export all shared types
+export type {
+  Address,
+  Timespan,
+  Pin,
+  StreetSection,
+  CadastralProperty,
+  ExtractedData,
+  Coordinates,
+  GeoJsonPoint,
+  GeoJsonMultiPoint,
+  GeoJsonLineString,
+  GeoJsonPolygon,
+  GeoJsonGeometry,
+  GeoJsonFeature,
+  GeoJsonFeatureCollection,
+};
+
+// Re-export with GeoJSON prefix for backward compatibility
+export type {
+  GeoJsonPoint as GeoJSONPoint,
+  GeoJsonMultiPoint as GeoJSONMultiPoint,
+  GeoJsonLineString as GeoJSONLineString,
+  GeoJsonPolygon as GeoJSONPolygon,
+  GeoJsonGeometry as GeoJSONGeometry,
+  GeoJsonFeature as GeoJSONFeature,
+  GeoJsonFeatureCollection as GeoJSONFeatureCollection,
+};
+
 export interface Message {
   id?: string;
   text: string;
   addresses?: Address[];
   extractedData?: ExtractedData;
-  geoJson?: GeoJSONFeatureCollection;
+  geoJson?: GeoJsonFeatureCollection;
   ingestErrors?: IngestError[];
   createdAt: Date | string;
   crawledAt?: Date | string;
@@ -30,87 +77,6 @@ export type IngestErrorType = "warning" | "error" | "exception";
 export interface IngestError {
   text: string;
   type: IngestErrorType;
-}
-
-export interface Address {
-  originalText: string;
-  formattedAddress: string;
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
-  geoJson?: {
-    type: "Point";
-    coordinates: [number, number]; // [longitude, latitude]
-  };
-}
-
-export interface Timespan {
-  start: string;
-  end: string;
-}
-
-export interface Pin {
-  address: string;
-  timespans: Timespan[];
-}
-
-export interface StreetSection {
-  street: string;
-  from: string;
-  to: string;
-  timespans: Timespan[];
-}
-
-export interface CadastralProperty {
-  identifier: string;
-  timespans: Timespan[];
-}
-
-export interface ExtractedData {
-  responsible_entity: string;
-  pins: Pin[];
-  streets: StreetSection[];
-  cadastralProperties?: CadastralProperty[];
-  markdown_text?: string;
-}
-
-// GeoJSON Types
-export type GeoJSONGeometry =
-  | GeoJSONPoint
-  | GeoJSONMultiPoint
-  | GeoJSONLineString
-  | GeoJSONPolygon;
-
-export interface GeoJSONPoint {
-  type: "Point";
-  coordinates: [number, number]; // [longitude, latitude]
-}
-
-export interface GeoJSONMultiPoint {
-  type: "MultiPoint";
-  coordinates: [number, number][]; // array of [longitude, latitude]
-}
-
-export interface GeoJSONLineString {
-  type: "LineString";
-  coordinates: [number, number][]; // array of [longitude, latitude]
-}
-
-export interface GeoJSONPolygon {
-  type: "Polygon";
-  coordinates: [number, number][][]; // array of rings, each ring is array of [longitude, latitude]
-}
-
-export interface GeoJSONFeature {
-  type: "Feature";
-  geometry: GeoJSONGeometry;
-  properties: Record<string, any>;
-}
-
-export interface GeoJSONFeatureCollection {
-  type: "FeatureCollection";
-  features: GeoJSONFeature[];
 }
 
 // Intersection coordinates
@@ -270,7 +236,7 @@ export interface MessageProcessingOptions {
 
 export interface CadastralGeometryCollection {
   features: Array<{
-    geometry: GeoJSONGeometry;
+    geometry: GeoJsonGeometry;
     properties: Record<string, unknown>;
   }>;
 }
@@ -296,6 +262,6 @@ export interface FirestoreDocumentData {
 // Cadastre Service Types
 export interface CadastreProperty {
   identifier: string;
-  geometry?: GeoJSONGeometry;
+  geometry?: GeoJsonGeometry;
   [key: string]: unknown;
 }

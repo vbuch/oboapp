@@ -7,6 +7,7 @@ import {
   GeoJsonFeatureSchema,
   GeoJsonGeometrySchema,
   GeoJsonLineStringSchema,
+  GeoJsonMultiPointSchema,
   GeoJsonPointSchema,
   GeoJsonPolygonSchema,
 } from "@shared/schema/geojson.schema";
@@ -55,6 +56,8 @@ export type ExtractedData = z.infer<typeof ExtractedDataSchema>;
 export type GeoJSONGeometry = z.infer<typeof GeoJsonGeometrySchema>;
 
 export type GeoJSONPoint = z.infer<typeof GeoJsonPointSchema>;
+
+export type GeoJSONMultiPoint = z.infer<typeof GeoJsonMultiPointSchema>;
 
 export type GeoJSONLineString = z.infer<typeof GeoJsonLineStringSchema>;
 

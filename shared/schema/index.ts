@@ -12,5 +12,5 @@ export * from "./notification-history.schema";
 export * from "./source.schema";
 export * from "./notification-subscription.schema";
 
-// Re-export the extended zod instance
+// Re-export the zod instance
 export { z } from "zod";

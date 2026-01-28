@@ -63,7 +63,7 @@ export type AnalyticsEvent =
       name: "map_feature_clicked";
       params: {
         message_id: string;
-        geometry_type: "Point" | "LineString" | "Polygon";
+        geometry_type: "Point" | "MultiPoint" | "LineString" | "Polygon";
         classification: "active" | "archived";
       };
     }

@@ -15,7 +15,7 @@ export function buildGeoJSON(
 
   const feature: GeoJSONFeature = {
     type: "Feature",
-    geometry,
+    geometry: geometry as GeoJSONFeature["geometry"], // Type assertion for MultiPoint compatibility
     properties: {
       eventId: incident.ceo,
       cityName: incident.city_name,

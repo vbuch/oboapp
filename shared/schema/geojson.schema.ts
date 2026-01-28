@@ -5,6 +5,11 @@ export const GeoJsonPointSchema = z.object({
   coordinates: z.tuple([z.number(), z.number()]),
 });
 
+export const GeoJsonMultiPointSchema = z.object({
+  type: z.literal("MultiPoint"),
+  coordinates: z.array(z.tuple([z.number(), z.number()])),
+});
+
 export const GeoJsonLineStringSchema = z.object({
   type: z.literal("LineString"),
   coordinates: z.array(z.tuple([z.number(), z.number()])),
@@ -17,6 +22,7 @@ export const GeoJsonPolygonSchema = z.object({
 
 export const GeoJsonGeometrySchema = z.discriminatedUnion("type", [
   GeoJsonPointSchema,
+  GeoJsonMultiPointSchema,
   GeoJsonLineStringSchema,
   GeoJsonPolygonSchema,
 ]);
@@ -33,6 +39,7 @@ export const GeoJsonFeatureCollectionSchema = z.object({
 });
 
 export type GeoJsonPoint = z.infer<typeof GeoJsonPointSchema>;
+export type GeoJsonMultiPoint = z.infer<typeof GeoJsonMultiPointSchema>;
 export type GeoJsonLineString = z.infer<typeof GeoJsonLineStringSchema>;
 export type GeoJsonPolygon = z.infer<typeof GeoJsonPolygonSchema>;
 export type GeoJsonGeometry = z.infer<typeof GeoJsonGeometrySchema>;
