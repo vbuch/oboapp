@@ -5,7 +5,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "../",
     "noEmit": false,
     "declaration": false,
     "sourceMap": false,
@@ -14,11 +14,14 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@shared/*": ["../shared/*"],
+      "zod": ["./node_modules/zod"]
     }
   },
-  "include": ["**/*.ts", "**/*.mts"],
+  "include": ["**/*.ts", "**/*.mts", "../shared/**/*.ts"],
   "exclude": [
     "node_modules",
     "dist",

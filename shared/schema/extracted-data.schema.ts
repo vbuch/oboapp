@@ -1,6 +1,6 @@
-import { z } from "@/lib/schema/zod-openapi";
-import { PinSchema } from "@/lib/schema/pin.schema";
-import { StreetSectionSchema } from "@/lib/schema/street-section.schema";
+import { z } from "zod";
+import { PinSchema } from "./pin.schema";
+import { StreetSectionSchema } from "./street-section.schema";
 
 export const ExtractedDataSchema = z.object({
   responsible_entity: z.string(),

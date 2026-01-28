@@ -19,8 +19,11 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": ["./*"],
+      "@shared/*": ["../shared/*"],
+      "zod": ["./node_modules/zod"]
+    },
+    "baseUrl": "."
   },
   "include": [
     "next-env.d.ts",
@@ -29,7 +32,8 @@
     "**/*.mdx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "../shared/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

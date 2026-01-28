@@ -1,5 +1,5 @@
-import { z } from "@/lib/schema/zod-openapi";
-import { TimespanSchema } from "@/lib/schema/timespan.schema";
+import { z } from "zod";
+import { TimespanSchema } from "./timespan.schema";
 
 export const StreetSectionSchema = z.object({
   street: z.string(),

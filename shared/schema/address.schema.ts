@@ -1,6 +1,6 @@
-import { z } from "@/lib/schema/zod-openapi";
-import { CoordinatesSchema } from "@/lib/schema/coordinates.schema";
-import { GeoJsonPointSchema } from "@/lib/schema/geojson.schema";
+import { z } from "zod";
+import { CoordinatesSchema } from "./coordinates.schema";
+import { GeoJsonPointSchema } from "./geojson.schema";
 
 export const AddressSchema = z.object({
   originalText: z.string(),

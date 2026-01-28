@@ -1,4 +1,4 @@
-import { z } from "@/lib/schema/zod-openapi";
+import { z } from "zod";
 
 export const NotificationSubscriptionSchema = z.object({
   id: z.string(),

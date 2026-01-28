@@ -1,9 +1,18 @@
 import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
+import path from "path";
 
 const nextConfig: NextConfig = {
   /* config options here */
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
+  experimental: {
+    externalDir: true,
+  },
+  transpilePackages: ["@oboapp/shared"],
+  webpack: (config) => {
+    config.resolve.alias["@shared"] = path.resolve(__dirname, "../shared");
+    return config;
+  },
   images: {
     remotePatterns: [
       {

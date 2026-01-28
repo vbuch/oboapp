@@ -1,0 +1,11 @@
+{
+  "name": "@oboapp/shared",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./schema/*": "./schema/*.ts"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.0"
+  }
+}

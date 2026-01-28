@@ -1,4 +1,4 @@
-import { z } from "@/lib/schema/zod-openapi";
+import { z } from "zod";
 
 export const MessageSnapshotSchema = z.object({
   text: z.string(),

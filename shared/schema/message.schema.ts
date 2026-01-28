@@ -1,7 +1,7 @@
-import { z } from "@/lib/schema/zod-openapi";
-import { AddressSchema } from "@/lib/schema/address.schema";
-import { ExtractedDataSchema } from "@/lib/schema/extracted-data.schema";
-import { GeoJsonFeatureCollectionSchema } from "@/lib/schema/geojson.schema";
+import { z } from "zod";
+import { AddressSchema } from "./address.schema";
+import { ExtractedDataSchema } from "./extracted-data.schema";
+import { GeoJsonFeatureCollectionSchema } from "./geojson.schema";
 
 export const MessageSchema = z.object({
   id: z.string(),

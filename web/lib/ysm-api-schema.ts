@@ -1,18 +1,19 @@
+// Import zod-openapi first to ensure z is extended before importing shared schemas
+import { z } from "@/lib/zod-openapi";
 import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
 } from "@asteasolutions/zod-to-openapi";
 import type { OpenAPIObject } from "openapi3-ts/oas30";
-import { z } from "@/lib/schema/zod-openapi";
-import { MessageSchema } from "@/lib/schema/message.schema";
-import { NotificationHistoryItemSchema } from "@/lib/schema/notification-history.schema";
+import { MessageSchema } from "@shared/schema/message.schema";
+import { NotificationHistoryItemSchema } from "@shared/schema/notification-history.schema";
 import {
   DeleteSubscriptionResponseSchema,
   NotificationSubscriptionRequestSchema,
   NotificationSubscriptionSchema,
   NotificationSubscriptionStatusSchema,
-} from "@/lib/schema/notification-subscription.schema";
-import { SourceSchema } from "@/lib/schema/source.schema";
+} from "@shared/schema/notification-subscription.schema";
+import { SourceSchema } from "@shared/schema/source.schema";
 
 const ErrorResponseSchema = z.object({
   error: z.string(),
