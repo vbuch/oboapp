@@ -10,11 +10,23 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingIncludes: {
     "/api/**/*": ["../shared/**/*"],
-    "/**": ["../shared/**/*"],
+    "/lib/**/*": ["../shared/**/*"],
   },
-  transpilePackages: ["@oboapp/shared"],
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.alias["@shared"] = path.resolve(__dirname, "../shared");
+
+    // Ensure shared files are included in the bundle
+    if (isServer) {
+      config.externals = config.externals || [];
+      // Don't externalize shared modules
+      if (Array.isArray(config.externals)) {
+        config.externals = config.externals.filter(
+          (external: any) =>
+            typeof external !== "string" || !external.includes("@shared"),
+        );
+      }
+    }
+
     return config;
   },
   images: {
