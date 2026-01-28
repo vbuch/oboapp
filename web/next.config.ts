@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   experimental: {
     externalDir: true,
   },
+  outputFileTracingIncludes: {
+    "/api/**/*": ["../shared/**/*"],
+    "/**": ["../shared/**/*"],
+  },
   transpilePackages: ["@oboapp/shared"],
   webpack: (config) => {
     config.resolve.alias["@shared"] = path.resolve(__dirname, "../shared");
