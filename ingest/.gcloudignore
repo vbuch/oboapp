@@ -1,0 +1,21 @@
+# This file tells gcloud which files to ignore when uploading the build context
+# It's similar to .dockerignore but specific to Google Cloud Build
+
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+.env
+.env.*
+coverage
+*.test.ts
+__tests__
+.vscode
+.idea
+*.log
+dist
+tmp
+
+# Note: docker-shared is intentionally NOT ignored here
+# It's copied by CI before the build and needs to be included in the build context

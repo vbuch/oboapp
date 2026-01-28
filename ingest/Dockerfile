@@ -15,7 +15,7 @@ RUN npx playwright install chromium
 # Copy source code
 COPY . .
 
-# Use docker-specific tsconfig (uses ./shared instead of ../shared)
+# Use docker-specific tsconfig (uses ./docker-shared instead of ../shared)
 RUN npm run build:docker
 
 # Production stage
