@@ -33,6 +33,7 @@ describe("useMessageAnimation", () => {
   const createMockMessage = (id: string): Message => ({
     id,
     text: "Test message",
+    createdAt: new Date().toISOString(),
     finalizedAt: new Date().toISOString(),
     addresses: [],
   });
@@ -71,9 +72,10 @@ describe("useMessageAnimation", () => {
 
   it("should reset animation when message ID changes", async () => {
     const message1 = createMockMessage("msg-1");
+    const initialProps: { msg: Message | null } = { msg: message1 };
     const { result, rerender } = renderHook(
-      ({ msg }) => useMessageAnimation(msg),
-      { initialProps: { msg: message1 } }
+      ({ msg }: { msg: Message | null }) => useMessageAnimation(msg),
+      { initialProps },
     );
 
     // Trigger first animation
@@ -111,9 +113,10 @@ describe("useMessageAnimation", () => {
 
   it("should not trigger animation when message ID stays the same", async () => {
     const message = createMockMessage("msg-1");
+    const initialProps: { msg: Message | null } = { msg: message };
     const { result, rerender } = renderHook(
-      ({ msg }) => useMessageAnimation(msg),
-      { initialProps: { msg: message } }
+      ({ msg }: { msg: Message | null }) => useMessageAnimation(msg),
+      { initialProps },
     );
 
     // Trigger initial animation
@@ -132,16 +135,17 @@ describe("useMessageAnimation", () => {
 
     // Should not trigger a new animation
     expect((global.requestAnimationFrame as any).mock.calls.length).toBe(
-      callCount
+      callCount,
     );
     expect(result.current).toBe(true);
   });
 
   it("should handle message changing to null", async () => {
     const message = createMockMessage("msg-1");
+    const initialProps: { msg: Message | null } = { msg: message };
     const { result, rerender } = renderHook(
-      ({ msg }) => useMessageAnimation(msg),
-      { initialProps: { msg: message } }
+      ({ msg }: { msg: Message | null }) => useMessageAnimation(msg),
+      { initialProps },
     );
 
     // Trigger initial animation
@@ -181,10 +185,11 @@ describe("useMessageAnimation", () => {
     const message1 = createMockMessage("msg-1");
     const message2 = createMockMessage("msg-2");
     const message3 = createMockMessage("msg-3");
+    const initialProps: { msg: Message | null } = { msg: message1 };
 
     const { result, rerender } = renderHook(
-      ({ msg }) => useMessageAnimation(msg),
-      { initialProps: { msg: message1 } }
+      ({ msg }: { msg: Message | null }) => useMessageAnimation(msg),
+      { initialProps },
     );
 
     // Rapidly change messages

@@ -3,10 +3,10 @@ import { renderHook, act } from "@testing-library/react";
 import { useDragPanel } from "./useDragPanel";
 
 describe("useDragPanel", () => {
-  let mockOnAction: ReturnType<typeof vi.fn>;
+  let mockOnAction: ReturnType<typeof vi.fn<() => void>>;
 
   beforeEach(() => {
-    mockOnAction = vi.fn();
+    mockOnAction = vi.fn<() => void>();
   });
 
   describe("horizontal bidirectional", () => {

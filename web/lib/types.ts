@@ -1,5 +1,20 @@
 import type { z } from "zod";
+import { AddressSchema } from "@/lib/schema/address.schema";
 import { CoordinatesSchema } from "@/lib/schema/coordinates.schema";
+import { ExtractedDataSchema } from "@/lib/schema/extracted-data.schema";
+import {
+  GeoJsonFeatureCollectionSchema,
+  GeoJsonFeatureSchema,
+  GeoJsonGeometrySchema,
+  GeoJsonLineStringSchema,
+  GeoJsonPointSchema,
+  GeoJsonPolygonSchema,
+} from "@/lib/schema/geojson.schema";
+import { MessageSnapshotSchema } from "@/lib/schema/message-snapshot.schema";
+import { NotificationHistoryItemSchema } from "@/lib/schema/notification-history.schema";
+import { PinSchema } from "@/lib/schema/pin.schema";
+import { StreetSectionSchema } from "@/lib/schema/street-section.schema";
+import { TimespanSchema } from "@/lib/schema/timespan.schema";
 
 export type IngestErrorType = "warning" | "error" | "exception";
 
@@ -26,71 +41,30 @@ export interface Message {
   timespanEnd?: Date | string;
 }
 
-export interface Address {
-  originalText: string;
-  formattedAddress: string;
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
-  geoJson?: {
-    type: "Point";
-    coordinates: [number, number]; // [longitude, latitude]
-  };
-}
+export type Address = z.infer<typeof AddressSchema>;
 
-export interface Timespan {
-  start: string;
-  end: string;
-}
+export type Timespan = z.infer<typeof TimespanSchema>;
 
-export interface Pin {
-  address: string;
-  timespans: Timespan[];
-}
+export type Pin = z.infer<typeof PinSchema>;
 
-export interface StreetSection {
-  street: string;
-  from: string;
-  to: string;
-  timespans: Timespan[];
-}
+export type StreetSection = z.infer<typeof StreetSectionSchema>;
 
-export interface ExtractedData {
-  responsible_entity: string;
-  pins: Pin[];
-  streets: StreetSection[];
-  markdown_text?: string;
-}
+export type ExtractedData = z.infer<typeof ExtractedDataSchema>;
 
 // GeoJSON Types
-export type GeoJSONGeometry = GeoJSONPoint | GeoJSONLineString | GeoJSONPolygon;
+export type GeoJSONGeometry = z.infer<typeof GeoJsonGeometrySchema>;
 
-export interface GeoJSONPoint {
-  type: "Point";
-  coordinates: [number, number]; // [longitude, latitude]
-}
+export type GeoJSONPoint = z.infer<typeof GeoJsonPointSchema>;
 
-export interface GeoJSONLineString {
-  type: "LineString";
-  coordinates: [number, number][]; // array of [longitude, latitude]
-}
+export type GeoJSONLineString = z.infer<typeof GeoJsonLineStringSchema>;
 
-export interface GeoJSONPolygon {
-  type: "Polygon";
-  coordinates: [number, number][][]; // array of rings, each ring is array of [longitude, latitude]
-}
+export type GeoJSONPolygon = z.infer<typeof GeoJsonPolygonSchema>;
 
-export interface GeoJSONFeature {
-  type: "Feature";
-  geometry: GeoJSONGeometry;
-  properties: Record<string, any>;
-}
+export type GeoJSONFeature = z.infer<typeof GeoJsonFeatureSchema>;
 
-export interface GeoJSONFeatureCollection {
-  type: "FeatureCollection";
-  features: GeoJSONFeature[];
-}
+export type GeoJSONFeatureCollection = z.infer<
+  typeof GeoJsonFeatureCollectionSchema
+>;
 
 // Intersection coordinates
 export type IntersectionCoordinates = z.infer<typeof CoordinatesSchema>;
@@ -134,12 +108,7 @@ export interface DeviceNotification {
 }
 
 // Message Snapshot (denormalized message data)
-export interface MessageSnapshot {
-  text: string;
-  source?: string;
-  sourceUrl?: string;
-  createdAt: string;
-}
+export type MessageSnapshot = z.infer<typeof MessageSnapshotSchema>;
 
 // Notification Match (message matched to user's interest)
 export interface NotificationMatch {
@@ -157,15 +126,9 @@ export interface NotificationMatch {
 }
 
 // Notification History Item (for API response)
-export interface NotificationHistoryItem {
-  id: string;
-  messageId: string;
-  messageSnapshot: MessageSnapshot;
-  notifiedAt: string;
-  distance?: number;
-  interestId: string;
-  successfulDevicesCount: number;
-}
+export type NotificationHistoryItem = z.infer<
+  typeof NotificationHistoryItemSchema
+>;
 
 // Source Configuration
 export interface SourceConfig {

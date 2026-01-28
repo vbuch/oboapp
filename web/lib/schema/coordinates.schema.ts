@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/schema/zod-openapi";
 
 export const CoordinatesSchema = z.object({
   lat: z.number(),

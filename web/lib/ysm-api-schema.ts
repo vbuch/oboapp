@@ -1,154 +1,21 @@
-import { z } from "zod";
 import {
-  extendZodWithOpenApi,
   OpenAPIRegistry,
   OpenApiGeneratorV3,
 } from "@asteasolutions/zod-to-openapi";
 import type { OpenAPIObject } from "openapi3-ts/oas30";
-import { CoordinatesSchema } from "@/lib/schema/coordinates.schema";
-
-extendZodWithOpenApi(z);
-
-const GeoJsonPointSchema = z.object({
-  type: z.literal("Point"),
-  coordinates: z.tuple([z.number(), z.number()]),
-});
-
-const GeoJsonLineStringSchema = z.object({
-  type: z.literal("LineString"),
-  coordinates: z.array(z.tuple([z.number(), z.number()])),
-});
-
-const GeoJsonPolygonSchema = z.object({
-  type: z.literal("Polygon"),
-  coordinates: z.array(z.array(z.tuple([z.number(), z.number()]))),
-});
-
-const GeoJsonGeometrySchema = z.discriminatedUnion("type", [
-  GeoJsonPointSchema,
-  GeoJsonLineStringSchema,
-  GeoJsonPolygonSchema,
-]);
-
-const GeoJsonFeatureSchema = z.object({
-  type: z.literal("Feature"),
-  geometry: GeoJsonGeometrySchema,
-  properties: z.record(z.string(), z.unknown()),
-});
-
-const GeoJsonFeatureCollectionSchema = z.object({
-  type: z.literal("FeatureCollection"),
-  features: z.array(GeoJsonFeatureSchema),
-});
-
-const AddressSchema = z.object({
-  originalText: z.string(),
-  formattedAddress: z.string(),
-  coordinates: CoordinatesSchema,
-  geoJson: z
-    .object({
-      type: z.literal("Point"),
-      coordinates: z.tuple([z.number(), z.number()]),
-    })
-    .optional(),
-});
-
-const TimespanSchema = z.object({
-  start: z.string(),
-  end: z.string(),
-});
-
-const PinSchema = z.object({
-  address: z.string(),
-  timespans: z.array(TimespanSchema),
-});
-
-const StreetSectionSchema = z.object({
-  street: z.string(),
-  from: z.string(),
-  to: z.string(),
-  timespans: z.array(TimespanSchema),
-});
-
-const ExtractedDataSchema = z.object({
-  responsible_entity: z.string(),
-  pins: z.array(PinSchema),
-  streets: z.array(StreetSectionSchema),
-  markdown_text: z.string().optional(),
-});
-
-const MessageSchema = z.object({
-  id: z.string(),
-  text: z.string(),
-  addresses: z.array(AddressSchema),
-  extractedData: ExtractedDataSchema.optional(),
-  geoJson: GeoJsonFeatureCollectionSchema,
-  createdAt: z.string(),
-  crawledAt: z.string().optional(),
-  finalizedAt: z.string().optional(),
-  source: z.string().optional(),
-  sourceUrl: z.string().optional(),
-  categories: z.array(z.string()),
-  timespanStart: z.string().optional(),
-  timespanEnd: z.string().optional(),
-});
-
-const SourceSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  url: z.string(),
-  logoUrl: z.string(),
-});
-
-const MessageSnapshotSchema = z.object({
-  text: z.string(),
-  createdAt: z.string(),
-  source: z.string().optional(),
-  sourceUrl: z.string().optional(),
-});
-
-const NotificationHistoryItemSchema = z.object({
-  id: z.string(),
-  messageId: z.string(),
-  messageSnapshot: MessageSnapshotSchema,
-  notifiedAt: z.string(),
-  distance: z.number().optional(),
-  interestId: z.string(),
-  successfulDevicesCount: z.number(),
-});
-
-const NotificationSubscriptionSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  token: z.string(),
-  endpoint: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  deviceInfo: z
-    .object({
-      userAgent: z.string().optional(),
-      platform: z.string().optional(),
-    })
-    .optional(),
-});
-
-const NotificationSubscriptionRequestSchema = z.object({
-  token: z.string(),
-  endpoint: z.string(),
-  deviceInfo: z
-    .object({
-      userAgent: z.string().optional(),
-      platform: z.string().optional(),
-    })
-    .optional(),
-});
+import { z } from "@/lib/schema/zod-openapi";
+import { MessageSchema } from "@/lib/schema/message.schema";
+import { NotificationHistoryItemSchema } from "@/lib/schema/notification-history.schema";
+import {
+  DeleteSubscriptionResponseSchema,
+  NotificationSubscriptionRequestSchema,
+  NotificationSubscriptionSchema,
+  NotificationSubscriptionStatusSchema,
+} from "@/lib/schema/notification-subscription.schema";
+import { SourceSchema } from "@/lib/schema/source.schema";
 
 const ErrorResponseSchema = z.object({
   error: z.string(),
-});
-
-const DeleteSubscriptionResponseSchema = z.object({
-  success: z.literal(true),
 });
 
 export const ysmSchemas = {
@@ -157,9 +24,7 @@ export const ysmSchemas = {
   categoriesResponse: z.object({ categories: z.array(z.string()) }),
   messagesResponse: z.object({ messages: z.array(MessageSchema) }),
   notificationHistoryResponse: z.array(NotificationHistoryItemSchema),
-  notificationSubscriptionStatusResponse: z.object({
-    hasSubscription: z.boolean(),
-  }),
+  notificationSubscriptionStatusResponse: NotificationSubscriptionStatusSchema,
   notificationSubscriptionResponse: NotificationSubscriptionSchema,
   notificationSubscriptionRequest: NotificationSubscriptionRequestSchema,
   notificationSubscriptionDeleteResponse: DeleteSubscriptionResponseSchema,
