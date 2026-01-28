@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import sources from "@/lib/sources.json";
 
-export async function GET(request: Request) {
+export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
   const response = (
