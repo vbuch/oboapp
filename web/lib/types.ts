@@ -1,3 +1,6 @@
+import type { z } from "zod";
+import { CoordinatesSchema } from "@/lib/schema/coordinates.schema";
+
 export type IngestErrorType = "warning" | "error" | "exception";
 
 export interface IngestError {
@@ -90,10 +93,7 @@ export interface GeoJSONFeatureCollection {
 }
 
 // Intersection coordinates
-export interface IntersectionCoordinates {
-  lat: number;
-  lng: number;
-}
+export type IntersectionCoordinates = z.infer<typeof CoordinatesSchema>;
 
 // User Interest (area of interest on the map)
 export interface Interest {
