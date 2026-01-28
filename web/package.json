@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node -e \"const fs=require('fs');const path=require('path');const src='../shared';const dest='./shared';if(fs.existsSync(src)&&!fs.existsSync(dest)){fs.cpSync(src,dest,{recursive:true})}\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

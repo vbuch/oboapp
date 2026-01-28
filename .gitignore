@@ -18,6 +18,9 @@
 **/.next/
 /out/
 
+# copied during web build
+web/shared/
+
 # production
 /build
 
