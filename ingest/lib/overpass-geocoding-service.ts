@@ -8,6 +8,7 @@ import {
   isWithinSofia,
 } from "./geocoding-utils";
 import { delay } from "./delay";
+import { roundCoordinate } from "../crawlers/shared/coordinate-utils";
 
 // Constants for API rate limiting
 const OVERPASS_DELAY_MS = 500; // 500ms for Overpass API (generous limits)
@@ -250,8 +251,8 @@ async function getStreetGeometryFromOverpass(
         // Round coordinates to 6 decimal places (≈ 0.1m accuracy)
         const coordinates: Position[] = element.geometry.map(
           (point: OverpassGeometry) => [
-            Math.round(point.lon * 1000000) / 1000000,
-            Math.round(point.lat * 1000000) / 1000000,
+            roundCoordinate(point.lon),
+            roundCoordinate(point.lat),
           ],
         );
         lineStrings.push(coordinates);

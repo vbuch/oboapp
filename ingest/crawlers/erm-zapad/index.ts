@@ -6,13 +6,17 @@ import { validateAndFixGeoJSON } from "../shared/geojson-validation";
 import { launchBrowser } from "../shared/browser";
 import { saveSourceDocumentIfNew } from "../shared/firestore";
 import { parseBulgarianDateTime } from "../shared/date-utils";
-import { validateTimespanRange } from "@/lib/timespan-utils";
 import { buildGeoJSON, buildMessage, buildTitle } from "./builders";
+import { extractPinRecords } from "./extractors";
+import { deduplicatePinRecords } from "./deduplication";
+import { parseTimespans } from "./timespan-parsing";
+import { groupPinsByEventId } from "./grouping";
 import type {
   ApiResponse,
   CrawlSummary,
   ErmZapadSourceDocument,
   Municipality,
+  PinRecord,
   RawIncident,
 } from "./types";
 
@@ -69,8 +73,8 @@ async function discoverMunicipalities(): Promise<Municipality[]> {
 
         // Extract municipality name from text content
         const text = li.textContent?.trim() || "";
-        // Format: "  община ПАНЧАРЕВО" - extract just the name
-        const nameMatch = /община\s+(.+?)(?:\s|$)/i.exec(text);
+        // Format: "  община ПАНЧАРЕВО" or "  община КРАСНО СЕЛО" - extract just the name
+        const nameMatch = /община\s+(.+)/i.exec(text);
         const name = nameMatch ? nameMatch[1].trim() : text;
 
         if (code && name) {
@@ -132,98 +136,61 @@ async function fetchMunicipalityIncidents(
 }
 
 /**
- * Convert raw incident to source document
+ * Convert pins for the same incident to a single source document
  */
-function buildSourceDocument(
-  incident: RawIncident,
-): ErmZapadSourceDocument | null {
-  // Validate required fields
-  if (!incident.ceo || typeof incident.ceo !== "string") {
-    console.warn(`   ⚠️  Skipping incident without ceo identifier`);
+function buildSourceDocument(pins: PinRecord[]): ErmZapadSourceDocument | null {
+  if (pins.length === 0) {
+    console.warn(`   ⚠️  Skipping empty pin array`);
     return null;
   }
 
-  // Build GeoJSON
-  const geoJson = buildGeoJSON(incident);
+  // Use first pin for metadata (all pins from same incident share these fields)
+  const pin = pins[0];
+
+  // Validate required fields
+  if (!pin.eventId || typeof pin.eventId !== "string") {
+    console.warn(`   ⚠️  Skipping pin without eventId`);
+    return null;
+  }
+
+  // Build GeoJSON with all pins for this incident
+  const geoJson = buildGeoJSON(pins);
   if (!geoJson) {
-    console.warn(`   ⚠️  Skipping incident without geometry: ${incident.ceo}`);
+    console.warn(`   ⚠️  Skipping incident without geometry: ${pin.eventId}`);
     return null;
   }
 
   // Validate and fix GeoJSON
-  const validation = validateAndFixGeoJSON(geoJson, incident.ceo);
+  const validation = validateAndFixGeoJSON(geoJson, pin.eventId);
   if (!validation.isValid || !validation.geoJson) {
-    console.warn(`   ⚠️  Invalid GeoJSON for ${incident.ceo}:`);
+    console.warn(`   ⚠️  Invalid GeoJSON for ${pin.eventId}:`);
     validation.errors.forEach((err) => console.warn(`      ${err}`));
     return null;
   }
 
   // Log any coordinate fixes
   if (validation.warnings.length > 0) {
-    console.warn(`   ⚠️  Fixed GeoJSON for ${incident.ceo}:`);
+    console.warn(`   ⚠️  Fixed GeoJSON for ${pin.eventId}:`);
     validation.warnings.forEach((warn) => console.warn(`      ${warn}`));
   }
 
-  const url = `${BASE_URL}/incidents/${incident.ceo}`;
-  const title = buildTitle(incident);
-  const message = buildMessage(incident);
+  const url = `${BASE_URL}/incidents/${pin.eventId}`;
+  const title = buildTitle(pin);
+  const message = buildMessage(pin);
 
-  // Use incident start time as published date, fallback to current time
+  // Use pin start time as published date, fallback to current time
   let datePublished = new Date().toISOString();
-  if (incident.begin_event) {
+  if (pin.begin_event) {
     try {
-      datePublished = parseBulgarianDateTime(
-        incident.begin_event,
-      ).toISOString();
+      datePublished = parseBulgarianDateTime(pin.begin_event).toISOString();
     } catch {
       console.warn(
-        `   ⚠️  Invalid date format for ${incident.ceo}: ${incident.begin_event}`,
+        `   ⚠️  Invalid date format for ${pin.eventId}: ${pin.begin_event}`,
       );
     }
   }
 
-  // Extract timespans from incident
-  let timespanStart = new Date(); // Default to crawledAt
-  let timespanEnd = new Date();
-
-  try {
-    if (incident.begin_event) {
-      const parsed = parseBulgarianDateTime(incident.begin_event);
-      if (validateTimespanRange(parsed)) {
-        timespanStart = parsed;
-      } else {
-        console.warn(
-          `   ⚠️  begin_event outside valid range for ${incident.ceo}: ${incident.begin_event}`,
-        );
-      }
-    }
-  } catch (error) {
-    console.warn(
-      `   ⚠️  Invalid begin_event for ${incident.ceo}: ${incident.begin_event} - ${error}`,
-    );
-  }
-
-  try {
-    if (incident.end_event) {
-      const parsed = parseBulgarianDateTime(incident.end_event);
-      if (validateTimespanRange(parsed)) {
-        timespanEnd = parsed;
-      } else {
-        console.warn(
-          `   ⚠️  end_event outside valid range for ${incident.ceo}: ${incident.end_event}`,
-        );
-        timespanEnd = timespanStart;
-      }
-    } else if (incident.begin_event) {
-      // Use start for both if only start available
-      timespanEnd = timespanStart;
-    }
-  } catch (error) {
-    console.warn(
-      `   ⚠️  Invalid end_event for ${incident.ceo}: ${incident.end_event} - ${error}`,
-    );
-    timespanEnd = timespanStart;
-  }
+  const { timespanStart, timespanEnd } = parseTimespans(pin);
 
   return {
     url,
@@ -242,49 +209,30 @@ function buildSourceDocument(
 }
 
 /**
- * Process incidents for a municipality
+ * Process incidents for a municipality and return pin records
  */
 async function processMunicipality(
   municipality: Municipality,
-): Promise<CrawlSummary> {
+): Promise<PinRecord[]> {
   console.log(`\n📍 Processing ${municipality.name} (${municipality.code})...`);
-
-  const summary: CrawlSummary = { saved: 0, skipped: 0, failed: 0 };
 
   try {
     const incidents = await fetchMunicipalityIncidents(municipality.code);
     console.log(`   Found ${incidents.length} incident(s)`);
 
     if (incidents.length === 0) {
-      return summary;
+      return [];
     }
 
-    // Dynamic import after dotenv.config
-    const { adminDb } = await import("@/lib/firebase-admin");
-
+    // Extract pin records from all incidents
+    const allPins: PinRecord[] = [];
     for (const incident of incidents) {
-      try {
-        const doc = buildSourceDocument(incident);
-        if (!doc) {
-          summary.skipped++;
-          continue;
-        }
-
-        const saved = await saveSourceDocumentIfNew(doc, adminDb);
-        if (saved) {
-          console.log(`   ✅ Saved: ${doc.title}`);
-          summary.saved++;
-        } else {
-          summary.skipped++;
-        }
-      } catch (error) {
-        console.error(
-          `   ❌ Failed to process incident ${incident.ceo}:`,
-          error,
-        );
-        summary.failed++;
-      }
+      const pins = extractPinRecords(incident);
+      allPins.push(...pins);
     }
+
+    console.log(`   Extracted ${allPins.length} pin(s)`);
+    return allPins;
   } catch (error) {
     console.error(
       `   ❌ Failed to fetch incidents for ${municipality.code}:`,
@@ -292,8 +240,36 @@ async function processMunicipality(
     );
     throw error; // Re-throw to fail the crawl
   }
+}
 
-  return summary;
+/**
+ * Save incidents to Firestore and update summary
+ */
+async function saveIncidents(
+  incidentMap: Map<string, PinRecord[]>,
+  adminDb: FirebaseFirestore.Firestore,
+  summary: CrawlSummary,
+): Promise<void> {
+  for (const [eventId, pins] of incidentMap) {
+    try {
+      const doc = buildSourceDocument(pins);
+      if (!doc) {
+        summary.skipped++;
+        continue;
+      }
+
+      const saved = await saveSourceDocumentIfNew(doc, adminDb);
+      if (saved) {
+        console.log(`   ✅ Saved: ${doc.title} (${pins.length} pin(s))`);
+        summary.saved++;
+      } else {
+        summary.skipped++;
+      }
+    } catch (error) {
+      console.error(`   ❌ Failed to process incident ${eventId}:`, error);
+      summary.failed++;
+    }
+  }
 }
 
 /**
@@ -314,19 +290,38 @@ async function crawl(): Promise<void> {
       return;
     }
 
-    // Process each municipality
+    // Collect all pins from all municipalities
+    const allPins: PinRecord[] = [];
     for (const municipality of municipalities) {
-      const summary = await processMunicipality(municipality);
-
-      totalSummary.saved += summary.saved;
-      totalSummary.skipped += summary.skipped;
-      totalSummary.failed += summary.failed;
+      const pins = await processMunicipality(municipality);
+      allPins.push(...pins);
 
       // Delay between municipalities
       if (municipality !== municipalities.at(-1)) {
         await delay(2000); // 2 second delay
       }
     }
+
+    console.log(`\n📊 Total pins extracted: ${allPins.length}`);
+
+    // Deduplicate globally across all municipalities
+    const uniquePins = deduplicatePinRecords(allPins);
+    console.log(
+      `📊 Unique pins after deduplication: ${uniquePins.length} (removed ${allPins.length - uniquePins.length} duplicates)`,
+    );
+
+    // Group pins by eventId to handle potential duplicates across municipalities
+    const incidentMap = groupPinsByEventId(uniquePins);
+
+    console.log(
+      `📊 Incidents after grouping: ${incidentMap.size} (${uniquePins.length} total pins)`,
+    );
+
+    // Dynamic import after dotenv.config
+    const { adminDb } = await import("@/lib/firebase-admin");
+
+    // Save all incidents
+    await saveIncidents(incidentMap, adminDb, totalSummary);
 
     // Final summary
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -340,7 +335,7 @@ async function crawl(): Promise<void> {
       totalSummary.saved === 0 &&
       totalSummary.skipped === 0
     ) {
-      console.error("\n❌ All incidents failed to process");
+      console.error("\n❌ All pins failed to process");
       process.exit(1);
     }
   } catch (error) {

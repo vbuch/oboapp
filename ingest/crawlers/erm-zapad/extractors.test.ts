@@ -1,108 +1,175 @@
 import { describe, expect, it } from "vitest";
-import { extractCustomerPoints } from "./extractors";
+import { extractPinRecords } from "./extractors";
+import type { RawIncident } from "./types";
 
-describe("extractCustomerPoints", () => {
-  it("should extract valid customer points", () => {
-    const points = {
-      cnt: "3",
-      "1": { lat: "42.6977", lon: "23.3219" },
-      "2": { lat: "42.6980", lon: "23.3225" },
-      "3": { lat: "42.6975", lon: "23.3210" },
+describe("extractPinRecords", () => {
+  it("should extract center point from incident", () => {
+    const incident: RawIncident = {
+      ceo: "SF_7650",
+      typedist: "планирано",
+      type_event: "1",
+      city_name: "жк.КРАСНО СЕЛО",
+      grid_id: "",
+      cities: "",
+      begin_event: "28.01.2026 09:42",
+      end_event: "28.01.2026 18:15",
+      lat: "42.7013091079358",
+      lon: "23.3229612178934",
+      points: {
+        cnt: "72", // Polygon vertices for map visualization
+        "1": { lat: "42.700634", lon: "23.322666" },
+        // ... more vertices
+      },
     };
 
-    const result = extractCustomerPoints(points);
-
-    expect(result).toHaveLength(3);
-    expect(result[0]).toEqual([23.3219, 42.6977]); // [lng, lat]
-    expect(result[1]).toEqual([23.3225, 42.698]);
-    expect(result[2]).toEqual([23.321, 42.6975]);
-  });
-
-  it("should handle zero count", () => {
-    const points = {
-      cnt: "0",
-    };
-
-    const result = extractCustomerPoints(points);
-
-    expect(result).toEqual([]);
-  });
-
-  it("should handle invalid count (NaN)", () => {
-    const points = {
-      cnt: "invalid",
-      "1": { lat: "42.6977", lon: "23.3219" },
-    };
-
-    const result = extractCustomerPoints(points);
-
-    expect(result).toEqual([]);
-  });
-
-  it("should skip missing points in sequence", () => {
-    const points = {
-      cnt: "3",
-      "1": { lat: "42.6977", lon: "23.3219" },
-      // "2" is missing
-      "3": { lat: "42.6975", lon: "23.3210" },
-    };
-
-    const result = extractCustomerPoints(points);
-
-    expect(result).toHaveLength(2);
-    expect(result[0]).toEqual([23.3219, 42.6977]);
-    expect(result[1]).toEqual([23.321, 42.6975]);
-  });
-
-  it("should skip points with invalid coordinates", () => {
-    const points = {
-      cnt: "3",
-      "1": { lat: "42.6977", lon: "23.3219" },
-      "2": { lat: "invalid", lon: "23.3225" },
-      "3": { lat: "42.6975", lon: "NaN" },
-    };
-
-    const result = extractCustomerPoints(points);
+    const result = extractPinRecords(incident);
 
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual([23.3219, 42.6977]);
+    expect(result[0]).toEqual({
+      lat: 42.701309,
+      lon: 23.322961,
+      eventId: "SF_7650",
+      typedist: "планирано",
+      begin_event: "28.01.2026 09:42",
+      end_event: "28.01.2026 18:15",
+      city_name: "жк.КРАСНО СЕЛО",
+      cities: "",
+    });
   });
 
-  it("should skip malformed point objects", () => {
-    const points = {
-      cnt: "3",
-      "1": { lat: "42.6977", lon: "23.3219" },
-      "2": "not an object",
-      "3": "also not valid", // invalid object
+  it("should round coordinates to 6 decimal places", () => {
+    const incident: RawIncident = {
+      ceo: "SF_0001",
+      typedist: "планирано",
+      type_event: "1",
+      city_name: "София",
+      grid_id: "",
+      cities: "",
+      begin_event: "28.01.2026 09:42",
+      end_event: "28.01.2026 18:15",
+      lat: "42.700932123456789",
+      lon: "23.323421987654321",
+      points: {
+        cnt: "0",
+      },
     };
 
-    const result = extractCustomerPoints(points);
+    const result = extractPinRecords(incident);
 
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual([23.3219, 42.6977]);
+    expect(result[0].lat).toBe(42.700932);
+    expect(result[0].lon).toBe(23.323422);
   });
 
-  it("should handle empty points object", () => {
-    const points = {
-      cnt: "5",
-      // No actual point data
+  it("should handle invalid center coordinates", () => {
+    const incident: RawIncident = {
+      ceo: "SF_1234",
+      typedist: "непланирано",
+      type_event: "2",
+      city_name: "София",
+      grid_id: "",
+      cities: "",
+      begin_event: "28.01.2026 09:42",
+      end_event: "28.01.2026 18:15",
+      lat: "invalid",
+      lon: "23.3229612178934",
+      points: {
+        cnt: "0",
+      },
     };
 
-    const result = extractCustomerPoints(points);
+    const result = extractPinRecords(incident);
 
-    expect(result).toEqual([]);
+    expect(result).toHaveLength(0);
   });
 
-  it("should correctly parse string coordinates with decimals", () => {
-    const points = {
-      cnt: "1",
-      "1": { lat: "42.697700", lon: "23.321900" },
+  it("should handle missing center coordinates", () => {
+    const incident: RawIncident = {
+      ceo: "SF_5678",
+      typedist: "планирано",
+      type_event: "1",
+      city_name: "София",
+      grid_id: "",
+      cities: "",
+      begin_event: "28.01.2026 09:42",
+      end_event: "28.01.2026 18:15",
+      lat: "",
+      lon: "",
+      points: {
+        cnt: "0",
+      },
     };
 
-    const result = extractCustomerPoints(points);
+    const result = extractPinRecords(incident);
+
+    expect(result).toHaveLength(0);
+  });
+
+  it("should preserve all incident metadata", () => {
+    const incident: RawIncident = {
+      ceo: "SF_9999",
+      typedist: "непланирано",
+      type_event: "2",
+      city_name: "жк.МЛАДОСТ",
+      grid_id: "GRID_123",
+      cities: "София, Младост",
+      begin_event: "29.01.2026 10:00",
+      end_event: "29.01.2026 12:00",
+      lat: "42.6977",
+      lon: "23.3219",
+      points: {
+        cnt: "5",
+      },
+    };
+
+    const result = extractPinRecords(incident);
 
     expect(result).toHaveLength(1);
-    expect(result[0][0]).toBeCloseTo(23.3219, 4);
-    expect(result[0][1]).toBeCloseTo(42.6977, 4);
+    expect(result[0]).toEqual({
+      lat: 42.6977,
+      lon: 23.3219,
+      eventId: "SF_9999",
+      typedist: "непланирано",
+      begin_event: "29.01.2026 10:00",
+      end_event: "29.01.2026 12:00",
+      city_name: "жк.МЛАДОСТ",
+      cities: "София, Младост",
+    });
+  });
+
+  it("should handle real-world incident with many polygon vertices", () => {
+    const incident: RawIncident = {
+      ceo: "SF_3274",
+      typedist: "планирано",
+      type_event: "1",
+      city_name: "жк.КРАСНО СЕЛО",
+      grid_id: "",
+      cities: "жк.КРАСНО СЕЛО",
+      begin_event: "29.01.2026 13:16",
+      end_event: "29.01.2026 15:30",
+      lat: "42.6732601426586",
+      lon: "23.2893743939152",
+      points: {
+        cnt: "72", // 72 polygon vertices
+        "1": { lat: "42.672009", lon: "23.290932" },
+        "2": { lat: "42.67211", lon: "23.290967" },
+        // ... 70 more vertices
+      },
+    };
+
+    const result = extractPinRecords(incident);
+
+    // Should extract only 1 center point, not 72 polygon vertices
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      lat: 42.67326,
+      lon: 23.289374,
+      eventId: "SF_3274",
+      typedist: "планирано",
+      begin_event: "29.01.2026 13:16",
+      end_event: "29.01.2026 15:30",
+      city_name: "жк.КРАСНО СЕЛО",
+      cities: "жк.КРАСНО СЕЛО",
+    });
   });
 });

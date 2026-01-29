@@ -1,83 +1,84 @@
 import type { GeoJSONFeature, GeoJSONFeatureCollection } from "@/lib/types";
-import type { RawIncident } from "./types";
-import { createGeometry } from "./geometry";
+import type { PinRecord } from "./types";
 
 /**
- * Build GeoJSON FeatureCollection from incident
+ * Build GeoJSON FeatureCollection with separate Point for each pin
  */
 export function buildGeoJSON(
-  incident: RawIncident,
+  pinRecords: PinRecord[],
 ): GeoJSONFeatureCollection | null {
-  const geometry = createGeometry(incident);
-  if (!geometry) {
+  if (pinRecords.length === 0) {
     return null;
   }
 
-  const feature: GeoJSONFeature = {
+  const features: GeoJSONFeature[] = pinRecords.map((pin) => ({
     type: "Feature",
-    geometry: geometry as GeoJSONFeature["geometry"], // Type assertion for MultiPoint compatibility
-    properties: {
-      eventId: incident.ceo,
-      cityName: incident.city_name,
-      eventType: incident.typedist,
-      startTime: incident.begin_event, // Bulgarian format for display
-      endTime: incident.end_event, // Bulgarian format for display
+    geometry: {
+      type: "Point",
+      coordinates: [pin.lon, pin.lat], // GeoJSON: [lng, lat]
     },
-  };
+    properties: {
+      eventId: pin.eventId,
+      cityName: pin.city_name,
+      eventType: pin.typedist,
+      startTime: pin.begin_event,
+      endTime: pin.end_event,
+    },
+  }));
 
   return {
     type: "FeatureCollection",
-    features: [feature],
+    features,
   };
 }
 
 /**
- * Build markdown message for incident
+ * Build markdown message for pin
  */
-export function buildMessage(incident: RawIncident): string {
+export function buildMessage(pin: PinRecord): string {
   const lines: string[] = [];
 
   // Title
-  lines.push(`**${incident.typedist}**\n`);
+  lines.push(`**${pin.typedist}**\n`);
 
   // Location
-  if (incident.city_name) {
-    lines.push(`**Населено място:** ${incident.city_name}`);
+  if (pin.city_name) {
+    lines.push(`**Населено място:** ${pin.city_name}`);
   }
 
   // Time range
-  if (incident.begin_event) {
-    lines.push(`**Начало:** ${incident.begin_event}`);
+  if (pin.begin_event) {
+    lines.push(`**Начало:** ${pin.begin_event}`);
   }
-  if (incident.end_event) {
-    lines.push(`**Край:** ${incident.end_event}`);
+  if (pin.end_event) {
+    lines.push(`**Край:** ${pin.end_event}`);
   }
 
   // Grid identifier
-  if (incident.ceo) {
-    lines.push(`**Мрежов код:** ${incident.ceo}`);
+  if (pin.eventId) {
+    lines.push(`**Мрежов код:** ${pin.eventId}`);
   }
 
   return lines.join("\n");
 }
 
 /**
- * Build title for incident
+ * Build title for pin
  */
-export function buildTitle(incident: RawIncident): string {
+export function buildTitle(pin: PinRecord): string {
   const parts: string[] = [];
 
   // Incident type
-  parts.push(incident.typedist);
+  parts.push(pin.typedist);
 
   // Location
-  if (incident.city_name) {
-    parts.push(incident.city_name);
+  if (pin.city_name) {
+    parts.push(pin.city_name);
   }
 
   // Grid code
-  if (incident.ceo) {
-    parts.push(incident.ceo);
+  if (pin.eventId) {
+    parts.push(pin.eventId);
   }
 
   return parts.join(" - ");

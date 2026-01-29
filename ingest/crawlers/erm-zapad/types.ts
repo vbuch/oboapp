@@ -2,19 +2,19 @@ import type { GeoJSONFeatureCollection } from "@/lib/types";
 import { SourceDocumentWithGeoJson } from "../shared/types";
 
 /**
- * Customer point with coordinates
+ * Polygon vertex with coordinates (for map visualization)
  */
-export interface CustomerPoint {
+export interface PolygonVertex {
   lat: string;
   lon: string;
 }
 
 /**
- * Points object containing customer locations
+ * Points object containing polygon vertices for visualization
  */
 export interface IncidentPoints {
-  cnt: string; // Count of customer points
-  [key: string]: string | CustomerPoint; // Numbered points: "1", "2", "3", etc.
+  cnt: string; // Count of polygon vertices
+  [key: string]: string | PolygonVertex; // Numbered vertices: "1", "2", "3", etc.
 }
 
 /**
@@ -63,4 +63,18 @@ export interface CrawlSummary {
   saved: number;
   skipped: number;
   failed: number;
+}
+
+/**
+ * Deduplicated pin record with incident properties
+ */
+export interface PinRecord {
+  lat: number; // Rounded to 6 decimals
+  lon: number; // Rounded to 6 decimals
+  eventId: string; // CEO identifier (e.g., "SF_7650")
+  typedist: string; // "планирано" or "непланирано"
+  begin_event: string; // Bulgarian datetime format
+  end_event: string; // Bulgarian datetime format
+  city_name: string; // Settlement name
+  cities: string; // Affected cities
 }

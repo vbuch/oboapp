@@ -1,93 +1,81 @@
 import { describe, expect, it } from "vitest";
-import type { RawIncident } from "./types";
+import type { PinRecord } from "./types";
 import { buildGeoJSON, buildMessage, buildTitle } from "./builders";
 
 describe("buildMessage", () => {
   it("should build complete message with all fields", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
+    const pin: PinRecord = {
+      lat: 42.700634,
+      lon: 23.322667,
+      eventId: "SF_7650",
       typedist: "Планирано прекъсване",
-      type_event: "1",
       city_name: "София",
-      grid_id: "",
-      cities: "",
       begin_event: "29.12.2025 10:00",
       end_event: "29.12.2025 16:00",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
+      cities: "",
     };
 
-    const message = buildMessage(incident);
+    const message = buildMessage(pin);
 
     expect(message).toContain("**Планирано прекъсване**");
     expect(message).toContain("**Населено място:** София");
     expect(message).toContain("**Начало:** 29.12.2025 10:00");
     expect(message).toContain("**Край:** 29.12.2025 16:00");
-    expect(message).toContain("**Мрежов код:** 12345");
+    expect(message).toContain("**Мрежов код:** SF_7650");
   });
 
   it("should build message without optional fields", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
+    const pin: PinRecord = {
+      lat: 42.6977,
+      lon: 23.3219,
+      eventId: "SF_1234",
       typedist: "Авария",
-      type_event: "1",
       city_name: "",
-      grid_id: "",
-      cities: "",
       begin_event: "",
       end_event: "",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
+      cities: "",
     };
 
-    const message = buildMessage(incident);
+    const message = buildMessage(pin);
 
     expect(message).toContain("**Авария**");
     expect(message).not.toContain("**Населено място:**");
     expect(message).not.toContain("**Начало:**");
     expect(message).not.toContain("**Край:**");
-    expect(message).toContain("**Мрежов код:** 12345");
+    expect(message).toContain("**Мрежов код:** SF_1234");
   });
 
   it("should build message with only start date", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
+    const pin: PinRecord = {
+      lat: 42.6977,
+      lon: 23.3219,
+      eventId: "SF_5678",
       typedist: "Авария",
-      type_event: "1",
       city_name: "София",
-      grid_id: "",
-      cities: "",
       begin_event: "29.12.2025 10:00",
       end_event: "",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
+      cities: "",
     };
 
-    const message = buildMessage(incident);
+    const message = buildMessage(pin);
 
     expect(message).toContain("**Начало:** 29.12.2025 10:00");
     expect(message).not.toContain("**Край:**");
   });
 
   it("should preserve newlines and formatting", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
+    const pin: PinRecord = {
+      lat: 42.6977,
+      lon: 23.3219,
+      eventId: "SF_9999",
       typedist: "Планирано прекъсване",
-      type_event: "1",
       city_name: "София",
-      grid_id: "",
-      cities: "",
       begin_event: "29.12.2025 10:00",
       end_event: "29.12.2025 16:00",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
+      cities: "",
     };
 
-    const message = buildMessage(incident);
+    const message = buildMessage(pin);
     const lines = message.split("\n");
 
     expect(lines[0]).toBe("**Планирано прекъсване**");
@@ -98,234 +86,150 @@ describe("buildMessage", () => {
 
 describe("buildTitle", () => {
   it("should build title with all components", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
+    const pin: PinRecord = {
+      lat: 42.700634,
+      lon: 23.322667,
+      eventId: "SF_7650",
       typedist: "Планирано прекъсване",
-      type_event: "1",
-      city_name: "София",
-      grid_id: "",
+      city_name: "жк.КРАСНО СЕЛО",
+      begin_event: "28.01.2026 09:42",
+      end_event: "28.01.2026 18:15",
       cities: "",
-      begin_event: "29.12.2025 10:00",
-      end_event: "29.12.2025 16:00",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
     };
 
-    const title = buildTitle(incident);
+    const title = buildTitle(pin);
 
-    expect(title).toBe("Планирано прекъсване - София - 12345");
+    expect(title).toBe("Планирано прекъсване - жк.КРАСНО СЕЛО - SF_7650");
   });
 
-  it("should build title without city name", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
+  it("should build title without city", () => {
+    const pin: PinRecord = {
+      lat: 42.6977,
+      lon: 23.3219,
+      eventId: "SF_1234",
       typedist: "Авария",
-      type_event: "1",
       city_name: "",
-      grid_id: "",
+      begin_event: "28.01.2026 09:42",
+      end_event: "28.01.2026 18:15",
       cities: "",
-      begin_event: "",
-      end_event: "",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
     };
 
-    const title = buildTitle(incident);
+    const title = buildTitle(pin);
 
-    expect(title).toBe("Авария - 12345");
+    expect(title).toBe("Авария - SF_1234");
   });
 
-  it("should build title with only incident type", () => {
-    const incident: RawIncident = {
-      ceo: "",
-      typedist: "Авария",
-      type_event: "1",
-      city_name: "",
-      grid_id: "",
-      cities: "",
-      begin_event: "",
-      end_event: "",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
-    };
-
-    const title = buildTitle(incident);
-
-    expect(title).toBe("Авария");
-  });
-
-  it("should use hyphens as separator", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
+  it("should build title without eventId", () => {
+    const pin: PinRecord = {
+      lat: 42.6977,
+      lon: 23.3219,
+      eventId: "",
       typedist: "Планирано прекъсване",
-      type_event: "1",
       city_name: "София",
-      grid_id: "",
+      begin_event: "28.01.2026 09:42",
+      end_event: "28.01.2026 18:15",
       cities: "",
-      begin_event: "",
-      end_event: "",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
     };
 
-    const title = buildTitle(incident);
+    const title = buildTitle(pin);
 
-    expect(title).toContain(" - ");
-    expect(title.split(" - ")).toHaveLength(3);
+    expect(title).toBe("Планирано прекъсване - София");
   });
 });
 
 describe("buildGeoJSON", () => {
-  it("should build complete GeoJSON FeatureCollection", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
-      typedist: "Планирано прекъсване",
-      type_event: "1",
-      city_name: "София",
-      grid_id: "",
-      cities: "",
-      begin_event: "29.12.2025 10:00",
-      end_event: "29.12.2025 16:00",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
-    };
+  it("should create FeatureCollection with Point geometry for single pin", () => {
+    const pins: PinRecord[] = [
+      {
+        lat: 42.700634,
+        lon: 23.322667,
+        eventId: "SF_7650",
+        typedist: "планирано",
+        city_name: "жк.КРАСНО СЕЛО",
+        begin_event: "28.01.2026 09:42",
+        end_event: "28.01.2026 18:15",
+        cities: "",
+      },
+    ];
 
-    const geoJson = buildGeoJSON(incident);
+    const result = buildGeoJSON(pins);
 
-    expect(geoJson).toBeDefined();
-    expect(geoJson?.type).toBe("FeatureCollection");
-    expect(geoJson?.features).toHaveLength(1);
-
-    const feature = geoJson?.features[0];
-    expect(feature?.type).toBe("Feature");
-    expect(feature?.geometry.type).toBe("Point");
-    expect(feature?.properties.eventId).toBe("12345");
-    expect(feature?.properties.cityName).toBe("София");
-    expect(feature?.properties.eventType).toBe("Планирано прекъсване");
-    expect(feature?.properties.startTime).toBe("29.12.2025 10:00");
-    expect(feature?.properties.endTime).toBe("29.12.2025 16:00");
+    expect(result).toBeDefined();
+    expect(result?.type).toBe("FeatureCollection");
+    expect(result?.features).toHaveLength(1);
+    expect(result?.features[0].geometry.type).toBe("Point");
+    expect(result?.features[0].geometry.coordinates).toEqual([
+      23.322667, 42.700634,
+    ]);
+    expect(result?.features[0].properties.eventId).toBe("SF_7650");
   });
 
-  it("should preserve original Bulgarian date format in properties", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
-      typedist: "Авария",
-      type_event: "1",
-      city_name: "София",
-      grid_id: "",
-      cities: "",
-      begin_event: "29.12.2025 10:00",
-      end_event: "29.12.2025 16:00",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
-    };
+  it("should create separate Point features for multiple pins", () => {
+    const pins: PinRecord[] = [
+      {
+        lat: 42.700634,
+        lon: 23.322667,
+        eventId: "SF_7650",
+        typedist: "планирано",
+        city_name: "жк.КРАСНО СЕЛО",
+        begin_event: "28.01.2026 09:42",
+        end_event: "28.01.2026 18:15",
+        cities: "",
+      },
+      {
+        lat: 42.700729,
+        lon: 23.323977,
+        eventId: "SF_7650",
+        typedist: "планирано",
+        city_name: "жк.КРАСНО СЕЛО",
+        begin_event: "28.01.2026 09:42",
+        end_event: "28.01.2026 18:15",
+        cities: "",
+      },
+    ];
 
-    const geoJson = buildGeoJSON(incident);
-    const feature = geoJson?.features[0];
+    const result = buildGeoJSON(pins);
 
-    // Should keep original Bulgarian format for display
-    expect(feature?.properties.startTime).toBe("29.12.2025 10:00");
-    expect(feature?.properties.endTime).toBe("29.12.2025 16:00");
-    // ISO properties should NOT exist (timespans stored at source root now)
-    expect(feature?.properties.startTimeISO).toBeUndefined();
-    expect(feature?.properties.endTimeISO).toBeUndefined();
+    expect(result).toBeDefined();
+    expect(result?.features).toHaveLength(2);
+    expect(result?.features[0].geometry.type).toBe("Point");
+    expect(result?.features[1].geometry.type).toBe("Point");
+    expect(result?.features[0].geometry.coordinates).toEqual([
+      23.322667, 42.700634,
+    ]);
+    expect(result?.features[1].geometry.coordinates).toEqual([
+      23.323977, 42.700729,
+    ]);
   });
 
-  it("should handle invalid date formats gracefully", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
-      typedist: "Авария",
-      type_event: "1",
-      city_name: "София",
-      grid_id: "",
-      cities: "",
-      begin_event: "invalid date",
-      end_event: "also invalid",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
-    };
+  it("should return null for empty pin array", () => {
+    const result = buildGeoJSON([]);
 
-    const geoJson = buildGeoJSON(incident);
-    const feature = geoJson?.features[0];
-
-    expect(feature?.properties.startTime).toBe("invalid date");
-    expect(feature?.properties.endTime).toBe("also invalid");
-    expect(feature?.properties.startTimeISO).toBeUndefined();
-    expect(feature?.properties.endTimeISO).toBeUndefined();
-  });
-
-  it("should return null when geometry creation fails", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
-      typedist: "Авария",
-      type_event: "1",
-      city_name: "София",
-      grid_id: "",
-      cities: "",
-      begin_event: "",
-      end_event: "",
-      lat: "invalid",
-      lon: "invalid",
-      points: { cnt: "0" },
-    };
-
-    const geoJson = buildGeoJSON(incident);
-
-    expect(geoJson).toBeNull();
+    expect(result).toBeNull();
   });
 
   it("should include all properties in feature", () => {
-    const incident: RawIncident = {
-      ceo: "12345",
-      typedist: "Авария",
-      type_event: "1",
-      city_name: "София",
-      grid_id: "",
-      cities: "",
-      begin_event: "29.12.2025 10:00",
-      end_event: "",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: { cnt: "0" },
-    };
-
-    const geoJson = buildGeoJSON(incident);
-    const feature = geoJson?.features[0];
-
-    expect(feature?.properties).toHaveProperty("eventId");
-    expect(feature?.properties).toHaveProperty("cityName");
-    expect(feature?.properties).toHaveProperty("eventType");
-    expect(feature?.properties).toHaveProperty("startTime");
-    expect(feature?.properties).toHaveProperty("endTime");
-  });
-
-  it("should create appropriate geometry based on customer points", () => {
-    const incidentWithMultiPoint: RawIncident = {
-      ceo: "12345",
-      typedist: "Авария",
-      type_event: "1",
-      city_name: "София",
-      grid_id: "",
-      cities: "",
-      begin_event: "",
-      end_event: "",
-      lat: "42.6977",
-      lon: "23.3219",
-      points: {
-        cnt: "2",
-        "1": { lat: "42.698", lon: "23.3225" },
-        "2": { lat: "42.6975", lon: "23.321" },
+    const pins: PinRecord[] = [
+      {
+        lat: 42.700634,
+        lon: 23.322667,
+        eventId: "SF_7650",
+        typedist: "непланирано",
+        city_name: "София",
+        begin_event: "28.01.2026 09:42",
+        end_event: "28.01.2026 18:15",
+        cities: "София",
       },
-    };
+    ];
 
-    const geoJson = buildGeoJSON(incidentWithMultiPoint);
-    expect(geoJson?.features[0].geometry.type).toBe("MultiPoint");
+    const result = buildGeoJSON(pins);
+
+    expect(result?.features[0].properties).toEqual({
+      eventId: "SF_7650",
+      cityName: "София",
+      eventType: "непланирано",
+      startTime: "28.01.2026 09:42",
+      endTime: "28.01.2026 18:15",
+    });
   });
 });

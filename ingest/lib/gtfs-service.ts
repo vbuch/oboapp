@@ -2,6 +2,7 @@ import AdmZip from "adm-zip";
 import { parse } from "csv-parse/sync";
 import { adminDb } from "./firebase-admin";
 import { isWithinSofia } from "./bounds";
+import { roundCoordinate } from "../crawlers/shared/coordinate-utils";
 
 const GTFS_URL = "https://gtfs.sofiatraffic.bg/api/v1/static";
 const BATCH_SIZE = 100;
@@ -11,13 +12,6 @@ export interface GTFSStop {
   stopName: string;
   lat: number;
   lng: number;
-}
-
-/**
- * Round coordinates to 6 decimal places (precision: ~0.11 meters)
- */
-function roundCoordinate(coord: number): number {
-  return Math.round(coord * 1000000) / 1000000;
 }
 
 /**

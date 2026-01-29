@@ -1,34 +1,28 @@
-import type { CustomerPoint, RawIncident } from "./types";
+import { roundCoordinate } from "../shared/coordinate-utils";
+import type { PinRecord, RawIncident } from "./types";
 
 /**
- * Extract customer point coordinates from incident
+ * Extract pin record from incident center point
+ * The incident.points field contains polygon vertices for map visualization, not customer locations
  */
-export function extractCustomerPoints(
-  points: RawIncident["points"]
-): Array<[number, number]> {
-  const count = Number.parseInt(points.cnt, 10);
-  if (Number.isNaN(count) || count === 0) {
+export function extractPinRecords(incident: RawIncident): PinRecord[] {
+  const centerLat = Number.parseFloat(incident.lat);
+  const centerLon = Number.parseFloat(incident.lon);
+
+  if (Number.isNaN(centerLat) || Number.isNaN(centerLon)) {
     return [];
   }
 
-  const coords: Array<[number, number]> = [];
-
-  for (let i = 1; i <= count; i++) {
-    const point = points[String(i)] as CustomerPoint | undefined;
-    if (
-      point &&
-      typeof point === "object" &&
-      "lat" in point &&
-      "lon" in point
-    ) {
-      const lat = Number.parseFloat(point.lat);
-      const lon = Number.parseFloat(point.lon);
-
-      if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
-        coords.push([lon, lat]); // GeoJSON format: [lng, lat]
-      }
-    }
-  }
-
-  return coords;
+  return [
+    {
+      lat: roundCoordinate(centerLat, 6),
+      lon: roundCoordinate(centerLon, 6),
+      eventId: incident.ceo,
+      typedist: incident.typedist,
+      begin_event: incident.begin_event,
+      end_event: incident.end_event,
+      city_name: incident.city_name,
+      cities: incident.cities,
+    },
+  ];
 }
