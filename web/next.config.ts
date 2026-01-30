@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Target modern browsers only - no legacy polyfills needed
+  // This reduces bundle size and improves performance
+  compiler: {
+    // Remove console logs in production
+    removeConsole: process.env.NODE_ENV === "production",
+  },
 };
 
 const withMDX = createMDX({

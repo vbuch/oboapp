@@ -1,0 +1,13 @@
+# Target modern evergreen browsers only
+# This aligns with the app's requirement to support only browsers with notifications support
+
+# Modern browsers (last 2 versions of major browsers)
+last 2 Chrome versions
+last 2 Firefox versions
+last 2 Safari versions
+last 2 Edge versions
+
+# Exclude older browsers
+not dead
+not IE 11
+not op_mini all

@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    // ES2022 target for modern evergreen browsers only
+    // See .browserslistrc for supported browser list
+    // This eliminates unnecessary polyfills and reduces bundle size
+    "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
