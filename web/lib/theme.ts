@@ -22,7 +22,7 @@ export const buttonStyles = {
     "bg-destructive hover:bg-destructive-hover text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
   /** Secondary action button - uses theme neutral color */
   secondary:
-    "bg-neutral-light hover:bg-neutral-border text-neutral transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-neutral-light hover:bg-neutral-border text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
   /** Warning action button - uses theme warning color */
   warning:
     "bg-warning-light hover:bg-warning-border text-warning border border-warning-border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
@@ -31,7 +31,7 @@ export const buttonStyles = {
     "bg-success hover:bg-success-hover text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
   /** Ghost button - no background, with border - uses theme neutral color */
   ghost:
-    "bg-white hover:bg-neutral-light text-neutral border border-neutral-border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-white hover:bg-neutral-light text-foreground border border-neutral-border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
   /** Link-style button - uses theme primary color */
   link: "text-primary hover:text-primary-hover hover:underline cursor-pointer",
   /** Destructive link-style button - uses theme destructive color */
