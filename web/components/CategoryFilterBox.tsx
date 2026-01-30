@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useMemo } from "react";
 import FilterIcon from "@/components/icons/FilterIcon";
+import CategoryIcon from "@/components/CategoryIcon";
 import Checkbox from "@/components/Checkbox";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { useDragPanel } from "@/lib/hooks/useDragPanel";
@@ -148,6 +149,7 @@ export default function CategoryFilterBox({
                     onChange={() => onToggleCategory(category)}
                     count={count}
                     isLoadingCount={isLoadingCounts}
+                    icon={<CategoryIcon category={category} size={20} />}
                   />
                 ))}
 
