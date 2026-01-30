@@ -39,6 +39,8 @@ describe("AuthContext", () => {
         message: "The popup has been closed by the user",
       });
 
+      const consoleSpy = vi.spyOn(console, "error");
+
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <AuthProvider>{children}</AuthProvider>
       );
@@ -51,6 +53,11 @@ describe("AuthContext", () => {
 
       // Should not throw when user closes popup
       await expect(result.current.signInWithGoogle()).resolves.toBeUndefined();
+
+      // Should not log error for user cancellation
+      expect(consoleSpy).not.toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
     });
 
     it("should not throw error when popup request is cancelled", async () => {
@@ -62,6 +69,8 @@ describe("AuthContext", () => {
         code: "auth/cancelled-popup-request",
         message: "The popup request has been cancelled",
       });
+
+      const consoleSpy = vi.spyOn(console, "error");
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <AuthProvider>{children}</AuthProvider>
@@ -75,6 +84,11 @@ describe("AuthContext", () => {
 
       // Should not throw when popup is cancelled
       await expect(result.current.signInWithGoogle()).resolves.toBeUndefined();
+
+      // Should not log error for user cancellation
+      expect(consoleSpy).not.toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
     });
 
     it("should throw error for actual authentication failures", async () => {
