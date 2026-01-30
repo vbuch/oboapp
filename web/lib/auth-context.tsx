@@ -48,7 +48,16 @@ export function AuthProvider({
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (error: unknown) {
+      // Check if user cancelled the popup - this is not an error
+      const firebaseError = error as { code?: string };
+      if (
+        firebaseError.code === "auth/popup-closed-by-user" ||
+        firebaseError.code === "auth/cancelled-popup-request"
+      ) {
+        // User intentionally closed the popup - don't treat as error
+        return;
+      }
       console.error("Error signing in with Google:", error);
       throw error;
     }
@@ -62,7 +71,16 @@ export function AuthProvider({
       const provider = new GoogleAuthProvider();
       const { reauthenticateWithPopup } = await import("firebase/auth");
       await reauthenticateWithPopup(user, provider);
-    } catch (error) {
+    } catch (error: unknown) {
+      // Check if user cancelled the popup - this is not an error
+      const firebaseError = error as { code?: string };
+      if (
+        firebaseError.code === "auth/popup-closed-by-user" ||
+        firebaseError.code === "auth/cancelled-popup-request"
+      ) {
+        // User intentionally closed the popup - don't treat as error
+        return;
+      }
       console.error("Error reauthenticating with Google:", error);
       throw error;
     }
