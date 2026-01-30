@@ -77,7 +77,7 @@ export default function CategoryChips({
           return (
             <span
               key={category}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-normal rounded-full border bg-white whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-1.5 py-1 text-xs font-normal rounded-full border bg-white whitespace-nowrap"
               style={{
                 borderColor: getCategoryColor(category),
                 color: "inherit",
