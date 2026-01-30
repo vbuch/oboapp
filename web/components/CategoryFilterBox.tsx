@@ -155,7 +155,7 @@ export default function CategoryFilterBox({
           {/* Archived Items Toggle */}
           <div className="border-t border-neutral-border px-4 py-3">
             <Checkbox
-              label="Покажи архивни (7+ дни)"
+              label="Покажи архивни (минали)"
               checked={showArchived}
               onChange={onToggleShowArchived}
             />

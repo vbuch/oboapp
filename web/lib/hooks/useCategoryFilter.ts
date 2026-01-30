@@ -13,7 +13,7 @@ const STORAGE_KEY = "categoryFilter";
 interface CategoryFilterState {
   unselectedCategories: Set<Category | typeof UNCATEGORIZED>; // Categories user has unselected
   hasInteracted: boolean;
-  showArchived: boolean; // Whether to show archived (7+ days old) items
+  showArchived: boolean; // Whether to show archived (past) items
 }
 
 interface CategoryCount {
@@ -108,7 +108,7 @@ function loadFilterState(): CategoryFilterState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-      // Default: nothing unselected (all selected), archived hidden by default
+      // Default: nothing unselected (all selected), archived (past items) hidden by default
       return {
         unselectedCategories: new Set(),
         hasInteracted: false,
