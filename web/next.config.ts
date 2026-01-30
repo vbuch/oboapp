@@ -15,11 +15,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Target modern browsers only - no legacy polyfills needed
-  // This reduces bundle size and improves performance
+  // Production optimizations
   compiler: {
-    // Remove console logs in production
-    removeConsole: process.env.NODE_ENV === "production",
+    // Remove debug console logs in production, keep error/warn for monitoring
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? {
+            exclude: ["error", "warn"],
+          }
+        : false,
   },
 };
 
