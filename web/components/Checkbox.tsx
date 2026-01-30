@@ -9,6 +9,7 @@ interface CheckboxProps {
   readonly count?: number;
   readonly isLoadingCount?: boolean;
   readonly disabled?: boolean;
+  readonly icon?: React.ReactNode;
 }
 
 /**
@@ -21,6 +22,7 @@ export default function Checkbox({
   count,
   isLoadingCount = false,
   disabled = false,
+  icon,
 }: CheckboxProps) {
   const id = useId();
 
@@ -41,6 +43,7 @@ export default function Checkbox({
         disabled={disabled}
         className="w-4 h-4 text-primary border-neutral-border rounded focus:ring-2 focus:ring-primary focus:ring-offset-1 cursor-pointer disabled:cursor-not-allowed"
       />
+      {icon && <span className="flex-shrink-0">{icon}</span>}
       <span className="flex-1 text-sm text-foreground">{label}</span>
       {count !== undefined && (
         <span

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CATEGORY_LABELS, Category } from "@/lib/category-constants";
+import CategoryIcon from "@/components/CategoryIcon";
+import { getCategoryColor, getCategoryBgColor } from "@/lib/category-styles";
 
 interface CategoryChipsProps {
   readonly categories?: string[];
@@ -69,21 +71,31 @@ export default function CategoryChips({
         data-category-scroll
         className="flex flex-nowrap gap-2 overflow-x-auto whitespace-nowrap"
       >
-        {categories.map((category) => (
-          <span
-            key={category}
-            className="px-2.5 py-0.5 bg-primary/10 text-primary text-xs font-normal rounded-full border border-primary/20 whitespace-nowrap"
-            onClick={(event) => {
-              event.currentTarget.scrollIntoView({
-                behavior: "smooth",
-                block: "nearest",
-                inline: "center",
-              });
-            }}
-          >
-            {isCategory(category) ? CATEGORY_LABELS[category] : category}
-          </span>
-        ))}
+        {categories.map((category) => {
+          if (!isCategory(category)) return null;
+          
+          return (
+            <span
+              key={category}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-normal rounded-full border whitespace-nowrap"
+              style={{
+                backgroundColor: getCategoryBgColor(category),
+                borderColor: getCategoryColor(category) + "33", // 20% opacity
+                color: getCategoryColor(category),
+              }}
+              onClick={(event) => {
+                event.currentTarget.scrollIntoView({
+                  behavior: "smooth",
+                  block: "nearest",
+                  inline: "center",
+                });
+              }}
+            >
+              <CategoryIcon category={category} size={16} />
+              {CATEGORY_LABELS[category]}
+            </span>
+          );
+        })}
       </div>
       {hasOverflow && (
         <>
