@@ -45,10 +45,12 @@ interface CategoryFilterBoxProps {
   readonly hasActiveFilters: boolean;
   readonly isInitialLoad: boolean;
   readonly isLoadingCounts: boolean;
+  readonly showArchived: boolean;
   readonly onTogglePanel: () => void;
   readonly onToggleCategory: (
     category: Category | typeof UNCATEGORIZED,
   ) => void;
+  readonly onToggleShowArchived: () => void;
 }
 
 /**
@@ -62,8 +64,10 @@ export default function CategoryFilterBox({
   hasActiveFilters,
   isInitialLoad,
   isLoadingCounts,
+  showArchived,
   onTogglePanel,
   onToggleCategory,
+  onToggleShowArchived,
 }: CategoryFilterBoxProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -146,6 +150,15 @@ export default function CategoryFilterBox({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Archived Items Toggle */}
+          <div className="border-t border-neutral-border px-4 py-3">
+            <Checkbox
+              label="Покажи архивни (7+ дни)"
+              checked={showArchived}
+              onChange={onToggleShowArchived}
+            />
           </div>
 
           {/* Mobile Footer with Close Button */}

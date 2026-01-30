@@ -13,6 +13,7 @@ const STORAGE_KEY = "categoryFilter";
 interface CategoryFilterState {
   unselectedCategories: Set<Category | typeof UNCATEGORIZED>; // Categories user has unselected
   hasInteracted: boolean;
+  showArchived: boolean; // Whether to show archived (7+ days old) items
 }
 
 interface CategoryCount {
@@ -107,21 +108,24 @@ function loadFilterState(): CategoryFilterState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-      // Default: nothing unselected (all selected)
+      // Default: nothing unselected (all selected), archived hidden by default
       return {
         unselectedCategories: new Set(),
         hasInteracted: false,
+        showArchived: false,
       };
     }
     const parsed = JSON.parse(stored);
     return {
       unselectedCategories: new Set(parsed.unselectedCategories || []),
       hasInteracted: parsed.hasInteracted || false,
+      showArchived: parsed.showArchived ?? false, // Default to false if not set
     };
   } catch {
     return {
       unselectedCategories: new Set(),
       hasInteracted: false,
+      showArchived: false,
     };
   }
 }
@@ -133,6 +137,7 @@ function saveFilterState(state: CategoryFilterState): void {
       JSON.stringify({
         unselectedCategories: Array.from(state.unselectedCategories),
         hasInteracted: state.hasInteracted,
+        showArchived: state.showArchived,
         lastUpdated: new Date().toISOString(),
       }),
     );
@@ -163,6 +168,9 @@ export function useCategoryFilter(
   const [hasInteracted, setHasInteracted] = useState<boolean>(
     () => initialFilterState.hasInteracted,
   );
+  const [showArchived, setShowArchived] = useState<boolean>(
+    () => initialFilterState.showArchived,
+  );
   const [isOpen, setIsOpen] = useState<boolean>(
     () => !initialFilterState.hasInteracted,
   );
@@ -171,8 +179,8 @@ export function useCategoryFilter(
 
   // Save to localStorage when state changes
   useEffect(() => {
-    saveFilterState({ unselectedCategories, hasInteracted });
-  }, [unselectedCategories, hasInteracted]);
+    saveFilterState({ unselectedCategories, hasInteracted, showArchived });
+  }, [unselectedCategories, hasInteracted, showArchived]);
 
   // Convert availableCategories array to Set
   const availableCategoriesSet = useMemo<
@@ -286,6 +294,10 @@ export function useCategoryFilter(
     }
   }, [isOpen, openPanel, closePanel]);
 
+  const toggleShowArchived = useCallback(() => {
+    setShowArchived((prev) => !prev);
+  }, []);
+
   return {
     categoryCounts,
     selectedCategories,
@@ -293,7 +305,9 @@ export function useCategoryFilter(
     isOpen,
     isInitialLoad,
     isLoadingCounts,
+    showArchived,
     toggleCategory,
+    toggleShowArchived,
     openPanel,
     closePanel,
     togglePanel,
