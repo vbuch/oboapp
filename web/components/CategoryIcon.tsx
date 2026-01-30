@@ -24,7 +24,7 @@ export default function CategoryIcon({
   if (showBackground) {
     return (
       <div
-        className={`inline-flex items-center justify-center rounded-lg p-2 ${className}`}
+        className={`inline-flex items-center justify-center rounded-lg p-1 ${className}`}
         style={{ backgroundColor: style.bgColor }}
       >
         <Icon size={size} strokeWidth={2} style={{ color: style.color }} />

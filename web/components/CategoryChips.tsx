@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CATEGORY_LABELS, Category } from "@/lib/category-constants";
 import CategoryIcon from "@/components/CategoryIcon";
-import { getCategoryColor, getCategoryBgColor } from "@/lib/category-styles";
+import { getCategoryColor } from "@/lib/category-styles";
 
 interface CategoryChipsProps {
   readonly categories?: string[];
@@ -77,11 +77,10 @@ export default function CategoryChips({
           return (
             <span
               key={category}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-normal rounded-full border whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-normal rounded-full border bg-white whitespace-nowrap"
               style={{
-                backgroundColor: getCategoryBgColor(category),
-                borderColor: getCategoryColor(category) + "33", // 20% opacity
-                color: getCategoryColor(category),
+                borderColor: getCategoryColor(category),
+                color: "inherit",
               }}
               onClick={(event) => {
                 event.currentTarget.scrollIntoView({
@@ -91,7 +90,7 @@ export default function CategoryChips({
                 });
               }}
             >
-              <CategoryIcon category={category} size={16} />
+              <CategoryIcon category={category} size={16} showBackground />
               {CATEGORY_LABELS[category]}
             </span>
           );
