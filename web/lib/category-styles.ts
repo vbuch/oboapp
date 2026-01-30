@@ -18,7 +18,7 @@ import {
   CloudRain,
   Wind,
   Heart,
-  Theater,
+  Drama,
   Palette,
   Trophy,
   Construction,
@@ -110,7 +110,7 @@ export const CATEGORY_STYLES: Record<
     bgColor: "#fee2e2", // red-100
   },
   culture: {
-    icon: Theater,
+    icon: Drama,
     color: "#c026d3", // fuchsia-600
     bgColor: "#fae8ff", // fuchsia-100
   },
