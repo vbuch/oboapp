@@ -128,11 +128,13 @@ export default function CategoryFilterBox({
           ref={panelRef}
           className="relative z-50 w-[320px] max-h-[70vh] sm:max-h-[500px] bg-white shadow-2xl rounded-r-lg flex flex-col"
         >
-          {/* Category List */}
-          <div className="overflow-y-auto flex-1">
-            {isInitialLoad ? (
+          {/* Category List with Archived Toggle - Only show when loaded */}
+          {isInitialLoad ? (
+            <div className="overflow-y-auto flex-1">
               <CategoryFilterSkeleton />
-            ) : (
+            </div>
+          ) : (
+            <div className="overflow-y-auto flex-1">
               <div className="px-4 py-4 space-y-1">
                 {categoryCounts.map(({ category, count }) => (
                   <Checkbox
@@ -148,18 +150,18 @@ export default function CategoryFilterBox({
                     isLoadingCount={isLoadingCounts}
                   />
                 ))}
-              </div>
-            )}
-          </div>
 
-          {/* Archived Items Toggle */}
-          <div className="border-t border-neutral-border px-4 py-3">
-            <Checkbox
-              label="Покажи архивни (минали)"
-              checked={showArchived}
-              onChange={onToggleShowArchived}
-            />
-          </div>
+                {/* Archived Items Toggle - Inside scrollable area at bottom */}
+                <div className="border-t border-neutral-border pt-3 mt-1">
+                  <Checkbox
+                    label="Покажи минали"
+                    checked={showArchived}
+                    onChange={onToggleShowArchived}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Mobile Footer with Close Button */}
           <div className="border-t border-neutral-border px-4 py-4 flex justify-end sm:hidden">
