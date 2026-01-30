@@ -54,12 +54,10 @@ export default function HomeContent() {
     setSelectedCategories,
   } = useMessages();
 
-  // Category filtering
-  // - availableCategories: From /api/categories (all categories that exist)
-  // - messages: Viewport messages (used for counting per category)
+  // Category filtering hook (manages UI state and category selection)
   const categoryFilter = useCategoryFilter(
     availableCategories,
-    messages,
+    messages, // Pass all messages initially - we'll filter within the hook
     setSelectedCategories,
   );
 

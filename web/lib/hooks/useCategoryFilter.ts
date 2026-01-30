@@ -7,6 +7,7 @@ import {
   CATEGORY_DISPLAY_ORDER,
   UNCATEGORIZED,
 } from "@/lib/category-constants";
+import { classifyMessage } from "@/lib/message-classification";
 
 const STORAGE_KEY = "categoryFilter";
 
@@ -245,10 +246,20 @@ export function useCategoryFilter(
     }
   }, [isInitialLoad, viewportMessages]);
 
-  // Count features per category - ONLY for viewport messages
+  // Count features per category - ONLY for viewport messages that match showArchived filter
   const categoryCounts = useMemo<CategoryCount[]>(() => {
-    return computeCategoryCounts(availableCategoriesSet, viewportMessages);
-  }, [availableCategoriesSet, viewportMessages]);
+    let messagesToCount = viewportMessages;
+    
+    // Filter messages based on showArchived toggle
+    if (!showArchived) {
+      // Only count active (non-archived) messages
+      messagesToCount = viewportMessages.filter((message) => 
+        classifyMessage(message) === "active"
+      );
+    }
+    
+    return computeCategoryCounts(availableCategoriesSet, messagesToCount);
+  }, [availableCategoriesSet, viewportMessages, showArchived]);
 
   // Check if filters are active (something is unselected)
   // Red dot shows when ANY category is unchecked (not in default "all selected" state)
