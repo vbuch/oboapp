@@ -41,7 +41,7 @@ export default function CookieConsent() {
             <button
               type="button"
               onClick={handleDecline}
-              className="w-8 h-8 flex items-center justify-center bg-neutral-light hover:bg-neutral-border text-foreground rounded-lg font-bold text-lg"
+              className="w-8 h-8 flex items-center justify-center bg-neutral-light hover:bg-neutral-border text-neutral rounded-lg font-bold text-lg"
               aria-label="Откажи"
             >
               ✕

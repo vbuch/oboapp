@@ -47,7 +47,7 @@ export default function Checkbox({
           className={`text-xs px-2 py-0.5 rounded-full ${
             isLoadingCount
               ? "bg-neutral-light animate-pulse w-8"
-              : "text-foreground bg-neutral-light"
+              : "text-neutral bg-neutral-light"
           }`}
         >
           {isLoadingCount ? "\u00A0" : count}
