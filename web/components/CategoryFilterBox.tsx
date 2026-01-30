@@ -151,7 +151,6 @@ export default function CategoryFilterBox({
                   />
                 ))}
 
-                {/* Archived Items Toggle - Inside scrollable area at bottom */}
                 <div className="border-t border-neutral-border pt-3 mt-1">
                   <Checkbox
                     label="Покажи минали"
