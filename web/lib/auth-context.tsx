@@ -14,8 +14,25 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
+  AuthError,
 } from "firebase/auth";
 import { auth } from "./firebase";
+
+/**
+ * Checks if a Firebase Auth error represents user-initiated cancellation
+ * (e.g., closing the popup or cancelling the auth request).
+ * Returns true if the error should be ignored (not a real error).
+ */
+function isUserCancellationError(error: unknown): boolean {
+  if (error && typeof error === "object" && "code" in error) {
+    const authError = error as AuthError;
+    return (
+      authError.code === "auth/popup-closed-by-user" ||
+      authError.code === "auth/cancelled-popup-request"
+    );
+  }
+  return false;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -49,13 +66,8 @@ export function AuthProvider({
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (error: unknown) {
-      // Check if user cancelled the popup - this is not an error
-      const firebaseError = error as { code?: string };
-      if (
-        firebaseError.code === "auth/popup-closed-by-user" ||
-        firebaseError.code === "auth/cancelled-popup-request"
-      ) {
-        // User intentionally closed the popup - don't treat as error
+      // User closing the popup is intentional, not an error
+      if (isUserCancellationError(error)) {
         return;
       }
       console.error("Error signing in with Google:", error);
@@ -72,13 +84,8 @@ export function AuthProvider({
       const { reauthenticateWithPopup } = await import("firebase/auth");
       await reauthenticateWithPopup(user, provider);
     } catch (error: unknown) {
-      // Check if user cancelled the popup - this is not an error
-      const firebaseError = error as { code?: string };
-      if (
-        firebaseError.code === "auth/popup-closed-by-user" ||
-        firebaseError.code === "auth/cancelled-popup-request"
-      ) {
-        // User intentionally closed the popup - don't treat as error
+      // User closing the popup is intentional, not an error
+      if (isUserCancellationError(error)) {
         return;
       }
       console.error("Error reauthenticating with Google:", error);
