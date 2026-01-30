@@ -19,8 +19,6 @@ export default function CategoryIcon({
   showBackground = false,
 }: CategoryIconProps) {
   const style = CATEGORY_STYLES[category];
-  if (!style) return null;
-
   const Icon = style.icon;
 
   if (showBackground) {
