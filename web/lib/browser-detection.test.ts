@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { isSafariMobile, shouldUseRedirectAuth } from "./browser-detection";
+import {
+  isSafariMobile,
+  isEdge,
+  shouldUseRedirectAuth,
+} from "./browser-detection";
 
 describe("browser-detection", () => {
   const originalNavigator = global.navigator;
@@ -64,6 +68,61 @@ describe("browser-detection", () => {
     });
   });
 
+  describe("isEdge", () => {
+    it("should return true for Edge on Windows", () => {
+      vi.stubGlobal("navigator", {
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+      });
+      expect(isEdge()).toBe(true);
+    });
+
+    it("should return true for Edge on macOS", () => {
+      vi.stubGlobal("navigator", {
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+      });
+      expect(isEdge()).toBe(true);
+    });
+
+    it("should return true for Edge on Android", () => {
+      vi.stubGlobal("navigator", {
+        userAgent:
+          "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 EdgA/120.0.0.0",
+      });
+      expect(isEdge()).toBe(true);
+    });
+
+    it("should return true for Edge on iOS", () => {
+      vi.stubGlobal("navigator", {
+        userAgent:
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 EdgiOS/120.0.0.0 Mobile/15E148 Safari/605.1.15",
+      });
+      expect(isEdge()).toBe(true);
+    });
+
+    it("should return false for Chrome", () => {
+      vi.stubGlobal("navigator", {
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      });
+      expect(isEdge()).toBe(false);
+    });
+
+    it("should return false for Safari", () => {
+      vi.stubGlobal("navigator", {
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
+      });
+      expect(isEdge()).toBe(false);
+    });
+
+    it("should return false when navigator is undefined", () => {
+      vi.stubGlobal("navigator", undefined);
+      expect(isEdge()).toBe(false);
+    });
+  });
+
   describe("shouldUseRedirectAuth", () => {
     it("should return true for iPhone Safari", () => {
       vi.stubGlobal("navigator", {
@@ -89,6 +148,30 @@ describe("browser-detection", () => {
       expect(shouldUseRedirectAuth()).toBe(true);
     });
 
+    it("should return true for Edge on Windows", () => {
+      vi.stubGlobal("navigator", {
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+      });
+      expect(shouldUseRedirectAuth()).toBe(true);
+    });
+
+    it("should return true for Edge on macOS", () => {
+      vi.stubGlobal("navigator", {
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+      });
+      expect(shouldUseRedirectAuth()).toBe(true);
+    });
+
+    it("should return true for Edge on Android", () => {
+      vi.stubGlobal("navigator", {
+        userAgent:
+          "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 EdgA/120.0.0.0",
+      });
+      expect(shouldUseRedirectAuth()).toBe(true);
+    });
+
     it("should return false for desktop Chrome", () => {
       vi.stubGlobal("navigator", {
         userAgent:
@@ -101,6 +184,14 @@ describe("browser-detection", () => {
       vi.stubGlobal("navigator", {
         userAgent:
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
+      });
+      expect(shouldUseRedirectAuth()).toBe(false);
+    });
+
+    it("should return false for desktop Firefox", () => {
+      vi.stubGlobal("navigator", {
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0",
       });
       expect(shouldUseRedirectAuth()).toBe(false);
     });

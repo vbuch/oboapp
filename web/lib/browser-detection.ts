@@ -28,12 +28,32 @@ export function isSafariMobile(): boolean {
 }
 
 /**
+ * Detects if the current browser is Microsoft Edge (Chromium-based)
+ * 
+ * Edge has popup blocking issues similar to Safari, especially
+ * when popups are opened from async handlers.
+ * 
+ * @returns true if running on Edge, false otherwise
+ */
+export function isEdge(): boolean {
+  if (typeof window === "undefined" || !window.navigator) {
+    return false;
+  }
+
+  const ua = window.navigator.userAgent;
+  
+  // Chromium-based Edge uses "Edg/" (desktop), "EdgA/" (Android), or "EdgiOS/" (iOS)
+  return /Edg\/|EdgA\/|EdgiOS\//.test(ua);
+}
+
+/**
  * Detects if the current browser should use redirect-based OAuth
  * instead of popup-based OAuth.
  * 
  * Redirect mode is preferred for:
  * - Mobile devices (better UX, no popup blocking)
  * - Safari on iOS (popup blocking issues)
+ * - Microsoft Edge (popup blocking issues)
  * 
  * @returns true if redirect mode should be used, false for popup mode
  */
@@ -44,6 +64,11 @@ export function shouldUseRedirectAuth(): boolean {
 
   // Always use redirect on Safari iOS
   if (isSafariMobile()) {
+    return true;
+  }
+
+  // Always use redirect on Edge (all platforms)
+  if (isEdge()) {
     return true;
   }
 
