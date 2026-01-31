@@ -12,11 +12,14 @@ import {
   User,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   AuthError,
 } from "firebase/auth";
 import { auth } from "./firebase";
+import { shouldUseRedirectAuth } from "./browser-detection";
 
 /**
  * Checks if a Firebase Auth error represents user-initiated cancellation
@@ -58,13 +61,39 @@ export function AuthProvider({
       setLoading(false);
     });
 
+    // Handle redirect result for Safari/mobile browsers
+    // This runs once on page load to complete redirect-based OAuth
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          // User signed in via redirect - auth state will update via onAuthStateChanged
+          console.log("Redirect sign-in completed");
+        }
+      })
+      .catch((error: unknown) => {
+        // User closing/cancelling the redirect is not an error
+        if (isUserCancellationError(error)) {
+          return;
+        }
+        console.error("Error handling redirect result:", error);
+      });
+
     return unsubscribe;
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      
+      // Use redirect mode for Safari iOS and mobile browsers to avoid popup blocking
+      if (shouldUseRedirectAuth()) {
+        // Redirect mode: user will leave the page and come back
+        await signInWithRedirect(auth, provider);
+        // Note: execution stops here as page redirects
+      } else {
+        // Popup mode: better UX for desktop browsers
+        await signInWithPopup(auth, provider);
+      }
     } catch (error: unknown) {
       // User closing the popup is intentional, not an error
       if (isUserCancellationError(error)) {

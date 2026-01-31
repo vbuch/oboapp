@@ -8,6 +8,10 @@ vi.mock("./firebase", () => ({
   auth: {} as Auth,
 }));
 
+vi.mock("./browser-detection", () => ({
+  shouldUseRedirectAuth: vi.fn(() => false), // Default to popup mode
+}));
+
 vi.mock("firebase/auth", async () => {
   const actual =
     await vi.importActual<typeof import("firebase/auth")>("firebase/auth");
@@ -18,6 +22,8 @@ vi.mock("firebase/auth", async () => {
       return vi.fn();
     }),
     signInWithPopup: vi.fn(),
+    signInWithRedirect: vi.fn(),
+    getRedirectResult: vi.fn(() => Promise.resolve(null)),
     GoogleAuthProvider: vi.fn(),
     signOut: vi.fn(),
   };
@@ -29,6 +35,64 @@ describe("AuthContext", () => {
   });
 
   describe("signInWithGoogle", () => {
+    it("should use popup mode by default", async () => {
+      const { signInWithPopup, signInWithRedirect } =
+        await import("firebase/auth");
+      const mockSignInWithPopup = signInWithPopup as ReturnType<typeof vi.fn>;
+      const mockSignInWithRedirect = signInWithRedirect as ReturnType<
+        typeof vi.fn
+      >;
+
+      mockSignInWithPopup.mockResolvedValueOnce({} as UserCredential);
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <AuthProvider>{children}</AuthProvider>
+      );
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await result.current.signInWithGoogle();
+
+      expect(mockSignInWithPopup).toHaveBeenCalledTimes(1);
+      expect(mockSignInWithRedirect).not.toHaveBeenCalled();
+    });
+
+    it("should use redirect mode on Safari iOS", async () => {
+      const { shouldUseRedirectAuth } = await import("./browser-detection");
+      const mockShouldUseRedirectAuth = shouldUseRedirectAuth as ReturnType<
+        typeof vi.fn
+      >;
+      mockShouldUseRedirectAuth.mockReturnValueOnce(true);
+
+      const { signInWithPopup, signInWithRedirect } =
+        await import("firebase/auth");
+      const mockSignInWithPopup = signInWithPopup as ReturnType<typeof vi.fn>;
+      const mockSignInWithRedirect = signInWithRedirect as ReturnType<
+        typeof vi.fn
+      >;
+
+      mockSignInWithRedirect.mockResolvedValueOnce(undefined);
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <AuthProvider>{children}</AuthProvider>
+      );
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await result.current.signInWithGoogle();
+
+      expect(mockSignInWithRedirect).toHaveBeenCalledTimes(1);
+      expect(mockSignInWithPopup).not.toHaveBeenCalled();
+    });
+
     it("should not throw error when user closes the popup", async () => {
       const { signInWithPopup } = await import("firebase/auth");
       const mockSignInWithPopup = signInWithPopup as ReturnType<typeof vi.fn>;
