@@ -53,6 +53,8 @@ interface ReducerState {
   state: OnboardingState;
   /** Cache the last known permission for RESTART logic */
   lastPermission: NotificationPermission | undefined;
+  /** Track if user explicitly dismissed a prompt to prevent RE_EVALUATE from overriding idle state */
+  isDismissed: boolean;
 }
 
 // ============================================================================
@@ -168,6 +170,7 @@ function handleLoaded(action: { payload: OnboardingContext }): ReducerState {
   return {
     state: computeStateFromContext(action.payload),
     lastPermission: action.payload.permission,
+    isDismissed: false,
   };
 }
 
@@ -183,7 +186,7 @@ function handlePermissionResult(
 
 function handleDismiss(state: ReducerState): ReducerState {
   if (!DISMISSIBLE_STATES.has(state.state)) return state;
-  return { ...state, state: "idle" };
+  return { ...state, state: "idle", isDismissed: true };
 }
 
 function handleRestart(
@@ -193,7 +196,7 @@ function handleRestart(
   if (state.state !== "idle") return state;
 
   const newState = computeStateFromContext({ ...context, isRestart: true });
-  return { ...state, state: newState };
+  return { ...state, state: newState, isDismissed: false };
 }
 
 function handleReEvaluate(
@@ -202,11 +205,16 @@ function handleReEvaluate(
 ): ReducerState {
   // Allow progression out of idle when context meaningfully changes
   if (state.state === "idle") {
+    // If user explicitly dismissed, keep them in idle unless RESTART is used
+    if (state.isDismissed) {
+      return { ...state, lastPermission: context.permission };
+    }
+
     const newState = computeStateFromContext(context);
 
     // If login or other inputs advance the flow, move forward
     if (newState !== "idle") {
-      return { state: newState, lastPermission: context.permission };
+      return { state: newState, lastPermission: context.permission, isDismissed: false };
     }
 
     // Otherwise remain idle but keep permission cache fresh
@@ -217,7 +225,7 @@ function handleReEvaluate(
 
   // Only allow forward progression
   if (isProgressingForward(state.state, newState)) {
-    return { state: newState, lastPermission: context.permission };
+    return { state: newState, lastPermission: context.permission, isDismissed: false };
   }
 
   // Just update permission cache
@@ -266,6 +274,7 @@ export function onboardingReducer(
 const initialState: ReducerState = {
   state: "loading",
   lastPermission: undefined,
+  isDismissed: false,
 };
 
 /**

@@ -117,9 +117,11 @@ describe("onboardingReducer", () => {
   const createInitialState = (
     state: string,
     lastPermission?: NotificationPermission,
+    isDismissed = false,
   ) => ({
     state: state as ReturnType<typeof computeStateFromContext>,
     lastPermission,
+    isDismissed,
   });
 
   describe("LOADED action", () => {
@@ -167,6 +169,21 @@ describe("onboardingReducer", () => {
       const result = onboardingReducer(initialState, action);
 
       expect(result.state).toBe("complete");
+    });
+
+    it("initializes isDismissed to false", () => {
+      const initialState = createInitialState("loading");
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = { type: "LOADED", payload: context };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.isDismissed).toBe(false);
     });
   });
 
@@ -249,6 +266,19 @@ describe("onboardingReducer", () => {
 
       expect(result.state).toBe("idle");
     });
+
+    it.each(["notificationPrompt", "loginPrompt", "zoneCreation"])(
+      "sets isDismissed flag when dismissing %s",
+      (fromState) => {
+        const initialState = createInitialState(fromState);
+        const action: OnboardingAction = { type: "DISMISS" };
+
+        const result = onboardingReducer(initialState, action);
+
+        expect(result.state).toBe("idle");
+        expect(result.isDismissed).toBe(true);
+      },
+    );
   });
 
   describe("RESTART action", () => {
@@ -296,6 +326,22 @@ describe("onboardingReducer", () => {
       const result = onboardingReducer(initialState, action);
 
       expect(result.state).toBe("complete");
+    });
+
+    it("clears isDismissed flag when restarting from dismissed idle state", () => {
+      const initialState = createInitialState("idle", "granted", true);
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action = { type: "RESTART", payload: context } as OnboardingAction;
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("loginPrompt");
+      expect(result.isDismissed).toBe(false);
     });
 
     it("ignores action from non-idle states", () => {
@@ -459,6 +505,107 @@ describe("onboardingReducer", () => {
       const result = onboardingReducer(initialState, action);
 
       expect(result.state).toBe("blocked");
+    });
+
+    it("keeps state as idle when user dismissed loginPrompt (isDismissed=true)", () => {
+      const initialState = createInitialState("idle", "granted", true);
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = {
+        type: "RE_EVALUATE",
+        payload: context,
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("idle");
+      expect(result.isDismissed).toBe(true);
+    });
+
+    it("keeps state as idle when user dismissed notificationPrompt (isDismissed=true)", () => {
+      const initialState = createInitialState("idle", "default", true);
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = {
+        type: "RE_EVALUATE",
+        payload: context,
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("idle");
+      expect(result.isDismissed).toBe(true);
+    });
+
+    it("keeps state as idle when user dismissed zoneCreation (isDismissed=true)", () => {
+      const initialState = createInitialState("idle", "granted", true);
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = {
+        type: "RE_EVALUATE",
+        payload: context,
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("idle");
+      expect(result.isDismissed).toBe(true);
+    });
+  });
+
+  describe("Integration: dismiss and re-evaluate flow", () => {
+    it("should keep user in idle state after dismissing loginPrompt, even when RE_EVALUATE runs", () => {
+      // Scenario from issue #92:
+      // 1. User sees LoginPrompt and clicks "По-късно"
+      // 2. DISMISS action → state transitions to idle
+      // 3. RE_EVALUATE runs (triggered by state change in useEffect)
+      // 4. User should STAY in idle state (not go back to loginPrompt)
+
+      // Start in loginPrompt state (unauthenticated user with granted permission)
+      const loginPromptState = createInitialState("loginPrompt", "granted");
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+
+      // User clicks "По-късно" (Later) button
+      const dismissedState = onboardingReducer(loginPromptState, {
+        type: "DISMISS",
+      });
+      expect(dismissedState.state).toBe("idle");
+      expect(dismissedState.isDismissed).toBe(true);
+
+      // RE_EVALUATE runs (as it does in useEffect)
+      const reEvaluatedState = onboardingReducer(dismissedState, {
+        type: "RE_EVALUATE",
+        payload: context,
+      });
+
+      // User should STAY in idle state (this is the fix!)
+      expect(reEvaluatedState.state).toBe("idle");
+      expect(reEvaluatedState.isDismissed).toBe(true);
+
+      // But RESTART should still allow the flow to restart
+      const restartedState = onboardingReducer(reEvaluatedState, {
+        type: "RESTART",
+        payload: context,
+      });
+      expect(restartedState.state).toBe("loginPrompt");
+      expect(restartedState.isDismissed).toBe(false);
     });
   });
 });
