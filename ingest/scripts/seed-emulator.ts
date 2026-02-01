@@ -1,146 +1,369 @@
 #!/usr/bin/env node
 import dotenv from "dotenv";
 import { resolve } from "node:path";
+import { faker } from "@faker-js/faker";
 
 // Load environment variables
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
+// Sofia coordinates boundary
+const SOFIA_BOUNDS = {
+  north: 42.75,
+  south: 42.65,
+  east: 23.42,
+  west: 23.22,
+};
+
+// Helper to generate random point within Sofia
+function randomSofiaPoint() {
+  return {
+    lat: faker.number.float({
+      min: SOFIA_BOUNDS.south,
+      max: SOFIA_BOUNDS.north,
+      fractionDigits: 6,
+    }),
+    lng: faker.number.float({
+      min: SOFIA_BOUNDS.west,
+      max: SOFIA_BOUNDS.east,
+      fractionDigits: 6,
+    }),
+  };
+}
+
+// Helper to create GeoJSON Point
+function createPointGeoJson(lat: number, lng: number) {
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [lng, lat], // GeoJSON is [lng, lat]
+        },
+        properties: {}, // Empty properties to avoid Firestore nested entity errors
+      },
+    ],
+  };
+}
+
+// Helper to create GeoJSON LineString
+function createLineGeoJson(points: Array<{ lat: number; lng: number }>) {
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: points.map((p) => [p.lng, p.lat]),
+        },
+        properties: {}, // Empty properties to avoid Firestore nested entity errors
+      },
+    ],
+  };
+}
+
+const CATEGORIES = [
+  "water",
+  "electricity",
+  "heating",
+  "road-block",
+  "traffic",
+  "construction-and-repairs",
+  "public-transport",
+];
+
+const SOFIA_STREETS = [
+  "бул. Витоша",
+  "бул. Мария Луиза",
+  "бул. Цар Освободител",
+  "ул. Граф Игнатиев",
+  "бул. Сливница",
+  "ул. Раковски",
+  "бул. Драган Цанков",
+];
+
 async function seedEmulator() {
-  console.log("🌱 Seeding Firebase Emulator with test data...\n");
+  console.log("🌱 Seeding Firebase Emulator with realistic test data...\n");
 
   // Dynamic import to ensure dotenv loads first
   const { adminDb } = await import("@/lib/firebase-admin");
 
-  // Sample source documents
-  const sources = [
-    {
-      id: "test-source-water-1",
-      url: "https://example.com/water-disruption-1",
-      sourceType: "rayon-oborishte-bg",
-      title: "Спиране на водоснабдяването - бул. Витоша",
-      text: "Спиране на водоснабдяването на бул. Витоша 1 поради авария от 10:00 до 16:00 часа на 15.02.2026г.",
-      datePublished: "2026-02-01T08:00:00Z",
-      crawledAt: new Date(),
-      timespanStart: new Date("2026-02-15T10:00:00Z"),
-      timespanEnd: new Date("2026-02-15T16:00:00Z"),
-    },
-    {
-      id: "test-source-traffic-1",
-      url: "https://example.com/traffic-block-1",
-      sourceType: "sofia-bg",
-      title: "Ограничение на движението - бул. Мария Луиза",
-      text: "Затворен за движение булевард Мария Луиза от 8:00 до 18:00 часа поради ремонтни дейности.",
-      datePublished: "2026-02-01T09:00:00Z",
-      crawledAt: new Date(),
-      timespanStart: new Date("2026-02-01T08:00:00Z"),
-      timespanEnd: new Date("2026-02-01T18:00:00Z"),
-    },
-    {
-      id: "test-source-construction-1",
-      url: "https://example.com/metro-construction",
-      sourceType: "sofia-bg",
-      title: "Ремонт на метростанция",
-      text: "Ремонт на метростанция на площад Македония до края на месеца.",
-      datePublished: "2026-02-01T10:00:00Z",
-      crawledAt: new Date(),
-      timespanStart: new Date("2026-02-01T00:00:00Z"),
-      timespanEnd: new Date("2026-02-28T23:59:59Z"),
-    },
-  ];
+  try {
+    // Create test users
+    console.log("Creating test users...");
+    await adminDb
+      .collection("users")
+      .doc("test-user-1")
+      .set({
+        email: "test@example.com",
+        createdAt: new Date().toISOString(),
+        settings: {
+          notifications: {
+            enabled: true,
+          },
+        },
+      });
+    console.log("✅ Created test user\n");
 
-  console.log("📄 Creating source documents...");
-  for (const source of sources) {
-    await adminDb.collection("sources").doc(source.id).set(source);
-    console.log(`  ✓ ${source.id}`);
+    // Create user interest zones
+    console.log("Creating interest zones...");
+    const zones = [
+      {
+        name: "Центъра",
+        center: { lat: 42.6977, lng: 23.3219 }, // Sofia center
+      },
+      {
+        name: "Младост",
+        center: { lat: 42.6476, lng: 23.3768 },
+      },
+      {
+        name: "Студентски град",
+        center: { lat: 42.6558, lng: 23.3518 },
+      },
+    ];
+
+    for (let i = 0; i < zones.length; i++) {
+      const zone = zones[i];
+      await adminDb
+        .collection("users")
+        .doc("test-user-1")
+        .collection("interestZones")
+        .doc(`zone-${i + 1}`)
+        .set({
+          name: zone.name,
+          center: zone.center,
+          radius: 1000,
+          createdAt: new Date().toISOString(),
+        });
+    }
+    console.log(`✅ Created ${zones.length} interest zones\n`);
+
+    // Create sources and messages with realistic data
+    console.log("Creating sources and messages...");
+
+    const messageConfigs = [
+      // Water outages (Points)
+      {
+        category: ["water"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Планирано прекъсване на водоподаването",
+      },
+      {
+        category: ["water"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Авария на водопровод",
+      },
+      // Heating (Points)
+      {
+        category: ["heating"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Ремонт на топлопровод",
+      },
+      {
+        category: ["heating"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Подмяна на участък от топлопреносната мрежа",
+      },
+      // Electricity (Points)
+      {
+        category: ["electricity"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Планирано изключване на електроподаването",
+      },
+      // Road blocks (LineStrings)
+      {
+        category: ["road-block", "construction-and-repairs"],
+        type: "line",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Ремонт на пътно платно, затруднено движение",
+      },
+      {
+        category: ["road-block"],
+        type: "line",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Временно затваряне на участък",
+      },
+      // Traffic
+      {
+        category: ["traffic"],
+        type: "line",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Интензивен трафик",
+      },
+      // Construction
+      {
+        category: ["construction-and-repairs"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Строително-ремонтни дейности",
+      },
+      {
+        category: ["construction-and-repairs"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Подмяна на водопроводна инсталация",
+      },
+      // Public transport
+      {
+        category: ["public-transport"],
+        type: "line",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Променен маршрут на автобусна линия",
+      },
+      {
+        category: ["public-transport"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Временна автобусна спирка",
+      },
+      // Mixed categories
+      {
+        category: ["water", "construction-and-repairs"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Ремонт на водопроводна мрежа",
+      },
+      {
+        category: ["road-block", "traffic"],
+        type: "line",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Пътни ремонти с ограничение на движението",
+      },
+      {
+        category: ["heating", "construction-and-repairs"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Реконструкция на топлопровод",
+      },
+      // Future events
+      {
+        category: ["water"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Планирани профилактични дейности",
+      },
+      {
+        category: ["electricity"],
+        type: "point",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Профилактика на електроразпределителната мрежа",
+      },
+      // Past events
+      {
+        category: ["road-block"],
+        type: "line",
+        street: faker.helpers.arrayElement(SOFIA_STREETS),
+        text: "Приключили ремонтни дейности",
+      },
+    ];
+
+    for (let i = 0; i < messageConfigs.length; i++) {
+      const config = messageConfigs[i];
+      const sourceId = `test-source-${i + 1}`;
+      const messageId = `test-message-${i + 1}`;
+
+      // Generate timespan
+      let timespanStart: Date;
+      let timespanEnd: Date;
+
+      if (i < 5) {
+        // Current/ongoing events (started yesterday, ends tomorrow)
+        timespanStart = faker.date.recent({ days: 1 });
+        timespanEnd = faker.date.soon({ days: 1 });
+      } else if (i < 13) {
+        // Future events (starts tomorrow, lasts 1-3 days)
+        timespanStart = faker.date.soon({ days: 1 });
+        timespanEnd = new Date(
+          timespanStart.getTime() +
+            faker.number.int({ min: 1, max: 3 }) * 24 * 60 * 60 * 1000,
+        );
+      } else {
+        // Past events (ended yesterday)
+        timespanEnd = faker.date.recent({ days: 1 });
+        timespanStart = new Date(
+          timespanEnd.getTime() -
+            faker.number.int({ min: 1, max: 5 }) * 24 * 60 * 60 * 1000,
+        );
+      }
+
+      // Create source document
+      const sourceData = {
+        url: `https://example.com/source/${i + 1}`,
+        title: `${config.text} на ${config.street}`,
+        text: `${config.text} на ${config.street} от ${timespanStart.toLocaleDateString("bg-BG")} до ${timespanEnd.toLocaleDateString("bg-BG")}`,
+        createdAt: new Date().toISOString(),
+        timespanStart: timespanStart.toISOString(),
+        timespanEnd: timespanEnd.toISOString(),
+      };
+
+      await adminDb.collection("sources").doc(sourceId).set(sourceData);
+
+      // Create GeoJSON based on type
+      let geoJson;
+      let point;
+
+      if (config.type === "point") {
+        point = randomSofiaPoint();
+        geoJson = createPointGeoJson(point.lat, point.lng);
+      } else {
+        // LineString with 3-5 points
+        const numPoints = faker.number.int({ min: 3, max: 5 });
+        const points = [];
+        const startPoint = randomSofiaPoint();
+        points.push(startPoint);
+
+        for (let j = 1; j < numPoints; j++) {
+          // Create nearby points (small offset)
+          points.push({
+            lat:
+              startPoint.lat +
+              faker.number.float({ min: -0.01, max: 0.01, fractionDigits: 6 }),
+            lng:
+              startPoint.lng +
+              faker.number.float({ min: -0.01, max: 0.01, fractionDigits: 6 }),
+          });
+        }
+
+        geoJson = createLineGeoJson(points);
+        point = startPoint; // Use first point as reference
+      }
+
+      // Create message document
+      const messageData = {
+        sourceDocumentId: sourceId,
+        text: `${config.text} на ${config.street}`,
+        markdownText: `**${config.text}**\n\nЛокация: ${config.street}\n\nПериод: ${timespanStart.toLocaleDateString("bg-BG")} - ${timespanEnd.toLocaleDateString("bg-BG")}`,
+        categories: config.category,
+        createdAt: new Date().toISOString(),
+        finalizedAt: new Date().toISOString(),
+        timespanStart: timespanStart.toISOString(),
+        timespanEnd: timespanEnd.toISOString(),
+        geoJson: JSON.stringify(geoJson), // Firestore requires GeoJSON as string
+      };
+
+      await adminDb.collection("messages").doc(messageId).set(messageData);
+    }
+
+    console.log(`✅ Created ${messageConfigs.length} sources and messages\n`);
+
+    console.log("✨ Seeding complete!\n");
+    console.log("📊 Summary:");
+    console.log(`   - 1 test user`);
+    console.log(`   - ${zones.length} interest zones`);
+    console.log(`   - ${messageConfigs.length} messages with GeoJSON`);
+    console.log(`\n🗺️  View data at: http://localhost:4000`);
+    console.log(`🌐 View map at: http://localhost:3000\n`);
+  } catch (error) {
+    console.error("❌ Error seeding emulator:", error);
+    process.exit(1);
   }
-
-  // Sample message documents with GeoJSON
-  const messages = [
-    {
-      id: "test-message-water-1",
-      text: "Спиране на водоснабдяването на бул. Витоша 1 поради авария.",
-      sourceDocumentId: "test-source-water-1",
-      source: "rayon-oborishte-bg",
-      sourceUrl: "https://example.com/water-disruption-1",
-      categories: ["water"],
-      relations: [],
-      timespanStart: new Date("2026-02-15T10:00:00Z"),
-      timespanEnd: new Date("2026-02-15T16:00:00Z"),
-      markdownText:
-        "**Спиране на водоснабдяването**\\n\\nАдрес: бул. Витоша 1\\nВреме: 10:00 - 16:00\\nДата: 15.02.2026",
-      finalizedAt: new Date(),
-      createdAt: new Date(),
-    },
-    {
-      id: "test-message-traffic-1",
-      text: "Затворен за движение булевард Мария Луиза.",
-      sourceDocumentId: "test-source-traffic-1",
-      source: "sofia-bg",
-      sourceUrl: "https://example.com/traffic-block-1",
-      categories: ["road-block", "traffic"],
-      relations: [],
-      timespanStart: new Date("2026-02-01T08:00:00Z"),
-      timespanEnd: new Date("2026-02-01T18:00:00Z"),
-      markdownText:
-        "**Ограничение на движението**\\n\\nУлица: бул. Мария Луиза\\nВреме: 08:00 - 18:00",
-      finalizedAt: new Date(),
-      createdAt: new Date(),
-    },
-    {
-      id: "test-message-construction-1",
-      text: "Ремонт на метростанция на площад Македония.",
-      sourceDocumentId: "test-source-construction-1",
-      source: "sofia-bg",
-      sourceUrl: "https://example.com/metro-construction",
-      categories: ["construction-and-repairs", "public-transport"],
-      relations: ["метро"],
-      timespanStart: new Date("2026-02-01T00:00:00Z"),
-      timespanEnd: new Date("2026-02-28T23:59:59Z"),
-      markdownText:
-        "**Ремонт на метростанция**\\n\\nМясто: площад Македония\\nПериод: до края на месеца",
-      finalizedAt: new Date(),
-      createdAt: new Date(),
-    },
-  ];
-
-  console.log("\n💬 Creating message documents...");
-  for (const message of messages) {
-    await adminDb.collection("messages").doc(message.id).set(message);
-    console.log(`  ✓ ${message.id}`);
-  }
-
-  // Sample interest zones
-  const interests = [
-    {
-      id: "test-interest-1",
-      userId: "test-user-1",
-      name: "Център",
-      coordinates: { lat: 42.6977, lng: 23.3219 },
-      radius: 1000, // meters
-      createdAt: new Date(),
-    },
-    {
-      id: "test-interest-2",
-      userId: "test-user-2",
-      name: "Витоша",
-      coordinates: { lat: 42.65, lng: 23.2833 },
-      radius: 2000,
-      createdAt: new Date(),
-    },
-  ];
-
-  console.log("\n📍 Creating interest zones...");
-  for (const interest of interests) {
-    await adminDb.collection("interests").doc(interest.id).set(interest);
-    console.log(`  ✓ ${interest.name} (user: ${interest.userId})`);
-  }
-
-  console.log("\n✅ Emulator seeding complete!");
-  console.log("\n📊 Summary:");
-  console.log(`   ${sources.length} source documents`);
-  console.log(`   ${messages.length} message documents`);
-  console.log(`   ${interests.length} interest zones`);
-  console.log("\n💡 Access the Emulator UI at: http://localhost:4000");
 }
 
 seedEmulator().catch((error) => {
