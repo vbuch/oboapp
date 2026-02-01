@@ -5,18 +5,32 @@
  */
 
 import dotenv from "dotenv";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
 import { writeFileSync, mkdirSync } from "node:fs";
 
 // Load environment first
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+
+/**
+ * Parse field that may be stringified JSON (backwards compatibility)
+ */
+function parseField<T = any>(field: unknown): T | undefined {
+  if (typeof field === "string") {
+    try {
+      return JSON.parse(field) as T;
+    } catch {
+      return undefined;
+    }
+  }
+  return field as T | undefined;
+}
 
 async function main() {
   console.log("🔄 Capturing API fixtures from Firestore messages...\n");
 
   // Dynamic imports to ensure dotenv loads first
   const { adminDb } = await import("@/lib/firebase-admin");
-  const { categorize, extractStructuredData } =
+  const { categorize: categorizeFn, extractStructuredData } =
     await import("@/lib/ai-service");
   const { geocodeAddress } = await import("@/lib/geocoding-service");
   const { overpassGeocodeAddresses } =
@@ -28,7 +42,7 @@ async function main() {
   const writeFixture = (path: string, data: any) => {
     const fixtureBase = resolve(__dirname, "../__mocks__/fixtures");
     const fullPath = resolve(fixtureBase, path);
-    const dir = fullPath.substring(0, fullPath.lastIndexOf("/"));
+    const dir = dirname(fullPath);
     mkdirSync(dir, { recursive: true });
     writeFileSync(fullPath, JSON.stringify(data, null, 2));
   };
@@ -43,20 +57,20 @@ async function main() {
 
   const msgWithBusStops = recentMessages.docs.find((doc) => {
     const data = doc.data();
+    const categorize = parseField(data.categorize);
     return (
-      data.categorize?.busStops &&
-      Array.isArray(data.categorize.busStops) &&
-      data.categorize.busStops.length > 0
+      categorize?.busStops &&
+      Array.isArray(categorize.busStops) &&
+      categorize.busStops.length > 0
     );
   });
 
   if (msgWithBusStops) {
     const msg = msgWithBusStops.data();
+    const categorize = parseField(msg.categorize);
     console.log(`  Found message: ${msgWithBusStops.id}`);
     console.log(`  Source: ${msg.source}`);
-    console.log(
-      `  BusStops: ${msg.categorize?.busStops?.join(", ") || "none"}`,
-    );
+    console.log(`  BusStops: ${categorize?.busStops?.join(", ") || "none"}`);
 
     if (msg.sourceDocumentId && msg.source) {
       const sourceDoc = await adminDb
@@ -69,7 +83,9 @@ async function main() {
       if (sourceDoc.exists) {
         const sourceData = sourceDoc.data();
         console.log(`  Re-categorizing source text...`);
-        const categorizeResult = await categorize(sourceData?.text || msg.text);
+        const categorizeResult = await categorizeFn(
+          sourceData?.text || msg.text,
+        );
         writeFixture("gemini/categorize-with-busstops.json", categorizeResult);
         console.log("  ✓ Saved categorize-with-busstops.json");
       }
@@ -82,25 +98,26 @@ async function main() {
   console.log("\n🏘️  Finding message with cadastral properties...");
   const msgWithCadastral = recentMessages.docs.find((doc) => {
     const data = doc.data();
+    const extractedData = parseField(data.extractedData);
     return (
-      data.extractedData?.cadastralProperties &&
-      Array.isArray(data.extractedData.cadastralProperties) &&
-      data.extractedData.cadastralProperties.length > 0
+      extractedData?.cadastralProperties &&
+      Array.isArray(extractedData.cadastralProperties) &&
+      extractedData.cadastralProperties.length > 0
     );
   });
 
   if (msgWithCadastral) {
     const msg = msgWithCadastral.data();
+    const extractedData = parseField(msg.extractedData);
+    const categorize = parseField(msg.categorize);
     console.log(`  Found message: ${msgWithCadastral.id}`);
     console.log(
-      `  Cadastral properties: ${msg.extractedData?.cadastralProperties?.length || 0}`,
+      `  Cadastral properties: ${extractedData?.cadastralProperties?.length || 0}`,
     );
 
-    if (msg.categorize?.normalizedText) {
+    if (categorize?.normalizedText) {
       console.log(`  Extracting data...`);
-      const extracted = await extractStructuredData(
-        msg.categorize.normalizedText,
-      );
+      const extracted = await extractStructuredData(categorize.normalizedText);
       writeFixture("gemini/extract-with-cadastral.json", extracted);
       console.log("  ✓ Saved extract-with-cadastral.json");
 
@@ -127,20 +144,22 @@ async function main() {
   console.log("\n🛣️  Finding message with street sections...");
   const msgWithStreets = recentMessages.docs.find((doc) => {
     const data = doc.data();
+    const extractedData = parseField(data.extractedData);
     return (
-      data.extractedData?.streets &&
-      Array.isArray(data.extractedData.streets) &&
-      data.extractedData.streets.length > 0
+      extractedData?.streets &&
+      Array.isArray(extractedData.streets) &&
+      extractedData.streets.length > 0
     );
   });
 
   if (msgWithStreets) {
     const msg = msgWithStreets.data();
+    const extractedData = parseField(msg.extractedData);
     console.log(`  Found message: ${msgWithStreets.id}`);
-    console.log(`  Streets: ${msg.extractedData?.streets?.length || 0}`);
+    console.log(`  Streets: ${extractedData?.streets?.length || 0}`);
 
-    if (msg.extractedData?.streets && msg.extractedData.streets.length > 0) {
-      const street = msg.extractedData.streets[0];
+    if (extractedData?.streets && extractedData.streets.length > 0) {
+      const street = extractedData.streets[0];
       const streetName = street.street;
       console.log(`  Geocoding street: ${streetName}...`);
       try {
@@ -172,20 +191,22 @@ async function main() {
   console.log("\n📍 Finding message with pins (addresses)...");
   const msgWithPins = recentMessages.docs.find((doc) => {
     const data = doc.data();
+    const extractedData = parseField(data.extractedData);
     return (
-      data.extractedData?.pins &&
-      Array.isArray(data.extractedData.pins) &&
-      data.extractedData.pins.length > 0
+      extractedData?.pins &&
+      Array.isArray(extractedData.pins) &&
+      extractedData.pins.length > 0
     );
   });
 
   if (msgWithPins) {
     const msg = msgWithPins.data();
+    const extractedData = parseField(msg.extractedData);
     console.log(`  Found message: ${msgWithPins.id}`);
-    console.log(`  Pins: ${msg.extractedData?.pins?.length || 0}`);
+    console.log(`  Pins: ${extractedData?.pins?.length || 0}`);
 
-    if (msg.extractedData?.pins && msg.extractedData.pins.length > 0) {
-      const pin = msg.extractedData.pins[0];
+    if (extractedData?.pins && extractedData.pins.length > 0) {
+      const pin = extractedData.pins[0];
       const address = pin.address;
       console.log(`  Geocoding address: ${address}...`);
       try {

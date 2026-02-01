@@ -55,17 +55,17 @@ function createMessageData(
     finalizedAt: new Date(),
     timespanStart: timespan.start,
     timespanEnd: timespan.end,
-    geoJson: JSON.stringify(geoJson), // Stringify for Firestore
+    geoJson: geoJson, // Keep as native object
   };
 
   // Add extractedData if present
   if (config.extractedData) {
-    baseData.extractedData = JSON.stringify(config.extractedData);
+    baseData.extractedData = config.extractedData;
   }
 
   // Add categorize if present
   if (config.categorize) {
-    baseData.categorize = JSON.stringify(config.categorize);
+    baseData.categorize = config.categorize;
   }
 
   return baseData;

@@ -131,7 +131,6 @@ export async function crawl(dryRun = false): Promise<void> {
         const saved = await saveSourceDocumentIfNew(doc, adminDb, {
           transformData: (d) => ({
             ...d,
-            geoJson: JSON.stringify(d.geoJson),
             crawledAt: new Date(d.crawledAt),
           }),
           logSuccess: false,

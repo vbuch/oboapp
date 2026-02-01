@@ -200,7 +200,7 @@ function buildSourceDocument(pins: PinRecord[]): ErmZapadSourceDocument | null {
     markdownText: message,
     sourceType: SOURCE_TYPE,
     crawledAt: new Date(),
-    geoJson: JSON.stringify(validation.geoJson),
+    geoJson: validation.geoJson,
     categories: ["electricity"],
     isRelevant: true,
     timespanStart,
