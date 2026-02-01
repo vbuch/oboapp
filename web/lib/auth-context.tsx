@@ -61,22 +61,25 @@ export function AuthProvider({
       setLoading(false);
     });
 
-    // Handle redirect result for Safari/mobile browsers
-    // This runs once on page load to complete redirect-based OAuth
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          // User signed in via redirect - auth state will update via onAuthStateChanged
-          console.log("Redirect sign-in completed");
-        }
-      })
-      .catch((error: unknown) => {
-        // User closing/cancelling the redirect is not an error
-        if (isUserCancellationError(error)) {
-          return;
-        }
-        console.error("Error handling redirect result:", error);
-      });
+    // Handle redirect result ONLY for browsers that use redirect-based auth
+    // This prevents interference with popup-based auth on desktop browsers like Chrome
+    if (shouldUseRedirectAuth()) {
+      // This runs once on page load to complete redirect-based OAuth
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result?.user) {
+            // User signed in via redirect - auth state will update via onAuthStateChanged
+            console.log("Redirect sign-in completed");
+          }
+        })
+        .catch((error: unknown) => {
+          // User closing/cancelling the redirect is not an error
+          if (isUserCancellationError(error)) {
+            return;
+          }
+          console.error("Error handling redirect result:", error);
+        });
+    }
 
     return unsubscribe;
   }, []);
