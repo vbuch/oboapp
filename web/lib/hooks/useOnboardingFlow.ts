@@ -70,6 +70,12 @@ function computeUnauthenticatedState(
   permission: NotificationPermission | undefined,
   isRestart: boolean,
 ): OnboardingState {
+  // Initial load: always show idle state for clean UI
+  if (!isRestart) {
+    return "idle";
+  }
+
+  // User clicked button (RESTART) - now check permission
   // No Notification API or permission already granted → go to login
   if (permission === undefined || permission === "granted") {
     return "loginPrompt";
@@ -80,9 +86,8 @@ function computeUnauthenticatedState(
     return "blocked";
   }
 
-  // Permission is "default"
-  // Initial load: idle (clean UI). Restart: show prompt.
-  return isRestart ? "notificationPrompt" : "idle";
+  // Permission is "default" - show notification prompt
+  return "notificationPrompt";
 }
 
 /**
@@ -214,7 +219,11 @@ function handleReEvaluate(
 
     // If login or other inputs advance the flow, move forward
     if (newState !== "idle") {
-      return { state: newState, lastPermission: context.permission, isDismissed: false };
+      return {
+        state: newState,
+        lastPermission: context.permission,
+        isDismissed: false,
+      };
     }
 
     // Otherwise remain idle but keep permission cache fresh
@@ -225,7 +234,11 @@ function handleReEvaluate(
 
   // Only allow forward progression
   if (isProgressingForward(state.state, newState)) {
-    return { state: newState, lastPermission: context.permission, isDismissed: false };
+    return {
+      state: newState,
+      lastPermission: context.permission,
+      isDismissed: false,
+    };
   }
 
   // Just update permission cache

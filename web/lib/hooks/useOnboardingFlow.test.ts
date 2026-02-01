@@ -29,32 +29,65 @@ describe("computeStateFromContext", () => {
       expect(computeStateFromContext(context)).toBe("notificationPrompt");
     });
 
-    it("returns loginPrompt when permission is granted", () => {
+    it("returns idle on initial load when permission is granted", () => {
       const context: OnboardingContext = {
         permission: "granted",
         isLoggedIn: false,
         zonesCount: 0,
         hasSubscriptions: false,
       };
+      expect(computeStateFromContext(context)).toBe("idle");
+    });
+
+    it("returns loginPrompt on restart when permission is granted", () => {
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+        isRestart: true,
+      };
       expect(computeStateFromContext(context)).toBe("loginPrompt");
     });
 
-    it("returns blocked when permission is denied", () => {
+    it("returns idle on initial load when permission is denied", () => {
       const context: OnboardingContext = {
         permission: "denied",
         isLoggedIn: false,
         zonesCount: 0,
         hasSubscriptions: false,
       };
+      expect(computeStateFromContext(context)).toBe("idle");
+    });
+
+    it("returns blocked on restart when permission is denied", () => {
+      const context: OnboardingContext = {
+        permission: "denied",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+        isRestart: true,
+      };
       expect(computeStateFromContext(context)).toBe("blocked");
     });
 
-    it("returns loginPrompt when Notification API is unavailable", () => {
+    it("returns idle on initial load when Notification API is unavailable", () => {
       const context: OnboardingContext = {
         permission: undefined,
         isLoggedIn: false,
         zonesCount: 0,
         hasSubscriptions: false,
+      };
+      expect(computeStateFromContext(context)).toBe("idle");
+    });
+
+    it("returns loginPrompt on restart when Notification API is unavailable", () => {
+      const context: OnboardingContext = {
+        permission: undefined,
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+        isRestart: true,
       };
       expect(computeStateFromContext(context)).toBe("loginPrompt");
     });
@@ -141,7 +174,7 @@ describe("onboardingReducer", () => {
       expect(result.lastPermission).toBe("default");
     });
 
-    it("transitions to loginPrompt when permission already granted", () => {
+    it("transitions to idle when permission already granted (unauthenticated)", () => {
       const initialState = createInitialState("loading");
       const context: OnboardingContext = {
         permission: "granted",
@@ -153,7 +186,7 @@ describe("onboardingReducer", () => {
 
       const result = onboardingReducer(initialState, action);
 
-      expect(result.state).toBe("loginPrompt");
+      expect(result.state).toBe("idle");
     });
 
     it("transitions to complete when user is fully onboarded", () => {

@@ -31,9 +31,7 @@ to avoid requesting permission during sign-out.
 stateDiagram-v2
     [*] --> loading
 
-    loading --> idle : LOADED [permission=default, !user]
-    loading --> blocked : LOADED [permission=denied]
-    loading --> loginPrompt : LOADED [permission=granted OR noAPI, !user]
+    loading --> idle : LOADED [!user]
     loading --> zoneCreation : LOADED [user, zones=0]
     loading --> notificationPrompt : LOADED [user, zones>0, permission=default]
     loading --> blocked : LOADED [user, zones>0, permission=denied]
