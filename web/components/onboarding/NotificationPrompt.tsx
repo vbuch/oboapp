@@ -57,21 +57,30 @@ export default function NotificationPrompt({
   }, [onDismiss]);
 
   return (
-    <div className="animate-fade-in fixed sm:absolute bottom-2 sm:bottom-4 right-2 sm:right-4 left-2 sm:left-auto z-10 sm:max-w-sm">
-      <PromptCard
-        icon={<BellIcon className="w-12 h-12 text-primary" />}
-        title="Получавай известия"
-        description="Ще поискаме разрешение за известия от браузъра."
-        note="След това ще можеш да добавиш зони на интерес и да получаваш известия за събития в тях."
-        primaryButton={{
-          text: "Разреши известия",
-          onClick: handleAccept,
-        }}
-        secondaryButton={{
-          text: "Не сега",
-          onClick: handleDecline,
-        }}
+    <>
+      {/* Backdrop */}
+      <button
+        type="button"
+        className="fixed inset-0 z-[9] bg-black/20 backdrop-blur-sm pointer-events-auto"
+        onClick={handleDecline}
+        aria-label="Затвори"
       />
-    </div>
+      <div className="animate-fade-in fixed sm:absolute bottom-2 sm:bottom-4 right-2 sm:right-4 left-2 sm:left-auto z-10 sm:max-w-sm">
+        <PromptCard
+          icon={<BellIcon className="w-12 h-12 text-primary" />}
+          title="Получавай известия"
+          description="Ще поискаме разрешение за известия от браузъра."
+          note="След това ще можеш да добавиш зони на интерес и да получаваш известия за събития в тях."
+          primaryButton={{
+            text: "Разреши известия",
+            onClick: handleAccept,
+          }}
+          secondaryButton={{
+            text: "Не сега",
+            onClick: handleDecline,
+          }}
+        />
+      </div>
+    </>
   );
 }

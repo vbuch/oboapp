@@ -12,36 +12,45 @@ interface SubscribePromptProps {
  */
 export default function SubscribePrompt({ onClose }: SubscribePromptProps) {
   return (
-    <div className="animate-fade-in absolute bottom-4 right-4 z-10 max-w-sm">
-      <div className="bg-warning-light border-2 border-warning-border rounded-lg shadow-xl p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 text-2xl">⚠️</div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-warning mb-2">
-              Няма абонамент за известия
-            </h3>
-            <p className="text-warning text-sm mb-3">
-              Имате зони на интерес, но не сте абонирани за известия. Това е
-              основната задача на OboApp!
-            </p>
-            <div className="flex gap-2">
-              <Link
-                href="/settings"
-                className={`${buttonSizes.md} font-medium ${buttonStyles.primary} ${borderRadius.md}`}
-              >
-                Отиди в настройки
-              </Link>
-              <button
-                type="button"
-                onClick={onClose}
-                className={`${buttonSizes.md} font-medium ${buttonStyles.warning} ${borderRadius.md}`}
-              >
-                По-късно
-              </button>
+    <>
+      {/* Backdrop */}
+      <button
+        type="button"
+        className="fixed inset-0 z-[9] bg-black/20 backdrop-blur-sm pointer-events-auto"
+        onClick={onClose}
+        aria-label="Затвори"
+      />
+      <div className="animate-fade-in absolute bottom-4 right-4 z-10 max-w-sm">
+        <div className="bg-warning-light border-2 border-warning-border rounded-lg shadow-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 text-2xl">⚠️</div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-warning mb-2">
+                Няма абонамент за известия
+              </h3>
+              <p className="text-warning text-sm mb-3">
+                Имате зони на интерес, но не сте абонирани за известия. Това е
+                основната задача на OboApp!
+              </p>
+              <div className="flex gap-2">
+                <Link
+                  href="/settings"
+                  className={`${buttonSizes.md} font-medium ${buttonStyles.primary} ${borderRadius.md}`}
+                >
+                  Отиди в настройки
+                </Link>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className={`${buttonSizes.md} font-medium ${buttonStyles.warning} ${borderRadius.md}`}
+                >
+                  По-късно
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
