@@ -108,7 +108,7 @@ describe("marker-config", () => {
       const { icon, label } = createClusterIcon(3);
 
       expect(icon).toMatchObject({
-        path: "CIRCLE", // Fallback string in test environment
+        path: 0, // CIRCLE enum value in test environment
         fillColor: colors.primary.red,
         fillOpacity: 0.8,
         strokeColor: colors.map.stroke,
