@@ -64,7 +64,7 @@ export function detectSwappedCoordinates(lng: number, lat: number): boolean {
  * Fix swapped coordinates by swapping them
  */
 export function fixSwappedCoordinates(
-  coords: [number, number]
+  coords: [number, number],
 ): [number, number] {
   return [coords[1], coords[0]];
 }
@@ -73,9 +73,17 @@ export function fixSwappedCoordinates(
  * Validate and potentially fix a Point geometry
  */
 function validateAndFixPoint(
-  geometry: any,
-  warnings: string[]
+  geometry: unknown,
+  warnings: string[],
 ): GeoJSONPoint | null {
+  if (
+    !geometry ||
+    typeof geometry !== "object" ||
+    !("coordinates" in geometry)
+  ) {
+    return null;
+  }
+
   const coords = geometry.coordinates;
 
   if (!Array.isArray(coords) || coords.length !== 2) {
@@ -91,7 +99,7 @@ function validateAndFixPoint(
   // Check if coordinates are swapped
   if (detectSwappedCoordinates(lng, lat)) {
     warnings.push(
-      `Point coordinates swapped from [${lng}, ${lat}] to [${lat}, ${lng}]`
+      `Point coordinates swapped from [${lng}, ${lat}] to [${lat}, ${lng}]`,
     );
     [lng, lat] = fixSwappedCoordinates([lng, lat]);
   }
@@ -110,9 +118,17 @@ function validateAndFixPoint(
  * Validate and potentially fix a LineString geometry
  */
 function validateAndFixLineString(
-  geometry: any,
-  warnings: string[]
+  geometry: unknown,
+  warnings: string[],
 ): GeoJSONLineString | null {
+  if (
+    !geometry ||
+    typeof geometry !== "object" ||
+    !("coordinates" in geometry)
+  ) {
+    return null;
+  }
+
   const coords = geometry.coordinates;
 
   if (!Array.isArray(coords) || coords.length < 2) {
@@ -161,9 +177,17 @@ function validateAndFixLineString(
  * Validate and potentially fix a Polygon geometry
  */
 function validateAndFixPolygon(
-  geometry: any,
-  warnings: string[]
+  geometry: unknown,
+  warnings: string[],
 ): GeoJSONPolygon | null {
+  if (
+    !geometry ||
+    typeof geometry !== "object" ||
+    !("coordinates" in geometry)
+  ) {
+    return null;
+  }
+
   const coords = geometry.coordinates;
 
   if (!Array.isArray(coords) || coords.length < 1) {
@@ -229,14 +253,16 @@ function validateAndFixPolygon(
  * Validate and potentially fix a geometry
  */
 function validateAndFixGeometry(
-  geometry: any,
-  warnings: string[]
+  geometry: unknown,
+  warnings: string[],
 ): GeoJSONGeometry | null {
-  if (!geometry || typeof geometry !== "object" || !geometry.type) {
+  if (!geometry || typeof geometry !== "object" || !("type" in geometry)) {
     return null;
   }
 
-  switch (geometry.type) {
+  const geomType = (geometry as { type: unknown }).type;
+
+  switch (geomType) {
     case "Point":
       return validateAndFixPoint(geometry, warnings);
     case "LineString":
@@ -253,8 +279,8 @@ function validateAndFixGeometry(
  * Auto-detects and fixes swapped [lat,lng] vs [lng,lat] coordinates
  */
 export function validateAndFixGeoJSON(
-  data: any,
-  context?: string
+  data: unknown,
+  context?: string,
 ): ValidationResult {
   const warnings: string[] = [];
   const errors: string[] = [];
@@ -272,9 +298,10 @@ export function validateAndFixGeoJSON(
     };
   }
 
-  if (data.type !== "FeatureCollection") {
+  if (!("type" in data) || data.type !== "FeatureCollection") {
+    const dataType = "type" in data ? String(data.type) : "unknown";
     errors.push(
-      `${contextPrefix}GeoJSON type must be "FeatureCollection", got "${data.type}"`
+      `${contextPrefix}GeoJSON type must be "FeatureCollection", got "${dataType}"`,
     );
     return {
       isValid: false,
@@ -285,7 +312,7 @@ export function validateAndFixGeoJSON(
     };
   }
 
-  if (!Array.isArray(data.features)) {
+  if (!("features" in data) || !Array.isArray(data.features)) {
     errors.push(`${contextPrefix}GeoJSON features must be an array`);
     return {
       isValid: false,
@@ -298,23 +325,25 @@ export function validateAndFixGeoJSON(
 
   // Validate and fix each feature
   const fixedFeatures: GeoJSONFeature[] = [];
+  const features = data.features as unknown[];
 
-  for (let i = 0; i < data.features.length; i++) {
-    const feature = data.features[i];
+  for (let i = 0; i < features.length; i++) {
+    const feature = features[i];
 
     if (!feature || typeof feature !== "object") {
       errors.push(`${contextPrefix}Feature ${i} is not an object`);
       continue;
     }
 
-    if (feature.type !== "Feature") {
+    if (!("type" in feature) || feature.type !== "Feature") {
+      const featureType = "type" in feature ? String(feature.type) : "unknown";
       errors.push(
-        `${contextPrefix}Feature ${i} type must be "Feature", got "${feature.type}"`
+        `${contextPrefix}Feature ${i} type must be "Feature", got "${featureType}"`,
       );
       continue;
     }
 
-    if (!feature.geometry) {
+    if (!("geometry" in feature) || !feature.geometry) {
       errors.push(`${contextPrefix}Feature ${i} missing geometry`);
       continue;
     }
@@ -322,7 +351,7 @@ export function validateAndFixGeoJSON(
     const featureWarnings: string[] = [];
     const fixedGeometry = validateAndFixGeometry(
       feature.geometry,
-      featureWarnings
+      featureWarnings,
     );
 
     if (!fixedGeometry) {
@@ -335,10 +364,15 @@ export function validateAndFixGeoJSON(
       warnings.push(`${contextPrefix}Feature ${i}: ${w}`);
     });
 
+    const properties =
+      "properties" in feature && typeof feature.properties === "object"
+        ? (feature.properties as Record<string, unknown>)
+        : {};
+
     fixedFeatures.push({
       type: "Feature",
       geometry: fixedGeometry,
-      properties: feature.properties || {},
+      properties,
     });
   }
 

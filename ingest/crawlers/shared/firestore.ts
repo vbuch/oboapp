@@ -31,7 +31,7 @@ export async function saveSourceDocument<T extends BaseSourceDocument>(
   doc: T,
   adminDb: Firestore,
   options?: {
-    transformData?: (doc: T) => Record<string, any>;
+    transformData?: (doc: T) => Record<string, unknown>;
     logSuccess?: boolean;
   },
 ): Promise<void> {

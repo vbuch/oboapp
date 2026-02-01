@@ -14,7 +14,7 @@ describe("categorize function validation", () => {
     process.env.GOOGLE_AI_API_KEY = "mock-api-key";
 
     // Mock the generateContent function
-    mockGenerateContent = vi.fn();
+    _mockGenerateContent = vi.fn();
   });
 
   afterEach(() => {

@@ -11,9 +11,9 @@ import { normalizeCategoriesInput } from "@/lib/category-utils";
  * - Passes through primitives unchanged
  */
 export function processFieldsForFirestore(
-  fields: Record<string, any>,
-): Record<string, any> {
-  const processedFields: Record<string, any> = {};
+  fields: Record<string, unknown>,
+): Record<string, unknown> {
+  const processedFields: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fields)) {
     if (value instanceof Date) {
       // Preserve Date objects for timespanStart/timespanEnd (needed for server-side filtering)

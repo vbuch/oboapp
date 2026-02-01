@@ -34,14 +34,27 @@ interface MatchResult {
 /**
  * Convert Firestore timestamp to ISO string
  */
-function convertTimestamp(timestamp: any): string {
-  if (timestamp?._seconds) {
+function convertTimestamp(timestamp: unknown): string {
+  if (
+    timestamp &&
+    typeof timestamp === "object" &&
+    "_seconds" in timestamp &&
+    typeof timestamp._seconds === "number"
+  ) {
     return new Date(timestamp._seconds * 1000).toISOString();
   }
-  if (timestamp?.toDate) {
+  if (
+    timestamp &&
+    typeof timestamp === "object" &&
+    "toDate" in timestamp &&
+    typeof timestamp.toDate === "function"
+  ) {
     return timestamp.toDate().toISOString();
   }
-  return timestamp || new Date().toISOString();
+  if (typeof timestamp === "string") {
+    return timestamp;
+  }
+  return new Date().toISOString();
 }
 
 /**
@@ -531,7 +544,7 @@ async function sendNotifications(
     }
 
     // Store deviceNotifications and messageSnapshot in the match document
-    const messageSnapshot: any = {
+    const messageSnapshot: Record<string, string> = {
       text: messageData?.text || "",
       createdAt: convertTimestamp(messageData?.createdAt),
     };

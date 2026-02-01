@@ -47,7 +47,7 @@ interface CadastreGeometryResponse {
     cadnum: string;
     xc: number;
     yc: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

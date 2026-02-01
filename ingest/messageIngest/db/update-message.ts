@@ -8,7 +8,7 @@ import { processFieldsForFirestore } from "./process-fields";
  */
 export async function updateMessage(
   messageId: string,
-  fields: Record<string, any>
+  fields: Record<string, unknown>,
 ): Promise<void> {
   const messagesRef = adminDb.collection("messages");
   const processedFields = processFieldsForFirestore(fields);

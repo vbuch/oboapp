@@ -75,7 +75,7 @@ async function fetchSources(
   adminDb: Firestore,
   options: IngestOptions,
 ): Promise<SourceDocument[]> {
-  let query = adminDb.collection("sources") as any;
+  let query = adminDb.collection("sources") as FirebaseFirestore.Query;
   const filters: string[] = [];
 
   if (options.sourceType) {

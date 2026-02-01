@@ -28,7 +28,7 @@ export async function verifyAuthToken(authHeader: string | null): Promise<{
 /**
  * Helper: Validate message text
  */
-export function validateMessageText(text: any): void {
+export function validateMessageText(text: unknown): void {
   if (!text || typeof text !== "string") {
     throw new Error("Invalid message text");
   }

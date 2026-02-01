@@ -1,7 +1,8 @@
 import * as turf from "@turf/turf";
+import type { Feature } from "geojson";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { GeoJSONFeatureCollection } from "./types";
+import type { GeoJSONFeatureCollection, GeoJSONFeature } from "./types";
 
 const _cachedBoundary: GeoJSONFeatureCollection | null = null;
 
@@ -35,8 +36,8 @@ export function loadBoundaries(
  * Check if bounding boxes overlap (fallback method)
  */
 function checkBoundingBoxOverlap(
-  turfFeature: any,
-  turfBoundary: any,
+  turfFeature: Feature,
+  turfBoundary: Feature,
   geometryType: string,
   originalError: unknown,
 ): boolean {
@@ -77,7 +78,7 @@ function checkBoundingBoxOverlap(
  * Check if a feature intersects with any boundary feature
  */
 export function checkFeatureIntersection(
-  feature: any,
+  feature: GeoJSONFeature,
   boundaries: GeoJSONFeatureCollection,
 ): boolean {
   const turfFeature = turf.feature(feature.geometry, feature.properties);

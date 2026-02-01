@@ -182,20 +182,24 @@ export async function extractStructuredData(
         const validPins = Array.isArray(parsedResponse.pins)
           ? parsedResponse.pins
               .filter(
-                (pin: any) =>
-                  pin &&
+                (pin: unknown): pin is Record<string, unknown> =>
+                  pin !== null &&
                   typeof pin === "object" &&
+                  "address" in pin &&
                   typeof pin.address === "string" &&
                   pin.address.trim().length > 0 &&
+                  "timespans" in pin &&
                   Array.isArray(pin.timespans),
               )
-              .map((pin: any) => ({
+              .map((pin: Record<string, unknown>) => ({
                 address: pin.address,
-                timespans: pin.timespans.filter(
-                  (time: any) =>
-                    time &&
+                timespans: (pin.timespans as unknown[]).filter(
+                  (time: unknown): time is Record<string, unknown> =>
+                    time !== null &&
                     typeof time === "object" &&
+                    "start" in time &&
                     typeof time.start === "string" &&
+                    "end" in time &&
                     typeof time.end === "string",
                 ),
               }))
@@ -205,23 +209,29 @@ export async function extractStructuredData(
         const validStreets = Array.isArray(parsedResponse.streets)
           ? parsedResponse.streets
               .filter(
-                (street: any) =>
-                  street &&
+                (street: unknown): street is Record<string, unknown> =>
+                  street !== null &&
                   typeof street === "object" &&
+                  "street" in street &&
                   typeof street.street === "string" &&
+                  "from" in street &&
                   typeof street.from === "string" &&
+                  "to" in street &&
                   typeof street.to === "string" &&
+                  "timespans" in street &&
                   Array.isArray(street.timespans),
               )
-              .map((street: any) => ({
+              .map((street: Record<string, unknown>) => ({
                 street: street.street,
                 from: street.from,
                 to: street.to,
-                timespans: street.timespans.filter(
-                  (time: any) =>
-                    time &&
+                timespans: (street.timespans as unknown[]).filter(
+                  (time: unknown): time is Record<string, unknown> =>
+                    time !== null &&
                     typeof time === "object" &&
+                    "start" in time &&
                     typeof time.start === "string" &&
+                    "end" in time &&
                     typeof time.end === "string",
                 ),
               }))
@@ -233,20 +243,24 @@ export async function extractStructuredData(
         )
           ? parsedResponse.cadastralProperties
               .filter(
-                (prop: any) =>
-                  prop &&
+                (prop: unknown): prop is Record<string, unknown> =>
+                  prop !== null &&
                   typeof prop === "object" &&
+                  "identifier" in prop &&
                   typeof prop.identifier === "string" &&
                   prop.identifier.trim().length > 0 &&
+                  "timespans" in prop &&
                   Array.isArray(prop.timespans),
               )
-              .map((prop: any) => ({
+              .map((prop: Record<string, unknown>) => ({
                 identifier: prop.identifier,
-                timespans: prop.timespans.filter(
-                  (time: any) =>
-                    time &&
+                timespans: (prop.timespans as unknown[]).filter(
+                  (time: unknown): time is Record<string, unknown> =>
+                    time !== null &&
                     typeof time === "object" &&
+                    "start" in time &&
                     typeof time.start === "string" &&
+                    "end" in time &&
                     typeof time.end === "string",
                 ),
               }))

@@ -225,9 +225,17 @@ export function extractTimespanRangeFromExtractedData(
  * @param feature - GeoJSON feature with properties
  * @returns Array of parsed Date objects
  */
-function extractDatesFromFeature(feature: any): Date[] {
+function extractDatesFromFeature(feature: unknown): Date[] {
   const dates: Date[] = [];
-  const props = feature.properties;
+
+  if (!feature || typeof feature !== "object" || !("properties" in feature)) {
+    return dates;
+  }
+
+  const props = feature.properties as
+    | Record<string, unknown>
+    | null
+    | undefined;
 
   if (!props) return dates;
 

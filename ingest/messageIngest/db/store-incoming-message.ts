@@ -12,10 +12,10 @@ export async function storeIncomingMessage(
   sourceUrl?: string,
   crawledAt?: Date,
   messageId?: string,
-  sourceDocumentId?: string
+  sourceDocumentId?: string,
 ): Promise<string> {
   const messagesRef = adminDb.collection("messages");
-  const docData: any = {
+  const docData: Record<string, unknown> = {
     text,
     userId,
     userEmail,
@@ -36,8 +36,7 @@ export async function storeIncomingMessage(
   if (messageId) {
     await messagesRef.doc(messageId).set(docData);
     return messageId;
-  } 
-    const docRef = await messagesRef.add(docData);
-    return docRef.id;
-  
+  }
+  const docRef = await messagesRef.add(docData);
+  return docRef.id;
 }

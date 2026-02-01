@@ -4,6 +4,8 @@ import {
   GeoJSONFeatureCollection,
   Message,
 } from "@/lib/types";
+import type { CategorizedMessage } from "@/lib/categorize.schema";
+import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
 import {
   createIngestErrorCollector,
   buildIngestErrorsField,
@@ -126,7 +128,7 @@ async function processSingleMessage(
   text: string,
   precomputedGeoJson: GeoJSONFeatureCollection | null,
   options: MessageIngestOptions,
-  categorizedMessage: any | undefined,
+  categorizedMessage: CategorizedMessage | undefined,
   ingestErrors: IngestErrorCollector,
 ): Promise<Message> {
   let extractedData: ExtractedData | null = null;
@@ -324,7 +326,7 @@ async function processCategorizedMessages(
  * Log information about a categorized message being processed
  */
 function logCategorizedMessageInfo(
-  categorizedMessage: any,
+  categorizedMessage: CategorizedMessage,
   messageIndex: number,
   totalMessages: number,
   messageId: string | undefined,
@@ -342,7 +344,7 @@ function logCategorizedMessageInfo(
  * Store a categorized message with its categorization result
  */
 async function storeCategorizedMessage(
-  categorizedMessage: any,
+  categorizedMessage: CategorizedMessage,
   userId: string,
   userEmail: string | null,
   source: string,
@@ -398,7 +400,7 @@ async function handleIrrelevantMessage(
 async function extractAndGeocodeFromText(
   messageId: string,
   text: string,
-  categorizedMessage: any | undefined,
+  categorizedMessage: CategorizedMessage | undefined,
   crawledAt: Date,
   ingestErrors: IngestErrorRecorder,
 ): Promise<{
@@ -495,7 +497,7 @@ async function storeExtractedData(
  */
 async function performGeocoding(
   extractedData: ExtractedData,
-  categorizedMessage?: any,
+  categorizedMessage?: CategorizedMessage,
 ) {
   const { geocodeAddressesFromExtractedData } =
     await import("./geocode-addresses");
@@ -511,7 +513,7 @@ async function performGeocoding(
 async function filterAndStoreAddresses(
   messageId: string,
   geocodedAddresses: Address[],
-  preGeocodedMap: Map<string, any>,
+  preGeocodedMap: Map<string, { lat: number; lng: number }>,
 ): Promise<Address[]> {
   const { filterOutlierCoordinates } = await import("./filter-outliers");
   const addresses = filterOutlierCoordinates(geocodedAddresses);
@@ -536,8 +538,8 @@ async function filterAndStoreAddresses(
  */
 async function convertToGeoJson(
   extractedData: ExtractedData,
-  preGeocodedMap: Map<string, any>,
-  cadastralGeometries: any,
+  preGeocodedMap: Map<string, { lat: number; lng: number }>,
+  cadastralGeometries: Map<string, CadastralGeometry> | undefined,
   geocodedBusStops?: Address[],
   ingestErrors?: IngestErrorRecorder,
 ): Promise<GeoJSONFeatureCollection | null> {
