@@ -81,7 +81,6 @@ export default function CategoryFilterBox({
   });
 
   // Calculate transform style based on drag state
-  // Note: translateY is only applied on sm+ screens via CSS (top-1/2 + -translate-y-1/2)
   const transformStyle = useMemo(() => {
     const translateX = isActuallyDragging
       ? isOpen
@@ -92,7 +91,7 @@ export default function CategoryFilterBox({
         : "-100%";
 
     return {
-      transform: `translateX(${translateX})`,
+      transform: `translateX(${translateX}) translateY(-50%)`,
       transitionProperty: isActuallyDragging ? "none" : undefined,
     };
   }, [isActuallyDragging, isOpen, dragOffset]);
@@ -122,13 +121,13 @@ export default function CategoryFilterBox({
 
       {/* Filter Container - Box and Handle together */}
       <div
-        className="absolute left-0 top-4 sm:top-1/2 sm:-translate-y-1/2 z-50 transition-transform duration-300"
+        className="absolute left-0 top-1/2 z-50 transition-transform duration-300"
         style={transformStyle}
       >
         {/* Filter Panel */}
         <div
           ref={panelRef}
-          className="relative z-50 w-[320px] max-h-[calc(100vh-6rem)] sm:max-h-[calc(66vh-64px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[calc(100vh-80px-2rem)] sm:my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
+          className="relative z-50 w-[320px] max-h-[calc(66vh-64px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[calc(100vh-80px-2rem)] my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
         >
           {/* Category List with Archived Toggle - Only show when loaded */}
           {isInitialLoad ? (
