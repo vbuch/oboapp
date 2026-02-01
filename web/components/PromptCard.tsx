@@ -40,11 +40,7 @@ export default function PromptCard({
           <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
             {description}
           </p>
-          {note && (
-            <p className="text-[11px] sm:text-xs text-gray-500 mb-3 sm:mb-4">
-              {note}
-            </p>
-          )}
+          {note && <p className="text-xs text-gray-500 mb-3 sm:mb-4">{note}</p>}
           {(primaryButton || secondaryButton) && (
             <div className="flex gap-2 sm:gap-3">
               {secondaryButton && (

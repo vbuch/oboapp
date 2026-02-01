@@ -127,7 +127,7 @@ export default function CategoryFilterBox({
         {/* Filter Panel */}
         <div
           ref={panelRef}
-          className="relative z-50 w-[320px] max-h-[70vh] sm:max-h-[500px] bg-white shadow-2xl rounded-r-lg flex flex-col"
+          className="relative z-50 w-[320px] max-h-[calc(66vh-64px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[calc(100vh-80px-2rem)] my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
         >
           {/* Category List with Archived Toggle - Only show when loaded */}
           {isInitialLoad ? (
