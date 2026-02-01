@@ -20,6 +20,9 @@ const eslintConfig = [
         },
       ],
 
+      // Prefer early returns over else-if-return chains
+      "no-else-return": ["error", { allowElseIf: false }],
+
       // React/JSX rules
       "react/button-has-type": [
         "error",

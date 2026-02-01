@@ -28,7 +28,12 @@ export function parseUserAgent(userAgent: string): ParsedUserAgent {
   if (result.device.type === "mobile" || result.device.type === "tablet") {
     // Mobile/tablet device - show OS name
     platform = result.os.name || "Mobile";
-  } else if (result.os.name) {
+  }
+  if (
+    result.os.name &&
+    result.device.type !== "mobile" &&
+    result.device.type !== "tablet"
+  ) {
     // Desktop OS
     platform = result.os.name;
   }

@@ -17,13 +17,13 @@ const BUFFER_WIDTH_RESIDENTIAL = 7; // 6-8m average
 // Step 1 — PIN / Address Geocoding (Points)
 function createPinFeature(
   pin: { address: string; timespans: { start: string; end: string }[] },
-  preGeocodedAddresses: Map<string, IntersectionCoordinates>
+  preGeocodedAddresses: Map<string, IntersectionCoordinates>,
 ): GeoJSONFeature {
   const coords = preGeocodedAddresses.get(pin.address);
 
   if (!coords) {
     throw new Error(
-      `Missing pre-geocoded coordinates for pin: "${pin.address}"`
+      `Missing pre-geocoded coordinates for pin: "${pin.address}"`,
     );
   }
 
@@ -47,12 +47,12 @@ function createPinFeature(
 async function getStreetCenterline(
   startCoords: IntersectionCoordinates,
   endCoords: IntersectionCoordinates,
-  streetName: string
+  streetName: string,
 ): Promise<GeoJSONLineString> {
   // Check if start and end are the same or very close
   const distance = Math.sqrt(
     Math.pow(endCoords.lat - startCoords.lat, 2) +
-      Math.pow(endCoords.lng - startCoords.lng, 2)
+      Math.pow(endCoords.lng - startCoords.lng, 2),
   );
 
   // If points are within ~10 meters (roughly 0.0001 degrees), create a simple line
@@ -92,7 +92,7 @@ async function getStreetCenterline(
 // Step 3 — Line-to-Polygon Conversion
 function bufferLineString(
   lineString: GeoJSONLineString,
-  bufferMeters: number = 8
+  bufferMeters: number = 8,
 ): GeoJSONPolygon | null {
   const coordinates = lineString.coordinates;
   if (coordinates.length < 2) return null;
@@ -167,21 +167,21 @@ function getBufferWidth(streetName: string): number {
 
   if (lowerStreet.includes("boulevard") || lowerStreet.includes("булевард")) {
     return BUFFER_WIDTH_BOULEVARD;
-  } else if (
+  }
+  if (
     lowerStreet.includes("avenue") ||
     lowerStreet.includes("проспект") ||
     lowerStreet.includes("collector")
   ) {
     return BUFFER_WIDTH_AVENUE;
-  } else {
-    return BUFFER_WIDTH_RESIDENTIAL;
   }
+  return BUFFER_WIDTH_RESIDENTIAL;
 }
 
 // Step 4 — Closure Feature Assembly
 async function createClosureFeature(
   street: StreetSection,
-  preGeocodedAddresses: Map<string, IntersectionCoordinates>
+  preGeocodedAddresses: Map<string, IntersectionCoordinates>,
 ): Promise<GeoJSONFeature> {
   // Get pre-geocoded coordinates
   const startCoords = preGeocodedAddresses.get(street.from);
@@ -189,13 +189,13 @@ async function createClosureFeature(
 
   if (!startCoords) {
     throw new Error(
-      `Missing pre-geocoded coordinates for street start: "${street.from}"`
+      `Missing pre-geocoded coordinates for street start: "${street.from}"`,
     );
   }
 
   if (!endCoords) {
     throw new Error(
-      `Missing pre-geocoded coordinates for street end: "${street.to}"`
+      `Missing pre-geocoded coordinates for street end: "${street.to}"`,
     );
   }
 
@@ -203,7 +203,7 @@ async function createClosureFeature(
   const centerline = await getStreetCenterline(
     startCoords,
     endCoords,
-    street.street
+    street.street,
   );
 
   // Convert to polygon
@@ -233,7 +233,7 @@ async function createClosureFeature(
 // Step 5 — Feature Collection Assembly
 export async function convertToGeoJSON(
   extractedData: ExtractedData,
-  preGeocodedAddresses: Map<string, IntersectionCoordinates>
+  preGeocodedAddresses: Map<string, IntersectionCoordinates>,
 ): Promise<GeoJSONFeatureCollection> {
   const features: GeoJSONFeature[] = [];
   const fallbackPins: typeof extractedData.pins = [];
@@ -250,7 +250,7 @@ export async function convertToGeoJSON(
           street.from
         }" to "${street.to}": ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
 
       const startCoords = preGeocodedAddresses.get(street.from);
@@ -258,7 +258,7 @@ export async function convertToGeoJSON(
 
       if (startCoords && endCoords) {
         console.log(
-          `   ✅ Converting to 2 pins instead (both endpoints have coordinates)`
+          `   ✅ Converting to 2 pins instead (both endpoints have coordinates)`,
         );
 
         // Create two pins from the street endpoints
@@ -270,11 +270,11 @@ export async function convertToGeoJSON(
           {
             address: street.to,
             timespans: street.timespans,
-          }
+          },
         );
       } else {
         console.error(
-          `   ❌ Cannot create fallback pins (missing coordinates): from=${!!startCoords}, to=${!!endCoords}`
+          `   ❌ Cannot create fallback pins (missing coordinates): from=${!!startCoords}, to=${!!endCoords}`,
         );
       }
     }
@@ -290,7 +290,7 @@ export async function convertToGeoJSON(
       console.error(
         `Failed to create pin for "${pin.address}": ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
     }
   }

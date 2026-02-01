@@ -53,11 +53,17 @@ async function parseArguments(): Promise<IngestOptions> {
   for (const arg of args) {
     if (arg.startsWith("--boundaries=")) {
       options.boundariesPath = arg.split("=")[1];
-    } else if (arg === "--dry-run") {
+      continue;
+    }
+    if (arg === "--dry-run") {
       options.dryRun = true;
-    } else if (arg.startsWith("--source-type=")) {
+      continue;
+    }
+    if (arg.startsWith("--source-type=")) {
       options.sourceType = arg.split("=")[1];
-    } else if (arg.startsWith("--limit=")) {
+      continue;
+    }
+    if (arg.startsWith("--limit=")) {
       options.limit = Number.parseInt(arg.split("=")[1], 10);
     }
   }
