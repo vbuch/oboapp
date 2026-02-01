@@ -178,6 +178,14 @@ export default function MapContainer({
     }
   };
 
+  // Cleanup: disable location tracking when component unmounts
+  useEffect(
+    () => () => {
+      setIsTrackingLocation(false);
+    },
+    [],
+  );
+
   // Handle add interest button click in idle state
   // If logged in, go directly to creation mode (skip showing AddInterestsPrompt again)
   // If not logged in, restart the onboarding flow
