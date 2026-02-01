@@ -70,9 +70,14 @@ describe("processFieldsForFirestore", () => {
 
     const result = processFieldsForFirestore(fields);
 
-    expect(result.extractedData).toEqual(fields.extractedData);
-    expect(result.geoJson).toEqual(fields.geoJson);
-    expect(result.categorize).toEqual(fields.categorize);
+    expect(result.extractedData).toBe(JSON.stringify(fields.extractedData));
+    expect(result.geoJson).toBe(JSON.stringify(fields.geoJson));
+    expect(result.categorize).toBe(JSON.stringify(fields.categorize));
+
+    // Verify we can parse back
+    expect(JSON.parse(result.extractedData)).toEqual(fields.extractedData);
+    expect(JSON.parse(result.geoJson)).toEqual(fields.geoJson);
+    expect(JSON.parse(result.categorize)).toEqual(fields.categorize);
   });
 
   it("should handle mixed field types", () => {
@@ -88,7 +93,9 @@ describe("processFieldsForFirestore", () => {
 
     expect(result.text).toBe("Original message");
     expect(result.finalizedAt).toBeInstanceOf(FieldValue);
-    expect(result.extractedData).toEqual({ pins: [], streets: [] });
+    expect(result.extractedData).toBe(
+      JSON.stringify({ pins: [], streets: [] }),
+    );
     expect(result.source).toBe("rayon-oborishte-bg");
     expect(result.count).toBe(5);
   });
@@ -101,8 +108,8 @@ describe("processFieldsForFirestore", () => {
 
     const result = processFieldsForFirestore(fields);
 
-    expect(result.data).toEqual({});
-    expect(result.metadata).toEqual({});
+    expect(result.data).toBe("{}");
+    expect(result.metadata).toBe("{}");
   });
 
   it("should handle arrays as objects", () => {
@@ -115,7 +122,8 @@ describe("processFieldsForFirestore", () => {
 
     const result = processFieldsForFirestore(fields);
 
-    expect(result.addresses).toEqual(fields.addresses);
+    expect(result.addresses).toBe(JSON.stringify(fields.addresses));
+    expect(JSON.parse(result.addresses)).toEqual(fields.addresses);
   });
 
   it("should keep ingestErrors as native array", () => {
@@ -153,6 +161,7 @@ describe("processFieldsForFirestore", () => {
 
     const result = processFieldsForFirestore(fields);
 
-    expect(result.metadata).toEqual(fields.metadata);
+    expect(result.metadata).toBe(JSON.stringify(fields.metadata));
+    expect(JSON.parse(result.metadata)).toEqual(fields.metadata);
   });
 });

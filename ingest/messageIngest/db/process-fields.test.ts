@@ -138,8 +138,8 @@ describe("processFieldsForFirestore", () => {
     });
   });
 
-  describe("object handling", () => {
-    it("should keep extractedData as object", () => {
+  describe("object stringification", () => {
+    it("should stringify extractedData object", () => {
       const input = {
         extractedData: {
           responsible_entity: "Sofia Water",
@@ -149,11 +149,11 @@ describe("processFieldsForFirestore", () => {
 
       const result = processFieldsForFirestore(input);
 
-      expect(typeof result.extractedData).toBe("object");
-      expect(result.extractedData).toEqual(input.extractedData);
+      expect(typeof result.extractedData).toBe("string");
+      expect(JSON.parse(result.extractedData)).toEqual(input.extractedData);
     });
 
-    it("should keep geoJson as object", () => {
+    it("should stringify geoJson object", () => {
       const input = {
         geoJson: {
           type: "FeatureCollection",
@@ -169,11 +169,11 @@ describe("processFieldsForFirestore", () => {
 
       const result = processFieldsForFirestore(input);
 
-      expect(typeof result.geoJson).toBe("object");
-      expect(result.geoJson).toEqual(input.geoJson);
+      expect(typeof result.geoJson).toBe("string");
+      expect(JSON.parse(result.geoJson)).toEqual(input.geoJson);
     });
 
-    it("should keep categorize as object", () => {
+    it("should stringify categorize object", () => {
       const input = {
         categorize: {
           categories: ["water"],
@@ -184,11 +184,11 @@ describe("processFieldsForFirestore", () => {
 
       const result = processFieldsForFirestore(input);
 
-      expect(typeof result.categorize).toBe("object");
-      expect(result.categorize).toEqual(input.categorize);
+      expect(typeof result.categorize).toBe("string");
+      expect(JSON.parse(result.categorize)).toEqual(input.categorize);
     });
 
-    it("should keep nested objects as objects", () => {
+    it("should stringify nested objects", () => {
       const input = {
         metadata: {
           nested: {
@@ -201,8 +201,8 @@ describe("processFieldsForFirestore", () => {
 
       const result = processFieldsForFirestore(input);
 
-      expect(typeof result.metadata).toBe("object");
-      expect(result.metadata).toEqual(input.metadata);
+      expect(typeof result.metadata).toBe("string");
+      expect(JSON.parse(result.metadata)).toEqual(input.metadata);
     });
 
     it("should not stringify null values", () => {
@@ -293,8 +293,8 @@ describe("processFieldsForFirestore", () => {
       });
       expect(result.categories).toEqual(["water", "electricity"]);
       expect(result.relations).toEqual(["rel1"]);
-      expect(typeof result.extractedData).toBe("object");
-      expect(typeof result.geoJson).toBe("object");
+      expect(typeof result.extractedData).toBe("string");
+      expect(typeof result.geoJson).toBe("string");
       expect(result.deletedAt).toBeNull();
     });
   });
@@ -305,15 +305,15 @@ describe("processFieldsForFirestore", () => {
       expect(result).toEqual({});
     });
 
-    it("should keep arrays as objects", () => {
+    it("should handle arrays that are not categories or relations (stringify them)", () => {
       const input = {
         addresses: [{ street: "Main St" }],
       };
 
       const result = processFieldsForFirestore(input);
 
-      expect(typeof result.addresses).toBe("object");
-      expect(result.addresses).toEqual(input.addresses);
+      expect(typeof result.addresses).toBe("string");
+      expect(JSON.parse(result.addresses)).toEqual(input.addresses);
     });
   });
 });

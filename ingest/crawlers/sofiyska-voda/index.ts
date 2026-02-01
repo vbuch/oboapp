@@ -125,6 +125,7 @@ async function saveSourceDocument(
   await saveSourceDocumentShared(doc, adminDb, {
     transformData: (d) => ({
       ...d,
+      geoJson: JSON.stringify(d.geoJson),
       crawledAt: new Date(d.crawledAt),
     }),
     logSuccess: false,
