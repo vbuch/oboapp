@@ -215,6 +215,18 @@ cd ingest
 npm run emulator:seed
 ```
 
+### Emulator UI shows empty Firestore
+
+**Problem:** The Emulator UI at http://localhost:4000 shows no collections, but the seed script reported success.
+
+**Solution:** The UI may be looking at the wrong project. Check the URL - it should include `?ns=demo-project`. Navigate to:
+
+```
+http://localhost:4000/firestore/default/data?ns=demo-project
+```
+
+The emulators use `demo-project` as the project ID (configured in docker-compose.yml). This is intentional - project IDs starting with `demo-` don't require Firebase authentication.
+
 ### Mock APIs not working
 
 **Solution:** Check environment variables in `ingest/.env.local`:

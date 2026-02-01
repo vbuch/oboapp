@@ -106,7 +106,7 @@ async function seedEmulator() {
       .doc("test-user-1")
       .set({
         email: "test@example.com",
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         settings: {
           notifications: {
             enabled: true,
@@ -143,7 +143,7 @@ async function seedEmulator() {
           name: zone.name,
           center: zone.center,
           radius: 1000,
-          createdAt: new Date().toISOString(),
+          createdAt: new Date(),
         });
     }
     console.log(`✅ Created ${zones.length} interest zones\n`);
@@ -319,9 +319,9 @@ async function seedEmulator() {
         url: `https://example.com/source/${i + 1}`,
         title: `${config.text} на ${config.street}`,
         text: `${config.text} на ${config.street} от ${timespanStart.toLocaleDateString("bg-BG")} до ${timespanEnd.toLocaleDateString("bg-BG")}`,
-        createdAt: new Date().toISOString(),
-        timespanStart: timespanStart.toISOString(),
-        timespanEnd: timespanEnd.toISOString(),
+        createdAt: new Date(),
+        timespanStart: timespanStart,
+        timespanEnd: timespanEnd,
       };
 
       await adminDb.collection("sources").doc(sourceId).set(sourceData);
@@ -362,10 +362,10 @@ async function seedEmulator() {
         text: `${config.text} на ${config.street}`,
         markdownText: `**${config.text}**\n\nЛокация: ${config.street}\n\nПериод: ${timespanStart.toLocaleDateString("bg-BG")} - ${timespanEnd.toLocaleDateString("bg-BG")}`,
         categories: config.category,
-        createdAt: new Date().toISOString(),
-        finalizedAt: new Date().toISOString(),
-        timespanStart: timespanStart.toISOString(),
-        timespanEnd: timespanEnd.toISOString(),
+        createdAt: new Date(),
+        finalizedAt: new Date(),
+        timespanStart: timespanStart,
+        timespanEnd: timespanEnd,
         geoJson: JSON.stringify(geoJson), // Firestore requires GeoJSON as string
       };
 
