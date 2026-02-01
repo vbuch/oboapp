@@ -17,7 +17,7 @@ export default function NotificationHistorySection({
 
   return (
     <section className="bg-white rounded-lg shadow mb-6 p-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-4">
         <div>
           <h2 className="text-xl font-semibold text-foreground mb-1">
             История на известията

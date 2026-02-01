@@ -29,7 +29,7 @@ export default function LoginPrompt({ onDismiss }: LoginPromptProps) {
   }, [onDismiss]);
 
   return (
-    <div className="animate-fade-in absolute bottom-4 right-4 z-40 max-w-sm">
+    <div className="animate-fade-in fixed sm:absolute bottom-2 sm:bottom-4 right-2 sm:right-4 left-2 sm:left-auto z-40 sm:max-w-sm">
       <PromptCard
         icon={<BellIcon className="w-12 h-12 text-primary" />}
         title="Следи местните съобщения"

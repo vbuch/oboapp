@@ -132,7 +132,7 @@ export default function InterestTargetMode({
       )}
 
       {/* Control Panel */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+      <div className="fixed sm:absolute bottom-8 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
         <div className="bg-white rounded-lg shadow-xl border border-neutral-border p-4 min-w-[320px]">
           {/* Coordinates Display */}
           {currentCenter && (

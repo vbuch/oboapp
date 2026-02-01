@@ -27,31 +27,34 @@ export default function Header() {
   return (
     <>
       {/* Top Header - Dark Blue */}
-      <header className="bg-header-bg text-white relative z-20">
+      <header className="bg-header-bg text-white relative z-20 shadow-md">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           {/* Main Header with Logo */}
-          <div className="flex items-center justify-between py-3">
+          <div className="flex items-center justify-between py-2 sm:py-1">
             {/* Left side - Logo and Title */}
             <div className="flex items-center gap-2 sm:gap-4">
               {/* Logo - overlapping content below */}
               <Link
                 href="/"
-                className="flex-shrink-0 relative -mb-8 sm:-mb-16 md:-mb-20 cursor-pointer hover:opacity-90 transition-opacity"
+                className="flex-shrink-0 relative sm:-mb-12 md:-mb-14 cursor-pointer hover:opacity-90 transition-opacity"
               >
                 {logoError ? null : (
                   <Image
                     src="/logo.png"
                     alt="OboApp"
-                    width={128}
-                    height={128}
-                    className="h-16 sm:h-24 md:h-32 w-auto object-contain relative z-30"
+                    width={112}
+                    height={112}
+                    className="h-10 sm:h-20 md:h-24 w-auto object-contain relative z-30"
+                    style={{
+                      filter: "drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))",
+                    }}
                     onError={() => setLogoError(true)}
                     priority
                   />
                 )}
               </Link>
               <div>
-                <h1 className="text-base sm:text-lg md:text-xl font-bold">
+                <h1 className="text-sm sm:text-base md:text-lg font-bold">
                   OboApp
                 </h1>
               </div>

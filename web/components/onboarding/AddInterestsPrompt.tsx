@@ -39,16 +39,16 @@ export default function AddInterestsPrompt({
   }, [onDismiss]);
 
   return (
-    <div className="animate-fade-in absolute bottom-4 right-4 z-40 bg-white rounded-lg shadow-xl p-6 pb-4 pr-4 max-w-sm">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="flex-shrink-0">
+    <div className="animate-fade-in fixed sm:absolute bottom-2 sm:bottom-4 right-2 sm:right-4 left-2 sm:left-auto z-40 bg-white rounded-lg shadow-xl p-4 sm:p-6 sm:pb-4 sm:pr-4 sm:max-w-sm">
+      <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className="flex-shrink-0 scale-75 sm:scale-100">
           <LocationPinIcon className="w-10 h-10 text-primary" />
         </div>
-        <div className="flex-1">
-          <h3 className="text-base font-semibold text-gray-900 mb-2">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1.5 sm:mb-2">
             Следи избрани зони
           </h3>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs sm:text-sm text-gray-600">
             Избери важните за теб места и получавай известия, когато има нещо
             ново там.
           </p>
@@ -58,16 +58,16 @@ export default function AddInterestsPrompt({
         <button
           type="button"
           onClick={handleDismiss}
-          className={`${buttonSizes.md} ${buttonStyles.secondary} ${borderRadius.md} font-medium`}
+          className={`${buttonSizes.md} ${buttonStyles.secondary} ${borderRadius.md} font-medium text-xs sm:text-sm`}
         >
           По-късно
         </button>
         <button
           type="button"
           onClick={handleAddInterests}
-          className={`${buttonSizes.lg} ${buttonStyles.primary} ${borderRadius.md} shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium`}
+          className={`${buttonSizes.lg} ${buttonStyles.primary} ${borderRadius.md} shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-1.5 sm:gap-2 font-medium text-xs sm:text-sm`}
         >
-          <PlusIcon className="w-5 h-5" />
+          <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
           Добави зона
         </button>
       </div>

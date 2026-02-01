@@ -13,11 +13,14 @@ export default function ClientLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+
   return (
     <div className="antialiased flex flex-col h-screen overflow-hidden">
       <LoadScript
-        googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
+        googleMapsApiKey={mapsApiKey}
         loadingElement={<SplashScreen />}
+        preventGoogleFontsLoading
       >
         <QueryProvider>
           <AuthProvider>

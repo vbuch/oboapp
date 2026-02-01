@@ -47,6 +47,17 @@ export default function RootLayout({
 
   return (
     <html lang="bg">
+      <head>
+        {/* Preconnect to Google Maps domains for faster LCP */}
+        <link rel="preconnect" href="https://maps.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://maps.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://maps.googleapis.com" />
+        <link rel="dns-prefetch" href="https://maps.gstatic.com" />
+      </head>
       <body className={`${sofiaSans.variable} font-sofia`}>
         {gaId && (
           <>

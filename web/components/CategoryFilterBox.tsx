@@ -121,7 +121,7 @@ export default function CategoryFilterBox({
 
       {/* Filter Container - Box and Handle together */}
       <div
-        className="fixed left-0 top-1/2 z-50 transition-transform duration-300"
+        className="absolute left-0 top-1/2 z-50 transition-transform duration-300"
         style={transformStyle}
       >
         {/* Filter Panel */}

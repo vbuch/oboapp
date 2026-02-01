@@ -48,3 +48,13 @@ web/coverage
 
 # Claude
 .claude/settings.local.json
+.playwright-mcp/figma-design-desktop-home.png
+.playwright-mcp/figma-design-mobile-home.png
+.playwright-mcp/figma-design-system-colors.png
+.playwright-mcp/figma-design-system-components.png
+.playwright-mcp/figma-design-system-typography.png
+.playwright-mcp/figma-desktop-main.png
+.playwright-mcp/figma-events-panel.png
+.playwright-mcp/figma-header-logo.png
+.playwright-mcp/figma-mobile-main.png
+.playwright-mcp/new-layout-desktop.png

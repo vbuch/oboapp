@@ -10,6 +10,7 @@ interface MessagesGridProps {
   readonly onMessageClick: (message: Message) => void;
   readonly limit?: number;
   readonly showHeading?: boolean;
+  readonly variant?: "grid" | "list";
 }
 
 export default function MessagesGrid({
@@ -18,6 +19,7 @@ export default function MessagesGrid({
   onMessageClick,
   limit = 6,
   showHeading = true,
+  variant = "grid",
 }: MessagesGridProps) {
   // Helper to parse date
   const parseDate = (dateValue: Date | string | undefined): Date => {
@@ -32,7 +34,7 @@ export default function MessagesGrid({
   );
 
   // Filter messages with both geoJson.features and finalizedAt
-  const finalizedMessages = messages
+  const allFinalizedMessages = messages
     .filter((message) => message.geoJson?.features && message.finalizedAt)
     .sort((a, b) => {
       // Sort by finalizedAt descending (newest first)
@@ -40,17 +42,40 @@ export default function MessagesGrid({
       const dateB = parseDate(b.finalizedAt);
 
       return dateB.getTime() - dateA.getTime();
-    })
-    .slice(0, limit);
+    });
+
+  // If total is within limit+4, show all instead of truncating
+  const shouldShowAll = allFinalizedMessages.length <= limit + 4;
+  const finalizedMessages = shouldShowAll
+    ? allFinalizedMessages
+    : allFinalizedMessages.slice(0, limit);
+  const remainingCount = allFinalizedMessages.length - finalizedMessages.length;
+
+  const containerClasses =
+    variant === "list"
+      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:grid-cols-1 gap-4"
+      : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+
+  const headingText = variant === "list" ? "Събития" : "Последни съобщения";
 
   return showHeading ? (
-    <div className="bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">
-          Последни съобщения
+    <div className={variant === "list" ? "" : "bg-gray-50 py-12"}>
+      <div
+        className={
+          variant === "list" ? "" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        }
+      >
+        <h2
+          className={
+            variant === "list"
+              ? "text-lg font-medium text-gray-700 mb-4"
+              : "text-3xl font-bold text-gray-900 mb-8"
+          }
+        >
+          {headingText}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={containerClasses}>
           {isLoading &&
             // Show skeleton cards while loading
             skeletonKeys.map((key) => <MessageCardSkeleton key={key} />)}
@@ -66,15 +91,26 @@ export default function MessagesGrid({
             ))}
           {!isLoading && finalizedMessages.length === 0 && (
             // Empty state (show nothing, just display available messages)
-            <div className="col-span-full text-center text-gray-500 py-8">
+            <div
+              className={
+                variant === "list"
+                  ? "text-center text-gray-500 py-8"
+                  : "col-span-full text-center text-gray-500 py-8"
+              }
+            >
               Няма налични съобщения
             </div>
           )}
         </div>
+        {!isLoading && remainingCount > 0 && (
+          <div className="text-center text-sm text-neutral mt-4">
+            ...и още {remainingCount} събития
+          </div>
+        )}
       </div>
     </div>
   ) : (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className={containerClasses}>
       {isLoading &&
         // Show skeleton cards while loading
         skeletonKeys.map((key) => <MessageCardSkeleton key={key} />)}
@@ -90,8 +126,19 @@ export default function MessagesGrid({
         ))}
       {!isLoading && finalizedMessages.length === 0 && (
         // Empty state (show nothing, just display available messages)
-        <div className="col-span-full text-center text-gray-500 py-8">
+        <div
+          className={
+            variant === "list"
+              ? "text-center text-gray-500 py-8"
+              : "col-span-full text-center text-gray-500 py-8"
+          }
+        >
           Няма налични съобщения
+        </div>
+      )}
+      {!isLoading && remainingCount > 0 && (
+        <div className="text-center text-sm text-neutral mt-4">
+          ...и още {remainingCount} събития
         </div>
       )}
     </div>
