@@ -107,8 +107,8 @@ export default function MessagesGrid({
 
   const containerClasses =
     variant === "list"
-      ? "grid grid-cols-1 @lg:grid-cols-2 gap-4"
-      : "grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-6";
+      ? "grid grid-cols-1 @lg:grid-cols-2 gap-4 min-w-0"
+      : "grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-6 min-w-0";
 
   const headingText = variant === "list" ? "Събития" : "Последни съобщения";
 

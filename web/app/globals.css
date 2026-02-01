@@ -161,3 +161,22 @@ body {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
+
+/* Mobile Safari overflow fixes */
+/* Apply min-width: 0 only to flex and grid children to prevent overflow */
+.flex > *:not(svg):not(img),
+.grid > *:not(svg):not(img) {
+  min-width: 0;
+}
+
+/* Ensure proper word breaking for long content on mobile */
+p,
+li {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Smooth scrolling for touch devices */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
