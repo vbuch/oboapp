@@ -19,7 +19,7 @@ export function buildWebPageSourceDocument(
   dateText: string,
   contentHtml: string,
   sourceType: string,
-  customDateParser?: (dateText: string) => string
+  customDateParser?: (dateText: string) => string,
 ): {
   url: string;
   title: string;
@@ -58,14 +58,14 @@ export function buildWebPageSourceDocument(
  */
 export async function processWordpressPost<
   TPostLink extends PostLink,
-  TDetails extends { title: string; dateText: string; contentHtml: string }
+  TDetails extends { title: string; dateText: string; contentHtml: string },
 >(
   browser: Browser,
   postLink: TPostLink,
   adminDb: Firestore,
   sourceType: string,
   delayMs: number,
-  extractPostDetails: (page: Page) => Promise<TDetails>
+  extractPostDetails: (page: Page) => Promise<TDetails>,
 ): Promise<void> {
   const { url, title } = postLink;
 
@@ -84,7 +84,7 @@ export async function processWordpressPost<
       details.title,
       details.dateText,
       details.contentHtml,
-      sourceType
+      sourceType,
     );
 
     const sourceDoc = {
@@ -116,7 +116,7 @@ export async function crawlWordpressPage(options: {
   processPost: (
     browser: Browser,
     postLink: PostLink,
-    adminDb: Firestore
+    adminDb: Firestore,
   ) => Promise<void>;
   delayBetweenRequests?: number;
 }): Promise<void> {
@@ -125,7 +125,7 @@ export async function crawlWordpressPage(options: {
     sourceType,
     extractPostLinks,
     processPost,
-    delayBetweenRequests = 2000,
+    delayBetweenRequests: _delayBetweenRequests = 2000,
   } = options;
 
   console.log(`🚀 Starting ${sourceType} crawler...\n`);
@@ -166,8 +166,8 @@ export async function crawlWordpressPage(options: {
           console.log(
             `⏭️  Skipped (already processed): ${postLink.title.substring(
               0,
-              60
-            )}...`
+              60,
+            )}...`,
           );
         } else {
           await processPost(browser, postLink, adminDb);

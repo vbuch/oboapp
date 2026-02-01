@@ -450,7 +450,6 @@ function logSummary(summary: IngestSummary, dryRun: boolean): void {
 }
 // Run only when executed directly
 if (require.main === module) {
-  // eslint-disable-next-line unicorn/prefer-top-level-await
   (async () => {
     const options = await parseArguments();
     await ingest(options);

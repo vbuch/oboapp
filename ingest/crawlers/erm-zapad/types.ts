@@ -1,4 +1,3 @@
-import type { GeoJSONFeatureCollection } from "@/lib/types";
 import { SourceDocumentWithGeoJson } from "../shared/types";
 
 /**

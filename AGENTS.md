@@ -76,13 +76,17 @@ If you identify a recurring pattern or developer preference:
 
 ### ESLint & Code Quality
 
-**CRITICAL: NEVER use `eslint-disable` comments.**
+**Linting is configured for both `web/` and `ingest/` directories.**
 
+- Run linting with `npm run lint` in the respective directory
+- Auto-fix issues with `npm run lint:fix`
+- **CRITICAL: NEVER use `eslint-disable` comments.**
 - ESLint rules exist for good reasons (performance, bugs, maintainability)
 - `eslint-disable` masks problems instead of fixing them
 - Always fix the underlying issue, never suppress the warning
 - If a rule seems wrong for the entire project, configure it in `eslint.config.mjs`
 - **Exception:** Only disable rules in generated code or vendor files you cannot modify
+- Test files, mocks, and utility scripts allow `any` types for flexibility
 
 ### Tailwind Theme System
 

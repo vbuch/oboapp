@@ -25,7 +25,7 @@ const DELAY_BETWEEN_REQUESTS = 2000; // 2 seconds
 const processPost = (
   browser: Browser,
   postLink: PostLink,
-  adminDb: Firestore
+  adminDb: Firestore,
 ) =>
   processWordpressPost(
     browser,
@@ -33,7 +33,7 @@ const processPost = (
     adminDb,
     SOURCE_TYPE,
     DELAY_BETWEEN_REQUESTS,
-    extractPostDetails
+    extractPostDetails,
   );
 
 /**
@@ -51,7 +51,6 @@ export async function crawl(): Promise<void> {
 
 // Run the crawler if executed directly
 if (require.main === module) {
-  // eslint-disable-next-line unicorn/prefer-top-level-await
   crawl().catch((error) => {
     console.error("Fatal error:", error);
     process.exit(1);

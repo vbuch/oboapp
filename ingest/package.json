@@ -5,6 +5,8 @@
   "scripts": {
     "test": "vitest",
     "test:run": "vitest run",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "crawl": "tsx crawl",
     "ingest": "tsx ingest",
     "notify": "tsx notify",
@@ -56,6 +58,7 @@
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5",
+    "typescript-eslint": "^8.54.0",
     "vitest": "^4.0.15"
   }
 }

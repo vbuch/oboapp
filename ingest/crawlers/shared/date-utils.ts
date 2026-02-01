@@ -9,7 +9,8 @@ export function parseBulgarianDate(dateStr: string): string {
     const normalized = dateStr.trim().replace(/\//g, ".");
     const parts = normalized.split(".");
     if (parts.length === 3) {
-      let [day, month, year] = parts;
+      const [day, month, yearPart] = parts;
+      let year = yearPart;
 
       // Convert 2-digit year to 4-digit year (assume 20XX)
       if (year.length === 2) {
@@ -48,7 +49,7 @@ export function parseBulgarianDateTime(dateStr: string): Date {
 
   if (!match) {
     throw new Error(
-      `Date string does not match Bulgarian format "DD.MM.YYYY HH:MM": ${dateStr}`
+      `Date string does not match Bulgarian format "DD.MM.YYYY HH:MM": ${dateStr}`,
     );
   }
 
@@ -86,7 +87,7 @@ export function parseBulgarianDateTime(dateStr: string): Date {
     parsedHour,
     parsedMinute,
     0,
-    0
+    0,
   );
 
   // Check if date is valid (e.g., not 31st February)
@@ -120,7 +121,7 @@ export function parseBulgarianDateTime(dateStr: string): Date {
  */
 export function parseShortBulgarianDateTime(
   dateStr: string,
-  timeStr?: string
+  timeStr?: string,
 ): string {
   try {
     // Format: "DD.MM.YY" optionally with "HH:MM"
@@ -152,7 +153,7 @@ export function parseShortBulgarianDateTime(
         Number.parseInt(hour, 10),
         Number.parseInt(minute, 10),
         0,
-        0
+        0,
       );
 
       if (!Number.isNaN(date.getTime())) {
@@ -163,13 +164,13 @@ export function parseShortBulgarianDateTime(
     console.warn(
       `⚠️ Unable to parse short date: ${dateStr} ${
         timeStr || ""
-      }, using current date`
+      }, using current date`,
     );
     return new Date().toISOString();
   } catch (error) {
     console.error(
       `❌ Error parsing short date: ${dateStr} ${timeStr || ""}`,
-      error
+      error,
     );
     return new Date().toISOString();
   }

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { extractPostLinks, extractPostDetails } from "./extractors";
 
 // Mock Page type from Playwright
@@ -80,7 +80,7 @@ describe("rayon-oborishte-bg/extractors", () => {
 
       expect(posts).toHaveLength(1);
       expect(posts[0].url).toContain(
-        "%d1%83%d0%b2%d0%b5%d0%b4%d0%be%d0%bc%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5-"
+        "%d1%83%d0%b2%d0%b5%d0%b4%d0%be%d0%bc%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5-",
       );
     });
 

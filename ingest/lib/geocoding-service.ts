@@ -14,16 +14,6 @@ const mockService = USE_MOCK ? new GoogleGeocodingMockService() : null;
 // Constants for API rate limiting
 const GEOCODING_BATCH_DELAY_MS = 200;
 
-interface GeocodeResult {
-  formatted_address: string;
-  geometry: {
-    location: {
-      lat: number;
-      lng: number;
-    };
-  };
-}
-
 export async function geocodeAddress(address: string): Promise<Address | null> {
   // Use mock if enabled
   if (USE_MOCK && mockService) {
@@ -76,13 +66,12 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
               coordinates: [lng, lat],
             },
           };
-        } else {
-          console.warn(
-            `⚠️  Result for "${address}" is outside Sofia: [${lat.toFixed(
-              6,
-            )}, ${lng.toFixed(6)}]`,
-          );
         }
+        console.warn(
+          `⚠️  Result for "${address}" is outside Sofia: [${lat.toFixed(
+            6,
+          )}, ${lng.toFixed(6)}]`,
+        );
       }
 
       // All results were outside Sofia

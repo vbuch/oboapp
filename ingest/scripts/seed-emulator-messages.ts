@@ -74,13 +74,13 @@ function createGeoJsonForMessage(config: MessageConfig): {
     const point = randomSofiaPoint();
     const geoJson = createPointGeoJson(point.lat, point.lng);
     return { geoJson, point };
-  } else {
+  } 
     // LineString with 3-5 points
     const numPoints = faker.number.int({ min: 3, max: 5 });
     const points = generateLineStringPoints(numPoints);
     const geoJson = createLineGeoJson(points);
     return { geoJson, point: points[0] };
-  }
+  
 }
 
 export async function seedSourcesAndMessages(db: Firestore): Promise<void> {

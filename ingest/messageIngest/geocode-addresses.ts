@@ -46,7 +46,7 @@ export async function geocodeAddressesFromExtractedData(
   categorize?: CategorizedMessage | null
 ): Promise<GeocodingResult> {
   const preGeocodedMap = new Map<string, { lat: number; lng: number }>();
-  let addresses: Address[] = [];
+  const addresses: Address[] = [];
   let cadastralGeometries: Map<string, CadastralGeometry> | undefined;
 
   if (!extractedData) {

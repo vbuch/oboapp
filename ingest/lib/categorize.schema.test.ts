@@ -3,7 +3,6 @@ import {
   CategorizationResponseSchema,
   CategoryEnum,
   type CategorizationResult,
-  type CategorizedMessage,
   type Category,
 } from "./categorize.schema";
 

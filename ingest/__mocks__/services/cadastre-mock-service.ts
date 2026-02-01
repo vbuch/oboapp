@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 
 export class CadastreMockService {
   private customFixturePath: string | null = null;

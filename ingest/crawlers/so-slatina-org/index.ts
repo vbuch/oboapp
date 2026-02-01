@@ -50,7 +50,6 @@ export async function crawl(): Promise<void> {
 
 // Run the crawler if executed directly
 if (require.main === module) {
-  // eslint-disable-next-line unicorn/prefer-top-level-await
   crawl().catch((error) => {
     console.error("Fatal error:", error);
     process.exit(1);

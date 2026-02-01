@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { CategorizationResult } from "./categorize.schema";
 
 // Test only the validation logic with direct imports
 describe("categorize function validation", () => {
-  let mockGenerateContent: any;
+  let _mockGenerateContent: any;
   let originalEnv: any;
 
   beforeEach(() => {

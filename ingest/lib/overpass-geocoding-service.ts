@@ -378,7 +378,7 @@ function findGeometricIntersection(
 
     for (const line1 of street1.geometry.coordinates) {
       for (const line2 of street2.geometry.coordinates) {
-        const lineString1 = turf.lineString(line1);
+        const _lineString1 = turf.lineString(line1);
         const lineString2 = turf.lineString(line2);
 
         // Sample points along both lines
@@ -581,7 +581,6 @@ export async function getStreetSectionGeometry(
       // Find nearest unused segment to current point
       let nearestSegmentIdx = -1;
       let nearestDist = Infinity;
-      let nearestSnap: unknown = null;
 
       for (let i = 0; i < allSegments.length; i++) {
         if (usedSegments.has(i)) continue;
@@ -596,7 +595,7 @@ export async function getStreetSectionGeometry(
         if (dist < nearestDist) {
           nearestDist = dist;
           nearestSegmentIdx = i;
-          nearestSnap = snapped;
+          // nearestSnap = snapped; // unused but kept for potential debugging
         }
       }
 
@@ -706,11 +705,10 @@ async function geocodeAddressWithNominatim(
             `   ✅ Nominatim geocoded: "${address}" → [${coords.lat}, ${coords.lng}]`,
           );
           return coords;
-        } else {
-          console.warn(
-            `   ⚠️  Nominatim result for "${address}" outside Sofia: [${coords.lat}, ${coords.lng}]`,
-          );
         }
+        console.warn(
+          `   ⚠️  Nominatim result for "${address}" outside Sofia: [${coords.lat}, ${coords.lng}]`,
+        );
       }
 
       console.warn(

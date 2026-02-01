@@ -36,8 +36,8 @@ export async function storeIncomingMessage(
   if (messageId) {
     await messagesRef.doc(messageId).set(docData);
     return messageId;
-  } else {
+  } 
     const docRef = await messagesRef.add(docData);
     return docRef.id;
-  }
+  
 }

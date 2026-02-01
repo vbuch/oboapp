@@ -49,13 +49,13 @@ describe("isAlreadyIngested", () => {
 
     // Import the function we want to test
     // Note: This is an internal function, so we need to access it via a test export or dynamic import
-    const module = await import("./from-sources");
+    const _module = await import("./from-sources");
 
     // Since isAlreadyIngested is not exported, we'll create a test helper
     // that mimics its functionality for testing purposes
     isAlreadyIngested = async (
       adminDb: any,
-      sourceUrl: string
+      sourceUrl: string,
     ): Promise<boolean> => {
       const sourceDocumentId = mockEncodeDocumentId(sourceUrl);
       const messagesSnapshot = await adminDb
@@ -96,7 +96,7 @@ describe("isAlreadyIngested", () => {
     expect(mockQuery.where).toHaveBeenCalledWith(
       "sourceDocumentId",
       "==",
-      expectedSourceDocumentId
+      expectedSourceDocumentId,
     );
     expect(mockQuery.limit).toHaveBeenCalledWith(1);
   });
@@ -119,7 +119,7 @@ describe("isAlreadyIngested", () => {
     expect(mockQuery.where).toHaveBeenCalledWith(
       "sourceDocumentId",
       "==",
-      expectedSourceDocumentId
+      expectedSourceDocumentId,
     );
     expect(mockQuery.limit).toHaveBeenCalledWith(1);
   });
@@ -166,7 +166,7 @@ describe("isAlreadyIngested", () => {
     expect(mockQuery.where).toHaveBeenCalledWith(
       "sourceDocumentId",
       "==",
-      encodedId
+      encodedId,
     );
   });
 
@@ -178,7 +178,7 @@ describe("isAlreadyIngested", () => {
     mockQuery.get.mockRejectedValue(firestoreError);
 
     await expect(isAlreadyIngested(mockAdminDb, sourceUrl)).rejects.toThrow(
-      "Firestore connection failed"
+      "Firestore connection failed",
     );
   });
 
@@ -201,7 +201,7 @@ describe("isAlreadyIngested", () => {
  */
 async function filterByAge(
   sources: SourceDocument[],
-  maxAgeInDays: number = 90
+  maxAgeInDays: number = 90,
 ): Promise<{ recentSources: SourceDocument[]; tooOld: number }> {
   const recentSources: SourceDocument[] = [];
   let tooOld = 0;

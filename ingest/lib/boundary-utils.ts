@@ -3,14 +3,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { GeoJSONFeatureCollection } from "./types";
 
-let cachedBoundary: GeoJSONFeatureCollection | null = null;
+const _cachedBoundary: GeoJSONFeatureCollection | null = null;
 
 /**
  * Load optional geographic boundaries from a GeoJSON file for filtering.
  * If no path is provided, all sources will be processed.
  */
 export function loadBoundaries(
-  boundariesPath?: string
+  boundariesPath?: string,
 ): GeoJSONFeatureCollection | null {
   if (!boundariesPath) {
     return null;
@@ -25,7 +25,7 @@ export function loadBoundaries(
   } catch (error) {
     console.error(
       `❌ Failed to load boundaries from ${boundariesPath}:`,
-      error
+      error,
     );
     throw error;
   }
@@ -38,7 +38,7 @@ function checkBoundingBoxOverlap(
   turfFeature: any,
   turfBoundary: any,
   geometryType: string,
-  originalError: unknown
+  originalError: unknown,
 ): boolean {
   try {
     const featureBbox = turf.bbox(turfFeature);
@@ -67,7 +67,7 @@ function checkBoundingBoxOverlap(
     const bboxErrorMessage =
       error instanceof Error ? error.message : String(error);
     console.warn(
-      `⚠️  Could not check geometry intersection (${errorMessage}), bbox check also failed (${bboxErrorMessage}), including by default`
+      `⚠️  Could not check geometry intersection (${errorMessage}), bbox check also failed (${bboxErrorMessage}), including by default`,
     );
     return true;
   }
@@ -78,14 +78,14 @@ function checkBoundingBoxOverlap(
  */
 export function checkFeatureIntersection(
   feature: any,
-  boundaries: GeoJSONFeatureCollection
+  boundaries: GeoJSONFeatureCollection,
 ): boolean {
   const turfFeature = turf.feature(feature.geometry, feature.properties);
 
   for (const boundaryFeature of boundaries.features) {
     const turfBoundary = turf.feature(
       boundaryFeature.geometry,
-      boundaryFeature.properties
+      boundaryFeature.properties,
     );
 
     try {
@@ -105,7 +105,7 @@ export function checkFeatureIntersection(
           turfFeature,
           turfBoundary,
           feature.geometry.type,
-          intersectError
+          intersectError,
         )
       ) {
         return true;
@@ -123,7 +123,7 @@ export function checkFeatureIntersection(
  */
 export function filterFeaturesByBoundaries(
   sourceGeoJson: GeoJSONFeatureCollection | null,
-  boundaries: GeoJSONFeatureCollection
+  boundaries: GeoJSONFeatureCollection,
 ): GeoJSONFeatureCollection | null {
   if (!sourceGeoJson?.features || sourceGeoJson.features.length === 0) {
     return null;
@@ -153,7 +153,7 @@ export function filterFeaturesByBoundaries(
  */
 export function isWithinBoundaries(
   sourceGeoJson: GeoJSONFeatureCollection,
-  boundaries: GeoJSONFeatureCollection
+  boundaries: GeoJSONFeatureCollection,
 ): boolean {
   try {
     // Check if any feature in source intersects with boundaries

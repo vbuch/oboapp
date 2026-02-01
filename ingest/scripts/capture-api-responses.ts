@@ -106,7 +106,7 @@ async function captureApiResponses() {
     const cadastreResult = await geocodeCadastralProperty("68134.501.123");
     writeFixture("cadastre/property-geometry.json", cadastreResult);
     console.log("  ✓ Cadastral property geometry");
-  } catch (error) {
+  } catch {
     console.log(
       "  ⚠️  Cadastre API call failed (this is expected if session expired)",
     );

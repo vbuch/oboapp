@@ -658,7 +658,6 @@ export async function main(): Promise<void> {
 
 // Run the script only when executed directly
 if (require.main === module) {
-  // eslint-disable-next-line unicorn/prefer-top-level-await
   void (async () => {
     try {
       await main();
