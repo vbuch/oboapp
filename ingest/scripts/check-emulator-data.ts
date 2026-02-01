@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { resolve } from "node:path";
 
 // Load emulator environment
-dotenv.config({ path: resolve(process.cwd(), ".env.emulator") });
+dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
 async function checkData() {
   console.log("Environment:");

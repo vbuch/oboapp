@@ -6,7 +6,7 @@ import { seedTestUser, seedInterestZones } from "./seed-emulator-users";
 import { seedSourcesAndMessages } from "./seed-emulator-messages";
 
 // Load environment variables for emulator
-dotenv.config({ path: resolve(process.cwd(), ".env.emulator") });
+dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
 async function seedEmulator() {
   console.log("🌱 Seeding Firebase Emulator with realistic test data...\n");
