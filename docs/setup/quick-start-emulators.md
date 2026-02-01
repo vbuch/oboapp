@@ -1,23 +1,15 @@
 # Quick Start with Firebase Emulators
 
-Get started developing oboapp with **zero cloud dependencies** using Firebase Emulators and mock APIs.
+Run oboapp locally with zero cloud dependencies using Firebase Emulators and mock APIs.
 
 ## Prerequisites
 
-- **Docker** and Docker Compose installed
-- **Node.js 20+** installed
-- **Git** installed
+- Docker and Docker Compose
+- Node.js 20+
 
-## Quick Start (5 minutes)
+## Setup (5 minutes)
 
-### 1. Clone and Setup
-
-```bash
-git clone https://github.com/vbuch/oboapp.git
-cd oboapp
-```
-
-### 2. Configure Environment
+### 1. Configure Environment
 
 ```bash
 # Copy environment templates
@@ -25,221 +17,90 @@ cp ingest/.env.example.emulator ingest/.env.local
 cp web/.env.example.emulator web/.env.local
 ```
 
-Or manually create `ingest/.env.local`:
-
-```dotenv
-USE_FIREBASE_EMULATORS=true
-FIRESTORE_EMULATOR_HOST=localhost:8080
-FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-project
-
-MOCK_GEMINI_API=true
-MOCK_GOOGLE_GEOCODING=true
-MOCK_OVERPASS_API=true
-MOCK_CADASTRE_API=true
-
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-GOOGLE_AI_MODEL=gemini-2.5-flash-lite
-```
-
-And `web/.env.local`:
-
-```dotenv
-# Backend (API routes) emulator mode
-USE_FIREBASE_EMULATORS=true
-FIRESTORE_EMULATOR_HOST=localhost:8080
-FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-project
-
-# Frontend emulator mode
-NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true
-
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-MESSAGE_RELEVANCE_DAYS=7
-
-# Optional: Google Maps API key (can be empty for basic testing)
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
-```
-
-### 3. Install Dependencies
+### 2. Install Dependencies
 
 ```bash
-# Install ingest module dependencies
-cd ingest
-npm install
-cd ..
-
-# Install web module dependencies
-cd web
-npm install
-cd ..
+cd ingest && npm install && cd ..
+cd web && npm install && cd ..
 ```
 
-### 4. Start Firebase Emulators
+### 3. Start Emulators
 
 ```bash
-# Start emulators with Docker Compose
 docker-compose up firebase-emulators
 ```
 
-Wait for the output:
+Wait for: `✔  All emulators ready! It is now safe to connect your app.`
 
-```
-✔  All emulators ready! It is now safe to connect your app.
-```
+**Emulator UI:** http://localhost:4000
 
-Access **Emulator UI** at: http://localhost:4000
+### 4. Seed Test Data (First Time)
 
-### 5. Seed Test Data (First Time Only)
-
-Open a new terminal:
+Open new terminal:
 
 ```bash
 cd ingest
 npm run emulator:seed
 ```
 
-This creates sample messages, sources, interests, and users in the emulator.
+Stop emulators (Ctrl+C), then restart. Data persists across restarts.
 
-**Stop the emulators** (Ctrl+C) to export the seed data, then restart them. The data will persist across restarts.
-
-### 6. Start Web Application
-
-In a new terminal:
+### 5. Start Web App
 
 ```bash
 cd web
 npm run dev
 ```
 
-Access the app at: http://localhost:3000
+**App:** http://localhost:3000
 
 ## What You Get
 
-✅ **Full Firestore database** - All CRUD operations work  
-✅ **Firebase Authentication** - Google Sign-In simulation  
-✅ **Sample data** - 3 messages, 2 interest zones, 1 test user  
-✅ **Mock external APIs** - No API costs or rate limits  
-✅ **Emulator UI** - Inspect Firestore data, auth users, etc.
+- Firestore database with sample messages, sources, interest zones
+- Firebase Authentication (Google Sign-In mocked)
+- Mock external APIs (Gemini, Google Geocoding, Overpass, Cadastre)
+- Emulator UI for data inspection
 
-## Development Workflow
+## Common Operations
 
-### Run Crawlers (with mocks)
+**Run crawler (mocked):**
 
 ```bash
 cd ingest
 npm run crawl -- --source rayon-oborishte-bg --dry-run
 ```
 
-All API calls use mock fixtures instead of real APIs.
-
-### Run Message Ingestion Pipeline (with mocks)
+**Run ingestion pipeline (mocked):**
 
 ```bash
 cd ingest
 npm run ingest
 ```
 
-Messages are categorized and geocoded using mock data.
-
-### Reset Emulator Data
-
-```bash
-# Stop emulators (Ctrl+C)
-rm -rf ingest/emulator-data/*_export
-npm run emulators
-```
-
-Starts with clean slate. Re-run `emulator:seed` to restore test data.
-
-### Emulator Utility Scripts
-
-```bash
-npm run emulator:check   # Check current data in emulator
-npm run emulator:clear   # Delete all emulator data
-npm run emulator:seed    # Populate with test data
-```
-
-### Customize Mock Responses
-
-See [External API Mocks](../features/external-api-mocks.md) for details on customizing fixture data.
-
-## Limitations
-
-### What Works
-
-- ✅ Firestore database operations (read/write)
-- ✅ Firebase Authentication (Google Sign-In)
-- ✅ Message categorization (mocked AI responses)
-- ✅ Geocoding (mocked coordinates)
-- ✅ UI development and testing
-
-### What Doesn't Work
-
-- ❌ Firebase Cloud Messaging (no emulator exists)
-- ❌ Firestore indexes (emulators ignore index requirements)
-- ❌ Real external API calls (everything is mocked)
-- ❌ Deployment/production testing
-
-For production testing, see [Production Setup Guide](production-setup.md).
-
-## Troubleshooting
-
-### Emulators won't start
-
-**Error:** `firebase: command not found`
-
-**Solution:** Install firebase-tools globally:
-
-```bash
-npm install -g firebase-tools
-```
-
-### Web app can't connect to emulators
-
-**Error:** `@firebase/firestore: Firestore (10.x.x): Could not reach Cloud Firestore backend`
-
-**Solution:** Verify emulators are running and environment variables are set:
-
-```bash
-# In web/.env.local
-NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true
-```
-
-### No data in emulator
-
-**Solution:** Run the seed script:
+**Reset data:**
 
 ```bash
 cd ingest
+npm run emulator:clear
 npm run emulator:seed
 ```
 
-### Emulator UI shows empty Firestore
+## Troubleshooting
 
-**Problem:** The Emulator UI at http://localhost:4000 shows no collections, but the seed script reported success.
+**Emulators won't start:** Install firebase-tools globally: `npm install -g firebase-tools`
 
-**Solution:** The UI may be looking at the wrong project. Check the URL - it should include `?ns=demo-project`. Navigate to:
+**Web app can't connect:** Verify `NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true` in `web/.env.local`
 
-```
-http://localhost:4000/firestore/default/data?ns=demo-project
-```
+**Empty Firestore UI:** Navigate to http://localhost:4000/firestore/default/data?ns=demo-project
 
-The emulators use `demo-project` as the project ID (configured in docker-compose.yml). This is intentional - project IDs starting with `demo-` don't require Firebase authentication.
+**Mock APIs not working:** Verify `MOCK_*=true` variables in `ingest/.env.local`
 
-### Mock APIs not working
+## Known Limitations
 
-**Solution:** Check environment variables in `ingest/.env.local`:
+- Firebase Cloud Messaging has no emulator
+- Firestore indexes are ignored
+- All external API calls are mocked
 
-```dotenv
-MOCK_GEMINI_API=true
-MOCK_GOOGLE_GEOCODING=true
-MOCK_OVERPASS_API=true
-MOCK_CADASTRE_API=true
-```
+For production setup, see [production-setup.md](production-setup.md).
 
-## Next Steps
-
-- [External API Mocks Documentation](../features/external-api-mocks.md) - Customize mock responses
-- [Production Setup Guide](production-setup.md) - Deploy to real Firebase/GCP
-- [Contributing Guide](../../CONTRIBUTING.md) - Code style and PR process
+For mock customization, see [external-api-mocks.md](../features/external-api-mocks.md).
