@@ -98,17 +98,17 @@ export function useDragPanel({
         if (isOpen) {
           // Open: only allow dragging left (negative offset)
           return Math.min(0, offset);
-        } else {
+        } 
           // Closed: only allow dragging right (positive offset)
           return Math.max(0, offset);
-        }
+        
       }
       // Horizontal unidirectional: only left (close)
       return Math.min(0, offset);
-    } else {
+    } 
       // Vertical: only allow dragging down (positive offset)
       return Math.max(0, offset);
-    }
+    
   }, [dragStart, dragCurrent, isDragging, isHorizontal, isOpen, bidirectional]);
 
   // Handle drag end - check if threshold met

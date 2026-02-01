@@ -3,7 +3,7 @@ import { trackEvent } from "@/lib/analytics";
 import { MessageClassification } from "@/lib/message-classification";
 
 interface HeaderProps {
-  handlers: Record<string, any>;
+  handlers: Record<string, () => void>;
   onClose: () => void;
   messageId?: string;
   classification?: MessageClassification;

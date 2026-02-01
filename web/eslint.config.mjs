@@ -1,7 +1,9 @@
 import nextVitals from "eslint-config-next/core-web-vitals";
+import tseslint from "typescript-eslint";
 
 const eslintConfig = [
   ...nextVitals,
+  ...tseslint.configs.recommended,
   {
     rules: {
       // Memory leak prevention rules
@@ -9,16 +11,18 @@ const eslintConfig = [
       "prefer-const": "error",
       "no-var": "error",
 
-      // Code quality rules
-      "no-unused-vars": [
+      // Code quality rules - TypeScript-aware unused vars detection
+      "@typescript-eslint/no-unused-vars": [
         "error",
         {
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
           ignoreRestSiblings: true,
-          args: "none", // Don't check function arguments - TypeScript handles this
+          args: "none",
         },
       ],
+      // Allow empty object types for generic type parameters (used in analytics)
+      "@typescript-eslint/no-empty-object-type": "off",
 
       // Prefer early returns over else-if-return chains
       "no-else-return": ["error", { allowElseIf: false }],
@@ -32,6 +36,13 @@ const eslintConfig = [
           reset: true,
         },
       ],
+    },
+  },
+  // Allow 'any' in test files for mocking purposes
+  {
+    files: ["**/*.test.ts", "**/*.test.tsx", "**/__tests__/**"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
   {

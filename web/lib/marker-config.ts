@@ -127,7 +127,7 @@ export function createMarkerIcon(
   isHovered: boolean = false,
   classification: "active" | "archived" = "active",
   customColors = colors,
-  customOpacity = opacity
+  customOpacity = opacity,
 ): MarkerIconConfig {
   const isArchived = classification === "archived";
   const fillColor = isArchived
@@ -160,16 +160,16 @@ export function createMarkerIcon(
 export function createClusterIcon(
   count: number,
   classification: "active" | "archived" = "active",
-  customColors = colors
+  customColors = colors,
 ): { icon: ClusterIconConfig; label: ClusterLabelConfig } {
   // Scale cluster size based on count, with min/max bounds
   const scale = Math.min(15 + count / 2, 25);
 
-  // Use CIRCLE symbol path, fallback to string for testing
+  // Use CIRCLE symbol path (enum value is 0)
   const symbolPath =
     typeof google !== "undefined" && google.maps
       ? google.maps.SymbolPath.CIRCLE
-      : ("CIRCLE" as any);
+      : 0; // CIRCLE enum value
 
   const isArchived = classification === "archived";
   const fillColor = isArchived
@@ -208,7 +208,7 @@ export function getGeometryStyle(
   geometryType: "LineString" | "Polygon",
   isHovered: boolean = false,
   isSelected: boolean = false,
-  classification: "active" | "archived" = "active"
+  classification: "active" | "archived" = "active",
 ): GeometryStyleConfig {
   const useHoverState = isHovered || isSelected;
   const isArchived = classification === "archived";
@@ -252,7 +252,7 @@ export function createCustomGeometryStyle(
     fillColor?: string;
     fillOpacity?: number;
     zIndex?: number;
-  } = {}
+  } = {},
 ): GeometryStyleConfig {
   const baseStyle = getGeometryStyle(geometryType);
 

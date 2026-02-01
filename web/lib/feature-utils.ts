@@ -10,7 +10,7 @@ export interface FeatureData {
   messageId: string;
   featureIndex: number;
   geometry: GeoJSONGeometry;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   centroid: { lat: number; lng: number };
   classification: MessageClassification;
 }
@@ -22,7 +22,7 @@ export interface FeatureData {
  * @returns Array of FeatureData with valid centroids and classification
  */
 export function extractFeaturesFromMessages(
-  messages: Message[]
+  messages: Message[],
 ): FeatureData[] {
   if (!Array.isArray(messages)) {
     throw new Error("Invalid input: messages must be an array");
@@ -71,7 +71,7 @@ export function extractFeaturesFromMessages(
  */
 export function filterUnclusteredFeatures(
   features: FeatureData[],
-  unclusteredKeys: Set<string>
+  unclusteredKeys: Set<string>,
 ): FeatureData[] {
   if (!Array.isArray(features)) {
     throw new Error("Invalid input: features must be an array");

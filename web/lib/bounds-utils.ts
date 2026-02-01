@@ -3,6 +3,7 @@
  */
 
 import * as turf from "@turf/turf";
+import type { GeoJSONFeature } from "@/lib/types";
 
 // Sofia bounding box (matches ingest/lib/geocoding-utils.ts)
 export const SOFIA_BOUNDS = {
@@ -40,7 +41,7 @@ export function clampBounds(bounds: ViewportBounds): ViewportBounds {
  */
 export function addBuffer(
   bounds: ViewportBounds,
-  bufferPercent: number = 0.2
+  bufferPercent: number = 0.2,
 ): ViewportBounds {
   const latBuffer = (bounds.north - bounds.south) * bufferPercent;
   const lngBuffer = (bounds.east - bounds.west) * bufferPercent;
@@ -57,8 +58,8 @@ export function addBuffer(
  * Check if a GeoJSON feature's bounding box intersects with viewport bounds
  */
 export function featureIntersectsBounds(
-  feature: any,
-  bounds: ViewportBounds
+  feature: GeoJSONFeature,
+  bounds: ViewportBounds,
 ): boolean {
   if (!feature.geometry?.coordinates) return false;
 

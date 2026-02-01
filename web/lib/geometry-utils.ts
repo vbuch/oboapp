@@ -1,5 +1,6 @@
 import center from "@turf/center";
 import { lineString, polygon } from "@turf/helpers";
+import type { GeoJSONGeometry } from "@/lib/types";
 
 /**
  * Convert GeoJSON coordinate to Google Maps LatLng format
@@ -11,7 +12,7 @@ import { lineString, polygon } from "@turf/helpers";
 export const toLatLng = (coord: number[]): { lat: number; lng: number } => {
   if (!coord || coord.length < 2) {
     throw new Error(
-      "Invalid coordinate: must be an array with at least 2 elements"
+      "Invalid coordinate: must be an array with at least 2 elements",
     );
   }
   if (
@@ -21,7 +22,7 @@ export const toLatLng = (coord: number[]): { lat: number; lng: number } => {
     !Number.isFinite(coord[1])
   ) {
     throw new Error(
-      "Invalid coordinate: longitude and latitude must be numbers"
+      "Invalid coordinate: longitude and latitude must be numbers",
     );
   }
 
@@ -38,7 +39,7 @@ export const toLatLng = (coord: number[]): { lat: number; lng: number } => {
  * @returns Centroid as Google Maps LatLng object, or null if calculation fails
  */
 export const getCentroid = (
-  geometry: any
+  geometry: GeoJSONGeometry,
 ): { lat: number; lng: number } | null => {
   if (!geometry || !geometry.type) {
     return null;
@@ -94,7 +95,7 @@ export const getCentroid = (
  */
 export const createFeatureKey = (
   messageId: string,
-  featureIndex: number
+  featureIndex: number,
 ): string => {
   if (!messageId || typeof messageId !== "string") {
     throw new Error("Invalid messageId: must be a non-empty string");
@@ -121,7 +122,7 @@ export const createFeatureKey = (
 export const jitterDuplicatePositions = <
   T extends { lat: number; lng: number },
 >(
-  positions: T[]
+  positions: T[],
 ): T[] => {
   if (!Array.isArray(positions)) {
     throw new Error("Invalid input: positions must be an array");
@@ -137,9 +138,7 @@ export const jitterDuplicatePositions = <
       !Number.isFinite(pos.lat) ||
       !Number.isFinite(pos.lng)
     ) {
-      throw new Error(
-        "Invalid position: lat and lng must be finite numbers"
-      );
+      throw new Error("Invalid position: lat and lng must be finite numbers");
     }
 
     const key = `${pos.lat.toFixed(6)},${pos.lng.toFixed(6)}`;

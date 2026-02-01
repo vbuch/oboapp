@@ -9,12 +9,13 @@ import { useGeolocationPrompt } from "@/lib/hooks/useGeolocationPrompt";
 import { useOnboardingFlow } from "@/lib/hooks/useOnboardingFlow";
 import { useAuth } from "@/lib/auth-context";
 import { Message, Interest } from "@/lib/types";
+import type { User } from "firebase/auth";
 
 interface MapContainerProps {
   readonly messages: Message[];
   readonly interests: Interest[];
   readonly interestsLoaded: boolean;
-  readonly user: any;
+  readonly user: User | null;
   readonly targetMode: {
     active: boolean;
     initialRadius?: number;
@@ -27,9 +28,9 @@ interface MapContainerProps {
       lat: number,
       lng: number,
       zoom?: number,
-      options?: { animate?: boolean }
+      options?: { animate?: boolean },
     ) => void,
-    mapInstance: google.maps.Map | null
+    mapInstance: google.maps.Map | null,
   ) => void;
   readonly onBoundsChanged: (bounds: {
     north: number;
@@ -41,7 +42,7 @@ interface MapContainerProps {
   readonly onInterestClick: (interest: Interest) => void;
   readonly onSaveInterest: (
     coordinates: { lat: number; lng: number },
-    radius: number
+    radius: number,
   ) => void;
   readonly onCancelTargetMode: () => void;
   readonly onStartAddInterest: () => void;
@@ -67,7 +68,7 @@ export default function MapContainer({
         lat: number,
         lng: number,
         zoom?: number,
-        options?: { animate?: boolean }
+        options?: { animate?: boolean },
       ) => void)
     | null
   >(null);
@@ -103,7 +104,7 @@ export default function MapContainer({
         if (response.ok) {
           const subscriptions = await response.json();
           setHasSubscriptions(
-            Array.isArray(subscriptions) && subscriptions.length > 0
+            Array.isArray(subscriptions) && subscriptions.length > 0,
           );
         }
       } catch (error) {
@@ -137,9 +138,9 @@ export default function MapContainer({
       lat: number,
       lng: number,
       zoom?: number,
-      options?: { animate?: boolean }
+      options?: { animate?: boolean },
     ) => void,
-    mapInstance: google.maps.Map | null
+    mapInstance: google.maps.Map | null,
   ) => {
     setCenterMap(() => centerMapFn);
     onMapReady(centerMapFn, mapInstance);

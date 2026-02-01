@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { trackEvent } from "@/lib/analytics";
-import { Message } from "@/lib/types";
+import { Message, GeoJSONFeature } from "@/lib/types";
 import {
   createFeatureKey,
   jitterDuplicatePositions,
@@ -11,6 +11,13 @@ import {
 import { extractFeaturesFromMessages, FeatureData } from "@/lib/feature-utils";
 import { createMarkerIcon, createClusterIcon } from "@/lib/marker-config";
 import GeometryRenderer from "./GeometryRenderer";
+
+// Extend google.maps.Marker with custom feature data
+interface ExtendedMarker extends google.maps.Marker {
+  featureData?: GeoJSONFeature;
+  featureKey?: string;
+  classification?: "active" | "archived";
+}
 
 interface GeoJSONLayerProps {
   readonly messages: Message[];
@@ -60,7 +67,7 @@ export default function GeoJSONLayer({
 
     // Apply jittering to prevent overlapping markers at identical positions
     const jitteredCentroids = jitterDuplicatePositions(
-      featuresList.map((f) => f.centroid)
+      featuresList.map((f) => f.centroid),
     );
 
     featuresList.forEach((feature, index) => {
@@ -78,9 +85,9 @@ export default function GeoJSONLayer({
       });
 
       // Store feature data in marker
-      (marker as any).featureData = feature;
-      (marker as any).featureKey = key;
-      (marker as any).classification = classification;
+      (marker as ExtendedMarker).featureData = feature;
+      (marker as ExtendedMarker).featureKey = key;
+      (marker as ExtendedMarker).classification = classification;
 
       // Click handler
       marker.addListener("click", () => {
@@ -159,7 +166,7 @@ export default function GeoJSONLayer({
             // Track which markers are in this cluster
             if (count > 1) {
               clusterMarkers?.forEach((marker) => {
-                const key = (marker as any).featureKey;
+                const key = (marker as ExtendedMarker).featureKey;
                 if (key) {
                   setUnclusteredArchivedFeatures((prev) => {
                     const next = new Set(prev);
@@ -217,7 +224,7 @@ export default function GeoJSONLayer({
             // Track which markers are in this cluster
             if (count > 1) {
               clusterMarkers?.forEach((marker) => {
-                const key = (marker as any).featureKey;
+                const key = (marker as ExtendedMarker).featureKey;
                 if (key) {
                   setUnclusteredActiveFeatures((prev) => {
                     const next = new Set(prev);
