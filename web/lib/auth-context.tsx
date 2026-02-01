@@ -56,41 +56,29 @@ export function AuthProvider({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
 
-    // Handle redirect result FIRST before setting up auth listener
-    // This ensures redirect completion is processed before auth state changes
-    const initAuth = async () => {
-      if (shouldUseRedirectAuth()) {
-        try {
-          // Process any pending redirect result from OAuth flow
-          const result = await getRedirectResult(auth);
-          if (result?.user) {
-            // User signed in via redirect - auth state will update via onAuthStateChanged
-            console.log("Redirect sign-in completed");
-          }
-        } catch (error: unknown) {
-          // User closing/cancelling the redirect is not an error
-          if (!isUserCancellationError(error)) {
-            console.error("Error handling redirect result:", error);
-          }
+    // Handle redirect result for Safari/mobile browsers
+    // This runs once on page load to complete redirect-based OAuth
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          // User signed in via redirect - auth state will update via onAuthStateChanged
+          console.log("Redirect sign-in completed");
         }
-      }
-
-      // Now set up auth state listener after redirect processing
-      unsubscribe = onAuthStateChanged(auth, (user) => {
-        setUser(user);
-        setLoading(false);
+      })
+      .catch((error: unknown) => {
+        // User closing/cancelling the redirect is not an error
+        if (isUserCancellationError(error)) {
+          return;
+        }
+        console.error("Error handling redirect result:", error);
       });
-    };
 
-    initAuth();
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
+    return unsubscribe;
   }, []);
 
   const signInWithGoogle = useCallback(async () => {

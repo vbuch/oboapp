@@ -34,55 +34,6 @@ describe("AuthContext", () => {
     vi.clearAllMocks();
   });
 
-  describe("AuthProvider initialization", () => {
-    it("should NOT call getRedirectResult on desktop Chrome (popup mode)", async () => {
-      const { shouldUseRedirectAuth } = await import("./browser-detection");
-      const mockShouldUseRedirectAuth = shouldUseRedirectAuth as ReturnType<
-        typeof vi.fn
-      >;
-      mockShouldUseRedirectAuth.mockReturnValueOnce(false); // Desktop Chrome uses popup
-
-      const { getRedirectResult } = await import("firebase/auth");
-      const mockGetRedirectResult = getRedirectResult as ReturnType<
-        typeof vi.fn
-      >;
-
-      const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <AuthProvider>{children}</AuthProvider>
-      );
-
-      renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(mockGetRedirectResult).not.toHaveBeenCalled();
-      });
-    });
-
-    it("should call getRedirectResult on Safari iOS (redirect mode)", async () => {
-      const { shouldUseRedirectAuth } = await import("./browser-detection");
-      const mockShouldUseRedirectAuth = shouldUseRedirectAuth as ReturnType<
-        typeof vi.fn
-      >;
-      mockShouldUseRedirectAuth.mockReturnValueOnce(true); // Safari iOS uses redirect
-
-      const { getRedirectResult } = await import("firebase/auth");
-      const mockGetRedirectResult = getRedirectResult as ReturnType<
-        typeof vi.fn
-      >;
-      mockGetRedirectResult.mockResolvedValue(null);
-
-      const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <AuthProvider>{children}</AuthProvider>
-      );
-
-      renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(mockGetRedirectResult).toHaveBeenCalledTimes(1);
-      });
-    });
-  });
-
   describe("signInWithGoogle", () => {
     it("should use popup mode by default", async () => {
       const { signInWithPopup, signInWithRedirect } =
@@ -115,8 +66,7 @@ describe("AuthContext", () => {
       const mockShouldUseRedirectAuth = shouldUseRedirectAuth as ReturnType<
         typeof vi.fn
       >;
-      // Mock needs to return true twice: once in useEffect, once in signInWithGoogle
-      mockShouldUseRedirectAuth.mockReturnValue(true);
+      mockShouldUseRedirectAuth.mockReturnValueOnce(true);
 
       const { signInWithPopup, signInWithRedirect } =
         await import("firebase/auth");
@@ -141,9 +91,6 @@ describe("AuthContext", () => {
 
       expect(mockSignInWithRedirect).toHaveBeenCalledTimes(1);
       expect(mockSignInWithPopup).not.toHaveBeenCalled();
-
-      // Clean up mock state for next test
-      mockShouldUseRedirectAuth.mockReturnValue(false);
     });
 
     it("should not throw error when user closes the popup", async () => {
