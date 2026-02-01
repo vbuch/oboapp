@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { faker } from "@faker-js/faker";
 import { MESSAGE_CONFIGS, type MessageConfig } from "./seed-emulator-fixtures";
+import type { Message } from "@/lib/types";
 import {
   randomSofiaPoint,
   createPointGeoJson,
@@ -11,37 +12,30 @@ import {
   type Point,
 } from "./seed-emulator-utils";
 
-interface SourceData {
-  readonly url: string;
-  readonly title: string;
-  readonly text: string;
-  readonly createdAt: Date;
-  readonly timespanStart: Date;
-  readonly timespanEnd: Date;
-}
-
-interface MessageData {
-  readonly sourceDocumentId: string;
-  readonly text: string;
-  readonly markdownText: string;
-  readonly categories: readonly string[];
-  readonly createdAt: Date;
-  readonly finalizedAt: Date;
-  readonly timespanStart: Date;
-  readonly timespanEnd: Date;
-  readonly geoJson: string;
+// SourceDocument structure matches what's stored in Firestore's sources collection
+interface SourceDocument {
+  url: string;
+  title: string;
+  message: string;
+  datePublished: string;
+  sourceType: string;
+  crawledAt: Date;
+  timespanStart?: Date;
+  timespanEnd?: Date;
 }
 
 function createSourceData(
   config: MessageConfig,
   index: number,
   timespan: { start: Date; end: Date },
-): SourceData {
+): SourceDocument {
   return {
     url: `https://example.com/source/${index + 1}`,
     title: `${config.text} на ${config.street}`,
-    text: `${config.text} на ${config.street} от ${timespan.start.toLocaleDateString("bg-BG")} до ${timespan.end.toLocaleDateString("bg-BG")}`,
-    createdAt: new Date(),
+    message: `${config.text} на ${config.street} от ${timespan.start.toLocaleDateString("bg-BG")} до ${timespan.end.toLocaleDateString("bg-BG")}`,
+    datePublished: new Date().toISOString(),
+    sourceType: "test-source",
+    crawledAt: new Date(),
     timespanStart: timespan.start,
     timespanEnd: timespan.end,
   };
@@ -52,18 +46,30 @@ function createMessageData(
   sourceId: string,
   timespan: { start: Date; end: Date },
   geoJson: GeoJSONFeatureCollection,
-): MessageData {
-  return {
+): Omit<Message, "id"> {
+  const baseData: Omit<Message, "id"> = {
     sourceDocumentId: sourceId,
     text: `${config.text} на ${config.street}`,
     markdownText: `**${config.text}**\n\nЛокация: ${config.street}\n\nПериод: ${timespan.start.toLocaleDateString("bg-BG")} - ${timespan.end.toLocaleDateString("bg-BG")}`,
-    categories: config.category,
+    categories: config.category as string[],
     createdAt: new Date(),
     finalizedAt: new Date(),
     timespanStart: timespan.start,
     timespanEnd: timespan.end,
-    geoJson: JSON.stringify(geoJson), // Firestore requires GeoJSON as string
+    geoJson: geoJson as any, // Type compatibility with readonly arrays
   };
+
+  // Add extractedData if present
+  if (config.extractedData) {
+    baseData.extractedData = config.extractedData as any;
+  }
+
+  // Add categorize if present
+  if (config.categorize) {
+    baseData.categorize = config.categorize as any;
+  }
+
+  return baseData;
 }
 
 function createGeoJsonForMessage(config: MessageConfig): {
@@ -74,13 +80,12 @@ function createGeoJsonForMessage(config: MessageConfig): {
     const point = randomSofiaPoint();
     const geoJson = createPointGeoJson(point.lat, point.lng);
     return { geoJson, point };
-  } 
-    // LineString with 3-5 points
-    const numPoints = faker.number.int({ min: 3, max: 5 });
-    const points = generateLineStringPoints(numPoints);
-    const geoJson = createLineGeoJson(points);
-    return { geoJson, point: points[0] };
-  
+  }
+  // LineString with 3-5 points
+  const numPoints = faker.number.int({ min: 3, max: 5 });
+  const points = generateLineStringPoints(numPoints);
+  const geoJson = createLineGeoJson(points);
+  return { geoJson, point: points[0] };
 }
 
 export async function seedSourcesAndMessages(db: Firestore): Promise<void> {
