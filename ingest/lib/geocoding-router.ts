@@ -18,6 +18,19 @@ import {
   type CadastralGeometry,
 } from "./cadastre-geocoding-service";
 import { geocodeBusStops as geocodeBusStopsService } from "./gtfs-geocoding-service";
+import { OverpassMockService } from "../__mocks__/services/overpass-mock-service";
+import { CadastreMockService } from "../__mocks__/services/cadastre-mock-service";
+
+// Check if mocking is enabled for Overpass and Cadastre
+// (Google Geocoding mock is handled in geocoding-service.ts)
+const USE_OVERPASS_MOCK = process.env.MOCK_OVERPASS_API === "true";
+const USE_CADASTRE_MOCK = process.env.MOCK_CADASTRE_API === "true";
+const overpassMockService = USE_OVERPASS_MOCK
+  ? new OverpassMockService()
+  : null;
+const cadastreMockService = USE_CADASTRE_MOCK
+  ? new CadastreMockService()
+  : null;
 
 /**
  * Geocode a list of addresses (pins) using Google Geocoding API
@@ -108,6 +121,22 @@ export async function geocodeCadastralPropertiesFromIdentifiers(
 ): Promise<Map<string, CadastralGeometry>> {
   if (identifiers.length === 0) {
     return new Map();
+  }
+
+  // Use mock if enabled
+  if (USE_CADASTRE_MOCK && cadastreMockService) {
+    console.log("[MOCK] Using Cadastre mock for properties");
+    const mockResults =
+      await cadastreMockService.geocodeCadastralPropertiesFromIdentifiers(
+        identifiers.map((id) => ({ identifier: id, timespans: [] })),
+      );
+    const resultMap = new Map<string, CadastralGeometry>();
+    mockResults.forEach((result, index) => {
+      if (result && result.geoJson) {
+        resultMap.set(identifiers[index], result.geoJson);
+      }
+    });
+    return resultMap;
   }
 
   return geocodeCadastralProperties(identifiers);

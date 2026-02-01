@@ -3,6 +3,16 @@ dist/
 # Copied during Docker build
 docker-shared/
 
+# Firebase Emulator data - allow base directory, ignore exports
+emulator-data/**/*_export
+emulator-data/**/*.log
+
+# Mock fixtures - allow base directory, ignore custom fixtures
+__mocks__/fixtures/**/*-custom.json
+
+# Mock fixtures - allow base fixtures, ignore custom test fixtures
+__mocks__/fixtures/**/*-custom.json
+
 # Terraform state
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup

@@ -12,6 +12,11 @@ import {
   truncateIngestPayload,
   type IngestErrorRecorder,
 } from "./ingest-errors";
+import { GeminiMockService } from "../__mocks__/services/gemini-mock-service";
+
+// Check if mocking is enabled
+const USE_MOCK = process.env.MOCK_GEMINI_API === "true";
+const mockService = USE_MOCK ? new GeminiMockService() : null;
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || "" });
 const MAX_INGEST_ERROR_LENGTH = 1000;
@@ -48,6 +53,12 @@ export async function categorize(
   text: string,
   ingestErrors?: IngestErrorRecorder,
 ): Promise<CategorizationResult | null> {
+  // Use mock if enabled
+  if (USE_MOCK && mockService) {
+    console.log("[MOCK] Using Gemini mock for categorization");
+    return mockService.categorize(text);
+  }
+
   const recorder = getIngestErrorRecorder(ingestErrors);
   try {
     // Validate message
@@ -118,6 +129,12 @@ export async function extractStructuredData(
   text: string,
   ingestErrors?: IngestErrorRecorder,
 ): Promise<ExtractedData | null> {
+  // Use mock if enabled
+  if (USE_MOCK && mockService) {
+    console.log("[MOCK] Using Gemini mock for extraction");
+    return mockService.extractStructuredData(text);
+  }
+
   const recorder = getIngestErrorRecorder(ingestErrors);
   try {
     // Validate message

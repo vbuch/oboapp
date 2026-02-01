@@ -259,7 +259,10 @@ flowchart LR
 
 **Avoid Duplication**:
 
-- Link to existing documentation sections instead of repeating content
+- **NEVER duplicate big chunks of documentation** across multiple files
+- **ALWAYS link to related content** instead of repeating text
+- **ALWAYS aim for short, readable documentation** (prefer 50-100 lines over 200+)
+- Link to existing sections rather than copy/paste content
 - Example: Reference `docs/features/geocoding-overview.md` rather than duplicating service descriptions
 - Maintain single source of truth for each topic
 

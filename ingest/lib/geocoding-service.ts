@@ -5,6 +5,11 @@ import {
   isGenericCityAddress,
 } from "./geocoding-utils";
 import { delay } from "./delay";
+import { GoogleGeocodingMockService } from "../__mocks__/services/google-geocoding-mock-service";
+
+// Check if mocking is enabled
+const USE_MOCK = process.env.MOCK_GOOGLE_GEOCODING === "true";
+const mockService = USE_MOCK ? new GoogleGeocodingMockService() : null;
 
 // Constants for API rate limiting
 const GEOCODING_BATCH_DELAY_MS = 200;
@@ -20,6 +25,12 @@ interface GeocodeResult {
 }
 
 export async function geocodeAddress(address: string): Promise<Address | null> {
+  // Use mock if enabled
+  if (USE_MOCK && mockService) {
+    console.log(`[MOCK] Using Google Geocoding mock for: ${address}`);
+    return mockService.geocodeAddress(address);
+  }
+
   try {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     const encodedAddress = encodeURIComponent(`${address}, Sofia, Bulgaria`);
@@ -40,8 +51,8 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
         if (isSofiaCenterFallback(lat, lng)) {
           console.warn(
             `⚠️  Result for "${address}" is Sofia city center: [${lat.toFixed(
-              6
-            )}, ${lng.toFixed(6)}] - generic fallback, rejecting`
+              6,
+            )}, ${lng.toFixed(6)}] - generic fallback, rejecting`,
           );
           continue;
         }
@@ -49,7 +60,7 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
         // Reject generic city-level addresses (e.g., "Sofia, Bulgaria")
         if (isGenericCityAddress(formattedAddress)) {
           console.warn(
-            `⚠️  Rejecting generic address for "${address}": ${formattedAddress}`
+            `⚠️  Rejecting generic address for "${address}": ${formattedAddress}`,
           );
           continue;
         }
@@ -68,15 +79,15 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
         } else {
           console.warn(
             `⚠️  Result for "${address}" is outside Sofia: [${lat.toFixed(
-              6
-            )}, ${lng.toFixed(6)}]`
+              6,
+            )}, ${lng.toFixed(6)}]`,
           );
         }
       }
 
       // All results were outside Sofia
       console.warn(
-        `❌ No results for "${address}" found within Sofia boundaries`
+        `❌ No results for "${address}" found within Sofia boundaries`,
       );
       return null;
     }
@@ -89,7 +100,7 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
 }
 
 export async function geocodeAddresses(
-  addresses: string[]
+  addresses: string[],
 ): Promise<Address[]> {
   const geocodedAddresses: Address[] = [];
 

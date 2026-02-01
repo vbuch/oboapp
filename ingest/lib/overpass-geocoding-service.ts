@@ -9,6 +9,11 @@ import {
 } from "./geocoding-utils";
 import { delay } from "./delay";
 import { roundCoordinate } from "../crawlers/shared/coordinate-utils";
+import { OverpassMockService } from "../__mocks__/services/overpass-mock-service";
+
+// Check if mocking is enabled
+const USE_MOCK = process.env.MOCK_OVERPASS_API === "true";
+const mockService = USE_MOCK ? new OverpassMockService() : null;
 
 // Constants for API rate limiting
 const OVERPASS_DELAY_MS = 500; // 500ms for Overpass API (generous limits)
