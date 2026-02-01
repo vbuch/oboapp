@@ -96,7 +96,7 @@ Open a new terminal:
 
 ```bash
 cd ingest
-npm run seed:emulator
+npm run emulator:seed
 ```
 
 This creates sample messages, sources, interests, and users in the emulator.
@@ -150,14 +150,14 @@ rm -rf ingest/emulator-data/*_export
 npm run emulators
 ```
 
-Starts with clean slate. Re-run `seed:emulator` to restore test data.
+Starts with clean slate. Re-run `emulator:seed` to restore test data.
 
 ### Emulator Utility Scripts
 
 ```bash
-npm run check:emulator   # Check current data in emulator
-npm run clear:emulator   # Delete all emulator data
-npm run seed:emulator    # Populate with test data
+npm run emulator:check   # Check current data in emulator
+npm run emulator:clear   # Delete all emulator data
+npm run emulator:seed    # Populate with test data
 ```
 
 ### Customize Mock Responses
@@ -212,7 +212,7 @@ NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true
 
 ```bash
 cd ingest
-npm run seed:emulator
+npm run emulator:seed
 ```
 
 ### Mock APIs not working
