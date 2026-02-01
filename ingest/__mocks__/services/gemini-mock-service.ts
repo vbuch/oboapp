@@ -65,7 +65,7 @@ export class GeminiMockService {
     const lowerText = text.toLowerCase();
 
     if (lowerText.includes("вод") || lowerText.includes("water")) {
-      return this.categorizeFixtures.water;
+      return this.categorizeFixtures.water ?? null;
     }
 
     if (
@@ -73,7 +73,7 @@ export class GeminiMockService {
       lowerText.includes("трафик") ||
       lowerText.includes("traffic")
     ) {
-      return this.categorizeFixtures.traffic;
+      return this.categorizeFixtures.traffic ?? null;
     }
 
     if (
@@ -81,11 +81,11 @@ export class GeminiMockService {
       lowerText.includes("строителст") ||
       lowerText.includes("construction")
     ) {
-      return this.categorizeFixtures.construction;
+      return this.categorizeFixtures.construction ?? null;
     }
 
     // Default fallback
-    return this.categorizeFixtures.water;
+    return this.categorizeFixtures.water ?? null;
   }
 
   async extractStructuredData(text: string): Promise<ExtractedData | null> {
@@ -102,10 +102,10 @@ export class GeminiMockService {
       lowerText.includes("кв.") ||
       lowerText.includes("cadastral")
     ) {
-      return this.extractFixtures.cadastral;
+      return this.extractFixtures.cadastral ?? null;
     }
 
     // Default to pins and streets
-    return this.extractFixtures.pins;
+    return this.extractFixtures.pins ?? null;
   }
 }
