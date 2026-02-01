@@ -21,28 +21,40 @@ cd oboapp
 
 ```bash
 # Copy environment templates
-cp ingest/.env.example ingest/.env.local
-cp web/.env.example web/.env.local
+cp ingest/.env.example.emulator ingest/.env.local
+cp web/.env.example.emulator web/.env.local
 ```
 
-Edit `ingest/.env.local` and enable emulator mode:
+Or manually create `ingest/.env.local`:
 
 ```dotenv
 USE_FIREBASE_EMULATORS=true
+FIRESTORE_EMULATOR_HOST=localhost:8080
+FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-project
+
 MOCK_GEMINI_API=true
 MOCK_GOOGLE_GEOCODING=true
 MOCK_OVERPASS_API=true
 MOCK_CADASTRE_API=true
 
-# You still need a Google Maps API key for the web map display
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key_here
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GOOGLE_AI_MODEL=gemini-2.5-flash-lite
 ```
 
-Edit `web/.env.local` and enable emulator mode:
+And `web/.env.local`:
 
 ```dotenv
 NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key_here
+FIRESTORE_EMULATOR_HOST=localhost:8080
+FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-project
+
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+MESSAGE_RELEVANCE_DAYS=7
+
+# Optional: Google Maps API key (can be empty for basic testing)
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 ```
 
 ### 3. Install Dependencies
