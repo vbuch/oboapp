@@ -4,6 +4,7 @@ import {
   GeoJSONFeatureCollection,
   GeoJSONFeature,
   Address,
+  Coordinates,
 } from "@/lib/types";
 import { validateAndFixGeoJSON } from "../crawlers/shared/geojson-validation";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
@@ -18,7 +19,7 @@ import {
  */
 export function validateAllAddressesGeocoded(
   extractedData: ExtractedData,
-  preGeocodedMap: Map<string, { lat: number; lng: number }>,
+  preGeocodedMap: Map<string, Coordinates>,
 ): string[] {
   const missingAddresses: string[] = [];
 
@@ -46,7 +47,7 @@ export function validateAllAddressesGeocoded(
  */
 export async function convertMessageGeocodingToGeoJson(
   extractedData: ExtractedData | null,
-  preGeocodedMap: Map<string, { lat: number; lng: number }>,
+  preGeocodedMap: Map<string, Coordinates>,
   cadastralGeometries?: Map<string, CadastralGeometry>,
   geocodedBusStops?: Address[],
   ingestErrors?: IngestErrorRecorder,

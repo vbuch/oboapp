@@ -1,4 +1,9 @@
-import { Address, OverpassResponse, OverpassGeometry } from "./types";
+import {
+  Address,
+  OverpassResponse,
+  OverpassGeometry,
+  Coordinates,
+} from "./types";
 import * as turf from "@turf/turf";
 import type { Feature, MultiLineString, Position } from "geojson";
 import {
@@ -293,7 +298,7 @@ async function getStreetGeometryFromOverpass(
 function findGeometricIntersection(
   street1: Feature<MultiLineString>,
   street2: Feature<MultiLineString>,
-): { lat: number; lng: number } | null {
+): Coordinates | null {
   try {
     // First, try exact intersection using turf.lineIntersect
     const intersections = turf.lineIntersect(street1, street2);
@@ -374,7 +379,7 @@ function findGeometricIntersection(
 
     // Last resort: find nearest point between the two lines
     let minDistance = Number.POSITIVE_INFINITY;
-    let bestPoint: { lat: number; lng: number } | null = null;
+    let bestPoint: Coordinates | null = null;
 
     for (const line1 of street1.geometry.coordinates) {
       for (const line2 of street2.geometry.coordinates) {
@@ -485,8 +490,8 @@ export async function overpassGeocodeIntersections(
  */
 export async function getStreetSectionGeometry(
   streetName: string,
-  startCoords: { lat: number; lng: number },
-  endCoords: { lat: number; lng: number },
+  startCoords: Coordinates,
+  endCoords: Coordinates,
 ): Promise<Position[] | null> {
   try {
     console.log(
@@ -663,7 +668,7 @@ export async function getStreetSectionGeometry(
  */
 async function geocodeAddressWithNominatim(
   address: string,
-): Promise<{ lat: number; lng: number } | null> {
+): Promise<Coordinates | null> {
   try {
     // Ensure address includes Sofia context
     const fullAddress =
@@ -741,7 +746,7 @@ export async function overpassGeocodeAddresses(
       // Pattern: "ул. Name Number" or "бул. Name Number"
       const hasNumber = /\d+/.test(address);
 
-      let coords: { lat: number; lng: number } | null = null;
+      let coords: Coordinates | null = null;
 
       if (hasNumber) {
         // Use Nominatim for specific addresses with house numbers

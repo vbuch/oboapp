@@ -7,7 +7,7 @@
  * GTFS for bus stops (public transport)
  */
 
-import { Address, StreetSection } from "./types";
+import { Address, StreetSection, Coordinates } from "./types";
 import { geocodeAddresses as geocodeAddressesTraditional } from "./geocoding-service";
 import {
   overpassGeocodeAddresses,
@@ -52,8 +52,8 @@ export async function geocodeStreets(
  */
 export async function getStreetGeometry(
   streetName: string,
-  startCoords: { lat: number; lng: number },
-  endCoords: { lat: number; lng: number },
+  startCoords: Coordinates,
+  endCoords: Coordinates,
 ): Promise<[number, number][] | null> {
   const { getStreetSectionGeometry } =
     await import("./overpass-geocoding-service");
@@ -70,8 +70,8 @@ export async function getStreetGeometry(
  */
 export async function geocodeIntersectionsForStreets(
   streets: StreetSection[],
-): Promise<Map<string, { lat: number; lng: number }>> {
-  const geocodedMap = new Map<string, { lat: number; lng: number }>();
+): Promise<Map<string, Coordinates>> {
+  const geocodedMap = new Map<string, Coordinates>();
 
   // Extract unique intersections
   const intersectionSet = new Set<string>();

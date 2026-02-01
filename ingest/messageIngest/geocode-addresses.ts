@@ -4,13 +4,18 @@ import {
   geocodeCadastralPropertiesFromIdentifiers,
   geocodeBusStops,
 } from "@/lib/geocoding-router";
-import { Address, ExtractedData, StreetSection } from "@/lib/types";
+import {
+  Address,
+  ExtractedData,
+  StreetSection,
+  Coordinates,
+} from "@/lib/types";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
 import type { CategorizedMessage } from "@/lib/categorize.schema";
 
 // Internal types for the geocoding pipeline
 export interface GeocodingResult {
-  preGeocodedMap: Map<string, { lat: number; lng: number }>;
+  preGeocodedMap: Map<string, Coordinates>;
   addresses: Address[];
   cadastralGeometries?: Map<string, CadastralGeometry>;
 }
@@ -21,7 +26,7 @@ export interface GeocodingResult {
  */
 export function findMissingStreetEndpoints(
   streets: StreetSection[],
-  geocodedMap: Map<string, { lat: number; lng: number }>
+  geocodedMap: Map<string, Coordinates>,
 ): string[] {
   const missing: string[] = [];
 
@@ -43,9 +48,9 @@ export function findMissingStreetEndpoints(
  */
 export async function geocodeAddressesFromExtractedData(
   extractedData: ExtractedData | null,
-  categorize?: CategorizedMessage | null
+  categorize?: CategorizedMessage | null,
 ): Promise<GeocodingResult> {
-  const preGeocodedMap = new Map<string, { lat: number; lng: number }>();
+  const preGeocodedMap = new Map<string, Coordinates>();
   const addresses: Address[] = [];
   let cadastralGeometries: Map<string, CadastralGeometry> | undefined;
 
@@ -67,7 +72,7 @@ export async function geocodeAddressesFromExtractedData(
   // Geocode street intersections using Overpass
   if (extractedData.streets.length > 0) {
     const streetGeocodedMap = await geocodeIntersectionsForStreets(
-      extractedData.streets
+      extractedData.streets,
     );
 
     // Merge into preGeocodedMap and create Address objects for the addresses array
@@ -89,7 +94,7 @@ export async function geocodeAddressesFromExtractedData(
     // Check for missing endpoints and try fallback geocoding
     const missingEndpoints = findMissingStreetEndpoints(
       extractedData.streets,
-      preGeocodedMap
+      preGeocodedMap,
     );
 
     if (missingEndpoints.length > 0) {
@@ -108,14 +113,13 @@ export async function geocodeAddressesFromExtractedData(
     extractedData.cadastralProperties.length > 0
   ) {
     const identifiers = extractedData.cadastralProperties.map(
-      (prop) => prop.identifier
+      (prop) => prop.identifier,
     );
-    cadastralGeometries = await geocodeCadastralPropertiesFromIdentifiers(
-      identifiers
-    );
+    cadastralGeometries =
+      await geocodeCadastralPropertiesFromIdentifiers(identifiers);
 
     console.log(
-      `[Geocoding] Geocoded ${cadastralGeometries.size}/${identifiers.length} cadastral properties`
+      `[Geocoding] Geocoded ${cadastralGeometries.size}/${identifiers.length} cadastral properties`,
     );
   }
 
@@ -129,7 +133,7 @@ export async function geocodeAddressesFromExtractedData(
     });
 
     console.log(
-      `[Geocoding] Geocoded ${geocodedBusStops.length}/${categorize.busStops.length} bus stops`
+      `[Geocoding] Geocoded ${geocodedBusStops.length}/${categorize.busStops.length} bus stops`,
     );
   }
 

@@ -3,6 +3,7 @@ import {
   ExtractedData,
   GeoJSONFeatureCollection,
   Message,
+  Coordinates,
 } from "@/lib/types";
 import type { CategorizedMessage } from "@/lib/categorize.schema";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
@@ -513,7 +514,7 @@ async function performGeocoding(
 async function filterAndStoreAddresses(
   messageId: string,
   geocodedAddresses: Address[],
-  preGeocodedMap: Map<string, { lat: number; lng: number }>,
+  preGeocodedMap: Map<string, Coordinates>,
 ): Promise<Address[]> {
   const { filterOutlierCoordinates } = await import("./filter-outliers");
   const addresses = filterOutlierCoordinates(geocodedAddresses);
@@ -538,7 +539,7 @@ async function filterAndStoreAddresses(
  */
 async function convertToGeoJson(
   extractedData: ExtractedData,
-  preGeocodedMap: Map<string, { lat: number; lng: number }>,
+  preGeocodedMap: Map<string, Coordinates>,
   cadastralGeometries: Map<string, CadastralGeometry> | undefined,
   geocodedBusStops?: Address[],
   ingestErrors?: IngestErrorRecorder,
