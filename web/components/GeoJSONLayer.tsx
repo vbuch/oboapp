@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { trackEvent } from "@/lib/analytics";
-import { Message, GeoJSONFeature } from "@/lib/types";
+import { Message } from "@/lib/types";
 import {
   createFeatureKey,
   jitterDuplicatePositions,
@@ -14,7 +14,7 @@ import GeometryRenderer from "./GeometryRenderer";
 
 // Extend google.maps.Marker with custom feature data
 interface ExtendedMarker extends google.maps.Marker {
-  featureData?: GeoJSONFeature;
+  featureData?: FeatureData;
   featureKey?: string;
   classification?: "active" | "archived";
 }
@@ -78,8 +78,8 @@ export default function GeoJSONLayer({
         map: null, // Will be managed by clusterer
         icon: createMarkerIcon(false, classification),
         title:
-          feature.properties?.address ||
-          feature.properties?.street_name ||
+          (feature.properties?.["address"] as string | undefined) ||
+          (feature.properties?.["street_name"] as string | undefined) ||
           "Маркер",
         zIndex: classification === "active" ? 10 : 5, // Active markers higher
       });
