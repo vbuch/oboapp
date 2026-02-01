@@ -70,6 +70,37 @@ export function fixSwappedCoordinates(
 }
 
 /**
+ * Validate and fix a single coordinate pair
+ * Returns fixed coordinates or null if invalid
+ */
+function validateAndFixCoordinatePair(
+  point: unknown,
+): { coords: [number, number]; wasSwapped: boolean } | null {
+  if (!Array.isArray(point) || point.length !== 2) {
+    return null;
+  }
+
+  if (typeof point[0] !== "number" || typeof point[1] !== "number") {
+    return null;
+  }
+
+  let [lng, lat] = point;
+  let wasSwapped = false;
+
+  // Check if coordinates are swapped
+  if (detectSwappedCoordinates(lng, lat)) {
+    [lng, lat] = fixSwappedCoordinates([lng, lat]);
+    wasSwapped = true;
+  }
+
+  if (!isValidCoordinate(lng, lat)) {
+    return null;
+  }
+
+  return { coords: [lng, lat], wasSwapped };
+}
+
+/**
  * Validate and potentially fix a Point geometry
  */
 function validateAndFixPoint(
@@ -84,7 +115,8 @@ function validateAndFixPoint(
     return null;
   }
 
-  const coords = geometry.coordinates;
+  const g = geometry as { coordinates?: unknown };
+  const coords = g.coordinates;
 
   if (!Array.isArray(coords) || coords.length !== 2) {
     return null;
@@ -129,7 +161,8 @@ function validateAndFixLineString(
     return null;
   }
 
-  const coords = geometry.coordinates;
+  const g = geometry as { coordinates?: unknown };
+  const coords = g.coordinates;
 
   if (!Array.isArray(coords) || coords.length < 2) {
     return null;
@@ -138,29 +171,16 @@ function validateAndFixLineString(
   const fixedCoords: [number, number][] = [];
   let hasSwaps = false;
 
-  for (let i = 0; i < coords.length; i++) {
-    const point = coords[i];
-    if (!Array.isArray(point) || point.length !== 2) {
+  for (const point of coords) {
+    const result = validateAndFixCoordinatePair(point);
+    if (!result) {
       return null;
     }
 
-    if (typeof point[0] !== "number" || typeof point[1] !== "number") {
-      return null;
-    }
-
-    let [lng, lat] = point;
-
-    // Check if coordinates are swapped
-    if (detectSwappedCoordinates(lng, lat)) {
-      [lng, lat] = fixSwappedCoordinates([lng, lat]);
+    fixedCoords.push(result.coords);
+    if (result.wasSwapped) {
       hasSwaps = true;
     }
-
-    if (!isValidCoordinate(lng, lat)) {
-      return null;
-    }
-
-    fixedCoords.push([lng, lat]);
   }
 
   if (hasSwaps) {
@@ -171,6 +191,42 @@ function validateAndFixLineString(
     type: "LineString",
     coordinates: fixedCoords,
   };
+}
+
+/**
+ * Validate and fix a single polygon ring
+ * Returns fixed ring coordinates and swap status, or null if invalid
+ */
+function validateAndFixPolygonRing(
+  ring: unknown,
+): { ring: [number, number][]; hasSwaps: boolean } | null {
+  if (!Array.isArray(ring) || ring.length < 4) {
+    return null;
+  }
+
+  const fixedRing: [number, number][] = [];
+  let hasSwaps = false;
+
+  for (const point of ring) {
+    const result = validateAndFixCoordinatePair(point);
+    if (!result) {
+      return null;
+    }
+
+    fixedRing.push(result.coords);
+    if (result.wasSwapped) {
+      hasSwaps = true;
+    }
+  }
+
+  // Validate that ring is closed
+  const first = fixedRing[0];
+  const last = fixedRing[fixedRing.length - 1];
+  if (first[0] !== last[0] || first[1] !== last[1]) {
+    return null;
+  }
+
+  return { ring: fixedRing, hasSwaps };
 }
 
 /**
@@ -188,7 +244,8 @@ function validateAndFixPolygon(
     return null;
   }
 
-  const coords = geometry.coordinates;
+  const g = geometry as { coordinates?: unknown };
+  const coords = g.coordinates;
 
   if (!Array.isArray(coords) || coords.length < 1) {
     return null;
@@ -198,45 +255,15 @@ function validateAndFixPolygon(
   let hasSwaps = false;
 
   for (const ring of coords) {
-    if (!Array.isArray(ring) || ring.length < 4) {
+    const result = validateAndFixPolygonRing(ring);
+    if (!result) {
       return null;
     }
 
-    const fixedRing: [number, number][] = [];
-
-    for (let i = 0; i < ring.length; i++) {
-      const point = ring[i];
-      if (!Array.isArray(point) || point.length !== 2) {
-        return null;
-      }
-
-      if (typeof point[0] !== "number" || typeof point[1] !== "number") {
-        return null;
-      }
-
-      let [lng, lat] = point;
-
-      // Check if coordinates are swapped
-      if (detectSwappedCoordinates(lng, lat)) {
-        [lng, lat] = fixSwappedCoordinates([lng, lat]);
-        hasSwaps = true;
-      }
-
-      if (!isValidCoordinate(lng, lat)) {
-        return null;
-      }
-
-      fixedRing.push([lng, lat]);
+    fixedRings.push(result.ring);
+    if (result.hasSwaps) {
+      hasSwaps = true;
     }
-
-    // Validate that ring is closed
-    const first = fixedRing[0];
-    const last = fixedRing[fixedRing.length - 1];
-    if (first[0] !== last[0] || first[1] !== last[1]) {
-      return null;
-    }
-
-    fixedRings.push(fixedRing);
   }
 
   if (hasSwaps) {
@@ -275,24 +302,78 @@ function validateAndFixGeometry(
 }
 
 /**
- * Validate and potentially fix a GeoJSON FeatureCollection
- * Auto-detects and fixes swapped [lat,lng] vs [lng,lat] coordinates
+ * Validate and fix a single GeoJSON feature
+ * Returns the fixed feature or null if invalid
  */
-export function validateAndFixGeoJSON(
-  data: unknown,
-  context?: string,
-): ValidationResult {
-  const warnings: string[] = [];
-  const errors: string[] = [];
-  const contextPrefix = context ? `[${context}] ` : "";
+function validateAndFixFeature(
+  feature: unknown,
+  index: number,
+  contextPrefix: string,
+  errors: string[],
+  warnings: string[],
+): GeoJSONFeature | null {
+  if (!feature || typeof feature !== "object") {
+    errors.push(`${contextPrefix}Feature ${index} is not an object`);
+    return null;
+  }
 
-  // Validate basic structure
+  if (!("type" in feature) || feature.type !== "Feature") {
+    const featureType = "type" in feature ? String(feature.type) : "unknown";
+    errors.push(
+      `${contextPrefix}Feature ${index} type must be "Feature", got "${featureType}"`,
+    );
+    return null;
+  }
+
+  if (!("geometry" in feature) || !feature.geometry) {
+    errors.push(`${contextPrefix}Feature ${index} missing geometry`);
+    return null;
+  }
+
+  const featureWarnings: string[] = [];
+  const fixedGeometry = validateAndFixGeometry(
+    feature.geometry,
+    featureWarnings,
+  );
+
+  if (!fixedGeometry) {
+    errors.push(`${contextPrefix}Feature ${index} has invalid geometry`);
+    return null;
+  }
+
+  // Add warnings with feature index
+  featureWarnings.forEach((w) => {
+    warnings.push(`${contextPrefix}Feature ${index}: ${w}`);
+  });
+
+  const properties =
+    "properties" in feature && typeof feature.properties === "object"
+      ? (feature.properties as Record<string, unknown>)
+      : {};
+
+  return {
+    type: "Feature",
+    geometry: fixedGeometry,
+    properties,
+  };
+}
+
+/**
+ * Validate basic GeoJSON structure
+ * Returns null if valid, or a ValidationResult with errors if invalid
+ */
+function validateGeoJSONStructure(
+  data: unknown,
+  contextPrefix: string,
+): ValidationResult | null {
+  const errors: string[] = [];
+
   if (!data || typeof data !== "object") {
     errors.push(`${contextPrefix}GeoJSON is not an object`);
     return {
       isValid: false,
       geoJson: null,
-      warnings,
+      warnings: [],
       errors,
       fixedCoordinates: false,
     };
@@ -306,7 +387,7 @@ export function validateAndFixGeoJSON(
     return {
       isValid: false,
       geoJson: null,
-      warnings,
+      warnings: [],
       errors,
       fixedCoordinates: false,
     };
@@ -317,66 +398,54 @@ export function validateAndFixGeoJSON(
     return {
       isValid: false,
       geoJson: null,
-      warnings,
+      warnings: [],
       errors,
       fixedCoordinates: false,
     };
   }
 
-  // Validate and fix each feature
-  const fixedFeatures: GeoJSONFeature[] = [];
-  const features = data.features as unknown[];
+  return null;
+}
 
-  for (let i = 0; i < features.length; i++) {
-    const feature = features[i];
+/**
+ * Validate and potentially fix a GeoJSON FeatureCollection
+ * Auto-detects and fixes swapped [lat,lng] vs [lng,lat] coordinates
+ */
+export function validateAndFixGeoJSON(
+  data: unknown,
+  context?: string,
+): ValidationResult {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  const contextPrefix = context ? `[${context}] ` : "";
 
-    if (!feature || typeof feature !== "object") {
-      errors.push(`${contextPrefix}Feature ${i} is not an object`);
-      continue;
-    }
-
-    if (!("type" in feature) || feature.type !== "Feature") {
-      const featureType = "type" in feature ? String(feature.type) : "unknown";
-      errors.push(
-        `${contextPrefix}Feature ${i} type must be "Feature", got "${featureType}"`,
-      );
-      continue;
-    }
-
-    if (!("geometry" in feature) || !feature.geometry) {
-      errors.push(`${contextPrefix}Feature ${i} missing geometry`);
-      continue;
-    }
-
-    const featureWarnings: string[] = [];
-    const fixedGeometry = validateAndFixGeometry(
-      feature.geometry,
-      featureWarnings,
-    );
-
-    if (!fixedGeometry) {
-      errors.push(`${contextPrefix}Feature ${i} has invalid geometry`);
-      continue;
-    }
-
-    // Add warnings with feature index
-    featureWarnings.forEach((w) => {
-      warnings.push(`${contextPrefix}Feature ${i}: ${w}`);
-    });
-
-    const properties =
-      "properties" in feature && typeof feature.properties === "object"
-        ? (feature.properties as Record<string, unknown>)
-        : {};
-
-    fixedFeatures.push({
-      type: "Feature",
-      geometry: fixedGeometry,
-      properties,
-    });
+  // Validate basic structure
+  const structureError = validateGeoJSONStructure(data, contextPrefix);
+  if (structureError) {
+    return structureError;
   }
 
-  if (fixedFeatures.length === 0 && data.features.length > 0) {
+  // At this point we know data has the right shape
+  const features = (data as { features: unknown[] }).features;
+
+  // Validate and fix each feature
+  const fixedFeatures: GeoJSONFeature[] = [];
+
+  for (let i = 0; i < features.length; i++) {
+    const fixedFeature = validateAndFixFeature(
+      features[i],
+      i,
+      contextPrefix,
+      errors,
+      warnings,
+    );
+
+    if (fixedFeature) {
+      fixedFeatures.push(fixedFeature);
+    }
+  }
+
+  if (fixedFeatures.length === 0 && features.length > 0) {
     errors.push(`${contextPrefix}All features are invalid`);
     return {
       isValid: false,
