@@ -4,11 +4,13 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { GeoJSONFeatureCollection, GeoJSONFeature } from "./types";
 
-const _cachedBoundary: GeoJSONFeatureCollection | null = null;
+// Cache boundaries by absolute path to avoid re-reading files
+const boundaryCache = new Map<string, GeoJSONFeatureCollection>();
 
 /**
  * Load optional geographic boundaries from a GeoJSON file for filtering.
  * If no path is provided, all sources will be processed.
+ * Results are cached to avoid re-reading files.
  */
 export function loadBoundaries(
   boundariesPath?: string,
@@ -17,10 +19,19 @@ export function loadBoundaries(
     return null;
   }
 
+  const absolutePath = resolve(process.cwd(), boundariesPath);
+
+  // Check cache first
+  if (boundaryCache.has(absolutePath)) {
+    return boundaryCache.get(absolutePath)!;
+  }
+
   try {
-    const absolutePath = resolve(process.cwd(), boundariesPath);
     const content = readFileSync(absolutePath, "utf-8");
     const geojson = JSON.parse(content) as GeoJSONFeatureCollection;
+
+    // Cache the result
+    boundaryCache.set(absolutePath, geojson);
 
     return geojson;
   } catch (error) {
