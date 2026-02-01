@@ -44,15 +44,18 @@ async function checkData() {
 
     messagesSnap.docs.slice(0, 5).forEach((doc, idx) => {
       const data = doc.data();
-      const timespanEnd = new Date(data.timespanEnd);
-      const isValid = timespanEnd >= cutoff;
+      const timespanEnd = data.timespanEnd ? new Date(data.timespanEnd) : null;
+      const isValid =
+        timespanEnd && !isNaN(timespanEnd.getTime()) && timespanEnd >= cutoff;
 
       if (isValid) withinWindow++;
       else outsideWindow++;
 
       console.log(`  ${idx + 1}. ${doc.id}`);
       console.log(`     Categories: ${data.categories?.join(", ") || "none"}`);
-      console.log(`     Timespan End: ${timespanEnd.toISOString()}`);
+      console.log(
+        `     Timespan End: ${timespanEnd && !isNaN(timespanEnd.getTime()) ? timespanEnd.toISOString() : "invalid/missing"}`,
+      );
       console.log(`     Within 7-day window: ${isValid ? "✅ YES" : "❌ NO"}`);
     });
 

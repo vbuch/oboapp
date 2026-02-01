@@ -35,16 +35,24 @@ async function main() {
 
   // Find a message with busStops for categorization
   console.log("🚏 Finding message with busStops...");
-  const messagesWithBusStops = await adminDb
+  const recentMessages = await adminDb
     .collection("messages")
-    .where("categorize.busStops", "!=", [])
-    .limit(1)
+    .orderBy("createdAt", "desc")
+    .limit(50)
     .get();
 
-  if (!messagesWithBusStops.empty) {
-    const msgDoc = messagesWithBusStops.docs[0];
-    const msg = msgDoc.data();
-    console.log(`  Found message: ${msgDoc.id}`);
+  const msgWithBusStops = recentMessages.docs.find((doc) => {
+    const data = doc.data();
+    return (
+      data.categorize?.busStops &&
+      Array.isArray(data.categorize.busStops) &&
+      data.categorize.busStops.length > 0
+    );
+  });
+
+  if (msgWithBusStops) {
+    const msg = msgWithBusStops.data();
+    console.log(`  Found message: ${msgWithBusStops.id}`);
     console.log(`  Source: ${msg.source}`);
     console.log(
       `  BusStops: ${msg.categorize?.busStops?.join(", ") || "none"}`,
@@ -66,20 +74,24 @@ async function main() {
         console.log("  ✓ Saved categorize-with-busstops.json");
       }
     }
+  } else {
+    console.log("  ⚠️  No messages with busStops found in recent 50 messages");
   }
 
   // Find a message with cadastralProperties
   console.log("\n🏘️  Finding message with cadastral properties...");
-  const messagesWithCadastral = await adminDb
-    .collection("messages")
-    .where("extractedData.cadastralProperties", "!=", [])
-    .limit(1)
-    .get();
+  const msgWithCadastral = recentMessages.docs.find((doc) => {
+    const data = doc.data();
+    return (
+      data.extractedData?.cadastralProperties &&
+      Array.isArray(data.extractedData.cadastralProperties) &&
+      data.extractedData.cadastralProperties.length > 0
+    );
+  });
 
-  if (!messagesWithCadastral.empty) {
-    const msgDoc = messagesWithCadastral.docs[0];
-    const msg = msgDoc.data();
-    console.log(`  Found message: ${msgDoc.id}`);
+  if (msgWithCadastral) {
+    const msg = msgWithCadastral.data();
+    console.log(`  Found message: ${msgWithCadastral.id}`);
     console.log(
       `  Cadastral properties: ${msg.extractedData?.cadastralProperties?.length || 0}`,
     );
@@ -113,16 +125,18 @@ async function main() {
 
   // Find a message with street sections
   console.log("\n🛣️  Finding message with street sections...");
-  const messagesWithStreets = await adminDb
-    .collection("messages")
-    .where("extractedData.streets", "!=", [])
-    .limit(1)
-    .get();
+  const msgWithStreets = recentMessages.docs.find((doc) => {
+    const data = doc.data();
+    return (
+      data.extractedData?.streets &&
+      Array.isArray(data.extractedData.streets) &&
+      data.extractedData.streets.length > 0
+    );
+  });
 
-  if (!messagesWithStreets.empty) {
-    const msgDoc = messagesWithStreets.docs[0];
-    const msg = msgDoc.data();
-    console.log(`  Found message: ${msgDoc.id}`);
+  if (msgWithStreets) {
+    const msg = msgWithStreets.data();
+    console.log(`  Found message: ${msgWithStreets.id}`);
     console.log(`  Streets: ${msg.extractedData?.streets?.length || 0}`);
 
     if (msg.extractedData?.streets && msg.extractedData.streets.length > 0) {
@@ -156,16 +170,18 @@ async function main() {
 
   // Find a message with pins (addresses)
   console.log("\n📍 Finding message with pins (addresses)...");
-  const messagesWithPins = await adminDb
-    .collection("messages")
-    .where("extractedData.pins", "!=", [])
-    .limit(1)
-    .get();
+  const msgWithPins = recentMessages.docs.find((doc) => {
+    const data = doc.data();
+    return (
+      data.extractedData?.pins &&
+      Array.isArray(data.extractedData.pins) &&
+      data.extractedData.pins.length > 0
+    );
+  });
 
-  if (!messagesWithPins.empty) {
-    const msgDoc = messagesWithPins.docs[0];
-    const msg = msgDoc.data();
-    console.log(`  Found message: ${msgDoc.id}`);
+  if (msgWithPins) {
+    const msg = msgWithPins.data();
+    console.log(`  Found message: ${msgWithPins.id}`);
     console.log(`  Pins: ${msg.extractedData?.pins?.length || 0}`);
 
     if (msg.extractedData?.pins && msg.extractedData.pins.length > 0) {
