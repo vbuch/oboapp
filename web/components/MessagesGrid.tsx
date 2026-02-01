@@ -13,6 +13,60 @@ interface MessagesGridProps {
   readonly variant?: "grid" | "list";
 }
 
+interface GridContentProps {
+  readonly containerClasses: string;
+  readonly isLoading: boolean;
+  readonly skeletonKeys: readonly string[];
+  readonly finalizedMessages: Message[];
+  readonly onMessageClick: (message: Message) => void;
+  readonly remainingCount: number;
+  readonly variant: "grid" | "list";
+}
+
+function GridContent({
+  containerClasses,
+  isLoading,
+  skeletonKeys,
+  finalizedMessages,
+  onMessageClick,
+  remainingCount,
+  variant,
+}: GridContentProps) {
+  return (
+    <>
+      <div className={containerClasses}>
+        {isLoading &&
+          skeletonKeys.map((key) => <MessageCardSkeleton key={key} />)}
+        {!isLoading &&
+          finalizedMessages.length > 0 &&
+          finalizedMessages.map((message) => (
+            <MessageCard
+              key={message.id}
+              message={message}
+              onClick={onMessageClick}
+            />
+          ))}
+        {!isLoading && finalizedMessages.length === 0 && (
+          <div
+            className={
+              variant === "list"
+                ? "text-center text-gray-500 py-8"
+                : "col-span-full text-center text-gray-500 py-8"
+            }
+          >
+            Няма налични съобщения
+          </div>
+        )}
+      </div>
+      {!isLoading && remainingCount > 0 && (
+        <div className="text-center text-sm text-neutral mt-4">
+          ...и още {remainingCount} събития
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function MessagesGrid({
   messages,
   isLoading,
@@ -58,6 +112,18 @@ export default function MessagesGrid({
 
   const headingText = variant === "list" ? "Събития" : "Последни съобщения";
 
+  const gridContent = (
+    <GridContent
+      containerClasses={containerClasses}
+      isLoading={isLoading}
+      skeletonKeys={skeletonKeys}
+      finalizedMessages={finalizedMessages}
+      onMessageClick={onMessageClick}
+      remainingCount={remainingCount}
+      variant={variant}
+    />
+  );
+
   return showHeading ? (
     <div className={variant === "list" ? "" : "bg-gray-50 py-12"}>
       <div
@@ -74,73 +140,10 @@ export default function MessagesGrid({
         >
           {headingText}
         </h2>
-
-        <div className={containerClasses}>
-          {isLoading &&
-            // Show skeleton cards while loading
-            skeletonKeys.map((key) => <MessageCardSkeleton key={key} />)}
-          {!isLoading &&
-            finalizedMessages.length > 0 &&
-            // Show actual message cards
-            finalizedMessages.map((message) => (
-              <MessageCard
-                key={message.id}
-                message={message}
-                onClick={onMessageClick}
-              />
-            ))}
-          {!isLoading && finalizedMessages.length === 0 && (
-            // Empty state (show nothing, just display available messages)
-            <div
-              className={
-                variant === "list"
-                  ? "text-center text-gray-500 py-8"
-                  : "col-span-full text-center text-gray-500 py-8"
-              }
-            >
-              Няма налични съобщения
-            </div>
-          )}
-        </div>
-        {!isLoading && remainingCount > 0 && (
-          <div className="text-center text-sm text-neutral mt-4">
-            ...и още {remainingCount} събития
-          </div>
-        )}
+        {gridContent}
       </div>
     </div>
   ) : (
-    <div className={containerClasses}>
-      {isLoading &&
-        // Show skeleton cards while loading
-        skeletonKeys.map((key) => <MessageCardSkeleton key={key} />)}
-      {!isLoading &&
-        finalizedMessages.length > 0 &&
-        // Show actual message cards
-        finalizedMessages.map((message) => (
-          <MessageCard
-            key={message.id}
-            message={message}
-            onClick={onMessageClick}
-          />
-        ))}
-      {!isLoading && finalizedMessages.length === 0 && (
-        // Empty state (show nothing, just display available messages)
-        <div
-          className={
-            variant === "list"
-              ? "text-center text-gray-500 py-8"
-              : "col-span-full text-center text-gray-500 py-8"
-          }
-        >
-          Няма налични съобщения
-        </div>
-      )}
-      {!isLoading && remainingCount > 0 && (
-        <div className="text-center text-sm text-neutral mt-4">
-          ...и още {remainingCount} събития
-        </div>
-      )}
-    </div>
+    gridContent
   );
 }
