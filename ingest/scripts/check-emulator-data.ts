@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 import dotenv from "dotenv";
 import { resolve } from "node:path";
 
