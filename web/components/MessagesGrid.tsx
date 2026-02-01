@@ -53,8 +53,8 @@ export default function MessagesGrid({
 
   const containerClasses =
     variant === "list"
-      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:grid-cols-1 gap-4"
-      : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+      ? "grid grid-cols-1 @lg:grid-cols-2 gap-4"
+      : "grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-6";
 
   const headingText = variant === "list" ? "Събития" : "Последни съобщения";
 

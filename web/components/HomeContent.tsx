@@ -198,8 +198,8 @@ export default function HomeContent() {
       </div>
 
       {/* Events Sidebar - Right side on desktop, bottom on mobile */}
-      <div className="flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white">
-        <div className="p-6">
+      <div className="flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white @container">
+        <div className="p-6 overflow-y-auto h-full">
           <MessagesGrid
             messages={filteredMessages}
             isLoading={isLoading}
