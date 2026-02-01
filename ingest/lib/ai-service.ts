@@ -186,21 +186,25 @@ export async function extractStructuredData(
                   pin !== null &&
                   typeof pin === "object" &&
                   "address" in pin &&
-                  typeof pin.address === "string" &&
-                  pin.address.trim().length > 0 &&
+                  typeof (pin as Record<string, unknown>)["address"] ===
+                    "string" &&
+                  ((pin as Record<string, unknown>)["address"] as string).trim()
+                    .length > 0 &&
                   "timespans" in pin &&
-                  Array.isArray(pin.timespans),
+                  Array.isArray((pin as Record<string, unknown>)["timespans"]),
               )
               .map((pin: Record<string, unknown>) => ({
-                address: pin.address,
-                timespans: (pin.timespans as unknown[]).filter(
+                address: pin["address"],
+                timespans: (pin["timespans"] as unknown[]).filter(
                   (time: unknown): time is Record<string, unknown> =>
                     time !== null &&
                     typeof time === "object" &&
                     "start" in time &&
-                    typeof time.start === "string" &&
+                    typeof (time as Record<string, unknown>)["start"] ===
+                      "string" &&
                     "end" in time &&
-                    typeof time.end === "string",
+                    typeof (time as Record<string, unknown>)["end"] ===
+                      "string",
                 ),
               }))
           : [];
@@ -213,26 +217,33 @@ export async function extractStructuredData(
                   street !== null &&
                   typeof street === "object" &&
                   "street" in street &&
-                  typeof street.street === "string" &&
+                  typeof (street as Record<string, unknown>)["street"] ===
+                    "string" &&
                   "from" in street &&
-                  typeof street.from === "string" &&
+                  typeof (street as Record<string, unknown>)["from"] ===
+                    "string" &&
                   "to" in street &&
-                  typeof street.to === "string" &&
+                  typeof (street as Record<string, unknown>)["to"] ===
+                    "string" &&
                   "timespans" in street &&
-                  Array.isArray(street.timespans),
+                  Array.isArray(
+                    (street as Record<string, unknown>)["timespans"],
+                  ),
               )
               .map((street: Record<string, unknown>) => ({
-                street: street.street,
-                from: street.from,
-                to: street.to,
-                timespans: (street.timespans as unknown[]).filter(
+                street: street["street"],
+                from: street["from"],
+                to: street["to"],
+                timespans: (street["timespans"] as unknown[]).filter(
                   (time: unknown): time is Record<string, unknown> =>
                     time !== null &&
                     typeof time === "object" &&
                     "start" in time &&
-                    typeof time.start === "string" &&
+                    typeof (time as Record<string, unknown>)["start"] ===
+                      "string" &&
                     "end" in time &&
-                    typeof time.end === "string",
+                    typeof (time as Record<string, unknown>)["end"] ===
+                      "string",
                 ),
               }))
           : [];
@@ -247,21 +258,26 @@ export async function extractStructuredData(
                   prop !== null &&
                   typeof prop === "object" &&
                   "identifier" in prop &&
-                  typeof prop.identifier === "string" &&
-                  prop.identifier.trim().length > 0 &&
+                  typeof (prop as Record<string, unknown>)["identifier"] ===
+                    "string" &&
+                  (
+                    (prop as Record<string, unknown>)["identifier"] as string
+                  ).trim().length > 0 &&
                   "timespans" in prop &&
-                  Array.isArray(prop.timespans),
+                  Array.isArray((prop as Record<string, unknown>)["timespans"]),
               )
               .map((prop: Record<string, unknown>) => ({
-                identifier: prop.identifier,
-                timespans: (prop.timespans as unknown[]).filter(
+                identifier: prop["identifier"],
+                timespans: (prop["timespans"] as unknown[]).filter(
                   (time: unknown): time is Record<string, unknown> =>
                     time !== null &&
                     typeof time === "object" &&
                     "start" in time &&
-                    typeof time.start === "string" &&
+                    typeof (time as Record<string, unknown>)["start"] ===
+                      "string" &&
                     "end" in time &&
-                    typeof time.end === "string",
+                    typeof (time as Record<string, unknown>)["end"] ===
+                      "string",
                 ),
               }))
           : [];
