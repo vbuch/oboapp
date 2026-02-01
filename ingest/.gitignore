@@ -10,8 +10,6 @@ emulator-data/**/*.log
 # Mock fixtures - allow base directory, ignore custom fixtures
 __mocks__/fixtures/**/*-custom.json
 
-# Mock fixtures - allow base fixtures, ignore custom test fixtures
-__mocks__/fixtures/**/*-custom.json
 
 # Terraform state
 terraform/terraform.tfstate
