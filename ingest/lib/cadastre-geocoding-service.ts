@@ -1,12 +1,7 @@
 import * as proj4Module from "proj4";
 import { delay } from "./delay";
-import { CadastreMockService } from "../__mocks__/services/cadastre-mock-service";
 
 const proj4 = proj4Module.default || proj4Module;
-
-// Check if mocking is enabled
-const USE_MOCK = process.env.MOCK_CADASTRE_API === "true";
-const mockService = USE_MOCK ? new CadastreMockService() : null;
 
 const DELAY_BETWEEN_REQUESTS = 2000; // 2 seconds matching other crawlers
 
