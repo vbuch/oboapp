@@ -315,8 +315,13 @@ export default function MapComponent({
               const maxRadius = 8;
               const zoomRange = maxZoom - minZoom;
               const radiusRange = minRadius - maxRadius;
+              // Clamp currentZoom to minZoom-maxZoom range to ensure radius stays within bounds
+              const clampedZoom = Math.max(
+                minZoom,
+                Math.min(maxZoom, currentZoom),
+              );
               const baseRadius =
-                minRadius - ((currentZoom - minZoom) / zoomRange) * radiusRange;
+                minRadius - ((clampedZoom - minZoom) / zoomRange) * radiusRange;
               const outerRadius = baseRadius * 2;
               const innerRadius = baseRadius * 0.4;
 
