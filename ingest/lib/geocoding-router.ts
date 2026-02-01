@@ -22,7 +22,7 @@ import { CadastreMockService } from "../__mocks__/services/cadastre-mock-service
 
 // Check if mocking is enabled for Cadastre
 // (Google Geocoding mock is handled in geocoding-service.ts)
-// (Overpass mock not yet implemented)
+// (Overpass mock is handled in overpass-geocoding-service.ts)
 const USE_CADASTRE_MOCK = process.env.MOCK_CADASTRE_API === "true";
 const cadastreMockService = USE_CADASTRE_MOCK
   ? new CadastreMockService()

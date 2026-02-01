@@ -14,6 +14,11 @@ import {
 } from "./geocoding-utils";
 import { delay } from "./delay";
 import { roundCoordinate } from "../crawlers/shared/coordinate-utils";
+import { OverpassMockService } from "../__mocks__/services/overpass-mock-service";
+
+// Check if mocking is enabled
+const USE_MOCK = process.env.MOCK_OVERPASS_API === "true";
+const mockService = USE_MOCK ? new OverpassMockService() : null;
 
 // Constants for API rate limiting
 const OVERPASS_DELAY_MS = 500; // 500ms for Overpass API (generous limits)
@@ -429,6 +434,12 @@ function findGeometricIntersection(
 export async function overpassGeocodeIntersections(
   intersections: string[],
 ): Promise<Address[]> {
+  // Use mock if enabled
+  if (USE_MOCK && mockService) {
+    console.log("[MOCK] Using Overpass mock for intersections");
+    return mockService.overpassGeocodeIntersections(intersections);
+  }
+
   const results: Address[] = [];
 
   for (let i = 0; i < intersections.length; i++) {
@@ -493,6 +504,16 @@ export async function getStreetSectionGeometry(
   startCoords: Coordinates,
   endCoords: Coordinates,
 ): Promise<Position[] | null> {
+  // Use mock if enabled
+  if (USE_MOCK && mockService) {
+    console.log("[MOCK] Using Overpass mock for street section geometry");
+    return mockService.getStreetSectionGeometry(
+      streetName,
+      startCoords,
+      endCoords,
+    );
+  }
+
   try {
     console.log(
       `🔍 Finding street section: ${streetName} from [${startCoords.lat}, ${startCoords.lng}] to [${endCoords.lat}, ${endCoords.lng}]`,
@@ -736,6 +757,12 @@ async function geocodeAddressWithNominatim(
 export async function overpassGeocodeAddresses(
   addresses: string[],
 ): Promise<Address[]> {
+  // Use mock if enabled
+  if (USE_MOCK && mockService) {
+    console.log("[MOCK] Using Overpass mock for addresses");
+    return mockService.overpassGeocodeAddresses(addresses);
+  }
+
   const results: Address[] = [];
 
   for (let i = 0; i < addresses.length; i++) {
