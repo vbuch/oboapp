@@ -68,21 +68,6 @@ async function seedEmulator() {
       timespanEnd: new Date("2026-02-15T16:00:00Z"),
       markdownText:
         "**Спиране на водоснабдяването**\\n\\nАдрес: бул. Витоша 1\\nВреме: 10:00 - 16:00\\nДата: 15.02.2026",
-      geoJson: {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            geometry: {
-              type: "Point",
-              coordinates: [23.3219, 42.6977],
-            },
-            properties: {
-              address: "бул. Витоша 1",
-            },
-          },
-        ],
-      },
       finalizedAt: new Date(),
       createdAt: new Date(),
     },
@@ -98,25 +83,6 @@ async function seedEmulator() {
       timespanEnd: new Date("2026-02-01T18:00:00Z"),
       markdownText:
         "**Ограничение на движението**\\n\\nУлица: бул. Мария Луиза\\nВреме: 08:00 - 18:00",
-      geoJson: {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [23.3351, 42.7043],
-                [23.3362, 42.7055],
-                [23.3375, 42.7068],
-              ],
-            },
-            properties: {
-              street: "бул. Мария Луиза",
-            },
-          },
-        ],
-      },
       finalizedAt: new Date(),
       createdAt: new Date(),
     },
@@ -132,21 +98,6 @@ async function seedEmulator() {
       timespanEnd: new Date("2026-02-28T23:59:59Z"),
       markdownText:
         "**Ремонт на метростанция**\\n\\nМясто: площад Македония\\nПериод: до края на месеца",
-      geoJson: {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            geometry: {
-              type: "Point",
-              coordinates: [23.3441, 42.6977],
-            },
-            properties: {
-              location: "площад Македония",
-            },
-          },
-        ],
-      },
       finalizedAt: new Date(),
       createdAt: new Date(),
     },
