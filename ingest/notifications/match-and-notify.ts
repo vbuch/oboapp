@@ -35,25 +35,24 @@ interface MatchResult {
  * Convert Firestore timestamp to ISO string
  */
 function convertTimestamp(timestamp: unknown): string {
-  if (
-    timestamp &&
-    typeof timestamp === "object" &&
-    "_seconds" in timestamp &&
-    typeof timestamp._seconds === "number"
-  ) {
-    return new Date(timestamp._seconds * 1000).toISOString();
+  if (timestamp && typeof timestamp === "object") {
+    const t = timestamp as { _seconds?: unknown; toDate?: unknown };
+
+    // Check for Firestore internal format (_seconds)
+    if ("_seconds" in t && typeof t._seconds === "number") {
+      return new Date(t._seconds * 1000).toISOString();
+    }
+
+    // Check for Firestore Timestamp object (toDate method)
+    if ("toDate" in t && typeof t.toDate === "function") {
+      return (t.toDate as () => Date)().toISOString();
+    }
   }
-  if (
-    timestamp &&
-    typeof timestamp === "object" &&
-    "toDate" in timestamp &&
-    typeof timestamp.toDate === "function"
-  ) {
-    return timestamp.toDate().toISOString();
-  }
+
   if (typeof timestamp === "string") {
     return timestamp;
   }
+
   return new Date().toISOString();
 }
 
