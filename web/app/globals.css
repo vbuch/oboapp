@@ -177,3 +177,8 @@ li {
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
 }
+
+/* Hide scrollbars while maintaining scroll functionality */
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}

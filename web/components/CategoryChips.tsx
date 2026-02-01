@@ -65,11 +65,12 @@ export default function CategoryChips({
   }
 
   return (
-    <div className={`relative min-w-0 ${className ?? ""}`}>
+    <div className={`relative min-w-0 -mx-1 px-1 ${className ?? ""}`}>
       <div
         ref={containerRef}
         data-category-scroll
-        className="flex flex-nowrap gap-1.5 overflow-x-auto whitespace-nowrap -webkit-overflow-scrolling-touch"
+        className="flex flex-nowrap gap-1.5 overflow-x-auto whitespace-nowrap -webkit-overflow-scrolling-touch scrollbar-hidden"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {categories.map((category) => {
           if (!isCategory(category)) return null;
