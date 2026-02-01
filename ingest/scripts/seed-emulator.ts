@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 import { resolve } from "node:path";
 import { faker } from "@faker-js/faker";
 
-// Load environment variables
-dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+// Load environment variables for emulator
+dotenv.config({ path: resolve(process.cwd(), ".env.emulator") });
 
 // Sofia coordinates boundary
 const SOFIA_BOUNDS = {
@@ -89,6 +89,14 @@ async function seedEmulator() {
 
   // Dynamic import to ensure dotenv loads first
   const { adminDb } = await import("@/lib/firebase-admin");
+
+  // Verify connection
+  console.log("Verifying emulator connection...");
+  const testDoc = await adminDb
+    .collection("_test")
+    .add({ timestamp: new Date() });
+  await testDoc.delete();
+  console.log("✅ Connected to emulator\n");
 
   try {
     // Create test users
@@ -269,27 +277,40 @@ async function seedEmulator() {
       const sourceId = `test-source-${i + 1}`;
       const messageId = `test-message-${i + 1}`;
 
-      // Generate timespan
+      // Generate timespan - ensure all messages are within 7-day relevance window
       let timespanStart: Date;
       let timespanEnd: Date;
+      const now = new Date();
 
-      if (i < 5) {
-        // Current/ongoing events (started yesterday, ends tomorrow)
-        timespanStart = faker.date.recent({ days: 1 });
-        timespanEnd = faker.date.soon({ days: 1 });
-      } else if (i < 13) {
-        // Future events (starts tomorrow, lasts 1-3 days)
-        timespanStart = faker.date.soon({ days: 1 });
+      if (i < 6) {
+        // Current/ongoing events (started 1-2 days ago, ends in 1-5 days)
+        timespanStart = new Date(
+          now.getTime() -
+            faker.number.int({ min: 1, max: 2 }) * 24 * 60 * 60 * 1000,
+        );
+        timespanEnd = new Date(
+          now.getTime() +
+            faker.number.int({ min: 1, max: 5 }) * 24 * 60 * 60 * 1000,
+        );
+      } else if (i < 15) {
+        // Future events (starts in 1-2 days, lasts 1-3 days)
+        timespanStart = new Date(
+          now.getTime() +
+            faker.number.int({ min: 1, max: 2 }) * 24 * 60 * 60 * 1000,
+        );
         timespanEnd = new Date(
           timespanStart.getTime() +
             faker.number.int({ min: 1, max: 3 }) * 24 * 60 * 60 * 1000,
         );
       } else {
-        // Past events (ended yesterday)
-        timespanEnd = faker.date.recent({ days: 1 });
+        // Recently ended events (ended 0-2 days ago)
+        timespanEnd = new Date(
+          now.getTime() -
+            faker.number.int({ min: 0, max: 2 }) * 24 * 60 * 60 * 1000,
+        );
         timespanStart = new Date(
           timespanEnd.getTime() -
-            faker.number.int({ min: 1, max: 5 }) * 24 * 60 * 60 * 1000,
+            faker.number.int({ min: 1, max: 3 }) * 24 * 60 * 60 * 1000,
         );
       }
 

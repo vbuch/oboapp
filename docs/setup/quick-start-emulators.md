@@ -152,6 +152,14 @@ npm run emulators
 
 Starts with clean slate. Re-run `seed:emulator` to restore test data.
 
+### Emulator Utility Scripts
+
+```bash
+npm run check:emulator   # Check current data in emulator
+npm run clear:emulator   # Delete all emulator data
+npm run seed:emulator    # Populate with test data
+```
+
 ### Customize Mock Responses
 
 See [External API Mocks](../features/external-api-mocks.md) for details on customizing fixture data.
