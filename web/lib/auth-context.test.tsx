@@ -141,7 +141,7 @@ describe("AuthContext", () => {
 
       expect(mockSignInWithRedirect).toHaveBeenCalledTimes(1);
       expect(mockSignInWithPopup).not.toHaveBeenCalled();
-      
+
       // Clean up mock state for next test
       mockShouldUseRedirectAuth.mockReturnValue(false);
     });
