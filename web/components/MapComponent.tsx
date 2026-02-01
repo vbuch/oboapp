@@ -241,32 +241,27 @@ export default function MapComponent({
       return;
     }
 
-    const updateLocation = () => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-        },
-        {
-          enableHighAccuracy: false, // Accept coarse location to save battery
-          timeout: 10000,
-          maximumAge: 60000, // Cache for 1 minute
-        },
-      );
-    };
-
-    // Start watching location when tracking is enabled
-    const intervalId = globalThis.setInterval(updateLocation, 15000);
-    // Get initial location immediately
-    updateLocation();
+    // Use watchPosition for battery-efficient location tracking
+    // It only updates when position actually changes
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      (error) => {
+        console.error("Error watching location:", error);
+      },
+      {
+        enableHighAccuracy: false, // Accept coarse location to save battery
+        timeout: 10000,
+        maximumAge: 60000, // Cache for 1 minute
+      },
+    );
 
     return () => {
-      globalThis.clearInterval(intervalId);
+      navigator.geolocation.clearWatch(watchId);
       // Clear user location when tracking stops
       setUserLocation(null);
     };
