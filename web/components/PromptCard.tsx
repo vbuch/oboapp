@@ -31,7 +31,9 @@ export default function PromptCard({
     <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-4 sm:p-6">
       <div className="flex items-start gap-3 sm:gap-4">
         {icon && (
-          <div className="flex-shrink-0 scale-75 sm:scale-100">{icon}</div>
+          <div className="flex-shrink-0 w-9 h-9 sm:w-12 sm:h-12 [&>svg]:w-full [&>svg]:h-full">
+            {icon}
+          </div>
         )}
         <div className="flex-1 min-w-0">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">
