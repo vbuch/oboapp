@@ -1,0 +1,14 @@
+[
+  {
+    "categories": ["water"],
+    "relations": [],
+    "withSpecificAddress": true,
+    "specificAddresses": ["бул. Витоша 1"],
+    "coordinates": [],
+    "busStops": [],
+    "cadastralProperties": [],
+    "cityWide": false,
+    "isRelevant": true,
+    "normalizedText": "Спиране на водоснабдяването на бул. Витоша 1."
+  }
+]

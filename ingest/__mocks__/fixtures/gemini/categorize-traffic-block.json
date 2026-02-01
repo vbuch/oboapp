@@ -1,0 +1,14 @@
+[
+  {
+    "categories": ["traffic", "road-block"],
+    "relations": [],
+    "withSpecificAddress": true,
+    "specificAddresses": ["бул. Цариградско шосе"],
+    "coordinates": [],
+    "busStops": [],
+    "cadastralProperties": [],
+    "cityWide": false,
+    "isRelevant": true,
+    "normalizedText": "Затваряне на бул. Цариградско шосе за ремонт."
+  }
+]

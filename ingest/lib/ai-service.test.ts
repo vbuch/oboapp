@@ -42,9 +42,8 @@ describe("categorize function validation", () => {
     ];
 
     // Import the schema for direct validation testing
-    const { CategorizationResponseSchema } = await import(
-      "./categorize.schema"
-    );
+    const { CategorizationResponseSchema } =
+      await import("./categorize.schema");
 
     const result = CategorizationResponseSchema.safeParse(mockAiResponse);
     expect(result.success).toBe(true);
@@ -73,9 +72,8 @@ describe("categorize function validation", () => {
       },
     ];
 
-    const { CategorizationResponseSchema } = await import(
-      "./categorize.schema"
-    );
+    const { CategorizationResponseSchema } =
+      await import("./categorize.schema");
 
     const result = CategorizationResponseSchema.safeParse(invalidAiResponse);
     expect(result.success).toBe(false);
@@ -96,9 +94,8 @@ describe("categorize function validation", () => {
       },
     ];
 
-    const { CategorizationResponseSchema } = await import(
-      "./categorize.schema"
-    );
+    const { CategorizationResponseSchema } =
+      await import("./categorize.schema");
 
     const result = CategorizationResponseSchema.safeParse(invalidAiResponse);
     expect(result.success).toBe(false);
@@ -131,9 +128,8 @@ describe("categorize function validation", () => {
       },
     ];
 
-    const { CategorizationResponseSchema } = await import(
-      "./categorize.schema"
-    );
+    const { CategorizationResponseSchema } =
+      await import("./categorize.schema");
 
     const result = CategorizationResponseSchema.safeParse(mockAiResponse);
     expect(result.success).toBe(true);
@@ -182,9 +178,8 @@ describe("categorize function validation", () => {
       },
     ];
 
-    const { CategorizationResponseSchema } = await import(
-      "./categorize.schema"
-    );
+    const { CategorizationResponseSchema } =
+      await import("./categorize.schema");
 
     const result = CategorizationResponseSchema.safeParse(mockAiResponse);
     expect(result.success).toBe(true);
