@@ -1,7 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { faker } from "@faker-js/faker";
 import { MESSAGE_CONFIGS, type MessageConfig } from "./seed-emulator-fixtures";
-import type { Message } from "@/lib/types";
 import {
   randomSofiaPoint,
   createPointGeoJson,
@@ -46,27 +45,27 @@ function createMessageData(
   sourceId: string,
   timespan: { start: Date; end: Date },
   geoJson: GeoJSONFeatureCollection,
-): Omit<Message, "id"> {
-  const baseData: Omit<Message, "id"> = {
+): Record<string, unknown> {
+  const baseData: Record<string, unknown> = {
     sourceDocumentId: sourceId,
     text: `${config.text} на ${config.street}`,
     markdownText: `**${config.text}**\n\nЛокация: ${config.street}\n\nПериод: ${timespan.start.toLocaleDateString("bg-BG")} - ${timespan.end.toLocaleDateString("bg-BG")}`,
-    categories: config.category as string[],
+    categories: config.category,
     createdAt: new Date(),
     finalizedAt: new Date(),
     timespanStart: timespan.start,
     timespanEnd: timespan.end,
-    geoJson: geoJson as any, // Type compatibility with readonly arrays
+    geoJson: JSON.stringify(geoJson), // Stringify for Firestore
   };
 
   // Add extractedData if present
   if (config.extractedData) {
-    baseData.extractedData = config.extractedData as any;
+    baseData.extractedData = JSON.stringify(config.extractedData);
   }
 
   // Add categorize if present
   if (config.categorize) {
-    baseData.categorize = config.categorize as any;
+    baseData.categorize = JSON.stringify(config.categorize);
   }
 
   return baseData;
