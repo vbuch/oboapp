@@ -13,7 +13,7 @@ const GEOLOCATION_PERMISSION_KEY = "geolocationPermissionGranted";
 
 export function useGeolocationPrompt() {
   const [promptState, setPromptState] = useState<GeolocationPromptState | null>(
-    null
+    null,
   );
   const [isLocating, setIsLocating] = useState(false);
 
@@ -70,7 +70,7 @@ export function useGeolocationPrompt() {
           enableHighAccuracy: false, // Accept coarse location
           timeout: 15000, // 15 seconds timeout
           maximumAge: 300000, // 5 minutes cache
-        }
+        },
       );
     });
   }, []);
@@ -81,9 +81,9 @@ export function useGeolocationPrompt() {
         lat: number,
         lng: number,
         zoom?: number,
-        options?: { animate?: boolean }
-      ) => void
-    ) => {
+        options?: { animate?: boolean },
+      ) => void,
+    ): Promise<void> => {
       const hasPermission = getStoredPermissionState();
 
       if (hasPermission) {
@@ -97,12 +97,14 @@ export function useGeolocationPrompt() {
             name: "geolocation_location_centered",
             params: { had_cached_permission: true },
           });
+          // Successfully obtained location
+          return; // Return early after successful location
         } catch (error) {
           console.error("Geolocation error:", error);
           alert(
             error instanceof Error
               ? error.message
-              : "Грешка при определяне на местоположението"
+              : "Грешка при определяне на местоположението",
           );
 
           trackEvent({
@@ -112,16 +114,15 @@ export function useGeolocationPrompt() {
               had_cached_permission: true,
             },
           });
+          throw error;
         } finally {
           setIsLocating(false);
         }
-        return;
       }
 
-      // Show permission prompt first
-      setPromptState({
-        show: true,
-        onAccept: async () => {
+      // Show permission prompt first - return a promise that resolves when accepted
+      return new Promise<void>((resolve, reject) => {
+        const handleAccept = async () => {
           setPromptState(null);
           setIsLocating(true);
 
@@ -139,38 +140,48 @@ export function useGeolocationPrompt() {
               name: "geolocation_location_centered",
               params: { had_cached_permission: false },
             });
+            resolve();
           } catch (error) {
             console.error("Geolocation error:", error);
             alert(
               error instanceof Error
                 ? error.message
-                : "Грешка при определяне на местоположението"
+                : "Грешка при определяне на местоположението",
             );
 
             trackEvent({
               name: "geolocation_permission_denied",
               params: {},
             });
+            reject(error);
           } finally {
             setIsLocating(false);
           }
-        },
-        onDecline: () => {
-          setPromptState(null);
+        };
 
-          trackEvent({
-            name: "geolocation_prompt_declined",
-            params: {},
-          });
-        },
-      });
+        setPromptState({
+          show: true,
+          onAccept: () => {
+            void handleAccept();
+          },
+          onDecline: () => {
+            setPromptState(null);
 
-      trackEvent({
-        name: "geolocation_prompt_shown",
-        params: {},
+            trackEvent({
+              name: "geolocation_prompt_declined",
+              params: {},
+            });
+            reject(new Error("User declined geolocation permission"));
+          },
+        });
+
+        trackEvent({
+          name: "geolocation_prompt_shown",
+          params: {},
+        });
       });
     },
-    [getCurrentPosition, getStoredPermissionState, setStoredPermissionState]
+    [getCurrentPosition, getStoredPermissionState, setStoredPermissionState],
   );
 
   const hidePrompt = useCallback(() => {

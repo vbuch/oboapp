@@ -43,6 +43,7 @@ interface MapComponentProps {
     onCancel: () => void;
   };
   readonly initialCenter?: { lat: number; lng: number };
+  readonly shouldTrackLocation?: boolean;
 }
 
 // Oborishte District center coordinates
@@ -109,6 +110,7 @@ export default function MapComponent({
   onInterestClick,
   targetMode,
   initialCenter,
+  shouldTrackLocation = false,
 }: MapComponentProps) {
   const mapRef = useRef<google.maps.Map | null>(null);
   const latestCenterRef = useRef(SOFIA_CENTER);
@@ -118,7 +120,6 @@ export default function MapComponent({
     lat: number;
     lng: number;
   } | null>(null);
-  const watchIdRef = useRef<number | null>(null);
 
   const mapOptions: google.maps.MapOptions = useMemo(
     () => ({
@@ -234,9 +235,11 @@ export default function MapComponent({
     });
   }, [onBoundsChanged]);
 
-  // Track user location - update every 15 seconds
+  // Track user location - only when explicitly enabled (after user clicks locate button)
   useEffect(() => {
-    if (!navigator.geolocation) return;
+    if (!shouldTrackLocation || !navigator.geolocation) {
+      return;
+    }
 
     const updateLocation = () => {
       navigator.geolocation.getCurrentPosition(
@@ -248,26 +251,26 @@ export default function MapComponent({
         },
         (error) => {
           console.error("Error getting location:", error);
-          // Clear user location on error
-          setUserLocation(null);
         },
         {
-          enableHighAccuracy: true,
+          enableHighAccuracy: false, // Accept coarse location to save battery
           timeout: 10000,
-          maximumAge: 0,
+          maximumAge: 60000, // Cache for 1 minute
         },
       );
     };
 
-    // Start watching location when component mounts
-    const intervalId = window.setInterval(updateLocation, 15000);
+    // Start watching location when tracking is enabled
+    const intervalId = globalThis.setInterval(updateLocation, 15000);
     // Get initial location immediately
     updateLocation();
 
     return () => {
-      window.clearInterval(intervalId);
+      globalThis.clearInterval(intervalId);
+      // Clear user location when tracking stops
+      setUserLocation(null);
     };
-  }, []);
+  }, [shouldTrackLocation]);
 
   return (
     <div className="absolute inset-0">

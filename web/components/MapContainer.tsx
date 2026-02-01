@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import MapComponent from "@/components/MapComponent";
 import GeolocationButton from "@/components/GeolocationButton";
-import GeolocationPrompt from "@/components/GeolocationPrompt";
 import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
 import { useGeolocationPrompt } from "@/lib/hooks/useGeolocationPrompt";
 import { useOnboardingFlow } from "@/lib/hooks/useOnboardingFlow";
@@ -46,6 +45,13 @@ interface MapContainerProps {
   ) => void;
   readonly onCancelTargetMode: () => void;
   readonly onStartAddInterest: () => void;
+  readonly onGeolocationPromptChange: (
+    prompt: {
+      show: boolean;
+      onAccept: () => void;
+      onDecline: () => void;
+    } | null,
+  ) => void;
 }
 
 export default function MapContainer({
@@ -62,6 +68,7 @@ export default function MapContainer({
   onSaveInterest,
   onCancelTargetMode,
   onStartAddInterest,
+  onGeolocationPromptChange,
 }: MapContainerProps) {
   const [centerMap, setCenterMap] = useState<
     | ((
@@ -130,8 +137,19 @@ export default function MapContainer({
     hasSubscriptions,
   });
 
+  const [isTrackingLocation, setIsTrackingLocation] = useState(false);
+
   const { showPrompt, onAccept, onDecline, requestGeolocation, isLocating } =
     useGeolocationPrompt();
+
+  // Sync geolocation prompt state to parent for proper DOM ordering
+  React.useEffect(() => {
+    if (showPrompt) {
+      onGeolocationPromptChange({ show: true, onAccept, onDecline });
+    } else {
+      onGeolocationPromptChange(null);
+    }
+  }, [showPrompt, onAccept, onDecline, onGeolocationPromptChange]);
 
   const handleMapReady = (
     centerMapFn: (
@@ -148,7 +166,15 @@ export default function MapContainer({
 
   const handleGeolocationClick = () => {
     if (centerMap) {
-      requestGeolocation(centerMap);
+      requestGeolocation(centerMap)
+        .then(() => {
+          // Enable location tracking after successful permission grant
+          setIsTrackingLocation(true);
+        })
+        .catch(() => {
+          // User declined or error occurred - don't enable tracking
+          // Error handling is already done in the hook
+        });
     }
   };
 
@@ -179,6 +205,7 @@ export default function MapContainer({
         interests={interests}
         onInterestClick={onInterestClick}
         initialCenter={initialMapCenter || undefined}
+        shouldTrackLocation={isTrackingLocation}
         targetMode={
           targetMode.active
             ? {
@@ -209,11 +236,6 @@ export default function MapContainer({
         isLocating={isLocating}
         visible={true}
       />
-
-      {/* Geolocation permission prompt */}
-      {showPrompt && (
-        <GeolocationPrompt onAccept={onAccept} onDecline={onDecline} />
-      )}
     </div>
   );
 }

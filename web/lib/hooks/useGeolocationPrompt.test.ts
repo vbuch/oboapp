@@ -78,7 +78,7 @@ describe("useGeolocationPrompt", () => {
     });
 
     await act(async () => {
-      result.current.requestGeolocation(mockCenterMap);
+      await result.current.requestGeolocation(mockCenterMap);
     });
 
     expect(mockCenterMap).toHaveBeenCalledWith(42.6977, 23.3219, 17, {
@@ -101,7 +101,11 @@ describe("useGeolocationPrompt", () => {
     });
 
     await act(async () => {
-      result.current.requestGeolocation(mockCenterMap);
+      try {
+        await result.current.requestGeolocation(mockCenterMap);
+      } catch {
+        // Expected to throw
+      }
     });
 
     expect(alertSpy).toHaveBeenCalled();

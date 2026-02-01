@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useMemo } from "react";
+import React, { useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapContainer from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView";
 import MessagesGrid from "@/components/MessagesGrid";
 import InterestContextMenu from "@/components/InterestContextMenu";
 import CategoryFilterBox from "@/components/CategoryFilterBox";
+import GeolocationPrompt from "@/components/GeolocationPrompt";
 import { useInterests } from "@/lib/hooks/useInterests";
 import { useAuth } from "@/lib/auth-context";
 import { useMessages } from "@/lib/hooks/useMessages";
@@ -78,6 +79,13 @@ export default function HomeContent() {
     handleMapReady,
     handleAddressClick,
   } = useMapNavigation();
+
+  // Geolocation prompt state (lifted from MapContainer for proper DOM ordering)
+  const [geolocationPrompt, setGeolocationPrompt] = React.useState<{
+    show: boolean;
+    onAccept: () => void;
+    onDecline: () => void;
+  } | null>(null);
 
   // Interest/zone management
   const {
@@ -180,6 +188,7 @@ export default function HomeContent() {
           onSaveInterest={handleSaveInterest}
           onCancelTargetMode={handleCancelTargetMode}
           onStartAddInterest={handleStartAddInterest}
+          onGeolocationPromptChange={setGeolocationPrompt}
         />
         {isLoading && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-lg shadow-md z-20">
@@ -216,6 +225,14 @@ export default function HomeContent() {
           onMove={handleMoveInterest}
           onDelete={handleDeleteInterest}
           onClose={handleCloseInterestMenu}
+        />
+      )}
+
+      {/* Geolocation Prompt - rendered last for proper z-index stacking */}
+      {geolocationPrompt?.show && (
+        <GeolocationPrompt
+          onAccept={geolocationPrompt.onAccept}
+          onDecline={geolocationPrompt.onDecline}
         />
       )}
     </div>
