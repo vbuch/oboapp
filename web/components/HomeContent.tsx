@@ -198,7 +198,7 @@ export default function HomeContent() {
       </div>
 
       {/* Events Sidebar - Right side on desktop, bottom on mobile */}
-      <div className="flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white overflow-y-auto">
+      <div className="flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-none [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white overflow-y-auto">
         <div className="p-6 @container">
           <MessagesGrid
             messages={filteredMessages}
