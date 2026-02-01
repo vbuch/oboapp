@@ -39,7 +39,7 @@ export default function AddInterestsPrompt({
   }, [onDismiss]);
 
   return (
-    <div className="animate-fade-in fixed sm:absolute bottom-2 sm:bottom-4 right-2 sm:right-4 left-2 sm:left-auto z-40 bg-white rounded-lg shadow-xl p-4 sm:p-6 sm:pb-4 sm:pr-4 sm:max-w-sm">
+    <div className="animate-fade-in fixed sm:absolute bottom-2 sm:bottom-4 right-2 sm:right-4 left-2 sm:left-auto z-10 bg-white rounded-lg shadow-xl p-4 sm:p-6 sm:pb-4 sm:pr-4 sm:max-w-sm">
       <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
         <div className="flex-shrink-0">
           <LocationPinIcon className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />

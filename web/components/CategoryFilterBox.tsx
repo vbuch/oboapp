@@ -113,7 +113,7 @@ export default function CategoryFilterBox({
       {isOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
+          className="fixed inset-0 z-20 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
           onClick={onTogglePanel}
           aria-label="Затвори филтрите"
         />
@@ -121,13 +121,13 @@ export default function CategoryFilterBox({
 
       {/* Filter Container - Box and Handle together */}
       <div
-        className="absolute left-0 top-1/2 z-50 transition-transform duration-300"
+        className="absolute left-0 top-1/2 z-20 transition-transform duration-300"
         style={transformStyle}
       >
         {/* Filter Panel */}
         <div
           ref={panelRef}
-          className="relative z-50 w-[320px] max-h-[calc(66vh-64px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[calc(100vh-80px-2rem)] my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
+          className="relative z-20 w-[320px] max-h-[calc(66vh-64px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[calc(100vh-80px-2rem)] my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
         >
           {/* Category List with Archived Toggle - Only show when loaded */}
           {isInitialLoad ? (
