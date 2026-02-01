@@ -45,10 +45,14 @@ GOOGLE_AI_MODEL=gemini-2.5-flash-lite
 And `web/.env.local`:
 
 ```dotenv
-NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true
+# Backend (API routes) emulator mode
+USE_FIREBASE_EMULATORS=true
 FIRESTORE_EMULATOR_HOST=localhost:8080
 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-project
+
+# Frontend emulator mode
+NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true
 
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 MESSAGE_RELEVANCE_DAYS=7

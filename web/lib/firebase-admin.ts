@@ -51,8 +51,16 @@ if (!getApps().length) {
     : getFirestore(adminApp);
   adminAuth = getAuth(adminApp);
 
-  // Auto-connect to emulators if FIRESTORE_EMULATOR_HOST is set
-  // This happens automatically via environment variable
+  // In emulator mode, ensure we connect to the emulator
+  if (useEmulators) {
+    const emulatorHost =
+      process.env.FIRESTORE_EMULATOR_HOST || "localhost:8080";
+    const [host, port] = emulatorHost.split(":");
+    adminDb.settings({
+      host: `${host}:${port}`,
+      ssl: false,
+    });
+  }
 } else {
   adminApp = getApps()[0];
   adminDb = databaseId
