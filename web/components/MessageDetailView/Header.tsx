@@ -1,9 +1,10 @@
 import React from "react";
 import { trackEvent } from "@/lib/analytics";
 import { MessageClassification } from "@/lib/message-classification";
+import type { DragHandlers } from "@/lib/hooks/useDragPanel";
 
 interface HeaderProps {
-  handlers: Record<string, () => void>;
+  handlers: DragHandlers;
   onClose: () => void;
   messageId?: string;
   classification?: MessageClassification;

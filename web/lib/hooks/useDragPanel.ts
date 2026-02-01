@@ -25,7 +25,7 @@ interface UseDragPanelOptions {
   bidirectional?: boolean;
 }
 
-interface DragHandlers {
+export interface DragHandlers {
   onTouchStart: (e: React.TouchEvent) => void;
   onTouchMove: (e: React.TouchEvent) => void;
   onTouchEnd: () => void;
@@ -98,17 +98,15 @@ export function useDragPanel({
         if (isOpen) {
           // Open: only allow dragging left (negative offset)
           return Math.min(0, offset);
-        } 
-          // Closed: only allow dragging right (positive offset)
-          return Math.max(0, offset);
-        
+        }
+        // Closed: only allow dragging right (positive offset)
+        return Math.max(0, offset);
       }
       // Horizontal unidirectional: only left (close)
       return Math.min(0, offset);
-    } 
-      // Vertical: only allow dragging down (positive offset)
-      return Math.max(0, offset);
-    
+    }
+    // Vertical: only allow dragging down (positive offset)
+    return Math.max(0, offset);
   }, [dragStart, dragCurrent, isDragging, isHorizontal, isOpen, bidirectional]);
 
   // Handle drag end - check if threshold met
