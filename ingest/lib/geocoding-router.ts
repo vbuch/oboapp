@@ -18,16 +18,12 @@ import {
   type CadastralGeometry,
 } from "./cadastre-geocoding-service";
 import { geocodeBusStops as geocodeBusStopsService } from "./gtfs-geocoding-service";
-import { OverpassMockService } from "../__mocks__/services/overpass-mock-service";
 import { CadastreMockService } from "../__mocks__/services/cadastre-mock-service";
 
-// Check if mocking is enabled for Overpass and Cadastre
+// Check if mocking is enabled for Cadastre
 // (Google Geocoding mock is handled in geocoding-service.ts)
-const USE_OVERPASS_MOCK = process.env.MOCK_OVERPASS_API === "true";
+// (Overpass mock not yet implemented)
 const USE_CADASTRE_MOCK = process.env.MOCK_CADASTRE_API === "true";
-const overpassMockService = USE_OVERPASS_MOCK
-  ? new OverpassMockService()
-  : null;
 const cadastreMockService = USE_CADASTRE_MOCK
   ? new CadastreMockService()
   : null;
