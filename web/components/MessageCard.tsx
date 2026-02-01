@@ -17,7 +17,7 @@ interface MessageCardProps {
 
 export function MessageCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-neutral-border overflow-hidden">
+    <div className="bg-white rounded-lg shadow-md p-6 border border-neutral-border">
       <div className="space-y-4 animate-pulse">
         {/* Source logo skeleton */}
         <div className="flex items-center space-x-3">
@@ -121,7 +121,7 @@ export default function MessageCard({
   return (
     <button
       type="button"
-      className="bg-white rounded-lg shadow-md p-4 border border-neutral-border hover:shadow-lg transition-shadow cursor-pointer w-full text-left relative h-full flex flex-col overflow-hidden min-w-0"
+      className="bg-white rounded-lg shadow-md p-4 border border-neutral-border hover:shadow-lg transition-shadow cursor-pointer w-full text-left relative h-full flex flex-col min-w-0"
       onClick={handleClick}
     >
       {/* Status indicator circle (top-right) */}
@@ -131,8 +131,8 @@ export default function MessageCard({
         }`}
       />
 
-      <div className="flex flex-1 flex-col">
-        <div className="space-y-3">
+      <div className="flex flex-1 flex-col min-w-0">
+        <div className="space-y-3 min-w-0">
           {/* Source */}
           <div className="flex items-center space-x-2">
             {logoPath && !logoError ? (

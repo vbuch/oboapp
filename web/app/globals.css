@@ -163,11 +163,8 @@ body {
 }
 
 /* Mobile Safari overflow fixes */
-/* Apply min-width: 0 only to flex and grid children to prevent overflow */
-.flex > *:not(svg):not(img),
-.grid > *:not(svg):not(img) {
-  min-width: 0;
-}
+/* Apply min-width: 0 only to text container elements to prevent overflow */
+/* This allows flex/grid children to shrink below their content size */
 
 /* Ensure proper word breaking for long content on mobile */
 p,
