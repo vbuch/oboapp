@@ -56,6 +56,8 @@ export function AuthProvider({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
     // Handle redirect result FIRST before setting up auth listener
     // This ensures redirect completion is processed before auth state changes
     const initAuth = async () => {
@@ -76,19 +78,13 @@ export function AuthProvider({
       }
 
       // Now set up auth state listener after redirect processing
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe = onAuthStateChanged(auth, (user) => {
         setUser(user);
         setLoading(false);
       });
-
-      return unsubscribe;
     };
 
-    let unsubscribe: (() => void) | undefined;
-    
-    initAuth().then((unsub) => {
-      unsubscribe = unsub;
-    });
+    initAuth();
 
     return () => {
       if (unsubscribe) {
