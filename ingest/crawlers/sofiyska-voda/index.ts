@@ -18,7 +18,6 @@ import { buildSourceDocument } from "./builders";
 // Load environment variables to match the rest of the crawlers
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
-const _SOURCE_TYPE = "sofiyska-voda";
 const BASE_URL =
   "https://gispx.sofiyskavoda.bg/arcgis/rest/services/WSI_PUBLIC/InfoCenter_Public/MapServer";
 const REQUEST_HEADERS = {
