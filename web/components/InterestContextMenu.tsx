@@ -16,7 +16,7 @@ export default function InterestContextMenu({
       {/* Backdrop to close menu */}
       <button
         type="button"
-        className="fixed inset-0 z-40 bg-transparent cursor-default"
+        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm pointer-events-auto cursor-default"
         onClick={onClose}
         aria-label="Затвори менюто"
       />

@@ -27,7 +27,7 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
       {isOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
+          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm pointer-events-auto"
           onClick={onClose}
           aria-label="Close menu"
         />

@@ -84,7 +84,7 @@ export default function MessageDetailView({
   return (
     <>
       <div
-        className={`fixed inset-0 z-30 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 z-30 bg-black/20 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 ${
           isVisible ? "opacity-100" : "opacity-0"
         }`}
         onClick={() => {

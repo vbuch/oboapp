@@ -113,7 +113,7 @@ export default function CategoryFilterBox({
       {isOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm sm:hidden"
+          className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
           onClick={onTogglePanel}
           aria-label="Затвори филтрите"
         />
