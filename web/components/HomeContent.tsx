@@ -16,6 +16,10 @@ import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
 import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
 import { classifyMessage } from "@/lib/message-classification";
 
+// Header height constant - used for map height calculations
+// This matches the actual header height in the layout (64px)
+const HEADER_HEIGHT_PX = 64;
+
 /**
  * HomeContent - Main application component managing map, messages, and user interactions
  *
@@ -159,7 +163,9 @@ export default function HomeContent() {
       )}
 
       {/* Map Section - Left side on desktop, top on mobile */}
-      <div className="relative [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-3/5 h-[calc(66vh-64px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:h-[calc(100vh-80px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:sticky [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:self-start">
+      <div
+        className={`relative [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-3/5 h-[calc(66vh-${HEADER_HEIGHT_PX}px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:h-[calc(100vh-80px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:sticky [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:self-start`}
+      >
         {/* Category Filter Box */}
         <CategoryFilterBox
           isOpen={categoryFilter.isOpen}
