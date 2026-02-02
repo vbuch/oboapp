@@ -23,6 +23,7 @@ The source message listing feature provides dedicated pages for each data source
 - `studentski-bg` - Столична община, Район "Студентски"
 - `sredec-sofia-org` - Столична община, Район "Средец"
 - `so-slatina-org` - Столична община, Район "Слатина"
+- `nimh-severe-weather` - НИМХ (Метеорологични предупреждения)
 
 ## Page Structure
 
@@ -38,7 +39,7 @@ The source message listing feature provides dedicated pages for each data source
 - **Layout**: 3-column responsive grid (1 column mobile, 2 columns tablet, 3 columns desktop)
 - **Message Count**: Shows up to 12 most recent messages
 - **Sorting**: Messages ordered by `timespanEnd` descending (newest disruptions first)
-- **Filtering**: Only displays finalized messages with valid GeoJSON geometry
+- **Filtering**: Only displays finalized messages with valid GeoJSON geometry (cityWide messages bypass viewport bounds and are always visible)
 - **Loading State**: Shows 12 skeleton card placeholders while data loads
 
 ### Message Cards

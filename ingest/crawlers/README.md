@@ -13,6 +13,7 @@ Automated data collectors that fetch public notifications and disruptions from e
 - **sofiyska-voda** - Fetches water supply disruptions from Sofiyska Voda's ArcGIS API
 - **toplo-bg** - Fetches heating infrastructure incidents from Toplo.bg with pre-geocoded polygons
 - **erm-zapad** - Fetches power outage incidents from ERM-Zapad for София-град municipalities
+- **nimh-severe-weather** - Fetches severe weather warnings from NIMH (weather.bg) for Sofia
 
 ## How They Work
 
@@ -53,12 +54,13 @@ flowchart TD
 
 Crawlers handle message formatting differently based on whether they provide precomputed GeoJSON:
 
-**Crawlers with precomputed GeoJSON** (erm-zapad, toplo-bg, sofiyska-voda):
+**Crawlers with precomputed GeoJSON** (erm-zapad, toplo-bg, sofiyska-voda, nimh-severe-weather):
 
 - Skip the AI filtering and extraction pipeline
 - Must store formatted text in both `message` and `markdownText` fields
 - The `markdownText` field is used for display in the message details view
 - Can produce markdown (erm-zapad, sofiyska-voda) or plain text (toplo-bg)
+- **City-wide messages** (nimh-severe-weather): Set `cityWide: true` with empty FeatureCollection for alerts applying to the entire city (reusable pattern for city-wide infrastructure alerts)
 
 **Crawlers without GeoJSON** (rayon-oborishte-bg, sredec-sofia-org, sofia-bg, mladost-bg, studentski-bg, so-slatina-org):
 
@@ -80,6 +82,7 @@ npx tsx crawl --source sofiyska-voda
 npx tsx crawl --source toplo-bg
 npx tsx crawl --source sofia-bg
 npx tsx crawl --source erm-zapad
+npx tsx crawl --source nimh-severe-weather
 
 # List available sources
 npx tsx crawl --help

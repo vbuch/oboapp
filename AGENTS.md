@@ -197,7 +197,7 @@ flowchart LR
 
 **Crawler Integration:**
 
-- Crawlers with `precomputedGeoJson` (sofiyska-voda, toplo-bg, erm-zapad) **skip categorization**
+- Crawlers with `precomputedGeoJson` (sofiyska-voda, toplo-bg, erm-zapad, nimh-severe-weather) **skip categorization**
 - Crawlers without GeoJSON (rayon-oborishte-bg, sofia-bg, mladost-bg, studentski-bg, sredec-sofia-org, so-slatina-org) **go through categorization**
 - Markdown text from crawlers is stored directly via `options.markdownText`
 
@@ -228,6 +228,7 @@ flowchart LR
 - **Timespans:** Extract timespans in crawlers and store at source root as `timespanStart/End`.
 - **Scripts:** Use the standard template (shebang, dotenv, dynamic imports). Run via `npm run tsx tmp/script.ts`.
 - **Precomputed GeoJSON:** If crawler provides GeoJSON, it bypasses message categorization and extraction stages. Timespans transfer from source to message during ingestion.
+- **City-Wide Messages:** Set `cityWide: true` with empty FeatureCollection for alerts applying to entire city. Bypasses viewport filtering (always visible), uses sofia.geojson for notification matching.
 
 ### Geocoding Services
 

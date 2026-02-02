@@ -38,6 +38,8 @@ Utility companies and service providers that publish data with geographic coordi
 
 **Processing**: Source Data → Boundary Check → Store GeoJSON → Finalize
 
+**City-wide messages** (with `cityWide: true` field): Use empty GeoJSON, bypass viewport filtering in web API, use sofia.geojson boundary for notification matching.
+
 ### Slow Path (Text-based Sources)
 
 Municipal announcements and HTML content require natural language processing to extract locations and timespans. These messages go through AI filtering, extraction, and geocoding.

@@ -1,0 +1,175 @@
+import { createHash } from "node:crypto";
+import type { WeatherPageData, WarningCell, WarningType } from "./types";
+
+/**
+ * Human-readable labels for warning types in Bulgarian (short form for headings)
+ */
+const WARNING_TYPE_LABELS: Record<WarningType, string> = {
+  high_temperature: "температура",
+  low_temperature: "температура",
+  wind: "вятър",
+  rain: "дъжд",
+  snow_ice: "сняг",
+};
+
+/**
+ * Generate a content hash for deduplication
+ * Hash changes when warning content changes (e.g., yellow → orange)
+ */
+export function buildContentHash(data: WeatherPageData): string {
+  return createHash("sha256")
+    .update(data.recommendation)
+    .update(JSON.stringify(data.sofiaWarnings))
+    .digest("hex")
+    .substring(0, 12);
+}
+
+/**
+ * Build the source URL for a warning
+ * Includes content hash to ensure unique URL per warning update
+ */
+export function buildUrl(data: WeatherPageData): string {
+  const hash = buildContentHash(data);
+  return `https://weather.bg/obshtini/index.php?z=u&o=SOF&date=${data.forecastDate}&h=${hash}`;
+}
+
+/**
+ * Build a title for the warning
+ */
+export function buildTitle(data: WeatherPageData): string {
+  const date = formatDateBulgarian(data.forecastDate);
+  return `Предупреждение за опасно време - ${date}`;
+}
+
+/**
+ * Human-readable labels for warning levels in Bulgarian
+ */
+const WARNING_LEVEL_LABELS: Record<string, string> = {
+  green: "Зелен код",
+  yellow: "Жълт код",
+  orange: "Оранжев код",
+  red: "Червен код",
+};
+
+/**
+ * Build markdown text for display
+ * Groups warnings by level (most severe first), filters out green
+ * Format: "**Червен код за температура**"
+ */
+export function buildMarkdownText(data: WeatherPageData): string {
+  const parts: string[] = [];
+
+  // Add recommendation if present
+  if (data.recommendation) {
+    parts.push(data.recommendation, "");
+  }
+
+  // Filter out green warnings and sort by severity (red > orange > yellow)
+  const activeWarnings = data.sofiaWarnings
+    .filter((w) => w.level !== "green")
+    .sort((a, b) => {
+      const levels = ["yellow", "orange", "red"];
+      return levels.indexOf(b.level) - levels.indexOf(a.level);
+    });
+
+  // Group warnings by level and type
+  for (const warning of activeWarnings) {
+    const levelLabel = WARNING_LEVEL_LABELS[warning.level];
+    const typeLabel = WARNING_TYPE_LABELS[warning.type];
+    const noteLines = warning.notes.map((note) => `- ${note}`);
+
+    if (noteLines.length > 0) {
+      parts.push(`**${levelLabel} за ${typeLabel}**`, ...noteLines, "");
+    } else {
+      parts.push(`**${levelLabel} за ${typeLabel}**`, "");
+    }
+  }
+
+  return parts.join("\n").trim();
+}
+
+/**
+ * Build plain text message (for text field)
+ */
+export function buildMessageText(data: WeatherPageData): string {
+  const parts: string[] = [];
+
+  // Filter out green warnings
+  const activeWarnings = data.sofiaWarnings.filter((w) => w.level !== "green");
+
+  if (activeWarnings.length === 0) {
+    return data.recommendation || "";
+  }
+
+  // Build heading from highest level
+  const maxLevel = getMaxWarningLevel(activeWarnings);
+  const levelLabel =
+    WARNING_LEVEL_LABELS[maxLevel] || WARNING_LEVEL_LABELS.yellow;
+  parts.push(`${levelLabel} за опасно време`);
+
+  if (data.recommendation) {
+    parts.push("", data.recommendation);
+  }
+
+  // Collect all notes
+  const allNotes = data.sofiaWarnings.flatMap((w) => w.notes);
+  if (allNotes.length > 0) {
+    parts.push("", allNotes.join("; "));
+  }
+
+  return parts.join("\n").trim();
+}
+
+/**
+ * Format date in Bulgarian format (e.g., "01 февруари 2026")
+ */
+function formatDateBulgarian(isoDate: string): string {
+  const months = [
+    "януари",
+    "февруари",
+    "март",
+    "април",
+    "май",
+    "юни",
+    "юли",
+    "август",
+    "септември",
+    "октомври",
+    "ноември",
+    "декември",
+  ];
+
+  const [year, month, day] = isoDate.split("-");
+  return `${Number.parseInt(day, 10)} ${months[Number.parseInt(month, 10) - 1]} ${year}`;
+}
+
+/**
+ * Build timespan from forecast date
+ * Weather warnings typically cover the full forecast day
+ */
+export function buildTimespan(forecastDate: string): {
+  start: Date;
+  end: Date;
+} {
+  const start = new Date(`${forecastDate}T00:00:00+02:00`); // Bulgaria timezone
+  const end = new Date(`${forecastDate}T23:59:59+02:00`);
+
+  return { start, end };
+}
+
+/**
+ * Get the highest warning level from all warnings
+ */
+export function getMaxWarningLevel(warnings: WarningCell[]): string {
+  const levels = ["green", "yellow", "orange", "red"];
+  let maxIndex = 0;
+
+  for (const warning of warnings) {
+    const index = levels.indexOf(warning.level);
+    if (index > maxIndex) {
+      maxIndex = index;
+    }
+  }
+
+  return levels[maxIndex];
+}

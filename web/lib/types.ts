@@ -1,7 +1,5 @@
 import type { z } from "zod";
-import { AddressSchema } from "@shared/schema/address.schema";
 import { CoordinatesSchema } from "@shared/schema/coordinates.schema";
-import { ExtractedDataSchema } from "@shared/schema/extracted-data.schema";
 import {
   GeoJsonFeatureCollectionSchema,
   GeoJsonFeatureSchema,
@@ -16,31 +14,11 @@ import { NotificationHistoryItemSchema } from "@shared/schema/notification-histo
 import { PinSchema } from "@shared/schema/pin.schema";
 import { StreetSectionSchema } from "@shared/schema/street-section.schema";
 import { TimespanSchema } from "@shared/schema/timespan.schema";
+import { AddressSchema } from "@shared/schema/address.schema";
+import { ExtractedDataSchema } from "@shared/schema/extracted-data.schema";
 
-export type IngestErrorType = "warning" | "error" | "exception";
-
-export interface IngestError {
-  text: string;
-  type: IngestErrorType;
-}
-
-export interface Message {
-  id?: string;
-  text: string;
-  markdownText?: string;
-  addresses?: Address[];
-  extractedData?: ExtractedData;
-  geoJson?: GeoJSONFeatureCollection;
-  ingestErrors?: IngestError[];
-  createdAt: Date | string;
-  crawledAt?: Date | string;
-  finalizedAt?: Date | string;
-  source?: string;
-  sourceUrl?: string;
-  categories?: string[];
-  timespanStart?: Date | string;
-  timespanEnd?: Date | string;
-}
+// Import shared types
+export type { Message, IngestError, IngestErrorType } from "@shared/schema";
 
 export type Address = z.infer<typeof AddressSchema>;
 

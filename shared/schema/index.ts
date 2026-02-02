@@ -6,6 +6,7 @@ export * from "./timespan.schema";
 export * from "./pin.schema";
 export * from "./street-section.schema";
 export * from "./extracted-data.schema";
+export * from "./ingest-error.schema";
 export * from "./message.schema";
 export * from "./message-snapshot.schema";
 export * from "./notification-history.schema";

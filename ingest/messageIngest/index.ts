@@ -66,6 +66,11 @@ export interface MessageIngestOptions {
    * Whether the source is relevant (for precomputed GeoJSON sources)
    */
   isRelevant?: boolean;
+  /**
+   * Whether the message applies to the entire city (for city-wide sources like weather warnings)
+   * City-wide messages are hidden from the map but shown in listings
+   */
+  cityWide?: boolean;
 }
 
 export interface MessageIngestResult {
@@ -224,6 +229,7 @@ async function processPrecomputedGeoJsonMessage(
     await updateMessage(storedMessageId, {
       categories: options.categories,
       isRelevant: options.isRelevant,
+      ...(options.cityWide !== undefined && { cityWide: options.cityWide }),
     });
   }
 
