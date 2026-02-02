@@ -43,5 +43,10 @@
     "id": "so-slatina-org",
     "url": "https://so-slatina.org/",
     "name": "Столична община, Район \"Слатина\""
+  },
+  {
+    "id": "nimh-severe-weather",
+    "url": "https://weather.bg/obshtini/index.php?z=u&o=SOF",
+    "name": "НИМХ - Опасно време"
   }
 ]

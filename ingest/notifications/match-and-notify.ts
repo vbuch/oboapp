@@ -2,6 +2,7 @@
 
 import dotenv from "dotenv";
 import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
 import type { Firestore } from "firebase-admin/firestore";
 import type { Messaging } from "firebase-admin/messaging";
 import * as turf from "@turf/turf";
@@ -12,6 +13,7 @@ import {
   NotificationSubscription,
   DeviceNotification,
 } from "@/lib/types";
+import type { GeoJSONFeatureCollection } from "@/lib/types";
 
 // Load environment variables
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -24,11 +26,26 @@ if (!process.env.NEXT_PUBLIC_APP_URL) {
 }
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 
+// Cache Sofia GeoJSON
+let sofiaGeoJson: GeoJSONFeatureCollection | null = null;
+
 interface MatchResult {
   messageId: string;
   userId: string;
   interestId: string;
   distance: number;
+}
+
+/**
+ * Load Sofia administrative boundary GeoJSON (cached)
+ */
+function loadSofiaGeoJson(): GeoJSONFeatureCollection {
+  if (!sofiaGeoJson) {
+    const sofiaPath = resolve(process.cwd(), "sofia.geojson");
+    const content = readFileSync(sofiaPath, "utf-8");
+    sofiaGeoJson = JSON.parse(content) as GeoJSONFeatureCollection;
+  }
+  return sofiaGeoJson;
 }
 
 /**
@@ -142,12 +159,19 @@ async function getAllInterests(adminDb: Firestore): Promise<Interest[]> {
 
 /**
  * Check if a message's GeoJSON features intersect with a user's interest circle
+ * For city-wide messages (cityWide flag), uses sofia.geojson for geometric matching
  */
 function matchMessageToInterest(
   message: Message,
   interest: Interest,
 ): { matches: boolean; distance: number | null } {
-  if (!message.geoJson?.features || message.geoJson.features.length === 0) {
+  // City-wide messages use Sofia boundary for matching
+  let geoJson = message.geoJson;
+  if (message.cityWide) {
+    geoJson = loadSofiaGeoJson();
+  }
+
+  if (!geoJson?.features || geoJson.features.length === 0) {
     return { matches: false, distance: null };
   }
 
@@ -163,7 +187,7 @@ function matchMessageToInterest(
 
   let minDistance: number | null = null;
 
-  for (const feature of message.geoJson.features) {
+  for (const feature of geoJson.features) {
     try {
       // Check if feature intersects with interest circle
       const intersects = turf.booleanIntersects(feature, interestCircle);

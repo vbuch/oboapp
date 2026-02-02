@@ -98,6 +98,9 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                   },
                   "type": "array",
                 },
+                "cityWide": {
+                  "type": "boolean",
+                },
                 "crawledAt": {
                   "type": "string",
                 },
@@ -381,7 +384,45 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 "id": {
                   "type": "string",
                 },
+                "ingestErrors": {
+                  "items": {
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                      },
+                      "type": {
+                        "enum": [
+                          "warning",
+                          "error",
+                          "exception",
+                        ],
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "text",
+                      "type",
+                    ],
+                    "type": "object",
+                  },
+                  "type": "array",
+                },
+                "isRelevant": {
+                  "type": "boolean",
+                },
+                "markdownText": {
+                  "type": "string",
+                },
+                "relations": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
                 "source": {
+                  "type": "string",
+                },
+                "sourceDocumentId": {
                   "type": "string",
                 },
                 "sourceUrl": {
@@ -398,12 +439,8 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 },
               },
               "required": [
-                "id",
                 "text",
-                "addresses",
-                "geoJson",
                 "createdAt",
-                "categories",
               ],
               "type": "object",
             },

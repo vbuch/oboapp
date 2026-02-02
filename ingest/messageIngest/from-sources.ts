@@ -22,6 +22,7 @@ interface SourceDocument {
   isRelevant?: boolean; // Whether source is relevant for precomputed GeoJSON sources
   timespanStart?: Date; // Optional timespan start from source
   timespanEnd?: Date; // Optional timespan end from source
+  cityWide?: boolean; // Whether source applies to entire city (hidden from map)
 }
 
 interface IngestOptions {
@@ -106,6 +107,7 @@ async function fetchSources(
       isRelevant: data.isRelevant,
       timespanStart: data.timespanStart?.toDate(),
       timespanEnd: data.timespanEnd?.toDate(),
+      cityWide: data.cityWide,
     });
   }
 
@@ -206,6 +208,7 @@ async function ingestSource(
       isRelevant: source.isRelevant,
       timespanStart: source.timespanStart,
       timespanEnd: source.timespanEnd,
+      cityWide: source.cityWide,
     },
   );
 

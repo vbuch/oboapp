@@ -14,6 +14,41 @@ const { or, where } = admin.firestore.Filter;
 
 const DEFAULT_RELEVANCE_DAYS = 7;
 
+/**
+ * Convert Firestore document to Message object
+ */
+function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
+  const data = doc.data();
+  if (!data) {
+    throw new Error(`Document ${doc.id} has no data`);
+  }
+
+  return {
+    id: doc.id,
+    text: data.text,
+    addresses: data.addresses ? JSON.parse(data.addresses) : [],
+    extractedData: data.extractedData
+      ? JSON.parse(data.extractedData)
+      : undefined,
+    geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
+    createdAt: convertTimestamp(data.createdAt),
+    crawledAt: data.crawledAt ? convertTimestamp(data.crawledAt) : undefined,
+    finalizedAt: data.finalizedAt
+      ? convertTimestamp(data.finalizedAt)
+      : undefined,
+    source: data.source,
+    sourceUrl: data.sourceUrl,
+    categories: Array.isArray(data.categories) ? data.categories : [],
+    timespanStart: data.timespanStart
+      ? convertTimestamp(data.timespanStart)
+      : undefined,
+    timespanEnd: data.timespanEnd
+      ? convertTimestamp(data.timespanEnd)
+      : undefined,
+    cityWide: data.cityWide || false,
+  };
+}
+
 export async function GET(request: Request) {
   try {
     // Parse viewport bounds and zoom from query params
@@ -104,31 +139,7 @@ export async function GET(request: Request) {
             (Array.isArray(categories) && categories.length === 0);
 
           if (isUncategorized) {
-            uncategorizedMessages.push({
-              id: doc.id,
-              text: data.text,
-              addresses: data.addresses ? JSON.parse(data.addresses) : [],
-              extractedData: data.extractedData
-                ? JSON.parse(data.extractedData)
-                : undefined,
-              geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
-              createdAt: convertTimestamp(data.createdAt),
-              crawledAt: data.crawledAt
-                ? convertTimestamp(data.crawledAt)
-                : undefined,
-              finalizedAt: data.finalizedAt
-                ? convertTimestamp(data.finalizedAt)
-                : undefined,
-              source: data.source,
-              sourceUrl: data.sourceUrl,
-              categories: Array.isArray(data.categories) ? data.categories : [],
-              timespanStart: data.timespanStart
-                ? convertTimestamp(data.timespanStart)
-                : undefined,
-              timespanEnd: data.timespanEnd
-                ? convertTimestamp(data.timespanEnd)
-                : undefined,
-            });
+            uncategorizedMessages.push(docToMessage(doc));
           }
         });
 
@@ -185,33 +196,7 @@ export async function GET(request: Request) {
 
             // Only add if not already present (deduplication)
             if (!messagesMap.has(doc.id)) {
-              messagesMap.set(doc.id, {
-                id: doc.id,
-                text: data.text,
-                addresses: data.addresses ? JSON.parse(data.addresses) : [],
-                extractedData: data.extractedData
-                  ? JSON.parse(data.extractedData)
-                  : undefined,
-                geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
-                createdAt: convertTimestamp(data.createdAt),
-                crawledAt: data.crawledAt
-                  ? convertTimestamp(data.crawledAt)
-                  : undefined,
-                finalizedAt: data.finalizedAt
-                  ? convertTimestamp(data.finalizedAt)
-                  : undefined,
-                source: data.source,
-                sourceUrl: data.sourceUrl,
-                categories: Array.isArray(data.categories)
-                  ? data.categories
-                  : [],
-                timespanStart: data.timespanStart
-                  ? convertTimestamp(data.timespanStart)
-                  : undefined,
-                timespanEnd: data.timespanEnd
-                  ? convertTimestamp(data.timespanEnd)
-                  : undefined,
-              });
+              messagesMap.set(doc.id, docToMessage(doc));
             }
           });
         }
@@ -252,6 +237,7 @@ export async function GET(request: Request) {
           timespanEnd: data.timespanEnd
             ? convertTimestamp(data.timespanEnd)
             : undefined,
+          cityWide: data.cityWide || false,
         });
       });
     }
@@ -261,9 +247,12 @@ export async function GET(request: Request) {
       return message.geoJson !== null && message.geoJson !== undefined;
     });
 
-    // Filter by viewport bounds if provided
+    // Filter by viewport bounds if provided (skip cityWide messages - they're always visible)
     if (viewportBounds) {
       messages = messages.filter((message) => {
+        // City-wide messages bypass viewport filtering
+        if (message.cityWide) return true;
+
         if (!message.geoJson?.features) return false;
 
         // Check if any feature intersects with viewport bounds
@@ -287,7 +276,7 @@ export async function GET(request: Request) {
             // Calculate centroid
             let centroid: [number, number];
             if (feature.geometry.type === "LineString") {
-              const coords = feature.geometry.coordinates as [number, number][];
+              const coords = feature.geometry.coordinates;
               const avgLng =
                 coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
               const avgLat =
@@ -295,10 +284,7 @@ export async function GET(request: Request) {
               centroid = [avgLng, avgLat];
             } else {
               // Polygon
-              const coords = feature.geometry.coordinates[0] as [
-                number,
-                number,
-              ][];
+              const coords = feature.geometry.coordinates[0];
               const avgLng =
                 coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
               const avgLat =

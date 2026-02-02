@@ -1,25 +1,8 @@
 import { CategorizedMessage } from "./categorize.schema";
 import type { Timestamp } from "firebase-admin/firestore";
+import type { Message as SharedMessage, GeoJsonGeometry } from "@shared/schema";
 
-// Import shared types
-import type {
-  Address,
-  Timespan,
-  Pin,
-  StreetSection,
-  CadastralProperty,
-  ExtractedData,
-  Coordinates,
-  GeoJsonPoint,
-  GeoJsonMultiPoint,
-  GeoJsonLineString,
-  GeoJsonPolygon,
-  GeoJsonGeometry,
-  GeoJsonFeature,
-  GeoJsonFeatureCollection,
-} from "@shared/schema";
-
-// Re-export all shared types
+// Re-export shared types
 export type {
   Address,
   Timespan,
@@ -35,7 +18,9 @@ export type {
   GeoJsonGeometry,
   GeoJsonFeature,
   GeoJsonFeatureCollection,
-};
+  IngestError,
+  IngestErrorType,
+} from "@shared/schema";
 
 // Re-export with GeoJSON prefix for backward compatibility
 export type {
@@ -46,37 +31,11 @@ export type {
   GeoJsonGeometry as GeoJSONGeometry,
   GeoJsonFeature as GeoJSONFeature,
   GeoJsonFeatureCollection as GeoJSONFeatureCollection,
-};
+} from "@shared/schema";
 
-export interface Message {
-  id?: string;
-  text: string;
-  addresses?: Address[];
-  extractedData?: ExtractedData;
-  geoJson?: GeoJsonFeatureCollection;
-  ingestErrors?: IngestError[];
-  createdAt: Date | string;
-  crawledAt?: Date | string;
-  finalizedAt?: Date | string;
-  source?: string;
-  sourceUrl?: string;
-  sourceDocumentId?: string;
-  markdownText?: string;
+// Extend shared Message with ingest-specific categorize field
+export interface Message extends SharedMessage {
   categorize?: CategorizedMessage;
-  // Root-level fields flattened from categorize for Firestore indexes
-  categories?: string[];
-  relations?: string[];
-  isRelevant?: boolean;
-  // Timespan denormalization for server-side filtering
-  timespanStart?: Date | string;
-  timespanEnd?: Date | string;
-}
-
-export type IngestErrorType = "warning" | "error" | "exception";
-
-export interface IngestError {
-  text: string;
-  type: IngestErrorType;
 }
 
 // Intersection coordinates
