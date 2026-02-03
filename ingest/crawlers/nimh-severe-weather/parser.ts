@@ -184,14 +184,31 @@ function parseSofiaRow(html: string): WarningCell[] {
 }
 
 /**
+ * Phrases that indicate no danger (case-insensitive)
+ */
+const NO_DANGER_PHRASES = [
+  "няма опасност",
+  "без опасност",
+  "не се очаква опасност",
+];
+
+/**
  * Check if the parsed data contains any actual warnings
  */
 export function hasActiveWarnings(data: WeatherPageData): boolean {
-  // Has recommendation text
-  if (data.recommendation.length > 0) {
+  // Has any non-green warnings (green is always ignored)
+  if (data.sofiaWarnings.some((w) => w.level !== "green")) {
     return true;
   }
 
-  // Has any non-green warnings (green is always ignored)
-  return data.sofiaWarnings.some((w) => w.level !== "green");
+  // Check recommendation text - only counts if it's not a "no danger" message
+  if (data.recommendation.length > 0) {
+    const lowerRec = data.recommendation.toLowerCase();
+    const isNoDanger = NO_DANGER_PHRASES.some((phrase) =>
+      lowerRec.includes(phrase),
+    );
+    return !isNoDanger;
+  }
+
+  return false;
 }
