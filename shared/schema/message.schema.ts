@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AddressSchema } from "./address.schema";
+import { CategoryEnum } from "./category.schema";
 import { ExtractedDataSchema } from "./extracted-data.schema";
 import { GeoJsonFeatureCollectionSchema } from "./geojson.schema";
 import { IngestErrorSchema } from "./ingest-error.schema";
@@ -18,7 +19,7 @@ export const MessageSchema = z.object({
   sourceUrl: z.string().optional(),
   sourceDocumentId: z.string().optional(),
   markdownText: z.string().optional(),
-  categories: z.array(z.string()).optional(),
+  categories: z.array(CategoryEnum).optional(),
   relations: z.array(z.string()).optional(),
   isRelevant: z.boolean().optional(),
   timespanStart: z.string().optional(),

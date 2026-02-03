@@ -5,38 +5,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
   "components": {
     "parameters": {},
     "schemas": {
-      "YsmCategory": {
-        "anyOf": [
-          {
-            "enum": [
-              "air-quality",
-              "art",
-              "bicycles",
-              "construction-and-repairs",
-              "culture",
-              "electricity",
-              "health",
-              "heating",
-              "parking",
-              "public-transport",
-              "road-block",
-              "sports",
-              "traffic",
-              "vehicles",
-              "waste",
-              "water",
-              "weather",
-            ],
-            "type": "string",
-          },
-          {
-            "enum": [
-              "uncategorized",
-            ],
-            "type": "string",
-          },
-        ],
-      },
       "YsmErrorResponse": {
         "properties": {
           "error": {
@@ -109,36 +77,26 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
           },
           "categories": {
             "items": {
-              "anyOf": [
-                {
-                  "enum": [
-                    "air-quality",
-                    "art",
-                    "bicycles",
-                    "construction-and-repairs",
-                    "culture",
-                    "electricity",
-                    "health",
-                    "heating",
-                    "parking",
-                    "public-transport",
-                    "road-block",
-                    "sports",
-                    "traffic",
-                    "vehicles",
-                    "waste",
-                    "water",
-                    "weather",
-                  ],
-                  "type": "string",
-                },
-                {
-                  "enum": [
-                    "uncategorized",
-                  ],
-                  "type": "string",
-                },
+              "enum": [
+                "air-quality",
+                "art",
+                "bicycles",
+                "construction-and-repairs",
+                "culture",
+                "electricity",
+                "health",
+                "heating",
+                "parking",
+                "public-transport",
+                "road-block",
+                "sports",
+                "traffic",
+                "vehicles",
+                "waste",
+                "water",
+                "weather",
               ],
+              "type": "string",
             },
             "type": "array",
           },
@@ -552,36 +510,26 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 },
                 "categories": {
                   "items": {
-                    "anyOf": [
-                      {
-                        "enum": [
-                          "air-quality",
-                          "art",
-                          "bicycles",
-                          "construction-and-repairs",
-                          "culture",
-                          "electricity",
-                          "health",
-                          "heating",
-                          "parking",
-                          "public-transport",
-                          "road-block",
-                          "sports",
-                          "traffic",
-                          "vehicles",
-                          "waste",
-                          "water",
-                          "weather",
-                        ],
-                        "type": "string",
-                      },
-                      {
-                        "enum": [
-                          "uncategorized",
-                        ],
-                        "type": "string",
-                      },
+                    "enum": [
+                      "air-quality",
+                      "art",
+                      "bicycles",
+                      "construction-and-repairs",
+                      "culture",
+                      "electricity",
+                      "health",
+                      "heating",
+                      "parking",
+                      "public-transport",
+                      "road-block",
+                      "sports",
+                      "traffic",
+                      "vehicles",
+                      "waste",
+                      "water",
+                      "weather",
                     ],
+                    "type": "string",
                   },
                   "type": "array",
                 },
