@@ -66,6 +66,7 @@ export async function processWordpressPost<
   sourceType: string,
   delayMs: number,
   extractPostDetails: (page: Page) => Promise<TDetails>,
+  customDateParser?: (dateText: string) => string,
 ): Promise<void> {
   const { url, title } = postLink;
 
@@ -85,6 +86,7 @@ export async function processWordpressPost<
       details.dateText,
       details.contentHtml,
       sourceType,
+      customDateParser,
     );
 
     const sourceDoc = {
