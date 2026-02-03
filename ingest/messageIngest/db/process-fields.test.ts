@@ -150,7 +150,7 @@ describe("processFieldsForFirestore", () => {
       const result = processFieldsForFirestore(input);
 
       expect(typeof result.extractedData).toBe("string");
-      expect(JSON.parse(result.extractedData)).toEqual(input.extractedData);
+      expect(JSON.parse(result.extractedData as string)).toEqual(input.extractedData);
     });
 
     it("should stringify geoJson object", () => {
@@ -170,7 +170,7 @@ describe("processFieldsForFirestore", () => {
       const result = processFieldsForFirestore(input);
 
       expect(typeof result.geoJson).toBe("string");
-      expect(JSON.parse(result.geoJson)).toEqual(input.geoJson);
+      expect(JSON.parse(result.geoJson as string)).toEqual(input.geoJson);
     });
 
     it("should stringify categorize object", () => {
@@ -185,7 +185,7 @@ describe("processFieldsForFirestore", () => {
       const result = processFieldsForFirestore(input);
 
       expect(typeof result.categorize).toBe("string");
-      expect(JSON.parse(result.categorize)).toEqual(input.categorize);
+      expect(JSON.parse(result.categorize as string)).toEqual(input.categorize);
     });
 
     it("should stringify nested objects", () => {
@@ -202,7 +202,7 @@ describe("processFieldsForFirestore", () => {
       const result = processFieldsForFirestore(input);
 
       expect(typeof result.metadata).toBe("string");
-      expect(JSON.parse(result.metadata)).toEqual(input.metadata);
+      expect(JSON.parse(result.metadata as string)).toEqual(input.metadata);
     });
 
     it("should not stringify null values", () => {
@@ -313,7 +313,7 @@ describe("processFieldsForFirestore", () => {
       const result = processFieldsForFirestore(input);
 
       expect(typeof result.addresses).toBe("string");
-      expect(JSON.parse(result.addresses)).toEqual(input.addresses);
+      expect(JSON.parse(result.addresses as string)).toEqual(input.addresses);
     });
   });
 });
