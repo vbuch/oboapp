@@ -22,12 +22,6 @@ describe("YSM OpenAPI", () => {
     ).not.toThrow();
 
     expect(() =>
-      ysmSchemas.categoriesResponse.parse({
-        categories: ["road", "water", "uncategorized"],
-      }),
-    ).not.toThrow();
-
-    expect(() =>
       ysmSchemas.messagesResponse.parse({
         messages: [
           {

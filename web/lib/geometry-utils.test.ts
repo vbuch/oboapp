@@ -50,43 +50,43 @@ describe("geometry-utils", () => {
 
     it("should throw error for null coordinate", () => {
       expect(() => toLatLng(null as any)).toThrow(
-        "Invalid coordinate: must be an array with at least 2 elements"
+        "Invalid coordinate: must be an array with at least 2 elements",
       );
     });
 
     it("should throw error for undefined coordinate", () => {
       expect(() => toLatLng(undefined as any)).toThrow(
-        "Invalid coordinate: must be an array with at least 2 elements"
+        "Invalid coordinate: must be an array with at least 2 elements",
       );
     });
 
     it("should throw error for empty array", () => {
       expect(() => toLatLng([])).toThrow(
-        "Invalid coordinate: must be an array with at least 2 elements"
+        "Invalid coordinate: must be an array with at least 2 elements",
       );
     });
 
     it("should throw error for array with only one element", () => {
       expect(() => toLatLng([23.3219])).toThrow(
-        "Invalid coordinate: must be an array with at least 2 elements"
+        "Invalid coordinate: must be an array with at least 2 elements",
       );
     });
 
     it("should throw error for non-number coordinates", () => {
       expect(() => toLatLng(["23.3219", "42.6977"] as any)).toThrow(
-        "Invalid coordinate: longitude and latitude must be numbers"
+        "Invalid coordinate: longitude and latitude must be numbers",
       );
     });
 
     it("should throw error for mixed types", () => {
       expect(() => toLatLng([23.3219, "42.6977"] as any)).toThrow(
-        "Invalid coordinate: longitude and latitude must be numbers"
+        "Invalid coordinate: longitude and latitude must be numbers",
       );
     });
 
     it("should throw error for NaN values", () => {
       expect(() => toLatLng([NaN, 42.6977])).toThrow(
-        "Invalid coordinate: longitude and latitude must be numbers"
+        "Invalid coordinate: longitude and latitude must be numbers",
       );
     });
   });
@@ -97,7 +97,7 @@ describe("geometry-utils", () => {
         const geometry = {
           type: "Point",
           coordinates: [23.3219, 42.6977],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toEqual({
@@ -110,7 +110,7 @@ describe("geometry-utils", () => {
         const geometry = {
           type: "Point",
           coordinates: [23.3219, 42.6977, 550],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toEqual({
@@ -123,7 +123,7 @@ describe("geometry-utils", () => {
         const geometry = {
           type: "Point",
           coordinates: [],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -133,7 +133,7 @@ describe("geometry-utils", () => {
         const geometry = {
           type: "Point",
           coordinates: null,
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -148,7 +148,7 @@ describe("geometry-utils", () => {
             [23.3219, 42.6977], // Sofia center
             [23.3319, 42.7077], // North-east of Sofia
           ],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeDefined();
@@ -165,7 +165,7 @@ describe("geometry-utils", () => {
             [23.3419, 42.7177],
             [23.3519, 42.7277],
           ],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeDefined();
@@ -177,7 +177,7 @@ describe("geometry-utils", () => {
         const geometry = {
           type: "LineString",
           coordinates: [],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -187,7 +187,7 @@ describe("geometry-utils", () => {
         const geometry = {
           type: "LineString",
           coordinates: null,
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -202,7 +202,7 @@ describe("geometry-utils", () => {
         const geometry = {
           type: "LineString",
           coordinates: [[null, null]], // Invalid coordinates that will cause turf to throw
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -225,7 +225,7 @@ describe("geometry-utils", () => {
               [23.3219, 42.6977], // Closed polygon
             ],
           ],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeDefined();
@@ -254,7 +254,7 @@ describe("geometry-utils", () => {
               [23.3269, 42.7027],
             ],
           ],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeDefined();
@@ -266,7 +266,7 @@ describe("geometry-utils", () => {
         const geometry = {
           type: "Polygon",
           coordinates: [],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -276,7 +276,7 @@ describe("geometry-utils", () => {
         const geometry = {
           type: "Polygon",
           coordinates: null,
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -291,7 +291,7 @@ describe("geometry-utils", () => {
             [23.3219, 42.6977],
             [23.3319, 42.7077],
           ],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -310,7 +310,7 @@ describe("geometry-utils", () => {
               [23.3519, 42.7277],
             ],
           ],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -320,7 +320,7 @@ describe("geometry-utils", () => {
         const geometry = {
           type: "UnknownType",
           coordinates: [[23.3219, 42.6977]],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -329,19 +329,19 @@ describe("geometry-utils", () => {
 
     describe("error handling", () => {
       it("should return null for null geometry", () => {
-        const result = getCentroid(null);
+        const result = getCentroid(null as any);
         expect(result).toBeNull();
       });
 
       it("should return null for undefined geometry", () => {
-        const result = getCentroid(undefined);
+        const result = getCentroid(undefined as any);
         expect(result).toBeNull();
       });
 
       it("should return null for geometry without type", () => {
         const geometry = {
           coordinates: [23.3219, 42.6977],
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
@@ -359,13 +359,13 @@ describe("geometry-utils", () => {
             [Infinity, Infinity],
             [NaN, NaN],
           ], // Invalid coordinates that will cause turf to throw
-        };
+        } as any;
 
         const result = getCentroid(geometry);
         expect(result).toBeNull();
         expect(consoleSpy).toHaveBeenCalledWith(
           "Error calculating centroid:",
-          expect.any(Error)
+          expect.any(Error),
         );
 
         consoleSpy.mockRestore();
@@ -377,7 +377,7 @@ describe("geometry-utils", () => {
     it("should not modify unique positions", () => {
       const positions = [
         { lat: 42.6977, lng: 23.3219, id: "1" },
-        { lat: 42.6978, lng: 23.3220, id: "2" },
+        { lat: 42.6978, lng: 23.322, id: "2" },
         { lat: 42.6979, lng: 23.3221, id: "3" },
       ];
 
@@ -423,10 +423,10 @@ describe("geometry-utils", () => {
     it("should handle mix of unique and duplicate positions", () => {
       const positions = [
         { lat: 42.6977, lng: 23.3219, id: "1" }, // Unique
-        { lat: 42.6978, lng: 23.3220, id: "2" }, // Duplicate group 1
-        { lat: 42.6978, lng: 23.3220, id: "3" }, // Duplicate group 1
+        { lat: 42.6978, lng: 23.322, id: "2" }, // Duplicate group 1
+        { lat: 42.6978, lng: 23.322, id: "3" }, // Duplicate group 1
         { lat: 42.6979, lng: 23.3221, id: "4" }, // Unique
-        { lat: 42.6978, lng: 23.3220, id: "5" }, // Duplicate group 1
+        { lat: 42.6978, lng: 23.322, id: "5" }, // Duplicate group 1
       ];
 
       const result = jitterDuplicatePositions(positions);
@@ -442,7 +442,7 @@ describe("geometry-utils", () => {
 
       // Duplicate positions should be different from each other
       const duplicateGroup = result.filter((p) =>
-        ["2", "3", "5"].includes(p.id)
+        ["2", "3", "5"].includes(p.id),
       );
       const duplicateCoords = duplicateGroup.map((p) => `${p.lat},${p.lng}`);
       const uniqueDuplicateCoords = new Set(duplicateCoords);
@@ -453,8 +453,8 @@ describe("geometry-utils", () => {
       const positions = [
         { lat: 42.6977, lng: 23.3219, id: "1" },
         { lat: 42.6977, lng: 23.3219, id: "2" },
-        { lat: 42.6978, lng: 23.3220, id: "3" },
-        { lat: 42.6978, lng: 23.3220, id: "4" },
+        { lat: 42.6978, lng: 23.322, id: "3" },
+        { lat: 42.6978, lng: 23.322, id: "4" },
       ];
 
       const result = jitterDuplicatePositions(positions);
@@ -481,28 +481,28 @@ describe("geometry-utils", () => {
 
     it("should throw error for non-array input", () => {
       expect(() => jitterDuplicatePositions(null as any)).toThrow(
-        "Invalid input: positions must be an array"
+        "Invalid input: positions must be an array",
       );
     });
 
     it("should throw error for invalid position with non-number lat", () => {
       const positions = [{ lat: "42.6977" as any, lng: 23.3219 }];
       expect(() => jitterDuplicatePositions(positions)).toThrow(
-        "Invalid position: lat and lng must be finite numbers"
+        "Invalid position: lat and lng must be finite numbers",
       );
     });
 
     it("should throw error for invalid position with NaN", () => {
       const positions = [{ lat: NaN, lng: 23.3219 }];
       expect(() => jitterDuplicatePositions(positions)).toThrow(
-        "Invalid position: lat and lng must be finite numbers"
+        "Invalid position: lat and lng must be finite numbers",
       );
     });
 
     it("should throw error for invalid position with Infinity", () => {
       const positions = [{ lat: 42.6977, lng: Infinity }];
       expect(() => jitterDuplicatePositions(positions)).toThrow(
-        "Invalid position: lat and lng must be finite numbers"
+        "Invalid position: lat and lng must be finite numbers",
       );
     });
 
@@ -567,49 +567,49 @@ describe("geometry-utils", () => {
 
     it("should throw error for empty message ID", () => {
       expect(() => createFeatureKey("", 0)).toThrow(
-        "Invalid messageId: must be a non-empty string"
+        "Invalid messageId: must be a non-empty string",
       );
     });
 
     it("should throw error for null message ID", () => {
       expect(() => createFeatureKey(null as any, 0)).toThrow(
-        "Invalid messageId: must be a non-empty string"
+        "Invalid messageId: must be a non-empty string",
       );
     });
 
     it("should throw error for undefined message ID", () => {
       expect(() => createFeatureKey(undefined as any, 0)).toThrow(
-        "Invalid messageId: must be a non-empty string"
+        "Invalid messageId: must be a non-empty string",
       );
     });
 
     it("should throw error for non-string message ID", () => {
       expect(() => createFeatureKey(123 as any, 0)).toThrow(
-        "Invalid messageId: must be a non-empty string"
+        "Invalid messageId: must be a non-empty string",
       );
     });
 
     it("should throw error for negative feature index", () => {
       expect(() => createFeatureKey("msg123", -1)).toThrow(
-        "Invalid featureIndex: must be a non-negative integer"
+        "Invalid featureIndex: must be a non-negative integer",
       );
     });
 
     it("should throw error for non-integer feature index", () => {
       expect(() => createFeatureKey("msg123", 1.5)).toThrow(
-        "Invalid featureIndex: must be a non-negative integer"
+        "Invalid featureIndex: must be a non-negative integer",
       );
     });
 
     it("should throw error for NaN feature index", () => {
       expect(() => createFeatureKey("msg123", NaN)).toThrow(
-        "Invalid featureIndex: must be a non-negative integer"
+        "Invalid featureIndex: must be a non-negative integer",
       );
     });
 
     it("should throw error for non-number feature index", () => {
       expect(() => createFeatureKey("msg123", "0" as any)).toThrow(
-        "Invalid featureIndex: must be a non-negative integer"
+        "Invalid featureIndex: must be a non-negative integer",
       );
     });
   });

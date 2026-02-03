@@ -171,10 +171,12 @@ describe("bounds-utils", () => {
 
     it("should return true for Point inside bounds", () => {
       const pointFeature = {
+        type: "Feature" as const,
         geometry: {
-          type: "Point",
-          coordinates: [23.32, 42.68], // [lng, lat] inside viewport
+          type: "Point" as const,
+          coordinates: [23.32, 42.68] as [number, number], // [lng, lat] inside viewport
         },
+        properties: {},
       };
 
       expect(featureIntersectsBounds(pointFeature, viewportBounds)).toBe(true);
@@ -182,10 +184,12 @@ describe("bounds-utils", () => {
 
     it("should return false for Point outside bounds", () => {
       const pointFeature = {
+        type: "Feature" as const,
         geometry: {
-          type: "Point",
-          coordinates: [23.4, 42.8], // [lng, lat] outside viewport
+          type: "Point" as const,
+          coordinates: [23.4, 42.8] as [number, number], // [lng, lat] outside viewport
         },
+        properties: {},
       };
 
       expect(featureIntersectsBounds(pointFeature, viewportBounds)).toBe(false);
@@ -193,14 +197,16 @@ describe("bounds-utils", () => {
 
     it("should return true for LineString intersecting bounds", () => {
       const lineFeature = {
+        type: "Feature" as const,
         geometry: {
-          type: "LineString",
+          type: "LineString" as const,
           coordinates: [
             [23.25, 42.6], // Outside (west)
             [23.32, 42.68], // Inside
             [23.4, 42.75], // Outside (east)
-          ],
+          ] as [number, number][],
         },
+        properties: {},
       };
 
       expect(featureIntersectsBounds(lineFeature, viewportBounds)).toBe(true);
@@ -208,13 +214,15 @@ describe("bounds-utils", () => {
 
     it("should return false for LineString completely outside bounds", () => {
       const lineFeature = {
+        type: "Feature" as const,
         geometry: {
-          type: "LineString",
+          type: "LineString" as const,
           coordinates: [
             [23.4, 42.8],
             [23.45, 42.85],
-          ],
+          ] as [number, number][],
         },
+        properties: {},
       };
 
       expect(featureIntersectsBounds(lineFeature, viewportBounds)).toBe(false);
@@ -222,8 +230,9 @@ describe("bounds-utils", () => {
 
     it("should return true for Polygon intersecting bounds", () => {
       const polygonFeature = {
+        type: "Feature" as const,
         geometry: {
-          type: "Polygon",
+          type: "Polygon" as const,
           coordinates: [
             [
               [23.29, 42.64], // SW corner (overlaps)
@@ -232,19 +241,21 @@ describe("bounds-utils", () => {
               [23.29, 42.71], // NW corner (overlaps)
               [23.29, 42.64], // Close the ring
             ],
-          ],
+          ] as [number, number][][],
         },
+        properties: {},
       };
 
       expect(featureIntersectsBounds(polygonFeature, viewportBounds)).toBe(
-        true
+        true,
       );
     });
 
     it("should return false for Polygon completely outside bounds", () => {
       const polygonFeature = {
+        type: "Feature" as const,
         geometry: {
-          type: "Polygon",
+          type: "Polygon" as const,
           coordinates: [
             [
               [23.5, 42.8],
@@ -253,41 +264,49 @@ describe("bounds-utils", () => {
               [23.5, 42.9],
               [23.5, 42.8],
             ],
-          ],
+          ] as [number, number][][],
         },
+        properties: {},
       };
 
       expect(featureIntersectsBounds(polygonFeature, viewportBounds)).toBe(
-        false
+        false,
       );
     });
 
     it("should return false for feature without coordinates", () => {
       const invalidFeature = {
+        type: "Feature" as const,
         geometry: {
-          type: "Point",
+          type: "Point" as const,
         },
-      };
+        properties: {},
+      } as any;
 
       expect(featureIntersectsBounds(invalidFeature, viewportBounds)).toBe(
-        false
+        false,
       );
     });
 
     it("should return false for feature without geometry", () => {
-      const invalidFeature = {};
+      const invalidFeature = {
+        type: "Feature",
+        properties: {},
+      } as any;
 
       expect(featureIntersectsBounds(invalidFeature, viewportBounds)).toBe(
-        false
+        false,
       );
     });
 
     it("should handle Point at viewport boundary as intersecting", () => {
       const pointFeature = {
+        type: "Feature" as const,
         geometry: {
-          type: "Point",
-          coordinates: [23.3, 42.65], // Exactly on boundary
+          type: "Point" as const,
+          coordinates: [23.3, 42.65] as [number, number], // Exactly on boundary
         },
+        properties: {},
       };
 
       expect(featureIntersectsBounds(pointFeature, viewportBounds)).toBe(true);

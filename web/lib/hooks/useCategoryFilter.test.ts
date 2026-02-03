@@ -22,7 +22,7 @@ const buildFeatureCollection = (count: number) => ({
 
 const buildMessage = (overrides: Partial<Message>): Message => ({
   text: "Test message",
-  createdAt: new Date(),
+  createdAt: new Date().toISOString(),
   ...overrides,
 });
 

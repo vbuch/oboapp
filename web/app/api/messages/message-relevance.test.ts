@@ -83,7 +83,7 @@ describe("isMessageRelevant", () => {
     it("should be relevant if pin timespan ends after cutoff", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2025-12-01"), // Old createdAt
+        createdAt: new Date("2025-12-01").toISOString(), // Old createdAt
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -104,7 +104,7 @@ describe("isMessageRelevant", () => {
     it("should be relevant if street timespan ends after cutoff", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2025-12-01"),
+        createdAt: new Date("2025-12-01").toISOString(),
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [],
@@ -127,7 +127,7 @@ describe("isMessageRelevant", () => {
     it("should be irrelevant if all timespans end before cutoff", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2025-12-01"),
+        createdAt: "2025-12-01",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -148,7 +148,7 @@ describe("isMessageRelevant", () => {
     it("should be relevant if at least one timespan is after cutoff", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2025-12-01"),
+        createdAt: "2025-12-01",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -175,7 +175,7 @@ describe("isMessageRelevant", () => {
     it("should fall back to createdAt when timespans have no end date", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2026-01-15"), // Recent createdAt (used when timespans invalid)
+        createdAt: "2026-01-15", // Recent createdAt (used when timespans invalid)
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -195,7 +195,7 @@ describe("isMessageRelevant", () => {
     it("should fall back to createdAt when timespans have invalid end dates", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2026-01-15"),
+        createdAt: "2026-01-15",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -215,7 +215,7 @@ describe("isMessageRelevant", () => {
     it("should fall back to createdAt when ALL timespans are invalid", () => {
       const recentMessage: Message = {
         text: "Test",
-        createdAt: new Date("2026-01-15"), // Recent, should be used
+        createdAt: "2026-01-15", // Recent, should be used
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -239,7 +239,7 @@ describe("isMessageRelevant", () => {
     it("should NOT fall back to createdAt when at least one timespan is valid", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2026-01-15"), // Recent, but ignored
+        createdAt: "2026-01-15", // Recent, but ignored
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -266,7 +266,7 @@ describe("isMessageRelevant", () => {
     it("should collect timespans from both pins and streets", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2025-12-01"),
+        createdAt: "2025-12-01",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -299,7 +299,7 @@ describe("isMessageRelevant", () => {
     it("should be relevant if createdAt is after cutoff and no timespans", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2026-01-15"),
+        createdAt: "2026-01-15",
       };
 
       expect(isMessageRelevant(message, cutoffDate)).toBe(true);
@@ -308,7 +308,7 @@ describe("isMessageRelevant", () => {
     it("should be irrelevant if createdAt is before cutoff and no timespans", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2026-01-01"),
+        createdAt: "2026-01-01",
       };
 
       expect(isMessageRelevant(message, cutoffDate)).toBe(false);
@@ -317,7 +317,7 @@ describe("isMessageRelevant", () => {
     it("should use createdAt if extractedData exists but has no timespans", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2026-01-15"),
+        createdAt: "2026-01-15",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [],
@@ -331,7 +331,7 @@ describe("isMessageRelevant", () => {
     it("should use createdAt if pins/streets have empty timespans arrays", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2026-01-15"),
+        createdAt: "2026-01-15",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [{ address: "Test St", timespans: [] }],
@@ -347,7 +347,7 @@ describe("isMessageRelevant", () => {
     it("should handle message with no extractedData", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2026-01-15"),
+        createdAt: "2026-01-15",
       };
 
       expect(isMessageRelevant(message, cutoffDate)).toBe(true);
@@ -356,7 +356,7 @@ describe("isMessageRelevant", () => {
     it("should handle extractedData with undefined pins and streets", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2026-01-15"),
+        createdAt: "2026-01-15",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: undefined as any,
@@ -379,7 +379,7 @@ describe("isMessageRelevant", () => {
     it("should be relevant when timespan ends after cutoff (inclusive)", () => {
       const message: Message = {
         text: "Test",
-        createdAt: new Date("2025-12-01"), // Old createdAt
+        createdAt: "2025-12-01", // Old createdAt
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [

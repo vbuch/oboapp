@@ -14,6 +14,7 @@ import {
   NotificationSubscriptionStatusSchema,
 } from "@shared/schema/notification-subscription.schema";
 import { SourceSchema } from "@shared/schema/source.schema";
+import { CategoryEnum } from "@shared/schema/category.schema";
 
 const ErrorResponseSchema = z.object({
   error: z.string(),
@@ -21,8 +22,9 @@ const ErrorResponseSchema = z.object({
 
 export const ysmSchemas = {
   errorResponse: ErrorResponseSchema,
+  // Category enum includes "uncategorized" for frontend filtering
+  category: CategoryEnum.or(z.literal("uncategorized")),
   sourcesResponse: z.object({ sources: z.array(SourceSchema) }),
-  categoriesResponse: z.object({ categories: z.array(z.string()) }),
   messagesResponse: z.object({ messages: z.array(MessageSchema) }),
   notificationHistoryResponse: z.array(NotificationHistoryItemSchema),
   notificationSubscriptionStatusResponse: NotificationSubscriptionStatusSchema,
@@ -32,9 +34,6 @@ export const ysmSchemas = {
 };
 
 export type YsmSourcesResponse = z.infer<typeof ysmSchemas.sourcesResponse>;
-export type YsmCategoriesResponse = z.infer<
-  typeof ysmSchemas.categoriesResponse
->;
 export type YsmMessagesResponse = z.infer<typeof ysmSchemas.messagesResponse>;
 export type YsmNotificationHistoryResponse = z.infer<
   typeof ysmSchemas.notificationHistoryResponse
@@ -80,13 +79,11 @@ export const buildYsmOpenApi = (): OpenAPIObject => {
     "YsmErrorResponse",
     ysmSchemas.errorResponse,
   );
+  // Register category enum for API documentation
+  registry.register("YsmCategory", ysmSchemas.category);
   const sourcesResponse = registry.register(
     "YsmSourcesResponse",
     ysmSchemas.sourcesResponse,
-  );
-  const categoriesResponse = registry.register(
-    "YsmCategoriesResponse",
-    ysmSchemas.categoriesResponse,
   );
   const messagesResponse = registry.register(
     "YsmMessagesResponse",
@@ -119,30 +116,6 @@ export const buildYsmOpenApi = (): OpenAPIObject => {
         content: {
           "application/json": {
             schema: sourcesResponse,
-          },
-        },
-      },
-      500: {
-        description: "Server error",
-        content: {
-          "application/json": {
-            schema: errorResponse,
-          },
-        },
-      },
-    },
-  });
-
-  registry.registerPath({
-    method: "get",
-    path: "/api/ysm/categories",
-    description: "List all available categories (including uncategorized).",
-    responses: {
-      200: {
-        description: "Categories response",
-        content: {
-          "application/json": {
-            schema: categoriesResponse,
           },
         },
       },

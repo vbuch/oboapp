@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Message } from "@/lib/types";
 import { buildMessagesUrl } from "./useMessages.utils";
 import { debounce } from "@/lib/debounce";
 import type { Category } from "@/lib/category-constants";
-import { UNCATEGORIZED } from "@/lib/category-constants";
+import { CATEGORIES, UNCATEGORIZED } from "@/lib/category-constants";
 
 interface ViewportBounds {
   north: number;
@@ -18,25 +18,27 @@ interface ViewportBounds {
  *
  * Handles:
  * - Message fetching with viewport bounds and category filtering
- * - Fetching available categories from /api/categories
  * - Loading and error states
  * - Debounced bounds changes (300ms)
  * - Message submission event listener
  */
 export function useMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [availableCategories, setAvailableCategories] = useState<
-    (Category | typeof UNCATEGORIZED)[]
-  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(
     null,
   );
   const [selectedCategories, setSelectedCategories] = useState<Set<
     Category | typeof UNCATEGORIZED
   > | null>(null);
+
+  // All categories are always available (predefined enum)
+  // Memoize to prevent recreation on every render
+  const availableCategories = useMemo<(Category | typeof UNCATEGORIZED)[]>(
+    () => [...CATEGORIES, UNCATEGORIZED],
+    [],
+  );
 
   const fetchMessages = useCallback(
     async (
@@ -97,26 +99,6 @@ export function useMessages() {
     };
   }, [handleBoundsChanged]);
 
-  // Fetch available categories on mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch("/api/categories");
-        if (!response.ok) {
-          throw new Error("Failed to fetch categories");
-        }
-        const data = await response.json();
-        setAvailableCategories(data.categories || []);
-      } catch (err) {
-        setCategoriesError(
-          "Възникна грешка при зареждане на категориите. Филтърът по категории може да не работи коректно.",
-        );
-        console.error("Error fetching categories:", err);
-      }
-    };
-    fetchCategories();
-  }, []);
-
   // Fetch messages when viewport bounds or selected categories change
   useEffect(() => {
     if (viewportBounds) {
@@ -147,7 +129,6 @@ export function useMessages() {
     availableCategories,
     isLoading,
     error,
-    categoriesError,
     handleBoundsChanged,
     setSelectedCategories,
   };

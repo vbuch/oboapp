@@ -41,12 +41,6 @@ service cloud.firestore {
       allow read, write: if false;  // Only via Admin SDK
     }
     
-    // Aggregations - public read, no direct writes
-    match /aggregations/{aggregationId} {
-      allow read: if true;
-      allow write: if false;  // Only via Admin SDK
-    }
-    
     // Sources - no direct access
     match /sources/{sourceId} {
       allow read, write: if false;  // Only via Admin SDK

@@ -1,26 +1,6 @@
 import { z } from "zod";
 import { normalizeCategoriesInput } from "./category-utils";
-
-// Predefined category enum from categorize.md
-export const CategoryEnum = z.enum([
-  "air-quality",
-  "art",
-  "bicycles",
-  "construction-and-repairs",
-  "culture",
-  "electricity",
-  "health",
-  "heating",
-  "parking",
-  "public-transport",
-  "road-block",
-  "sports",
-  "traffic",
-  "vehicles",
-  "waste",
-  "water",
-  "weather",
-]);
+import { CategoryEnum } from "@shared/schema/category.schema";
 
 // Coordinate format validation: "latitude, longitude"
 const CoordinateString = z

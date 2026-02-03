@@ -5,19 +5,37 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
   "components": {
     "parameters": {},
     "schemas": {
-      "YsmCategoriesResponse": {
-        "properties": {
-          "categories": {
-            "items": {
-              "type": "string",
-            },
-            "type": "array",
+      "YsmCategory": {
+        "anyOf": [
+          {
+            "enum": [
+              "air-quality",
+              "art",
+              "bicycles",
+              "construction-and-repairs",
+              "culture",
+              "electricity",
+              "health",
+              "heating",
+              "parking",
+              "public-transport",
+              "road-block",
+              "sports",
+              "traffic",
+              "vehicles",
+              "waste",
+              "water",
+              "weather",
+            ],
+            "type": "string",
           },
-        },
-        "required": [
-          "categories",
+          {
+            "enum": [
+              "uncategorized",
+            ],
+            "type": "string",
+          },
         ],
-        "type": "object",
       },
       "YsmErrorResponse": {
         "properties": {
@@ -643,33 +661,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
   },
   "openapi": "3.0.0",
   "paths": {
-    "/api/ysm/categories": {
-      "get": {
-        "description": "List all available categories (including uncategorized).",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/YsmCategoriesResponse",
-                },
-              },
-            },
-            "description": "Categories response",
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/YsmErrorResponse",
-                },
-              },
-            },
-            "description": "Server error",
-          },
-        },
-      },
-    },
     "/api/ysm/messages": {
       "get": {
         "description": "Fetch messages, optionally filtered by bounds and categories.",
