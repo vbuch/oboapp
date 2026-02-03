@@ -10,11 +10,11 @@ const program = new Command();
 program
   .name("sources:clean")
   .description(
-    "Delete all unprocessed source documents except for a specified source type"
+    "Delete all unprocessed source documents except for a specified source type",
   )
   .requiredOption(
     "-r, --retain <sourceType>",
-    "Source type to retain (all others will be deleted if unprocessed)"
+    "Source type to retain (all others will be deleted if unprocessed)",
   )
   .option("--dry-run", "Preview deletion without actually deleting")
   .addHelpText(
@@ -26,7 +26,7 @@ Examples:
 
 IMPORTANT: Only deletes sources that have NOT been ingested into messages.
 Sources that have corresponding messages in the messages collection will be preserved.
-`
+`,
   )
   .action(async (options) => {
     // Ensure environment variables are loaded and required keys are present

@@ -61,7 +61,7 @@ The system runs two automated pipelines via Cloud Scheduler:
   - Handles short-lived messages and emergency works
 
 - **Full Pipeline** (`pipeline:all`) - 3 times daily (10:00, 14:00, 16:00 EET)
-  - Crawlers: All sources (rayon-oborishte-bg, sofia-bg, mladost-bg, studentski-bg, sredec-sofia-org, so-slatina-org, nimh-severe-weather, plus emergent crawlers)
+  - Crawlers: All sources (rayon-oborishte-bg, sofia-bg, mladost-bg, studentski-bg, sredec-sofia-org, so-slatina-org, lozenets-sofia-bg, nimh-severe-weather, plus emergent crawlers)
   - Runs ingest and notify after crawling
   - Handles regularly scheduled announcements
 
