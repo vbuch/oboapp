@@ -150,7 +150,9 @@ describe("processFieldsForFirestore", () => {
       const result = processFieldsForFirestore(input);
 
       expect(typeof result.extractedData).toBe("string");
-      expect(JSON.parse(result.extractedData as string)).toEqual(input.extractedData);
+      expect(JSON.parse(result.extractedData as string)).toEqual(
+        input.extractedData,
+      );
     });
 
     it("should stringify geoJson object", () => {

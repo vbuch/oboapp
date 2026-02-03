@@ -27,7 +27,7 @@ const YsmMessageSchema = MessageSchema.extend({
 
 export const ysmSchemas = {
   errorResponse: ErrorResponseSchema,
-  // Category enum includes "uncategorized" for frontend filtering
+  // Category schema extends CategoryEnum with "uncategorized" for frontend filtering
   category: CategoryEnum.or(z.literal(UNCATEGORIZED)),
   message: YsmMessageSchema,
   sourcesResponse: z.object({ sources: z.array(SourceSchema) }),

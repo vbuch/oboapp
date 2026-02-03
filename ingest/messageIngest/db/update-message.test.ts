@@ -75,7 +75,9 @@ describe("processFieldsForFirestore", () => {
     expect(result.categorize).toBe(JSON.stringify(fields.categorize));
 
     // Verify we can parse back
-    expect(JSON.parse(result.extractedData as string)).toEqual(fields.extractedData);
+    expect(JSON.parse(result.extractedData as string)).toEqual(
+      fields.extractedData,
+    );
     expect(JSON.parse(result.geoJson as string)).toEqual(fields.geoJson);
     expect(JSON.parse(result.categorize as string)).toEqual(fields.categorize);
   });
