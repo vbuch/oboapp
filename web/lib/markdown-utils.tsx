@@ -32,13 +32,23 @@ export function stripMarkdown(text: string): string {
   const markup = renderToStaticMarkup(
     <ReactMarkdown components={textOnlyComponents} skipHtml={true}>
       {text}
-    </ReactMarkdown>
+    </ReactMarkdown>,
   );
 
   // The markup will still have some HTML tags, so extract text content
-  // and normalize whitespace
-  return markup
-    .replace(/<[^>]*>/g, "") // Remove any remaining HTML tags
-    .replace(/\s+/g, " ") // Normalize whitespace
-    .trim();
+  // and normalize whitespace, then decode HTML entities
+  return (
+    markup
+      .replace(/<[^>]*>/g, "") // Remove any remaining HTML tags
+      .replace(/\s+/g, " ") // Normalize whitespace
+      .trim()
+      // Decode common HTML entities to plain text
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&#x27;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&euro;/g, "€")
+  );
 }

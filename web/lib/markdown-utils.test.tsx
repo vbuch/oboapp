@@ -51,9 +51,9 @@ describe("stripMarkdown", () => {
     const input =
       'Част от Дианабад\n\n2 януари 2026 г. в 12:50\nбл. 32, 33, 33А,61; ул. "Крум Кюлявков" № 25, бул. "Г. М. Димитров" № 58\n\nОчаквано възстановяване на 4 януари 2026 г. в 12:50';
     const result = stripMarkdown(input);
-    // Whitespace is normalized to single spaces, quotes are HTML-encoded
+    // Whitespace is normalized to single spaces, quotes are decoded to plain text
     expect(result).toBe(
-      "Част от Дианабад 2 януари 2026 г. в 12:50 бл. 32, 33, 33А,61; ул. &quot;Крум Кюлявков&quot; № 25, бул. &quot;Г. М. Димитров&quot; № 58 Очаквано възстановяване на 4 януари 2026 г. в 12:50"
+      'Част от Дианабад 2 януари 2026 г. в 12:50 бл. 32, 33, 33А,61; ул. "Крум Кюлявков" № 25, бул. "Г. М. Димитров" № 58 Очаквано възстановяване на 4 януари 2026 г. в 12:50',
     );
   });
 
@@ -74,5 +74,23 @@ describe("stripMarkdown", () => {
   it("should handle text without markdown", () => {
     const plain = "Just plain text with no formatting";
     expect(stripMarkdown(plain)).toBe(plain);
+  });
+
+  it("should decode HTML entities", () => {
+    expect(stripMarkdown("Text with &quot;quotes&quot;")).toBe(
+      'Text with "quotes"',
+    );
+    expect(stripMarkdown("It&apos;s working")).toBe("It's working");
+  });
+
+  it("should decode special character entities", () => {
+    expect(stripMarkdown("Less &lt; Greater &gt;")).toBe("Less < Greater >");
+    expect(stripMarkdown("Non&nbsp;breaking&nbsp;space")).toBe(
+      "Non breaking space",
+    );
+  });
+
+  it("should decode euro symbol", () => {
+    expect(stripMarkdown("Price: &euro;100")).toBe("Price: €100");
   });
 });
