@@ -5,7 +5,7 @@ import {
   getCategoryBgColor,
   CATEGORY_STYLES,
 } from "@/lib/category-styles";
-import { CATEGORIES, UNCATEGORIZED } from "@/lib/category-constants";
+import { CATEGORIES, UNCATEGORIZED } from "@shared/schema/category.schema";
 
 describe("category-styles", () => {
   describe("CATEGORY_STYLES", () => {

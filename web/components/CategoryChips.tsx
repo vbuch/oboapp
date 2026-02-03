@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CATEGORY_LABELS, Category } from "@/lib/category-constants";
+import { CATEGORY_LABELS, Category } from "@shared/schema/category.schema";
 import CategoryIcon from "@/components/CategoryIcon";
 import { getCategoryColor } from "@/lib/category-styles";
 

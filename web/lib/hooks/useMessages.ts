@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { Message } from "@/lib/types";
 import { buildMessagesUrl } from "./useMessages.utils";
 import { debounce } from "@/lib/debounce";
-import type { Category } from "@/lib/category-constants";
-import { CATEGORIES, UNCATEGORIZED } from "@/lib/category-constants";
+import type { Category } from "@shared/schema/category.schema";
+import { CATEGORIES, UNCATEGORIZED } from "@shared/schema/category.schema";
 
 interface ViewportBounds {
   north: number;
