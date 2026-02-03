@@ -225,11 +225,16 @@ export function parseBulgarianMonthDate(dateStr: string): string {
       return new Date().toISOString();
     }
 
-    // Pad day to 2 digits
-    const paddedDay = day.padStart(2, "0");
-
-    // Create date string and validate
-    const date = new Date(`${year}-${month}-${paddedDay}`);
+    // Create date in local timezone (assumed to be Europe/Sofia)
+    const date = new Date(
+      Number.parseInt(year, 10),
+      Number.parseInt(month, 10) - 1, // 0-indexed months
+      Number.parseInt(day, 10),
+      0, // hour
+      0, // minute
+      0, // second
+      0, // millisecond
+    );
 
     if (Number.isNaN(date.getTime())) {
       console.warn(
