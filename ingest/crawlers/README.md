@@ -88,6 +88,20 @@ npx tsx crawl --source nimh-severe-weather
 npx tsx crawl --help
 ```
 
+### Development: Cleaning Test Data
+
+When developing a new crawler, you may want to clear test data from other sources while keeping your crawler's data:
+
+```bash
+# Delete all unprocessed sources except lozenets-sofia-bg
+npm run sources:clean -- --retain lozenets-sofia-bg
+
+# Preview what would be deleted (dry-run)
+npm run sources:clean -- --retain lozenets-sofia-bg --dry-run
+```
+
+**Important:** Only deletes sources that have NOT been ingested into messages. Sources with corresponding messages are always preserved.
+
 ## Data Pipeline
 
 ```mermaid
