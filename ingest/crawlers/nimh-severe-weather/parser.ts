@@ -184,7 +184,8 @@ function parseSofiaRow(html: string): WarningCell[] {
 }
 
 /**
- * Phrases that indicate no danger (case-insensitive)
+ * Phrases that indicate no danger
+ * (keep lowercased for case-insensitive comparisons)
  */
 const NO_DANGER_PHRASES = [
   "няма опасност",
