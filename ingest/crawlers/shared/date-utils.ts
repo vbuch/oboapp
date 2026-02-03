@@ -243,6 +243,22 @@ export function parseBulgarianMonthDate(dateStr: string): string {
       return new Date().toISOString();
     }
 
+    // Verify the parsed date matches input (catches invalid dates like Feb 31)
+    const parsedDay = Number.parseInt(day, 10);
+    const parsedMonth = Number.parseInt(month, 10) - 1; // 0-indexed
+    const parsedYear = Number.parseInt(year, 10);
+
+    if (
+      date.getDate() !== parsedDay ||
+      date.getMonth() !== parsedMonth ||
+      date.getFullYear() !== parsedYear
+    ) {
+      console.warn(
+        `⚠️ Invalid date (out of range): ${dateStr}, using current date`,
+      );
+      return new Date().toISOString();
+    }
+
     return date.toISOString();
   } catch (error) {
     console.error(`❌ Error parsing Bulgarian month date: ${dateStr}`, error);

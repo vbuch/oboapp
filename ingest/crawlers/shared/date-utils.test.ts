@@ -452,4 +452,73 @@ describe("parseBulgarianMonthDate", () => {
     expect(date.getMonth()).toBe(9); // October
     expect(date.getFullYear()).toBe(2025);
   });
+
+  it("should handle February 29 in leap year", () => {
+    const isoDate = parseBulgarianMonthDate("29 февруари 2024"); // 2024 is a leap year
+
+    const date = new Date(isoDate);
+    expect(date.getDate()).toBe(29);
+    expect(date.getMonth()).toBe(1); // February
+    expect(date.getFullYear()).toBe(2024);
+  });
+
+  it("should return current date for February 29 in non-leap year", () => {
+    const before = new Date();
+    const isoDate = parseBulgarianMonthDate("29 февруари 2025");
+    const after = new Date();
+
+    const parsed = new Date(isoDate);
+    expect(parsed.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(parsed.getTime()).toBeLessThanOrEqual(after.getTime());
+  });
+
+  it("should return current date for February 31", () => {
+    const before = new Date();
+    const isoDate = parseBulgarianMonthDate("31 февруари 2025");
+    const after = new Date();
+
+    const parsed = new Date(isoDate);
+    expect(parsed.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(parsed.getTime()).toBeLessThanOrEqual(after.getTime());
+  });
+
+  it("should return current date for April 31", () => {
+    const before = new Date();
+    const isoDate = parseBulgarianMonthDate("31 април 2025");
+    const after = new Date();
+
+    const parsed = new Date(isoDate);
+    expect(parsed.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(parsed.getTime()).toBeLessThanOrEqual(after.getTime());
+  });
+
+  it("should return current date for June 31", () => {
+    const before = new Date();
+    const isoDate = parseBulgarianMonthDate("31 юни 2025");
+    const after = new Date();
+
+    const parsed = new Date(isoDate);
+    expect(parsed.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(parsed.getTime()).toBeLessThanOrEqual(after.getTime());
+  });
+
+  it("should return current date for September 31", () => {
+    const before = new Date();
+    const isoDate = parseBulgarianMonthDate("31 септември 2025");
+    const after = new Date();
+
+    const parsed = new Date(isoDate);
+    expect(parsed.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(parsed.getTime()).toBeLessThanOrEqual(after.getTime());
+  });
+
+  it("should return current date for November 31", () => {
+    const before = new Date();
+    const isoDate = parseBulgarianMonthDate("31 ноември 2025");
+    const after = new Date();
+
+    const parsed = new Date(isoDate);
+    expect(parsed.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(parsed.getTime()).toBeLessThanOrEqual(after.getTime());
+  });
 });
