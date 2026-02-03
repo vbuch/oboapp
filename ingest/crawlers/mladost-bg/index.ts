@@ -8,33 +8,66 @@ import { PostLink } from "./types";
 import { extractPostLinks, extractPostDetails } from "./extractors";
 import {
   crawlWordpressPage,
-  processWordpressPost,
+  buildWebPageSourceDocument,
 } from "../shared/webpage-crawlers";
+import { parseBulgarianMonthDate } from "../shared/date-utils";
+import { delay } from "@/lib/delay";
+import { saveSourceDocument } from "../shared/firestore";
 
 // Load environment variables from .env.local
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
-const INDEX_URL =
-  "https://mladost.bg/%d0%b2%d1%81%d0%b8%d1%87%d0%ba%d0%b8-%d0%bd%d0%be%d0%b2%d0%b8%d0%bd%d0%b8/%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d1%8f-%d0%be%d1%82%d0%bd%d0%be%d1%81%d0%bd%d0%be-%d0%bf%d0%bb%d0%b0%d0%bd%d0%be%d0%b2%d0%b8%d1%82%d0%b5-%d1%80%d0%b5%d0%bc%d0%be%d0%bd%d1%82/";
+const INDEX_URL = "https://mladost.bg/gradska-i-okolna-sreda/planovi-remonti";
 const SOURCE_TYPE = "mladost-bg";
 const DELAY_BETWEEN_REQUESTS = 2000; // 2 seconds
 
 /**
- * Process a single post
+ * Process a single post with custom Bulgarian month date parser
  */
-const processPost = (
+const processPost = async (
   browser: Browser,
   postLink: PostLink,
   adminDb: Firestore,
-) =>
-  processWordpressPost(
-    browser,
-    postLink,
-    adminDb,
-    SOURCE_TYPE,
-    DELAY_BETWEEN_REQUESTS,
-    extractPostDetails,
-  );
+): Promise<void> => {
+  const { url, title } = postLink;
+
+  console.log(`\n🔍 Processing: ${title.substring(0, 60)}...`);
+
+  const page = await browser.newPage();
+
+  try {
+    console.log(`📥 Fetching: ${url}`);
+    await page.goto(url, { waitUntil: "networkidle" });
+
+    const details = await extractPostDetails(page);
+
+    // Use custom Bulgarian month date parser
+    const postDetails = buildWebPageSourceDocument(
+      url,
+      details.title,
+      details.dateText,
+      details.contentHtml,
+      SOURCE_TYPE,
+      parseBulgarianMonthDate, // Custom date parser for "DD Month YYYY" format
+    );
+
+    const sourceDoc = {
+      ...postDetails,
+      crawledAt: new Date(),
+    };
+
+    await saveSourceDocument(sourceDoc, adminDb);
+
+    console.log(`✅ Successfully processed: ${title.substring(0, 60)}...`);
+  } catch (error) {
+    console.error(`❌ Error processing post: ${url}`, error);
+    throw error;
+  } finally {
+    await page.close();
+  }
+
+  await delay(DELAY_BETWEEN_REQUESTS);
+};
 
 /**
  * Main crawler function
