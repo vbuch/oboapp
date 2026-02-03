@@ -183,4 +183,82 @@ describe("hasActiveWarnings", () => {
 
     expect(hasActiveWarnings(data)).toBe(false);
   });
+
+  it("returns false when recommendation is 'Няма опасност'", () => {
+    const data = {
+      forecastDate: "2026-02-01",
+      issuedAt: "2026-01-31T11:02:45",
+      recommendation: "Няма опасност",
+      sofiaWarnings: [],
+    };
+
+    expect(hasActiveWarnings(data)).toBe(false);
+  });
+
+  it("returns false when recommendation contains 'няма опасност' (case insensitive)", () => {
+    const data = {
+      forecastDate: "2026-02-01",
+      issuedAt: "2026-01-31T11:02:45",
+      recommendation: "За София няма опасност от опасно време.",
+      sofiaWarnings: [],
+    };
+
+    expect(hasActiveWarnings(data)).toBe(false);
+  });
+
+  it("returns false when recommendation is 'без опасност'", () => {
+    const data = {
+      forecastDate: "2026-02-01",
+      issuedAt: "2026-01-31T11:02:45",
+      recommendation: "Без опасност",
+      sofiaWarnings: [],
+    };
+
+    expect(hasActiveWarnings(data)).toBe(false);
+  });
+
+  it("returns false when recommendation contains 'не се очаква опасност'", () => {
+    const data = {
+      forecastDate: "2026-02-01",
+      issuedAt: "2026-01-31T11:02:45",
+      recommendation: "Не се очаква опасност от силни ветрове.",
+      sofiaWarnings: [],
+    };
+
+    expect(hasActiveWarnings(data)).toBe(false);
+  });
+
+  it("returns true when there are warnings even if recommendation says no danger", () => {
+    const data = {
+      forecastDate: "2026-02-01",
+      issuedAt: "2026-01-31T11:02:45",
+      recommendation: "Няма опасност",
+      sofiaWarnings: [
+        {
+          type: "wind" as const,
+          level: "yellow" as const,
+          notes: ["Силен вятър"],
+        },
+      ],
+    };
+
+    expect(hasActiveWarnings(data)).toBe(true);
+  });
+
+  it("returns false when only green warnings exist with no-danger recommendation", () => {
+    const data = {
+      forecastDate: "2026-02-01",
+      issuedAt: "2026-01-31T11:02:45",
+      recommendation: "Няма опасност",
+      sofiaWarnings: [
+        {
+          type: "wind" as const,
+          level: "green" as const,
+          notes: [],
+        },
+      ],
+    };
+
+    expect(hasActiveWarnings(data)).toBe(false);
+  });
 });
