@@ -6,7 +6,7 @@ import {
   Category,
   CATEGORY_DISPLAY_ORDER,
   UNCATEGORIZED,
-} from "@/lib/category-constants";
+} from "@shared/schema/category.schema";
 import { classifyMessage } from "@/lib/message-classification";
 
 const STORAGE_KEY = "categoryFilter";
@@ -249,15 +249,15 @@ export function useCategoryFilter(
   // Count features per category - ONLY for viewport messages that match showArchived filter
   const categoryCounts = useMemo<CategoryCount[]>(() => {
     let messagesToCount = viewportMessages;
-    
+
     // Filter messages based on showArchived toggle
     if (!showArchived) {
       // Only count active (non-archived) messages
-      messagesToCount = viewportMessages.filter((message) => 
-        classifyMessage(message) === "active"
+      messagesToCount = viewportMessages.filter(
+        (message) => classifyMessage(message) === "active",
       );
     }
-    
+
     return computeCategoryCounts(availableCategoriesSet, messagesToCount);
   }, [availableCategoriesSet, viewportMessages, showArchived]);
 

@@ -159,7 +159,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
       };
 
       expect(getLatestTimespanEndDate(message)).toBeNull();
@@ -170,7 +170,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         extractedData: {
           responsible_entity: "",
           pins: [],
@@ -186,7 +186,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -222,7 +222,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [],
@@ -252,7 +252,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -288,7 +288,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -317,7 +317,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -341,7 +341,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -380,7 +380,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date("2024-01-14T10:00:00.000Z"),
+        createdAt: "2024-01-14T10:00:00.000Z",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -403,7 +403,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date("2024-01-14T10:00:00.000Z"),
+        createdAt: "2024-01-14T10:00:00.000Z",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -419,7 +419,7 @@ describe("message-classification", () => {
       };
 
       expect(classifyMessage(message)).toBe(
-        "archived" as MessageClassification
+        "archived" as MessageClassification,
       );
     });
 
@@ -428,7 +428,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date("2024-01-15T08:00:00.000Z"), // Today in UTC (10:00 Bulgarian)
+        createdAt: "2024-01-15T08:00:00.000Z", // Today in UTC (10:00 Bulgarian)
       };
 
       expect(classifyMessage(message)).toBe("active" as MessageClassification);
@@ -439,11 +439,11 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date("2024-01-14T08:00:00.000Z"), // Yesterday
+        createdAt: "2024-01-14T08:00:00.000Z", // Yesterday
       };
 
       expect(classifyMessage(message)).toBe(
-        "archived" as MessageClassification
+        "archived" as MessageClassification,
       );
     });
 
@@ -468,7 +468,7 @@ describe("message-classification", () => {
       };
 
       expect(classifyMessage(message)).toBe(
-        "archived" as MessageClassification
+        "archived" as MessageClassification,
       );
     });
 
@@ -477,7 +477,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date("2024-01-15T08:00:00.000Z"), // Today (would be active)
+        createdAt: "2024-01-15T08:00:00.000Z", // Today (would be active)
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -493,7 +493,7 @@ describe("message-classification", () => {
       };
 
       expect(classifyMessage(message)).toBe(
-        "archived" as MessageClassification
+        "archived" as MessageClassification,
       );
     });
 
@@ -503,7 +503,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date("2024-01-14T10:00:00.000Z"),
+        createdAt: "2024-01-14T10:00:00.000Z",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -526,7 +526,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date("2024-01-14T10:00:00.000Z"),
+        createdAt: "2024-01-14T10:00:00.000Z",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -549,7 +549,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date("2024-01-14T10:00:00.000Z"),
+        createdAt: "2024-01-14T10:00:00.000Z",
         extractedData: {
           responsible_entity: "Test Entity",
           streets: [
@@ -575,7 +575,7 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: new Date("2024-01-14T10:00:00.000Z"),
+        createdAt: "2024-01-14T10:00:00.000Z",
         extractedData: {
           responsible_entity: "Test Entity",
           pins: [
@@ -610,7 +610,7 @@ describe("message-classification", () => {
         id: "test-reported-case",
         text: "ул. Св. Св. Кирил и Методий\nОт: ул. Дунав → До: ул. 11-ти август",
         source: "test",
-        createdAt: new Date("2026-01-14T10:00:00.000Z"),
+        createdAt: "2026-01-14T10:00:00.000Z",
         extractedData: {
           responsible_entity: "Test Entity",
           streets: [

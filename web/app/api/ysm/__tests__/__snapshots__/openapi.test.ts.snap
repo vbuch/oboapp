@@ -5,20 +5,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
   "components": {
     "parameters": {},
     "schemas": {
-      "YsmCategoriesResponse": {
-        "properties": {
-          "categories": {
-            "items": {
-              "type": "string",
-            },
-            "type": "array",
-          },
-        },
-        "required": [
-          "categories",
-        ],
-        "type": "object",
-      },
       "YsmErrorResponse": {
         "properties": {
           "error": {
@@ -27,6 +13,436 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
         },
         "required": [
           "error",
+        ],
+        "type": "object",
+      },
+      "YsmMessage": {
+        "properties": {
+          "addresses": {
+            "items": {
+              "properties": {
+                "coordinates": {
+                  "properties": {
+                    "lat": {
+                      "type": "number",
+                    },
+                    "lng": {
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "lat",
+                    "lng",
+                  ],
+                  "type": "object",
+                },
+                "formattedAddress": {
+                  "type": "string",
+                },
+                "geoJson": {
+                  "properties": {
+                    "coordinates": {
+                      "items": {
+                        "type": "number",
+                      },
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "type": "array",
+                    },
+                    "type": {
+                      "enum": [
+                        "Point",
+                      ],
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "type",
+                    "coordinates",
+                  ],
+                  "type": "object",
+                },
+                "originalText": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "originalText",
+                "formattedAddress",
+                "coordinates",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "categories": {
+            "items": {
+              "enum": [
+                "air-quality",
+                "art",
+                "bicycles",
+                "construction-and-repairs",
+                "culture",
+                "electricity",
+                "health",
+                "heating",
+                "parking",
+                "public-transport",
+                "road-block",
+                "sports",
+                "traffic",
+                "vehicles",
+                "waste",
+                "water",
+                "weather",
+              ],
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "cityWide": {
+            "type": "boolean",
+          },
+          "crawledAt": {
+            "type": "string",
+          },
+          "createdAt": {
+            "type": "string",
+          },
+          "extractedData": {
+            "properties": {
+              "cadastralProperties": {
+                "items": {
+                  "properties": {
+                    "identifier": {
+                      "type": "string",
+                    },
+                    "timespans": {
+                      "items": {
+                        "properties": {
+                          "end": {
+                            "type": "string",
+                          },
+                          "start": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "start",
+                          "end",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "identifier",
+                    "timespans",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "markdown_text": {
+                "type": "string",
+              },
+              "pins": {
+                "items": {
+                  "properties": {
+                    "address": {
+                      "type": "string",
+                    },
+                    "timespans": {
+                      "items": {
+                        "properties": {
+                          "end": {
+                            "type": "string",
+                          },
+                          "start": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "start",
+                          "end",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "address",
+                    "timespans",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "responsible_entity": {
+                "type": "string",
+              },
+              "streets": {
+                "items": {
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                    },
+                    "street": {
+                      "type": "string",
+                    },
+                    "timespans": {
+                      "items": {
+                        "properties": {
+                          "end": {
+                            "type": "string",
+                          },
+                          "start": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "start",
+                          "end",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "to": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "street",
+                    "from",
+                    "to",
+                    "timespans",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+            },
+            "required": [
+              "responsible_entity",
+              "pins",
+              "streets",
+            ],
+            "type": "object",
+          },
+          "finalizedAt": {
+            "type": "string",
+          },
+          "geoJson": {
+            "properties": {
+              "features": {
+                "items": {
+                  "properties": {
+                    "geometry": {
+                      "oneOf": [
+                        {
+                          "properties": {
+                            "coordinates": {
+                              "items": {
+                                "type": "number",
+                              },
+                              "maxItems": 2,
+                              "minItems": 2,
+                              "type": "array",
+                            },
+                            "type": {
+                              "enum": [
+                                "Point",
+                              ],
+                              "type": "string",
+                            },
+                          },
+                          "required": [
+                            "type",
+                            "coordinates",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "properties": {
+                            "coordinates": {
+                              "items": {
+                                "items": {
+                                  "type": "number",
+                                },
+                                "maxItems": 2,
+                                "minItems": 2,
+                                "type": "array",
+                              },
+                              "type": "array",
+                            },
+                            "type": {
+                              "enum": [
+                                "MultiPoint",
+                              ],
+                              "type": "string",
+                            },
+                          },
+                          "required": [
+                            "type",
+                            "coordinates",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "properties": {
+                            "coordinates": {
+                              "items": {
+                                "items": {
+                                  "type": "number",
+                                },
+                                "maxItems": 2,
+                                "minItems": 2,
+                                "type": "array",
+                              },
+                              "type": "array",
+                            },
+                            "type": {
+                              "enum": [
+                                "LineString",
+                              ],
+                              "type": "string",
+                            },
+                          },
+                          "required": [
+                            "type",
+                            "coordinates",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "properties": {
+                            "coordinates": {
+                              "items": {
+                                "items": {
+                                  "items": {
+                                    "type": "number",
+                                  },
+                                  "maxItems": 2,
+                                  "minItems": 2,
+                                  "type": "array",
+                                },
+                                "type": "array",
+                              },
+                              "type": "array",
+                            },
+                            "type": {
+                              "enum": [
+                                "Polygon",
+                              ],
+                              "type": "string",
+                            },
+                          },
+                          "required": [
+                            "type",
+                            "coordinates",
+                          ],
+                          "type": "object",
+                        },
+                      ],
+                    },
+                    "properties": {
+                      "additionalProperties": {
+                        "nullable": true,
+                      },
+                      "type": "object",
+                    },
+                    "type": {
+                      "enum": [
+                        "Feature",
+                      ],
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "type",
+                    "geometry",
+                    "properties",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "type": {
+                "enum": [
+                  "FeatureCollection",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "type",
+              "features",
+            ],
+            "type": "object",
+          },
+          "id": {
+            "type": "string",
+          },
+          "ingestErrors": {
+            "items": {
+              "properties": {
+                "text": {
+                  "type": "string",
+                },
+                "type": {
+                  "enum": [
+                    "warning",
+                    "error",
+                    "exception",
+                  ],
+                  "type": "string",
+                },
+              },
+              "required": [
+                "text",
+                "type",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "isRelevant": {
+            "type": "boolean",
+          },
+          "markdownText": {
+            "type": "string",
+          },
+          "relations": {
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "source": {
+            "type": "string",
+          },
+          "sourceDocumentId": {
+            "type": "string",
+          },
+          "sourceUrl": {
+            "type": "string",
+          },
+          "text": {
+            "type": "string",
+          },
+          "timespanEnd": {
+            "type": "string",
+          },
+          "timespanStart": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "text",
+          "createdAt",
         ],
         "type": "object",
       },
@@ -94,6 +510,25 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 },
                 "categories": {
                   "items": {
+                    "enum": [
+                      "air-quality",
+                      "art",
+                      "bicycles",
+                      "construction-and-repairs",
+                      "culture",
+                      "electricity",
+                      "health",
+                      "heating",
+                      "parking",
+                      "public-transport",
+                      "road-block",
+                      "sports",
+                      "traffic",
+                      "vehicles",
+                      "waste",
+                      "water",
+                      "weather",
+                    ],
                     "type": "string",
                   },
                   "type": "array",
@@ -643,33 +1078,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
   },
   "openapi": "3.0.0",
   "paths": {
-    "/api/ysm/categories": {
-      "get": {
-        "description": "List all available categories (including uncategorized).",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/YsmCategoriesResponse",
-                },
-              },
-            },
-            "description": "Categories response",
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/YsmErrorResponse",
-                },
-              },
-            },
-            "description": "Server error",
-          },
-        },
-      },
-    },
     "/api/ysm/messages": {
       "get": {
         "description": "Fetch messages, optionally filtered by bounds and categories.",

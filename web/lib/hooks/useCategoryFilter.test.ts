@@ -5,7 +5,7 @@ import {
   computeSelectedCategories,
   toggleCategorySelection,
 } from "./useCategoryFilter";
-import { Category, UNCATEGORIZED } from "@/lib/category-constants";
+import { Category, UNCATEGORIZED } from "@shared/schema/category.schema";
 import { Message } from "@/lib/types";
 
 const buildFeatureCollection = (count: number) => ({
@@ -22,7 +22,7 @@ const buildFeatureCollection = (count: number) => ({
 
 const buildMessage = (overrides: Partial<Message>): Message => ({
   text: "Test message",
-  createdAt: new Date(),
+  createdAt: new Date().toISOString(),
   ...overrides,
 });
 

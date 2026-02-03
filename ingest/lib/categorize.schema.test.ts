@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   CategorizationResponseSchema,
-  CategoryEnum,
   type CategorizationResult,
   type Category,
 } from "./categorize.schema";
+import { CategoryEnum } from "@shared/schema/category.schema";
 
 describe("CategorizationResponseSchema", () => {
   describe("valid schemas", () => {

@@ -50,7 +50,6 @@ export default function HomeContent() {
     availableCategories,
     isLoading,
     error,
-    categoriesError,
     handleBoundsChanged,
     setSelectedCategories,
   } = useMessages();
@@ -141,19 +140,12 @@ export default function HomeContent() {
       ref={containerRef}
     >
       {/* Error messages */}
-      {(error || categoriesError) && (
+      {error && (
         <div className="bg-white border-b shadow-sm z-10 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:absolute [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:left-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:right-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            {error && (
-              <div className="p-4 bg-error-light text-error rounded-md mb-2">
-                {error}
-              </div>
-            )}
-            {categoriesError && (
-              <div className="p-4 bg-warning-light text-warning rounded-md">
-                {categoriesError}
-              </div>
-            )}
+            <div className="p-4 bg-error-light text-error rounded-md">
+              {error}
+            </div>
           </div>
         </div>
       )}

@@ -15,7 +15,7 @@ type CenterMapFn = (
   lat: number,
   lng: number,
   zoom?: number,
-  options?: { animate?: boolean }
+  options?: { animate?: boolean },
 ) => void;
 
 // Mock analytics
@@ -29,7 +29,7 @@ const createMockInterest = (overrides: Partial<Interest> = {}): Interest => ({
   userId: "test-user",
   coordinates: { lat: 42.7, lng: 23.3 },
   radius: 500,
-  createdAt: new Date("2024-01-01"),
+  createdAt: "2024-01-01",
   updatedAt: new Date("2024-01-01"),
   ...overrides,
 });
@@ -43,7 +43,7 @@ describe("useInterestManagement", () => {
   let updateInterest: Mock<
     (
       id: string,
-      updates: { coordinates?: { lat: number; lng: number }; radius?: number }
+      updates: { coordinates?: { lat: number; lng: number }; radius?: number },
     ) => Promise<void>
   >;
   let deleteInterest: Mock<(id: string) => Promise<void>>;
@@ -108,8 +108,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       expect(result.current.targetMode).toEqual({ active: false });
@@ -126,8 +126,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();
@@ -152,8 +152,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       act(() => {
@@ -166,7 +166,13 @@ describe("useInterestManagement", () => {
 
     it("should do nothing if centerMapFn is null", () => {
       const { result } = renderHook(() =>
-        useInterestManagement(null, mapInstance, addInterest, updateInterest, deleteInterest)
+        useInterestManagement(
+          null,
+          mapInstance,
+          addInterest,
+          updateInterest,
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();
@@ -191,8 +197,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();
@@ -233,8 +239,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       await act(async () => {
@@ -253,8 +259,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();
@@ -288,8 +294,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();
@@ -317,8 +323,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();
@@ -332,7 +338,7 @@ describe("useInterestManagement", () => {
       });
 
       expect(mockAlert).toHaveBeenCalledWith(
-        "Не успях да изтрия зоната. Опитай пак."
+        "Не успях да изтрия зоната. Опитай пак.",
       );
       expect(mockReload).not.toHaveBeenCalled();
     });
@@ -346,8 +352,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       act(() => {
@@ -370,8 +376,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       act(() => {
@@ -403,8 +409,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();
@@ -447,8 +453,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       act(() => {
@@ -464,7 +470,7 @@ describe("useInterestManagement", () => {
 
       await waitFor(() => {
         expect(mockAlert).toHaveBeenCalledWith(
-          "Не успях да запазя зоната. Опитай пак."
+          "Не успях да запазя зоната. Опитай пак.",
         );
       });
     });
@@ -478,8 +484,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();
@@ -501,7 +507,7 @@ describe("useInterestManagement", () => {
 
       await waitFor(() => {
         expect(mockAlert).toHaveBeenCalledWith(
-          "Не успях да запазя зоната. Опитай пак."
+          "Не успях да запазя зоната. Опитай пак.",
         );
       });
     });
@@ -515,8 +521,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       act(() => {
@@ -541,8 +547,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();
@@ -571,8 +577,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       // Start adding interest
@@ -602,8 +608,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();
@@ -636,8 +642,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       act(() => {
@@ -659,8 +665,8 @@ describe("useInterestManagement", () => {
           mapInstance,
           addInterest,
           updateInterest,
-          deleteInterest
-        )
+          deleteInterest,
+        ),
       );
 
       const mockInterest = createMockInterest();

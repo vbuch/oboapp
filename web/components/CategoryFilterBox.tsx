@@ -12,7 +12,7 @@ import {
   UNCATEGORIZED,
   UNCATEGORIZED_LABEL,
   Category,
-} from "@/lib/category-constants";
+} from "@shared/schema/category.schema";
 
 /**
  * Skeleton placeholder for category filter while loading

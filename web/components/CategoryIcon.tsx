@@ -1,5 +1,5 @@
 import { CATEGORY_STYLES } from "@/lib/category-styles";
-import { Category, UNCATEGORIZED } from "@/lib/category-constants";
+import { Category, UNCATEGORIZED } from "@shared/schema/category.schema";
 
 interface CategoryIconProps {
   readonly category: Category | typeof UNCATEGORIZED;
