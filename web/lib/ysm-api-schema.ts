@@ -14,18 +14,24 @@ import {
   NotificationSubscriptionStatusSchema,
 } from "@shared/schema/notification-subscription.schema";
 import { SourceSchema } from "@shared/schema/source.schema";
-import { CategoryEnum } from "@shared/schema/category.schema";
+import { CategoryEnum, UNCATEGORIZED } from "@shared/schema/category.schema";
 
 const ErrorResponseSchema = z.object({
   error: z.string(),
 });
 
+// YSM-specific message schema that enforces category enum
+const YsmMessageSchema = MessageSchema.extend({
+  categories: z.array(CategoryEnum.or(z.literal(UNCATEGORIZED))).optional(),
+});
+
 export const ysmSchemas = {
   errorResponse: ErrorResponseSchema,
   // Category enum includes "uncategorized" for frontend filtering
-  category: CategoryEnum.or(z.literal("uncategorized")),
+  category: CategoryEnum.or(z.literal(UNCATEGORIZED)),
+  message: YsmMessageSchema,
   sourcesResponse: z.object({ sources: z.array(SourceSchema) }),
-  messagesResponse: z.object({ messages: z.array(MessageSchema) }),
+  messagesResponse: z.object({ messages: z.array(YsmMessageSchema) }),
   notificationHistoryResponse: z.array(NotificationHistoryItemSchema),
   notificationSubscriptionStatusResponse: NotificationSubscriptionStatusSchema,
   notificationSubscriptionResponse: NotificationSubscriptionSchema,
@@ -33,6 +39,7 @@ export const ysmSchemas = {
   notificationSubscriptionDeleteResponse: DeleteSubscriptionResponseSchema,
 };
 
+export type YsmMessage = z.infer<typeof YsmMessageSchema>;
 export type YsmSourcesResponse = z.infer<typeof ysmSchemas.sourcesResponse>;
 export type YsmMessagesResponse = z.infer<typeof ysmSchemas.messagesResponse>;
 export type YsmNotificationHistoryResponse = z.infer<
@@ -81,6 +88,8 @@ export const buildYsmOpenApi = (): OpenAPIObject => {
   );
   // Register category enum for API documentation
   registry.register("YsmCategory", ysmSchemas.category);
+  // Register the YSM-specific message schema with proper category enum
+  registry.register("YsmMessage", ysmSchemas.message);
   const sourcesResponse = registry.register(
     "YsmSourcesResponse",
     ysmSchemas.sourcesResponse,

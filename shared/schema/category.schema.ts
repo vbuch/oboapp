@@ -21,3 +21,12 @@ export const CategoryEnum = z.enum([
 ]);
 
 export type Category = z.infer<typeof CategoryEnum>;
+
+// Re-export shared constants for backward compatibility
+export {
+  CATEGORIES,
+  UNCATEGORIZED,
+  CATEGORY_LABELS,
+  UNCATEGORIZED_LABEL,
+  CATEGORY_DISPLAY_ORDER,
+} from "./category-constants";
