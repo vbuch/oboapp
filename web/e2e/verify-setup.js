@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 /**
  * Helper script to verify E2E test environment setup
@@ -18,7 +19,7 @@ console.log('1. Checking Playwright installation...');
 try {
   const playwrightVersion = execSync('npx playwright --version', { encoding: 'utf-8' }).trim();
   console.log(`   ✅ Playwright installed: ${playwrightVersion}`);
-} catch (error) {
+} catch {
   console.log('   ❌ Playwright not found. Run: npm install');
   allChecksPass = false;
 }
@@ -32,7 +33,7 @@ try {
   } else {
     console.log('   ⚠️  Browsers not found. Run: npx playwright install chromium');
   }
-} catch (error) {
+} catch {
   console.log('   ⚠️  Could not verify browsers');
 }
 
