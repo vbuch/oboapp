@@ -10,6 +10,17 @@ Next.js web application for **OboApp** - a civic engagement platform for residen
 - **Turf.js** for geospatial analysis
 - **Tailwind CSS v4** with centralized theme system
 
+## Development
+
+### Testing
+
+The project includes both unit tests (Vitest) and end-to-end tests (Playwright):
+
+- **Unit Tests**: `npm test` - Run Vitest unit tests
+- **E2E Tests**: `npm run test:e2e` - Run Playwright E2E tests (requires Firebase emulators)
+
+See [e2e/README.md](e2e/README.md) for detailed E2E testing documentation.
+
 ## Hosting
 
 Hosted on Vercel.

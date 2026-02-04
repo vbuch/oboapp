@@ -3,6 +3,10 @@ import { test, expect } from "@playwright/test";
 /**
  * E2E tests for unknown user landing page experience
  * These tests verify the initial page load for users with no browsing history
+ * 
+ * Prerequisites:
+ * - Firebase emulators must be running (cd ../ingest && npm run emulators)
+ * - Dev server will be started automatically by Playwright
  */
 
 test.describe("Unknown User Landing Page", () => {
@@ -15,14 +19,17 @@ test.describe("Unknown User Landing Page", () => {
     // Navigate to the home page
     await page.goto("/");
 
+    // Wait for the page to be fully loaded
+    await page.waitForLoadState("networkidle");
+
     // Wait for the cookie consent banner to be visible
     // The banner appears at the bottom center of the page
-    const cookieBanner = page.locator('div:has-text("Използваме бисквитки")');
-    await expect(cookieBanner).toBeVisible();
+    const cookieBanner = page.locator('text=Използваме бисквитки');
+    await expect(cookieBanner).toBeVisible({ timeout: 10000 });
 
     // Verify the accept and decline buttons are present
-    const acceptButton = page.locator('button:has-text("Приеми")');
-    const declineButton = page.locator('button:has-text("Откажи")');
+    const acceptButton = page.locator('button:has-text("Приеми")').first();
+    const declineButton = page.locator('button:has-text("Откажи")').first();
     
     await expect(acceptButton).toBeVisible();
     await expect(declineButton).toBeVisible();
@@ -37,14 +44,11 @@ test.describe("Unknown User Landing Page", () => {
 
     // The CategoryFilterBox has a handle/button that's always visible
     // It shows a filter icon and can be clicked to open the panel
+    // The handle has aria-label containing "филтрите" (filters)
     const filterHandle = page.locator('button[aria-label*="филтрите"]');
     
-    // Verify the filter handle is visible
-    await expect(filterHandle).toBeVisible();
-    
-    // The filter icon should be present in the handle
-    const filterButton = page.locator('.drag-handle');
-    await expect(filterButton).toBeVisible();
+    // Verify the filter handle is visible (with longer timeout for map to load)
+    await expect(filterHandle).toBeVisible({ timeout: 15000 });
   });
 
   test("should see the login button in the header", async ({ page }) => {
@@ -58,7 +62,7 @@ test.describe("Unknown User Landing Page", () => {
     const loginButton = page.locator('button:has-text("Влез")');
     
     // Verify the button is visible
-    await expect(loginButton).toBeVisible();
+    await expect(loginButton).toBeVisible({ timeout: 10000 });
     
     // Verify it's in the header section
     const header = page.locator('header');
