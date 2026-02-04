@@ -138,6 +138,143 @@ describe("processFieldsForFirestore", () => {
     });
   });
 
+  describe("denormalized fields (native arrays/objects)", () => {
+    it("should keep pins as native array", () => {
+      const input = {
+        pins: [
+          {
+            address: "ул. Граф Игнатиев 15",
+            coordinates: { lat: 42.6977, lng: 23.3219 },
+            timespans: [{ start: "20.01.2026 08:00", end: "20.01.2026 18:00" }],
+          },
+          {
+            address: "бул. Витоша 100",
+            timespans: [],
+          },
+        ],
+      };
+
+      const result = processFieldsForFirestore(input);
+
+      expect(result.pins).toEqual(input.pins);
+      expect(Array.isArray(result.pins)).toBe(true);
+      expect(typeof result.pins).not.toBe("string");
+    });
+
+    it("should keep streets as native array", () => {
+      const input = {
+        streets: [
+          {
+            street: "ул. Граф Игнатиев",
+            from: "пл. Света Неделя",
+            to: "бул. Евлоги Георгиев",
+            coordinates: [
+              { lat: 42.6977, lng: 23.3219 },
+              { lat: 42.6988, lng: 23.3225 },
+            ],
+            timespans: [{ start: "21.01.2026 00:00", end: "21.01.2026 23:59" }],
+          },
+        ],
+      };
+
+      const result = processFieldsForFirestore(input);
+
+      expect(result.streets).toEqual(input.streets);
+      expect(Array.isArray(result.streets)).toBe(true);
+      expect(typeof result.streets).not.toBe("string");
+    });
+
+    it("should keep cadastralProperties as native array", () => {
+      const input = {
+        cadastralProperties: [
+          {
+            identifier: "68134.502.277",
+            timespans: [{ start: "22.01.2026 09:00", end: "22.01.2026 17:00" }],
+          },
+          {
+            identifier: "68134.502.278",
+            timespans: [],
+          },
+        ],
+      };
+
+      const result = processFieldsForFirestore(input);
+
+      expect(result.cadastralProperties).toEqual(input.cadastralProperties);
+      expect(Array.isArray(result.cadastralProperties)).toBe(true);
+      expect(typeof result.cadastralProperties).not.toBe("string");
+    });
+
+    it("should keep busStops as native array of strings", () => {
+      const input = {
+        busStops: ["Площад Македония", "НДК", "Софийски университет"],
+      };
+
+      const result = processFieldsForFirestore(input);
+
+      expect(result.busStops).toEqual(input.busStops);
+      expect(Array.isArray(result.busStops)).toBe(true);
+      expect(typeof result.busStops).not.toBe("string");
+    });
+
+    it("should keep empty denormalized arrays", () => {
+      const input = {
+        pins: [],
+        streets: [],
+        cadastralProperties: [],
+        busStops: [],
+      };
+
+      const result = processFieldsForFirestore(input);
+
+      expect(result.pins).toEqual([]);
+      expect(result.streets).toEqual([]);
+      expect(result.cadastralProperties).toEqual([]);
+      expect(result.busStops).toEqual([]);
+      expect(Array.isArray(result.pins)).toBe(true);
+      expect(Array.isArray(result.streets)).toBe(true);
+      expect(Array.isArray(result.cadastralProperties)).toBe(true);
+      expect(Array.isArray(result.busStops)).toBe(true);
+    });
+
+    it("should keep responsibleEntity as native string", () => {
+      const input = {
+        responsibleEntity: "Софийска вода АД",
+      };
+
+      const result = processFieldsForFirestore(input);
+
+      expect(result.responsibleEntity).toBe("Софийска вода АД");
+      expect(typeof result.responsibleEntity).toBe("string");
+      // Ensure it's not double-stringified
+      expect(result.responsibleEntity).not.toContain('"');
+    });
+
+    it("should handle all denormalized fields together", () => {
+      const input = {
+        responsibleEntity: "Топлофикация София ЕАД",
+        pins: [{ address: "Test", timespans: [] }],
+        streets: [{ street: "Main St", from: "A", to: "B", timespans: [] }],
+        cadastralProperties: [{ identifier: "12345.67.89", timespans: [] }],
+        busStops: ["Stop 1", "Stop 2"],
+      };
+
+      const result = processFieldsForFirestore(input);
+
+      expect(result.responsibleEntity).toBe(input.responsibleEntity);
+      expect(result.pins).toEqual(input.pins);
+      expect(result.streets).toEqual(input.streets);
+      expect(result.cadastralProperties).toEqual(input.cadastralProperties);
+      expect(result.busStops).toEqual(input.busStops);
+      // All should be native types, not stringified
+      expect(typeof result.responsibleEntity).toBe("string");
+      expect(Array.isArray(result.pins)).toBe(true);
+      expect(Array.isArray(result.streets)).toBe(true);
+      expect(Array.isArray(result.cadastralProperties)).toBe(true);
+      expect(Array.isArray(result.busStops)).toBe(true);
+    });
+  });
+
   describe("object stringification", () => {
     it("should stringify extractedData object", () => {
       const input = {
