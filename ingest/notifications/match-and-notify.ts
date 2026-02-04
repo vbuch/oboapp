@@ -95,6 +95,7 @@ async function getUnprocessedMessages(adminDb: Firestore): Promise<Message[]> {
         text: data.text,
         geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
         createdAt: convertTimestamp(data.createdAt),
+        cityWide: data.cityWide,
       });
     }
   });
