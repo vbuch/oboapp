@@ -6,7 +6,7 @@ let adminApp: App;
 let adminDb: Firestore;
 let adminAuth: Auth;
 
-const databaseId = process.env.FIREBASE_DATABASE_ID;
+const databaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
 const useEmulators = process.env.USE_FIREBASE_EMULATORS === "true";
 
 // Initialize Firebase Admin SDK
