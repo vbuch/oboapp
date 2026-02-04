@@ -16,6 +16,7 @@ const DEFAULT_RELEVANCE_DAYS = 7;
 
 /**
  * Convert Firestore document to Message object
+ * Returns only public MessageSchema fields
  */
 function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
   const data = doc.data();
@@ -27,17 +28,15 @@ function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
     id: doc.id,
     text: data.text,
     addresses: data.addresses ? JSON.parse(data.addresses) : [],
-    extractedData: data.extractedData
-      ? JSON.parse(data.extractedData)
-      : undefined,
     geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
-    createdAt: convertTimestamp(data.createdAt),
     crawledAt: data.crawledAt ? convertTimestamp(data.crawledAt) : undefined,
+    createdAt: convertTimestamp(data.createdAt),
     finalizedAt: data.finalizedAt
       ? convertTimestamp(data.finalizedAt)
       : undefined,
     source: data.source,
     sourceUrl: data.sourceUrl,
+    markdownText: data.markdownText,
     categories: Array.isArray(data.categories) ? data.categories : [],
     timespanStart: data.timespanStart
       ? convertTimestamp(data.timespanStart)
@@ -46,6 +45,12 @@ function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
       ? convertTimestamp(data.timespanEnd)
       : undefined,
     cityWide: data.cityWide || false,
+    // Denormalized fields (native Firestore types, no parsing needed)
+    responsibleEntity: data.responsibleEntity,
+    pins: data.pins,
+    streets: data.streets,
+    cadastralProperties: data.cadastralProperties,
+    busStops: data.busStops,
   };
 }
 
@@ -217,9 +222,6 @@ export async function GET(request: Request) {
           id: doc.id,
           text: data.text,
           addresses: data.addresses ? JSON.parse(data.addresses) : [],
-          extractedData: data.extractedData
-            ? JSON.parse(data.extractedData)
-            : undefined,
           geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
           createdAt: convertTimestamp(data.createdAt),
           crawledAt: data.crawledAt
@@ -230,6 +232,7 @@ export async function GET(request: Request) {
             : undefined,
           source: data.source,
           sourceUrl: data.sourceUrl,
+          markdownText: data.markdownText,
           categories: Array.isArray(data.categories) ? data.categories : [],
           timespanStart: data.timespanStart
             ? convertTimestamp(data.timespanStart)
@@ -238,6 +241,13 @@ export async function GET(request: Request) {
             ? convertTimestamp(data.timespanEnd)
             : undefined,
           cityWide: data.cityWide || false,
+          responsibleEntity: data.responsibleEntity,
+          pins: Array.isArray(data.pins) ? data.pins : undefined,
+          streets: Array.isArray(data.streets) ? data.streets : undefined,
+          cadastralProperties: Array.isArray(data.cadastralProperties)
+            ? data.cadastralProperties
+            : undefined,
+          busStops: Array.isArray(data.busStops) ? data.busStops : undefined,
         });
       });
     }

@@ -28,47 +28,44 @@ function parseTimespanDate(dateStr: string): Date | null {
  * Check if a message is still relevant based on its timespans or creation date
  */
 function isMessageRelevant(message: Message, cutoffDate: Date): boolean {
-  // If message has extracted data with timespans, check them
-  if (message.extractedData) {
-    const extractedData = message.extractedData;
-    const allTimespans: Timespan[] = [];
+  // Check denormalized pins and streets for timespans
+  const allTimespans: Timespan[] = [];
 
-    // Collect all timespans from pins
-    if (extractedData.pins) {
-      extractedData.pins.forEach((pin) => {
-        if (pin.timespans && Array.isArray(pin.timespans)) {
-          allTimespans.push(...pin.timespans);
-        }
-      });
-    }
+  // Collect all timespans from pins
+  if (message.pins) {
+    message.pins.forEach((pin) => {
+      if (pin.timespans && Array.isArray(pin.timespans)) {
+        allTimespans.push(...pin.timespans);
+      }
+    });
+  }
 
-    // Collect all timespans from streets
-    if (extractedData.streets) {
-      extractedData.streets.forEach((street) => {
-        if (street.timespans && Array.isArray(street.timespans)) {
-          allTimespans.push(...street.timespans);
-        }
-      });
-    }
+  // Collect all timespans from streets
+  if (message.streets) {
+    message.streets.forEach((street) => {
+      if (street.timespans && Array.isArray(street.timespans)) {
+        allTimespans.push(...street.timespans);
+      }
+    });
+  }
 
-    // If we have timespans, check if any have valid end dates
-    if (allTimespans.length > 0) {
-      const hasAnyValidTimespan = allTimespans.some((timespan) => {
+  // If we have timespans, check if any have valid end dates
+  if (allTimespans.length > 0) {
+    const hasAnyValidTimespan = allTimespans.some((timespan) => {
+      if (!timespan.end) return false;
+      const endDate = parseTimespanDate(timespan.end);
+      return endDate !== null;
+    });
+
+    // If we have at least one valid timespan, use timespan-based logic
+    if (hasAnyValidTimespan) {
+      return allTimespans.some((timespan) => {
         if (!timespan.end) return false;
         const endDate = parseTimespanDate(timespan.end);
-        return endDate !== null;
+        return endDate && endDate >= cutoffDate;
       });
-
-      // If we have at least one valid timespan, use timespan-based logic
-      if (hasAnyValidTimespan) {
-        return allTimespans.some((timespan) => {
-          if (!timespan.end) return false;
-          const endDate = parseTimespanDate(timespan.end);
-          return endDate && endDate >= cutoffDate;
-        });
-      }
-      // All timespans are invalid - fall back to createdAt
     }
+    // All timespans are invalid - fall back to createdAt
   }
 
   // No timespans found or all timespans invalid - use createdAt date
@@ -84,18 +81,13 @@ describe("isMessageRelevant", () => {
       const message: Message = {
         text: "Test",
         createdAt: new Date("2025-12-01").toISOString(), // Old createdAt
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test St",
-              timespans: [
-                { start: "10.01.2026 08:00", end: "20.01.2026 18:00" },
-              ],
-            },
-          ],
-          streets: [],
-        },
+        pins: [
+          {
+            address: "Test St",
+            timespans: [{ start: "10.01.2026 08:00", end: "20.01.2026 18:00" }],
+          },
+        ],
+        streets: [],
       };
 
       expect(isMessageRelevant(message, cutoffDate)).toBe(true);
@@ -105,20 +97,15 @@ describe("isMessageRelevant", () => {
       const message: Message = {
         text: "Test",
         createdAt: new Date("2025-12-01").toISOString(),
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [],
-          streets: [
-            {
-              street: "Main St",
-              from: "A",
-              to: "B",
-              timespans: [
-                { start: "10.01.2026 08:00", end: "15.01.2026 18:00" },
-              ],
-            },
-          ],
-        },
+        pins: [],
+        streets: [
+          {
+            street: "Main St",
+            from: "A",
+            to: "B",
+            timespans: [{ start: "10.01.2026 08:00", end: "15.01.2026 18:00" }],
+          },
+        ],
       };
 
       expect(isMessageRelevant(message, cutoffDate)).toBe(true);
@@ -128,18 +115,13 @@ describe("isMessageRelevant", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2025-12-01",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test St",
-              timespans: [
-                { start: "01.01.2026 08:00", end: "05.01.2026 18:00" },
-              ],
-            },
-          ],
-          streets: [],
-        },
+        pins: [
+          {
+            address: "Test St",
+            timespans: [{ start: "01.01.2026 08:00", end: "05.01.2026 18:00" }],
+          },
+        ],
+        streets: [],
       };
 
       expect(isMessageRelevant(message, cutoffDate)).toBe(false);
@@ -149,24 +131,17 @@ describe("isMessageRelevant", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2025-12-01",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test St 1",
-              timespans: [
-                { start: "01.01.2026 08:00", end: "05.01.2026 18:00" },
-              ], // Old
-            },
-            {
-              address: "Test St 2",
-              timespans: [
-                { start: "15.01.2026 08:00", end: "20.01.2026 18:00" },
-              ], // Recent
-            },
-          ],
-          streets: [],
-        },
+        pins: [
+          {
+            address: "Test St 1",
+            timespans: [{ start: "01.01.2026 08:00", end: "05.01.2026 18:00" }], // Old
+          },
+          {
+            address: "Test St 2",
+            timespans: [{ start: "15.01.2026 08:00", end: "20.01.2026 18:00" }], // Recent
+          },
+        ],
+        streets: [],
       };
 
       expect(isMessageRelevant(message, cutoffDate)).toBe(true);
@@ -176,16 +151,13 @@ describe("isMessageRelevant", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2026-01-15", // Recent createdAt (used when timespans invalid)
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test St",
-              timespans: [{ start: "01.01.2026 08:00", end: "" }],
-            },
-          ],
-          streets: [],
-        },
+        pins: [
+          {
+            address: "Test St",
+            timespans: [{ start: "01.01.2026 08:00", end: "" }],
+          },
+        ],
+        streets: [],
       };
 
       // Timespans exist but have no valid end date, so falls back to createdAt
@@ -196,16 +168,13 @@ describe("isMessageRelevant", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2026-01-15",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test St",
-              timespans: [{ start: "01.01.2026 08:00", end: "invalid date" }],
-            },
-          ],
-          streets: [],
-        },
+        pins: [
+          {
+            address: "Test St",
+            timespans: [{ start: "01.01.2026 08:00", end: "invalid date" }],
+          },
+        ],
+        streets: [],
       };
 
       // Timespans exist but have invalid end date, so falls back to createdAt
@@ -216,20 +185,17 @@ describe("isMessageRelevant", () => {
       const recentMessage: Message = {
         text: "Test",
         createdAt: "2026-01-15", // Recent, should be used
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test St 1",
-              timespans: [{ start: "01.01.2026 08:00", end: "" }], // Empty end
-            },
-            {
-              address: "Test St 2",
-              timespans: [{ start: "01.01.2026 08:00", end: "invalid date" }], // Invalid end
-            },
-          ],
-          streets: [],
-        },
+        pins: [
+          {
+            address: "Test St 1",
+            timespans: [{ start: "01.01.2026 08:00", end: "" }], // Empty end
+          },
+          {
+            address: "Test St 2",
+            timespans: [{ start: "01.01.2026 08:00", end: "invalid date" }], // Invalid end
+          },
+        ],
+        streets: [],
       };
 
       // All timespans are invalid, so falls back to createdAt
@@ -240,22 +206,17 @@ describe("isMessageRelevant", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2026-01-15", // Recent, but ignored
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test St 1",
-              timespans: [{ start: "01.01.2026 08:00", end: "" }], // Invalid
-            },
-            {
-              address: "Test St 2",
-              timespans: [
-                { start: "01.01.2026 08:00", end: "05.01.2026 18:00" },
-              ], // Valid but old
-            },
-          ],
-          streets: [],
-        },
+        pins: [
+          {
+            address: "Test St 1",
+            timespans: [{ start: "01.01.2026 08:00", end: "" }], // Invalid
+          },
+          {
+            address: "Test St 2",
+            timespans: [{ start: "01.01.2026 08:00", end: "05.01.2026 18:00" }], // Valid but old
+          },
+        ],
+        streets: [],
       };
 
       // Has at least one valid timespan, so uses timespan logic (not createdAt)
@@ -267,27 +228,20 @@ describe("isMessageRelevant", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2025-12-01",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Pin St",
-              timespans: [
-                { start: "01.01.2026 08:00", end: "05.01.2026 18:00" },
-              ],
-            },
-          ],
-          streets: [
-            {
-              street: "Street St",
-              from: "A",
-              to: "B",
-              timespans: [
-                { start: "15.01.2026 08:00", end: "20.01.2026 18:00" },
-              ],
-            },
-          ],
-        },
+        pins: [
+          {
+            address: "Pin St",
+            timespans: [{ start: "01.01.2026 08:00", end: "05.01.2026 18:00" }],
+          },
+        ],
+        streets: [
+          {
+            street: "Street St",
+            from: "A",
+            to: "B",
+            timespans: [{ start: "15.01.2026 08:00", end: "20.01.2026 18:00" }],
+          },
+        ],
       };
 
       // Street timespan is after cutoff
@@ -314,15 +268,12 @@ describe("isMessageRelevant", () => {
       expect(isMessageRelevant(message, cutoffDate)).toBe(false);
     });
 
-    it("should use createdAt if extractedData exists but has no timespans", () => {
+    it("should use createdAt if pins and streets are empty", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2026-01-15",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [],
-          streets: [],
-        },
+        pins: [],
+        streets: [],
       };
 
       expect(isMessageRelevant(message, cutoffDate)).toBe(true);
@@ -332,11 +283,8 @@ describe("isMessageRelevant", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2026-01-15",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [{ address: "Test St", timespans: [] }],
-          streets: [],
-        },
+        pins: [{ address: "Test St", timespans: [] }],
+        streets: [],
       };
 
       expect(isMessageRelevant(message, cutoffDate)).toBe(true);
@@ -344,7 +292,7 @@ describe("isMessageRelevant", () => {
   });
 
   describe("edge cases", () => {
-    it("should handle message with no extractedData", () => {
+    it("should handle message with no pins/streets", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2026-01-15",
@@ -353,15 +301,12 @@ describe("isMessageRelevant", () => {
       expect(isMessageRelevant(message, cutoffDate)).toBe(true);
     });
 
-    it("should handle extractedData with undefined pins and streets", () => {
+    it("should handle undefined pins and streets", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2026-01-15",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: undefined as any,
-          streets: undefined as any,
-        },
+        pins: undefined as any,
+        streets: undefined as any,
       };
 
       expect(isMessageRelevant(message, cutoffDate)).toBe(true);
@@ -380,18 +325,13 @@ describe("isMessageRelevant", () => {
       const message: Message = {
         text: "Test",
         createdAt: "2025-12-01", // Old createdAt
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test St",
-              timespans: [
-                { start: "10.01.2026 00:00", end: "12.01.2026 00:00" },
-              ],
-            },
-          ],
-          streets: [],
-        },
+        pins: [
+          {
+            address: "Test St",
+            timespans: [{ start: "10.01.2026 00:00", end: "12.01.2026 00:00" }],
+          },
+        ],
+        streets: [],
       };
 
       // Timespan end (12.01) is after cutoff (11.01), so should be relevant

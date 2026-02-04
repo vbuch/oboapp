@@ -75,6 +75,45 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
             },
             "type": "array",
           },
+          "busStops": {
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "cadastralProperties": {
+            "items": {
+              "properties": {
+                "identifier": {
+                  "type": "string",
+                },
+                "timespans": {
+                  "items": {
+                    "properties": {
+                      "end": {
+                        "type": "string",
+                      },
+                      "start": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "start",
+                      "end",
+                    ],
+                    "type": "object",
+                  },
+                  "type": "array",
+                },
+              },
+              "required": [
+                "identifier",
+                "timespans",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
           "categories": {
             "items": {
               "enum": [
@@ -108,129 +147,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
           },
           "createdAt": {
             "type": "string",
-          },
-          "extractedData": {
-            "properties": {
-              "cadastralProperties": {
-                "items": {
-                  "properties": {
-                    "identifier": {
-                      "type": "string",
-                    },
-                    "timespans": {
-                      "items": {
-                        "properties": {
-                          "end": {
-                            "type": "string",
-                          },
-                          "start": {
-                            "type": "string",
-                          },
-                        },
-                        "required": [
-                          "start",
-                          "end",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "required": [
-                    "identifier",
-                    "timespans",
-                  ],
-                  "type": "object",
-                },
-                "type": "array",
-              },
-              "markdown_text": {
-                "type": "string",
-              },
-              "pins": {
-                "items": {
-                  "properties": {
-                    "address": {
-                      "type": "string",
-                    },
-                    "timespans": {
-                      "items": {
-                        "properties": {
-                          "end": {
-                            "type": "string",
-                          },
-                          "start": {
-                            "type": "string",
-                          },
-                        },
-                        "required": [
-                          "start",
-                          "end",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "required": [
-                    "address",
-                    "timespans",
-                  ],
-                  "type": "object",
-                },
-                "type": "array",
-              },
-              "responsible_entity": {
-                "type": "string",
-              },
-              "streets": {
-                "items": {
-                  "properties": {
-                    "from": {
-                      "type": "string",
-                    },
-                    "street": {
-                      "type": "string",
-                    },
-                    "timespans": {
-                      "items": {
-                        "properties": {
-                          "end": {
-                            "type": "string",
-                          },
-                          "start": {
-                            "type": "string",
-                          },
-                        },
-                        "required": [
-                          "start",
-                          "end",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                    "to": {
-                      "type": "string",
-                    },
-                  },
-                  "required": [
-                    "street",
-                    "from",
-                    "to",
-                    "timespans",
-                  ],
-                  "type": "object",
-                },
-                "type": "array",
-              },
-            },
-            "required": [
-              "responsible_entity",
-              "pins",
-              "streets",
-            ],
-            "type": "object",
           },
           "finalizedAt": {
             "type": "string",
@@ -386,49 +302,91 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
           "id": {
             "type": "string",
           },
-          "ingestErrors": {
+          "markdownText": {
+            "type": "string",
+          },
+          "pins": {
             "items": {
               "properties": {
-                "text": {
+                "address": {
                   "type": "string",
                 },
-                "type": {
-                  "enum": [
-                    "warning",
-                    "error",
-                    "exception",
-                  ],
-                  "type": "string",
+                "timespans": {
+                  "items": {
+                    "properties": {
+                      "end": {
+                        "type": "string",
+                      },
+                      "start": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "start",
+                      "end",
+                    ],
+                    "type": "object",
+                  },
+                  "type": "array",
                 },
               },
               "required": [
-                "text",
-                "type",
+                "address",
+                "timespans",
               ],
               "type": "object",
             },
             "type": "array",
           },
-          "isRelevant": {
-            "type": "boolean",
-          },
-          "markdownText": {
+          "responsibleEntity": {
             "type": "string",
-          },
-          "relations": {
-            "items": {
-              "type": "string",
-            },
-            "type": "array",
           },
           "source": {
             "type": "string",
           },
-          "sourceDocumentId": {
-            "type": "string",
-          },
           "sourceUrl": {
             "type": "string",
+          },
+          "streets": {
+            "items": {
+              "properties": {
+                "from": {
+                  "type": "string",
+                },
+                "street": {
+                  "type": "string",
+                },
+                "timespans": {
+                  "items": {
+                    "properties": {
+                      "end": {
+                        "type": "string",
+                      },
+                      "start": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "start",
+                      "end",
+                    ],
+                    "type": "object",
+                  },
+                  "type": "array",
+                },
+                "to": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "street",
+                "from",
+                "to",
+                "timespans",
+              ],
+              "type": "object",
+            },
+            "type": "array",
           },
           "text": {
             "type": "string",
@@ -508,6 +466,45 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                   },
                   "type": "array",
                 },
+                "busStops": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+                "cadastralProperties": {
+                  "items": {
+                    "properties": {
+                      "identifier": {
+                        "type": "string",
+                      },
+                      "timespans": {
+                        "items": {
+                          "properties": {
+                            "end": {
+                              "type": "string",
+                            },
+                            "start": {
+                              "type": "string",
+                            },
+                          },
+                          "required": [
+                            "start",
+                            "end",
+                          ],
+                          "type": "object",
+                        },
+                        "type": "array",
+                      },
+                    },
+                    "required": [
+                      "identifier",
+                      "timespans",
+                    ],
+                    "type": "object",
+                  },
+                  "type": "array",
+                },
                 "categories": {
                   "items": {
                     "enum": [
@@ -541,129 +538,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 },
                 "createdAt": {
                   "type": "string",
-                },
-                "extractedData": {
-                  "properties": {
-                    "cadastralProperties": {
-                      "items": {
-                        "properties": {
-                          "identifier": {
-                            "type": "string",
-                          },
-                          "timespans": {
-                            "items": {
-                              "properties": {
-                                "end": {
-                                  "type": "string",
-                                },
-                                "start": {
-                                  "type": "string",
-                                },
-                              },
-                              "required": [
-                                "start",
-                                "end",
-                              ],
-                              "type": "object",
-                            },
-                            "type": "array",
-                          },
-                        },
-                        "required": [
-                          "identifier",
-                          "timespans",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                    "markdown_text": {
-                      "type": "string",
-                    },
-                    "pins": {
-                      "items": {
-                        "properties": {
-                          "address": {
-                            "type": "string",
-                          },
-                          "timespans": {
-                            "items": {
-                              "properties": {
-                                "end": {
-                                  "type": "string",
-                                },
-                                "start": {
-                                  "type": "string",
-                                },
-                              },
-                              "required": [
-                                "start",
-                                "end",
-                              ],
-                              "type": "object",
-                            },
-                            "type": "array",
-                          },
-                        },
-                        "required": [
-                          "address",
-                          "timespans",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                    "responsible_entity": {
-                      "type": "string",
-                    },
-                    "streets": {
-                      "items": {
-                        "properties": {
-                          "from": {
-                            "type": "string",
-                          },
-                          "street": {
-                            "type": "string",
-                          },
-                          "timespans": {
-                            "items": {
-                              "properties": {
-                                "end": {
-                                  "type": "string",
-                                },
-                                "start": {
-                                  "type": "string",
-                                },
-                              },
-                              "required": [
-                                "start",
-                                "end",
-                              ],
-                              "type": "object",
-                            },
-                            "type": "array",
-                          },
-                          "to": {
-                            "type": "string",
-                          },
-                        },
-                        "required": [
-                          "street",
-                          "from",
-                          "to",
-                          "timespans",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "required": [
-                    "responsible_entity",
-                    "pins",
-                    "streets",
-                  ],
-                  "type": "object",
                 },
                 "finalizedAt": {
                   "type": "string",
@@ -819,49 +693,91 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 "id": {
                   "type": "string",
                 },
-                "ingestErrors": {
+                "markdownText": {
+                  "type": "string",
+                },
+                "pins": {
                   "items": {
                     "properties": {
-                      "text": {
+                      "address": {
                         "type": "string",
                       },
-                      "type": {
-                        "enum": [
-                          "warning",
-                          "error",
-                          "exception",
-                        ],
-                        "type": "string",
+                      "timespans": {
+                        "items": {
+                          "properties": {
+                            "end": {
+                              "type": "string",
+                            },
+                            "start": {
+                              "type": "string",
+                            },
+                          },
+                          "required": [
+                            "start",
+                            "end",
+                          ],
+                          "type": "object",
+                        },
+                        "type": "array",
                       },
                     },
                     "required": [
-                      "text",
-                      "type",
+                      "address",
+                      "timespans",
                     ],
                     "type": "object",
                   },
                   "type": "array",
                 },
-                "isRelevant": {
-                  "type": "boolean",
-                },
-                "markdownText": {
+                "responsibleEntity": {
                   "type": "string",
-                },
-                "relations": {
-                  "items": {
-                    "type": "string",
-                  },
-                  "type": "array",
                 },
                 "source": {
                   "type": "string",
                 },
-                "sourceDocumentId": {
-                  "type": "string",
-                },
                 "sourceUrl": {
                   "type": "string",
+                },
+                "streets": {
+                  "items": {
+                    "properties": {
+                      "from": {
+                        "type": "string",
+                      },
+                      "street": {
+                        "type": "string",
+                      },
+                      "timespans": {
+                        "items": {
+                          "properties": {
+                            "end": {
+                              "type": "string",
+                            },
+                            "start": {
+                              "type": "string",
+                            },
+                          },
+                          "required": [
+                            "start",
+                            "end",
+                          ],
+                          "type": "object",
+                        },
+                        "type": "array",
+                      },
+                      "to": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "street",
+                      "from",
+                      "to",
+                      "timespans",
+                    ],
+                    "type": "object",
+                  },
+                  "type": "array",
                 },
                 "text": {
                   "type": "string",

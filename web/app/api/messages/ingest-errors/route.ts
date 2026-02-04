@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { Message } from "@/lib/types";
+import { InternalMessage } from "@/lib/types";
 import { convertTimestamp } from "@/lib/firestore-utils";
 import admin from "firebase-admin";
 
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
       query = query.startAfter(cursorTimestamp, cursorId);
     }
 
-    const messages: Message[] = [];
+    const messages: InternalMessage[] = [];
     let lastDoc: FirebaseFirestore.QueryDocumentSnapshot | undefined;
     let batchCount = 0;
     let hasMore = false;
@@ -72,17 +72,11 @@ export async function GET(request: Request) {
             text: data.text,
             markdownText: data.markdownText,
             addresses: data.addresses ? JSON.parse(data.addresses) : [],
-            extractedData: data.extractedData
-              ? JSON.parse(data.extractedData)
-              : undefined,
             geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
-            ingestErrors: Array.isArray(data.ingestErrors)
-              ? data.ingestErrors
-              : undefined,
-            createdAt: convertTimestamp(data.createdAt),
             crawledAt: data.crawledAt
               ? convertTimestamp(data.crawledAt)
               : undefined,
+            createdAt: convertTimestamp(data.createdAt),
             finalizedAt: data.finalizedAt
               ? convertTimestamp(data.finalizedAt)
               : undefined,
@@ -94,6 +88,19 @@ export async function GET(request: Request) {
               : undefined,
             timespanEnd: data.timespanEnd
               ? convertTimestamp(data.timespanEnd)
+              : undefined,
+            cityWide: data.cityWide || false,
+            responsibleEntity: data.responsibleEntity,
+            pins: data.pins,
+            streets: data.streets,
+            cadastralProperties: data.cadastralProperties,
+            busStops: data.busStops,
+            // Internal-only fields
+            extractedData: data.extractedData
+              ? JSON.parse(data.extractedData)
+              : undefined,
+            ingestErrors: Array.isArray(data.ingestErrors)
+              ? data.ingestErrors
               : undefined,
           });
         }

@@ -1,14 +1,15 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase-admin";
-import type { Message } from "@/lib/types";
+import type { InternalMessage } from "@/lib/types";
 
 /**
  * Get a message by ID
+ * Returns InternalMessage with all internal fields
  */
 export async function getMessageById(
   messageId: string,
   db: Firestore = adminDb,
-): Promise<Message | null> {
+): Promise<InternalMessage | null> {
   const messageRef = db.collection("messages").doc(messageId);
   const messageSnapshot = await messageRef.get();
 
@@ -25,21 +26,33 @@ export async function getMessageById(
     id: messageSnapshot.id,
     text: data.text,
     addresses: data.addresses ? JSON.parse(data.addresses) : [],
+    geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
+    crawledAt: data.crawledAt?.toDate?.() || data.crawledAt,
+    createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
+    finalizedAt: data.finalizedAt?.toDate?.() || data.finalizedAt,
+    source: data.source,
+    sourceUrl: data.sourceUrl,
+    markdownText: data.markdownText,
+    categories: Array.isArray(data.categories) ? data.categories : [],
+    timespanStart: data.timespanStart?.toDate?.() || data.timespanStart,
+    timespanEnd: data.timespanEnd?.toDate?.() || data.timespanEnd,
+    cityWide: data.cityWide || false,
+    responsibleEntity: data.responsibleEntity,
+    pins: data.pins,
+    streets: data.streets,
+    cadastralProperties: data.cadastralProperties,
+    busStops: data.busStops,
+    // Internal-only fields
     extractedData: data.extractedData
       ? JSON.parse(data.extractedData)
       : undefined,
-    geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
+    categorize: data.categorize ? JSON.parse(data.categorize) : undefined,
     ingestErrors:
       typeof data.ingestErrors === "string"
         ? JSON.parse(data.ingestErrors)
         : data.ingestErrors,
-    createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
-    crawledAt: data.crawledAt?.toDate?.() || data.crawledAt,
-    finalizedAt: data.finalizedAt?.toDate?.() || data.finalizedAt,
-    source: data.source,
-    sourceUrl: data.sourceUrl,
-    categories: Array.isArray(data.categories) ? data.categories : [],
-    timespanStart: data.timespanStart?.toDate?.() || data.timespanStart,
-    timespanEnd: data.timespanEnd?.toDate?.() || data.timespanEnd,
+    sourceDocumentId: data.sourceDocumentId,
+    isRelevant: data.isRelevant,
+    relations: Array.isArray(data.relations) ? data.relations : undefined,
   };
 }

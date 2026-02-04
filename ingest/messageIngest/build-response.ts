@@ -1,5 +1,5 @@
 import {
-  Message,
+  InternalMessage,
   Address,
   ExtractedData,
   GeoJSONFeatureCollection,
@@ -7,20 +7,22 @@ import {
 
 /**
  * Helper: Build the final message response
+ * Returns InternalMessage for backend operations
  */
 export async function buildMessageResponse(
   messageId: string,
   text: string,
   addresses: Address[],
   extractedData: ExtractedData | null,
-  geoJson: GeoJSONFeatureCollection | null
-): Promise<Message> {
+  geoJson: GeoJSONFeatureCollection | null,
+): Promise<InternalMessage> {
   return {
     id: messageId,
     text,
     addresses,
-    extractedData: extractedData || undefined,
     geoJson: geoJson || undefined,
     createdAt: new Date().toISOString(),
+    // Internal-only field
+    extractedData: extractedData || undefined,
   };
 }

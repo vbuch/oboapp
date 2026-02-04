@@ -2,7 +2,7 @@ import {
   Address,
   ExtractedData,
   GeoJSONFeatureCollection,
-  Message,
+  InternalMessage,
   Coordinates,
 } from "@/lib/types";
 import type { CategorizedMessage } from "@/lib/categorize.schema";
@@ -74,7 +74,7 @@ export interface MessageIngestOptions {
 }
 
 export interface MessageIngestResult {
-  messages: Message[];
+  messages: InternalMessage[];
   totalCategorized: number;
   totalRelevant: number;
   totalIrrelevant: number;
@@ -136,7 +136,7 @@ async function processSingleMessage(
   options: MessageIngestOptions,
   categorizedMessage: CategorizedMessage | undefined,
   ingestErrors: IngestErrorCollector,
-): Promise<Message> {
+): Promise<InternalMessage> {
   let extractedData: ExtractedData | null = null;
   let addresses: Address[] = [];
   let geoJson: GeoJSONFeatureCollection | null = precomputedGeoJson;
@@ -271,7 +271,7 @@ async function processCategorizedMessages(
 
   console.log(`📊 Categorized into ${categorizedMessages.length} message(s)`);
 
-  const messages: Message[] = [];
+  const messages: InternalMessage[] = [];
   let totalRelevant = 0;
   let totalIrrelevant = 0;
 
@@ -377,6 +377,8 @@ async function storeCategorizedMessage(
     categories: categorizedMessage.categories,
     relations: categorizedMessage.relations,
     isRelevant: categorizedMessage.isRelevant,
+    // Denormalize busStops for public API exposure
+    busStops: categorizedMessage.busStops,
   });
 
   return storedMessageId;
@@ -389,7 +391,7 @@ async function handleIrrelevantMessage(
   messageId: string,
   text: string,
   ingestErrors: IngestErrorCollector,
-): Promise<Message> {
+): Promise<InternalMessage> {
   console.log("ℹ️  Message filtered as irrelevant, marking as finalized");
   await updateMessage(messageId, {
     finalizedAt: new Date(),
@@ -471,6 +473,7 @@ function ensureCrawledAtDate(crawledAt: Date | string | undefined): Date {
 
 /**
  * Store extracted data and markdown text in the message
+ * Denormalizes extractedData fields for public API exposure
  */
 async function storeExtractedData(
   messageId: string,
@@ -481,6 +484,10 @@ async function storeExtractedData(
     await import("@/lib/timespan-utils");
 
   const markdownText = extractedData?.markdown_text || "";
+  const responsibleEntity = extractedData?.responsible_entity || "";
+  const pins = extractedData?.pins || [];
+  const streets = extractedData?.streets || [];
+  const cadastralProperties = extractedData?.cadastralProperties || [];
 
   // Extract timespans from extractedData (pins/streets)
   const { timespanStart, timespanEnd } = extractTimespanRangeFromExtractedData(
@@ -493,7 +500,12 @@ async function storeExtractedData(
 
   await updateMessage(messageId, {
     extractedData,
+    // Denormalize fields for public API exposure
     markdownText,
+    responsibleEntity,
+    pins,
+    streets,
+    cadastralProperties,
     timespanStart: validated.timespanStart,
     timespanEnd: validated.timespanEnd,
   });
@@ -568,7 +580,7 @@ async function finalizeFailedMessage(
   messageId: string,
   text: string,
   ingestErrors: IngestErrorCollector,
-): Promise<Message> {
+): Promise<InternalMessage> {
   ingestErrors.error(
     "❌ Failed to extract data from message, marking as finalized",
   );
@@ -609,8 +621,13 @@ async function handlePrecomputedGeoJsonData(
     );
 
     await updateMessage(messageId, {
-      markdownText,
       extractedData,
+      // Denormalize fields for public API exposure
+      markdownText,
+      responsibleEntity: "",
+      pins: [],
+      streets: [],
+      cadastralProperties: [],
       timespanStart: validated.timespanStart,
       timespanEnd: validated.timespanEnd,
     });
@@ -682,7 +699,7 @@ async function buildFinalMessageResponse(
   addresses: Address[],
   extractedData: ExtractedData | null,
   geoJson: GeoJSONFeatureCollection | null,
-): Promise<Message> {
+): Promise<InternalMessage> {
   const { buildMessageResponse } = await import("./build-response");
   return await buildMessageResponse(
     messageId,
