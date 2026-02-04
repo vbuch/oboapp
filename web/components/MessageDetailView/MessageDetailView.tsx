@@ -154,22 +154,19 @@ export default function MessageDetailView({
           <DetailItem title="Текст">
             <MessageText
               text={message.text}
-              markdownText={message.extractedData?.markdown_text}
+              markdownText={message.markdownText}
             />
           </DetailItem>
 
-          {message.extractedData?.responsible_entity && (
+          {message.responsibleEntity && (
             <DetailItem title="Отговорна институция">
               <p className="text-base text-gray-900">
-                {message.extractedData.responsible_entity}
+                {message.responsibleEntity}
               </p>
             </DetailItem>
           )}
 
-          <Locations
-            pins={message.extractedData?.pins}
-            streets={message.extractedData?.streets}
-          />
+          <Locations pins={message.pins} streets={message.streets} />
 
           <Addresses
             addresses={message.addresses}

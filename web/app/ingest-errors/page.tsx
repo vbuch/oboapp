@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import MessageCard, { MessageCardSkeleton } from "@/components/MessageCard";
 import MessageDetailView from "@/components/MessageDetailView/MessageDetailView";
-import type { Message } from "@/lib/types";
+import type { InternalMessage } from "@/lib/types";
 
 const PAGE_SIZE = 12;
 
@@ -15,7 +15,7 @@ type IngestErrorsCursor = {
 };
 
 type IngestErrorsResponse = {
-  messages: Message[];
+  messages: InternalMessage[];
   nextCursor?: IngestErrorsCursor;
 };
 
@@ -72,7 +72,7 @@ export default function IngestErrorsPage() {
   }, [messages, searchParams]);
 
   const handleMessageClick = useCallback(
-    (message: Message) => {
+    (message: InternalMessage) => {
       router.push(`/ingest-errors?messageId=${message.id}`, { scroll: false });
     },
     [router],
@@ -118,8 +118,25 @@ export default function IngestErrorsPage() {
                 key={message.id}
                 message={message}
                 onClick={handleMessageClick}
-                showIngestErrors
-              />
+              >
+                {message.ingestErrors && message.ingestErrors.length > 0 && (
+                  <div className="mt-auto pt-4">
+                    <div className="rounded-md border border-error-border bg-error-light text-error p-3 text-xs space-y-2">
+                      <p className="font-semibold">Проблеми при обработка</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {message.ingestErrors.map((error, index) => (
+                          <li
+                            key={`${error.type}-${index}`}
+                            className="break-words"
+                          >
+                            {error.text}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </MessageCard>
             ))}
 
           {isEmpty && (

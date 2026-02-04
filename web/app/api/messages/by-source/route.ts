@@ -47,9 +47,6 @@ export async function GET(request: Request) {
         text: data.text,
         markdownText: data.markdownText,
         addresses: data.addresses ? JSON.parse(data.addresses) : [],
-        extractedData: data.extractedData
-          ? JSON.parse(data.extractedData)
-          : undefined,
         geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
         createdAt: convertTimestamp(data.createdAt),
         crawledAt: data.crawledAt
@@ -67,6 +64,14 @@ export async function GET(request: Request) {
         timespanEnd: data.timespanEnd
           ? convertTimestamp(data.timespanEnd)
           : undefined,
+        cityWide: data.cityWide || false,
+        responsibleEntity: data.responsibleEntity,
+        pins: Array.isArray(data.pins) ? data.pins : undefined,
+        streets: Array.isArray(data.streets) ? data.streets : undefined,
+        cadastralProperties: Array.isArray(data.cadastralProperties)
+          ? data.cadastralProperties
+          : undefined,
+        busStops: Array.isArray(data.busStops) ? data.busStops : undefined,
       });
     });
 

@@ -18,7 +18,12 @@ import { AddressSchema } from "@shared/schema/address.schema";
 import { ExtractedDataSchema } from "@shared/schema/extracted-data.schema";
 
 // Import shared types
-export type { Message, IngestError, IngestErrorType } from "@shared/schema";
+export type {
+  Message,
+  InternalMessage,
+  IngestError,
+  IngestErrorType,
+} from "@shared/schema";
 
 export type Address = z.infer<typeof AddressSchema>;
 

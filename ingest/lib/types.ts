@@ -1,6 +1,6 @@
 import { CategorizedMessage } from "./categorize.schema";
 import type { Timestamp } from "firebase-admin/firestore";
-import type { Message as SharedMessage, GeoJsonGeometry } from "@shared/schema";
+import type { GeoJsonGeometry } from "@shared/schema";
 
 // Re-export shared types
 export type {
@@ -20,6 +20,8 @@ export type {
   GeoJsonFeatureCollection,
   IngestError,
   IngestErrorType,
+  Message,
+  InternalMessage,
 } from "@shared/schema";
 
 // Re-export with GeoJSON prefix for backward compatibility
@@ -32,11 +34,6 @@ export type {
   GeoJsonFeature as GeoJSONFeature,
   GeoJsonFeatureCollection as GeoJSONFeatureCollection,
 } from "@shared/schema";
-
-// Extend shared Message with ingest-specific categorize field
-export interface Message extends SharedMessage {
-  categorize?: CategorizedMessage;
-}
 
 // Intersection coordinates
 export interface IntersectionCoordinates {
