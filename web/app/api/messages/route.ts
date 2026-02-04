@@ -8,21 +8,13 @@ import {
   featureIntersectsBounds,
   type ViewportBounds,
 } from "@/lib/bounds-utils";
+import { getCentroid } from "@/lib/geometry-utils";
 import admin from "firebase-admin";
 
 const { or, where } = admin.firestore.Filter;
 
 const DEFAULT_RELEVANCE_DAYS = 7;
 const CLUSTER_ZOOM_THRESHOLD = 15;
-
-/**
- * Calculate centroid of a coordinate array
- */
-function calculateCentroid(coords: [number, number][]): [number, number] {
-  const avgLng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
-  const avgLat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
-  return [avgLng, avgLat];
-}
 
 /**
  * Convert Firestore document to Message object
@@ -258,22 +250,18 @@ export async function GET(request: Request) {
 
         const simplifiedFeatures = message.geoJson.features.map((feature) => {
           // Only simplify LineString and Polygon to Points
-          if (feature.geometry.type === "LineString") {
-            const centroid = calculateCentroid(feature.geometry.coordinates);
+          if (
+            feature.geometry.type === "LineString" ||
+            feature.geometry.type === "Polygon"
+          ) {
+            const centroid = getCentroid(feature.geometry);
+            if (!centroid) return feature;
             return {
               ...feature,
-              geometry: { type: "Point" as const, coordinates: centroid },
-              properties: {
-                ...feature.properties,
-                _originalGeometryType: feature.geometry.type,
+              geometry: {
+                type: "Point" as const,
+                coordinates: [centroid.lng, centroid.lat] as [number, number],
               },
-            } as typeof feature;
-          }
-          if (feature.geometry.type === "Polygon") {
-            const centroid = calculateCentroid(feature.geometry.coordinates[0]);
-            return {
-              ...feature,
-              geometry: { type: "Point" as const, coordinates: centroid },
               properties: {
                 ...feature.properties,
                 _originalGeometryType: feature.geometry.type,
