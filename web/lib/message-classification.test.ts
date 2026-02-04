@@ -3,7 +3,6 @@ import {
   parseTimespanDate,
   getTodayBulgarianTime,
   isToday,
-  getLatestTimespanEndDate,
   classifyMessage,
   type MessageClassification,
 } from "./message-classification";
@@ -153,217 +152,6 @@ describe("message-classification", () => {
     });
   });
 
-  describe("getLatestTimespanEndDate", () => {
-    it("should return null for message without extractedData", () => {
-      const message: Message = {
-        id: "test-1",
-        text: "Test message",
-        source: "test",
-        createdAt: new Date().toISOString(),
-      };
-
-      expect(getLatestTimespanEndDate(message)).toBeNull();
-    });
-
-    it("should return null for message with empty extractedData", () => {
-      const message: Message = {
-        id: "test-1",
-        text: "Test message",
-        source: "test",
-        createdAt: new Date().toISOString(),
-        extractedData: {
-          responsible_entity: "",
-          pins: [],
-          streets: [],
-        },
-      };
-
-      expect(getLatestTimespanEndDate(message)).toBeNull();
-    });
-
-    it("should extract latest date from pins timespans", () => {
-      const message: Message = {
-        id: "test-1",
-        text: "Test message",
-        source: "test",
-        createdAt: new Date().toISOString(),
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address 1",
-              timespans: [
-                { start: "15.01.2024 08:00", end: "15.01.2024 10:00" },
-                { start: "16.01.2024 12:00", end: "16.01.2024 14:00" }, // Latest
-              ],
-            },
-            {
-              address: "Test Address 2",
-              timespans: [
-                { start: "14.01.2024 06:00", end: "14.01.2024 08:00" },
-              ],
-            },
-          ],
-          streets: [],
-        },
-      };
-
-      const result = getLatestTimespanEndDate(message);
-
-      expect(result).toBeInstanceOf(Date);
-      expect(result?.getDate()).toBe(16);
-      expect(result?.getMonth()).toBe(0); // January
-      expect(result?.getFullYear()).toBe(2024);
-      expect(result?.getHours()).toBe(14);
-    });
-
-    it("should extract latest date from streets timespans", () => {
-      const message: Message = {
-        id: "test-1",
-        text: "Test message",
-        source: "test",
-        createdAt: new Date().toISOString(),
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [],
-          streets: [
-            {
-              street: "Test Street 1",
-              from: "Start Point",
-              to: "End Point",
-              timespans: [
-                { start: "17.01.2024 14:00", end: "17.01.2024 16:00" }, // Latest
-                { start: "15.01.2024 08:00", end: "15.01.2024 10:00" },
-              ],
-            },
-          ],
-        },
-      };
-
-      const result = getLatestTimespanEndDate(message);
-
-      expect(result).toBeInstanceOf(Date);
-      expect(result?.getDate()).toBe(17);
-      expect(result?.getHours()).toBe(16);
-    });
-
-    it("should extract latest date from both pins and streets", () => {
-      const message: Message = {
-        id: "test-1",
-        text: "Test message",
-        source: "test",
-        createdAt: new Date().toISOString(),
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address",
-              timespans: [
-                { start: "15.01.2024 08:00", end: "15.01.2024 10:00" },
-              ],
-            },
-          ],
-          streets: [
-            {
-              street: "Test Street",
-              from: "Start Point",
-              to: "End Point",
-              timespans: [
-                { start: "18.01.2024 18:00", end: "18.01.2024 20:00" }, // Latest overall
-              ],
-            },
-          ],
-        },
-      };
-
-      const result = getLatestTimespanEndDate(message);
-
-      expect(result).toBeInstanceOf(Date);
-      expect(result?.getDate()).toBe(18);
-      expect(result?.getHours()).toBe(20);
-    });
-
-    it("should ignore invalid timespan dates", () => {
-      const message: Message = {
-        id: "test-1",
-        text: "Test message",
-        source: "test",
-        createdAt: new Date().toISOString(),
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address",
-              timespans: [
-                { start: "14.01.2024 08:00", end: "invalid-date" },
-                { start: "31.01.2024 08:00", end: "32.01.2024 10:00" }, // Invalid day
-                { start: "15.01.2024 08:00", end: "15.01.2024 10:00" }, // Valid - should be returned
-                { start: "14.01.2024 08:00", end: "" },
-              ],
-            },
-          ],
-          streets: [],
-        },
-      };
-
-      const result = getLatestTimespanEndDate(message);
-
-      expect(result).toBeInstanceOf(Date);
-      expect(result?.getDate()).toBe(15);
-    });
-
-    it("should return null when all timespan dates are invalid", () => {
-      const message: Message = {
-        id: "test-1",
-        text: "Test message",
-        source: "test",
-        createdAt: new Date().toISOString(),
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address",
-              timespans: [
-                { start: "invalid-start", end: "invalid-date" },
-                { start: "", end: "" },
-              ],
-            },
-          ],
-          streets: [],
-        },
-      };
-
-      expect(getLatestTimespanEndDate(message)).toBeNull();
-    });
-
-    it("should handle timespans without end property", () => {
-      const message: Message = {
-        id: "test-1",
-        text: "Test message",
-        source: "test",
-        createdAt: new Date().toISOString(),
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address",
-              timespans: [
-                {} as any, // No end property
-                { start: "15.01.2024 08:00", end: "15.01.2024 10:00" }, // Valid
-              ],
-            },
-          ],
-          streets: [],
-        },
-      };
-
-      const result = getLatestTimespanEndDate(message);
-
-      expect(result).toBeInstanceOf(Date);
-      expect(result?.getDate()).toBe(15);
-    });
-  });
-
   describe("classifyMessage", () => {
     beforeEach(() => {
       vi.useFakeTimers();
@@ -381,18 +169,7 @@ describe("message-classification", () => {
         text: "Test message",
         source: "test",
         createdAt: "2024-01-14T10:00:00.000Z",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address",
-              timespans: [
-                { start: "15.01.2024 12:00", end: "15.01.2024 14:00" }, // Today
-              ],
-            },
-          ],
-          streets: [],
-        },
+        timespanEnd: "2024-01-15T14:00:00.000Z",
       };
 
       expect(classifyMessage(message)).toBe("active" as MessageClassification);
@@ -404,18 +181,7 @@ describe("message-classification", () => {
         text: "Test message",
         source: "test",
         createdAt: "2024-01-14T10:00:00.000Z",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address",
-              timespans: [
-                { start: "14.01.2024 12:00", end: "14.01.2024 14:00" }, // Yesterday
-              ],
-            },
-          ],
-          streets: [],
-        },
+        timespanEnd: "2024-01-14T14:00:00.000Z",
       };
 
       expect(classifyMessage(message)).toBe(
@@ -478,18 +244,7 @@ describe("message-classification", () => {
         text: "Test message",
         source: "test",
         createdAt: "2024-01-15T08:00:00.000Z", // Today (would be active)
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address",
-              timespans: [
-                { start: "14.01.2024 12:00", end: "14.01.2024 14:00" }, // Yesterday (should be archived)
-              ],
-            },
-          ],
-          streets: [],
-        },
+        timespanEnd: "2024-01-14T14:00:00.000Z",
       };
 
       expect(classifyMessage(message)).toBe(
@@ -504,18 +259,7 @@ describe("message-classification", () => {
         text: "Test message",
         source: "test",
         createdAt: "2024-01-14T10:00:00.000Z",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address",
-              timespans: [
-                { start: "14.01.2024 23:00", end: "15.01.2024 01:00" }, // Today but early morning Bulgarian time
-              ],
-            },
-          ],
-          streets: [],
-        },
+        timespanEnd: "2024-01-15T01:00:00.000Z",
       };
 
       expect(classifyMessage(message)).toBe("active" as MessageClassification);
@@ -527,18 +271,7 @@ describe("message-classification", () => {
         text: "Test message",
         source: "test",
         createdAt: "2024-01-14T10:00:00.000Z",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address",
-              timespans: [
-                { start: "16.01.2024 12:00", end: "16.01.2024 14:00" }, // Tomorrow
-              ],
-            },
-          ],
-          streets: [],
-        },
+        timespanEnd: "2024-01-16T14:00:00.000Z",
       };
 
       expect(classifyMessage(message)).toBe("active" as MessageClassification);
@@ -550,21 +283,7 @@ describe("message-classification", () => {
         text: "Test message",
         source: "test",
         createdAt: "2024-01-14T10:00:00.000Z",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          streets: [
-            {
-              street: "ул. Тест",
-              from: "начало",
-              to: "край",
-              timespans: [
-                { start: "21.01.2024 09:00", end: "21.01.2024 16:00" }, // Future
-                { start: "22.01.2024 09:00", end: "22.01.2024 16:00" }, // Future - latest
-              ],
-            },
-          ],
-          pins: [],
-        },
+        timespanEnd: "2024-01-22T16:00:00.000Z",
       };
 
       expect(classifyMessage(message)).toBe("active" as MessageClassification);
@@ -576,27 +295,7 @@ describe("message-classification", () => {
         text: "Test message",
         source: "test",
         createdAt: "2024-01-14T10:00:00.000Z",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          pins: [
-            {
-              address: "Test Address 1",
-              timespans: [
-                { start: "14.01.2024 12:00", end: "14.01.2024 14:00" }, // Yesterday
-              ],
-            },
-          ],
-          streets: [
-            {
-              street: "ул. Тест",
-              from: "начало",
-              to: "край",
-              timespans: [
-                { start: "16.01.2024 09:00", end: "16.01.2024 16:00" }, // Tomorrow - latest
-              ],
-            },
-          ],
-        },
+        timespanEnd: "2024-01-16T16:00:00.000Z",
       };
 
       expect(classifyMessage(message)).toBe("active" as MessageClassification);
@@ -611,21 +310,7 @@ describe("message-classification", () => {
         text: "ул. Св. Св. Кирил и Методий\nОт: ул. Дунав → До: ул. 11-ти август",
         source: "test",
         createdAt: "2026-01-14T10:00:00.000Z",
-        extractedData: {
-          responsible_entity: "Test Entity",
-          streets: [
-            {
-              street: "ул. Св. Св. Кирил и Методий",
-              from: "ул. Дунав",
-              to: "ул. 11-ти август",
-              timespans: [
-                { start: "21.01.2026 09:00", end: "21.01.2026 16:00" },
-                { start: "22.01.2026 09:00", end: "22.01.2026 16:00" }, // Latest
-              ],
-            },
-          ],
-          pins: [],
-        },
+        timespanEnd: "2026-01-22T16:00:00.000Z",
       };
 
       expect(classifyMessage(message)).toBe("active" as MessageClassification);

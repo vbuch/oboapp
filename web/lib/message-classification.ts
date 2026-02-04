@@ -47,7 +47,7 @@ export function parseTimespanDate(dateStr: string): Date | null {
     monthNum - 1, // JS months are 0-indexed
     dayNum,
     hoursNum,
-    minutesNum
+    minutesNum,
   );
 }
 
@@ -82,78 +82,29 @@ export function isToday(date: Date, referenceDate: Date): boolean {
 }
 
 /**
- * Extract the latest (most recent) timespan end date from a message
- * Returns null if no valid timespans found
- */
-export function getLatestTimespanEndDate(message: Message): Date | null {
-  if (!message.extractedData) {
-    return null;
-  }
-
-  const allTimespans: Array<{ end: string }> = [];
-
-  // Collect timespans from pins
-  if (message.extractedData.pins && Array.isArray(message.extractedData.pins)) {
-    for (const pin of message.extractedData.pins) {
-      if (pin.timespans && Array.isArray(pin.timespans)) {
-        allTimespans.push(...pin.timespans);
-      }
-    }
-  }
-
-  // Collect timespans from streets
-  if (
-    message.extractedData.streets &&
-    Array.isArray(message.extractedData.streets)
-  ) {
-    for (const street of message.extractedData.streets) {
-      if (street.timespans && Array.isArray(street.timespans)) {
-        allTimespans.push(...street.timespans);
-      }
-    }
-  }
-
-  // Parse all end dates and find the latest
-  let latestDate: Date | null = null;
-
-  for (const timespan of allTimespans) {
-    if (!timespan.end) {
-      continue;
-    }
-
-    const endDate = parseTimespanDate(timespan.end);
-    if (!endDate) {
-      continue;
-    }
-
-    if (!latestDate || endDate > latestDate) {
-      latestDate = endDate;
-    }
-  }
-
-  return latestDate;
-}
-
-/**
  * Classify a message as "active" (today or future) or "archived" (past)
  * Uses Bulgarian timezone for date determination
  *
  * Classification logic:
- * 1. Try to get latest timespan end date from extractedData
+ * 1. Try to use denormalized timespanEnd field at message root
  * 2. If found, check if it's today or in the future in Bulgarian time → "active", else "archived"
  * 3. Fallback: use createdAt, check if today → "active", else "archived"
  */
 export function classifyMessage(message: Message): MessageClassification {
   const today = getTodayBulgarianTime();
 
-  // Try timespan end dates first
-  const latestTimespanEnd = getLatestTimespanEndDate(message);
-  if (latestTimespanEnd) {
+  // Try denormalized timespanEnd first
+  if (message.timespanEnd) {
+    const timespanEnd =
+      typeof message.timespanEnd === "string"
+        ? new Date(message.timespanEnd)
+        : message.timespanEnd;
+
     // Convert to Bulgarian time for comparison
     const bulgarianTimespanEnd = new Date(
-      latestTimespanEnd.toLocaleString("en-US", {
+      timespanEnd.toLocaleString("en-US", {
         timeZone: "Europe/Sofia",
-      })
+      }),
     );
 
     // Check if the timespan ends today or in the future
@@ -173,7 +124,7 @@ export function classifyMessage(message: Message): MessageClassification {
     const bulgarianCreatedAt = new Date(
       createdDate.toLocaleString("en-US", {
         timeZone: "Europe/Sofia",
-      })
+      }),
     );
 
     return isToday(bulgarianCreatedAt, today) ? "active" : "archived";
