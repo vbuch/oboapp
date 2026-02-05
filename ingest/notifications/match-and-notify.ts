@@ -2,446 +2,29 @@
 
 import dotenv from "dotenv";
 import { resolve } from "node:path";
-import { readFileSync } from "node:fs";
 import type { Firestore } from "firebase-admin/firestore";
 import type { Messaging } from "firebase-admin/messaging";
-import * as turf from "@turf/turf";
+import { Message, NotificationMatch } from "@/lib/types";
 import {
-  Message,
-  Interest,
-  NotificationMatch,
-  NotificationSubscription,
-  DeviceNotification,
-} from "@/lib/types";
-import type { GeoJSONFeatureCollection } from "@/lib/types";
+  getUnprocessedMessages,
+  markMessagesAsNotified,
+} from "./message-fetcher";
+import { getAllInterests } from "./interest-fetcher";
+import {
+  matchMessagesWithInterests,
+  deduplicateMatches,
+  storeNotificationMatches,
+  getUnnotifiedMatches,
+} from "./match-processor";
+import {
+  sendToUserDevices,
+  updateMatchWithResults,
+  markMatchesAsNotified,
+} from "./notification-sender";
+import { convertTimestamp } from "./utils";
 
 // Load environment variables
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
-
-// App URL (required)
-if (!process.env.NEXT_PUBLIC_APP_URL) {
-  throw new Error(
-    "Environment variable NEXT_PUBLIC_APP_URL must be set (e.g. https://oboapp.online)",
-  );
-}
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
-
-// Cache Sofia GeoJSON
-let sofiaGeoJson: GeoJSONFeatureCollection | null = null;
-
-interface MatchResult {
-  messageId: string;
-  userId: string;
-  interestId: string;
-  distance: number;
-}
-
-/**
- * Load Sofia administrative boundary GeoJSON (cached)
- */
-function loadSofiaGeoJson(): GeoJSONFeatureCollection {
-  if (!sofiaGeoJson) {
-    const sofiaPath = resolve(process.cwd(), "sofia.geojson");
-    const content = readFileSync(sofiaPath, "utf-8");
-    sofiaGeoJson = JSON.parse(content) as GeoJSONFeatureCollection;
-  }
-  return sofiaGeoJson;
-}
-
-/**
- * Convert Firestore timestamp to ISO string
- */
-function convertTimestamp(timestamp: unknown): string {
-  if (timestamp && typeof timestamp === "object") {
-    const t = timestamp as { _seconds?: unknown; toDate?: unknown };
-
-    // Check for Firestore internal format (_seconds)
-    if ("_seconds" in t && typeof t._seconds === "number") {
-      return new Date(t._seconds * 1000).toISOString();
-    }
-
-    // Check for Firestore Timestamp object (toDate method)
-    if ("toDate" in t && typeof t.toDate === "function") {
-      return (t.toDate as () => Date)().toISOString();
-    }
-  }
-
-  if (typeof timestamp === "string") {
-    return timestamp;
-  }
-
-  return new Date().toISOString();
-}
-
-/**
- * Get all unprocessed messages (messages without notificationsSent flag)
- */
-async function getUnprocessedMessages(adminDb: Firestore): Promise<Message[]> {
-  console.log("📨 Fetching unprocessed messages...");
-
-  const messagesRef = adminDb.collection("messages");
-
-  // Get all messages ordered by createdAt
-  const messagesSnapshot = await messagesRef.orderBy("createdAt", "asc").get();
-
-  // Filter for messages that don't have notificationsSent or where it's false
-  const unprocessedMessages: Message[] = [];
-  messagesSnapshot.forEach((doc) => {
-    const data = doc.data();
-    // Only include messages where notificationsSent is not true
-    if (data.notificationsSent !== true) {
-      unprocessedMessages.push({
-        id: doc.id,
-        text: data.text,
-        geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
-        createdAt: convertTimestamp(data.createdAt),
-        cityWide: data.cityWide,
-      });
-    }
-  });
-
-  console.log(`   ✅ Found ${unprocessedMessages.length} unprocessed messages`);
-
-  return unprocessedMessages;
-}
-
-/**
- * Mark messages as having notifications sent
- */
-async function markMessagesAsNotified(
-  adminDb: Firestore,
-  messageIds: string[],
-): Promise<void> {
-  console.log(`\n📝 Marking ${messageIds.length} messages as notified...`);
-
-  const messagesRef = adminDb.collection("messages");
-  const now = new Date();
-
-  for (const messageId of messageIds) {
-    await messagesRef.doc(messageId).update({
-      notificationsSent: true,
-      notificationsSentAt: now,
-    });
-  }
-
-  console.log(`   ✅ Marked ${messageIds.length} messages as notified`);
-}
-
-/**
- * Get all user interests
- */
-async function getAllInterests(adminDb: Firestore): Promise<Interest[]> {
-  console.log("📍 Fetching user interests...");
-
-  const interestsRef = adminDb.collection("interests");
-  const snapshot = await interestsRef.get();
-
-  const interests: Interest[] = [];
-  snapshot.forEach((doc) => {
-    const data = doc.data();
-    interests.push({
-      id: doc.id,
-      userId: data.userId,
-      coordinates: data.coordinates,
-      radius: data.radius,
-      createdAt: convertTimestamp(data.createdAt),
-      updatedAt: convertTimestamp(data.updatedAt),
-    });
-  });
-
-  console.log(
-    `   ✅ Found ${interests.length} interests from ${
-      new Set(interests.map((i) => i.userId)).size
-    } users`,
-  );
-
-  return interests;
-}
-
-/**
- * Check if a message's GeoJSON features intersect with a user's interest circle
- * For city-wide messages (cityWide flag), uses sofia.geojson for geometric matching
- */
-function matchMessageToInterest(
-  message: Message,
-  interest: Interest,
-): { matches: boolean; distance: number | null } {
-  // City-wide messages use Sofia boundary for matching
-  let geoJson = message.geoJson;
-  if (message.cityWide) {
-    geoJson = loadSofiaGeoJson();
-  }
-
-  if (!geoJson?.features || geoJson.features.length === 0) {
-    return { matches: false, distance: null };
-  }
-
-  const interestPoint = turf.point([
-    interest.coordinates.lng,
-    interest.coordinates.lat,
-  ]);
-  const interestCircle = turf.circle(
-    interestPoint,
-    interest.radius / 1000, // Convert meters to kilometers
-    { units: "kilometers" },
-  );
-
-  let minDistance: number | null = null;
-
-  for (const feature of geoJson.features) {
-    try {
-      // Check if feature intersects with interest circle
-      const intersects = turf.booleanIntersects(feature, interestCircle);
-
-      if (intersects) {
-        // Calculate distance to get the closest point using pointToLineDistance or centroid
-        let distance: number;
-        if (feature.geometry.type === "Point") {
-          distance = turf.distance(
-            interestPoint,
-            feature.geometry.coordinates,
-            { units: "meters" },
-          );
-        } else {
-          // For LineString and Polygon, calculate distance to centroid
-          const centroid = turf.centroid(feature);
-          distance = turf.distance(interestPoint, centroid, {
-            units: "meters",
-          });
-        }
-
-        if (minDistance === null || distance < minDistance) {
-          minDistance = distance;
-        }
-      }
-    } catch (error) {
-      console.warn(`   ⚠️  Error checking intersection for feature:`, error);
-    }
-  }
-
-  return { matches: minDistance !== null, distance: minDistance };
-}
-
-/**
- * Match unprocessed messages with user interests
- */
-async function matchMessagesWithInterests(
-  messages: Message[],
-  interests: Interest[],
-): Promise<MatchResult[]> {
-  console.log("\n🔍 Matching messages with interests...");
-
-  const matches: MatchResult[] = [];
-
-  for (const message of messages) {
-    if (!message.id || !message.geoJson) {
-      continue;
-    }
-
-    for (const interest of interests) {
-      if (!interest.id) {
-        continue;
-      }
-
-      // Only match if the message was created after the interest was created
-      // Both message.createdAt and interest.createdAt are ISO strings
-      if (message.createdAt < interest.createdAt) {
-        continue;
-      }
-
-      const { matches: isMatch, distance } = matchMessageToInterest(
-        message,
-        interest,
-      );
-
-      if (isMatch && distance !== null) {
-        matches.push({
-          messageId: message.id,
-          userId: interest.userId,
-          interestId: interest.id,
-          distance,
-        });
-        console.log(
-          `   ✅ Match: Message ${message.id.substring(
-            0,
-            8,
-          )} → User ${interest.userId.substring(
-            0,
-            8,
-          )} → Interest ${interest.id.substring(0, 8)} (${Math.round(
-            distance,
-          )}m)`,
-        );
-      }
-    }
-  }
-
-  console.log(`\n   📊 Total matches found: ${matches.length}`);
-
-  return matches;
-}
-
-/**
- * Deduplicate matches - one notification per user per message
- */
-function deduplicateMatches(matches: MatchResult[]): MatchResult[] {
-  console.log("\n🔄 Deduplicating matches...");
-
-  const dedupedMap = new Map<string, MatchResult>();
-
-  for (const match of matches) {
-    const key = `${match.userId}-${match.messageId}`;
-    const existing = dedupedMap.get(key);
-
-    // Keep the match with the smallest distance
-    if (!existing || match.distance < existing.distance) {
-      dedupedMap.set(key, match);
-    }
-  }
-
-  const deduped = Array.from(dedupedMap.values());
-  console.log(
-    `   ✅ After deduplication: ${deduped.length} matches (removed ${
-      matches.length - deduped.length
-    } duplicates)`,
-  );
-
-  return deduped;
-}
-
-/**
- * Store notification matches in Firestore
- */
-async function storeNotificationMatches(
-  adminDb: Firestore,
-  matches: MatchResult[],
-): Promise<void> {
-  console.log("\n💾 Storing notification matches...");
-
-  const matchesRef = adminDb.collection("notificationMatches");
-  const now = new Date();
-
-  for (const match of matches) {
-    await matchesRef.add({
-      userId: match.userId,
-      messageId: match.messageId,
-      interestId: match.interestId,
-      distance: match.distance,
-      matchedAt: now,
-      notified: false,
-    });
-  }
-
-  console.log(`   ✅ Stored ${matches.length} matches`);
-}
-
-/**
- * Get unnotified matches
- */
-async function getUnnotifiedMatches(
-  adminDb: Firestore,
-): Promise<NotificationMatch[]> {
-  console.log("\n🔔 Fetching unnotified matches...");
-
-  const matchesRef = adminDb.collection("notificationMatches");
-  const snapshot = await matchesRef.where("notified", "==", false).get();
-
-  const matches: NotificationMatch[] = [];
-  snapshot.forEach((doc) => {
-    const data = doc.data();
-    matches.push({
-      id: doc.id,
-      userId: data.userId,
-      messageId: data.messageId,
-      interestId: data.interestId,
-      matchedAt: convertTimestamp(data.matchedAt),
-      notified: data.notified || false,
-      notifiedAt: data.notifiedAt
-        ? convertTimestamp(data.notifiedAt)
-        : undefined,
-      distance: data.distance,
-    });
-  });
-
-  console.log(`   ✅ Found ${matches.length} unnotified matches`);
-
-  return matches;
-}
-
-/**
- * Get user subscriptions
- */
-async function getUserSubscriptions(
-  adminDb: Firestore,
-  userId: string,
-): Promise<NotificationSubscription[]> {
-  const subscriptionsRef = adminDb.collection("notificationSubscriptions");
-  const snapshot = await subscriptionsRef.where("userId", "==", userId).get();
-
-  const subscriptions: NotificationSubscription[] = [];
-  snapshot.forEach((doc) => {
-    const data = doc.data();
-    subscriptions.push({
-      id: doc.id,
-      userId: data.userId,
-      token: data.token,
-      endpoint: data.endpoint,
-      createdAt: convertTimestamp(data.createdAt),
-      updatedAt: convertTimestamp(data.updatedAt),
-      deviceInfo: data.deviceInfo,
-    });
-  });
-
-  return subscriptions;
-}
-
-/**
- * Send push notification
- */
-async function sendPushNotification(
-  messaging: Messaging,
-  subscription: NotificationSubscription,
-  message: Message,
-  match: NotificationMatch,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const messagePreview =
-      message.text.length > 100
-        ? message.text.substring(0, 100) + "..."
-        : message.text;
-
-    const distanceText = match.distance
-      ? ` (${Math.round(match.distance)}m от вашия район)`
-      : "";
-
-    await messaging.send({
-      token: subscription.token,
-      data: {
-        title: "Ново съобщение в OboApp",
-        body: `${messagePreview}${distanceText}`,
-        icon: `${APP_URL}/icon-192x192.png`,
-        badge: `${APP_URL}/icon-72x72.png`,
-        messageId: match.messageId,
-        interestId: match.interestId,
-        matchId: match.id || "",
-        url: `${APP_URL}/?messageId=${match.messageId}`,
-      },
-      webpush: {
-        fcmOptions: {
-          link: `${APP_URL}/?messageId=${match.messageId}`,
-        },
-      },
-    });
-
-    return { success: true };
-  } catch (error) {
-    console.error(`   ❌ Failed to send notification:`, error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
 
 /**
  * Send notifications for matches
@@ -454,7 +37,6 @@ async function sendNotifications(
   console.log("\n📤 Sending notifications...");
 
   const messagesRef = adminDb.collection("messages");
-  const matchesRef = adminDb.collection("notificationMatches");
 
   let successCount = 0;
   let errorCount = 0;
@@ -506,46 +88,9 @@ async function sendNotifications(
       createdAt: convertTimestamp(messageData?.createdAt),
     };
 
-    // Get user subscriptions
-    const subscriptions = await getUserSubscriptions(adminDb, match.userId);
-
-    if (subscriptions.length === 0) {
-      console.log(
-        `   ⏭️  No subscriptions for user ${match.userId.substring(0, 8)}`,
-      );
-      continue;
-    }
-
-    // Send to ALL user devices and track each send
-    const deviceNotifications: DeviceNotification[] = [];
-    let deviceSuccessCount = 0;
-
-    for (const subscription of subscriptions) {
-      const result = await sendPushNotification(
-        messaging,
-        subscription,
-        message,
-        match,
-      );
-
-      const deviceNotification: DeviceNotification = {
-        subscriptionId: subscription.id || "",
-        deviceInfo: subscription.deviceInfo,
-        sentAt: new Date().toISOString(),
-        success: result.success,
-      };
-
-      // Only include error field if there was an error (avoid undefined)
-      if (result.error) {
-        deviceNotification.error = result.error;
-      }
-
-      deviceNotifications.push(deviceNotification);
-
-      if (result.success) {
-        deviceSuccessCount++;
-      }
-    }
+    // Send to all user devices
+    const { successCount: deviceSuccessCount, notifications } =
+      await sendToUserDevices(adminDb, messaging, match.userId, message, match);
 
     if (deviceSuccessCount > 0) {
       successCount++;
@@ -554,7 +99,7 @@ async function sendNotifications(
           0,
           8,
         )} on ${deviceSuccessCount}/${
-          subscriptions.length
+          notifications.length
         } devices for message ${match.messageId.substring(0, 8)}`,
       );
     } else {
@@ -567,35 +112,19 @@ async function sendNotifications(
       );
     }
 
-    // Store deviceNotifications and messageSnapshot in the match document
-    const messageSnapshot: Record<string, string> = {
-      text: messageData?.text || "",
-      createdAt: convertTimestamp(messageData?.createdAt),
-    };
-
-    // Only add optional fields if they exist (avoid undefined in Firestore)
-    if (messageData?.source) {
-      messageSnapshot.source = messageData.source;
+    // Update match document with results
+    if (messageData) {
+      await updateMatchWithResults(
+        adminDb,
+        match.id,
+        messageData,
+        notifications,
+      );
     }
-    if (messageData?.sourceUrl) {
-      messageSnapshot.sourceUrl = messageData.sourceUrl;
-    }
-
-    // Update the match document with device notifications and message snapshot
-    await matchesRef.doc(match.id).update({
-      deviceNotifications,
-      messageSnapshot,
-    });
   }
 
   // Mark all related matches as notified
-  console.log(`\n   📝 Marking ${allMatchIds.length} matches as notified...`);
-  for (const matchId of allMatchIds) {
-    await matchesRef.doc(matchId).update({
-      notified: true,
-      notifiedAt: new Date(),
-    });
-  }
+  await markMatchesAsNotified(adminDb, allMatchIds);
 
   console.log(`\n   📊 Notifications sent: ${successCount}`);
   console.log(`   ❌ Errors: ${errorCount}`);
