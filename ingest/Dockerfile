@@ -60,6 +60,9 @@ RUN npm ci --production
 # Copy Playwright browser cache
 COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
 
+# Copy built shared package dist folder
+COPY --from=builder /app/shared/dist ./shared/dist
+
 # Copy only the built JavaScript files and necessary runtime files
 COPY --from=builder /app/ingest/dist ./ingest/dist
 COPY --from=builder /app/ingest/package*.json ./ingest/
