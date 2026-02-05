@@ -23,12 +23,14 @@ describe("CategoryIcon", () => {
     const wrapper = container.querySelector("div");
     expect(wrapper).toBeInTheDocument();
     expect(wrapper).toHaveClass("inline-flex");
+    expect(wrapper).toHaveStyle({ backgroundColor: expect.any(String) });
   });
 
-  it("renders without background wrapper by default", () => {
+  it("renders with transparent background by default", () => {
     const { container } = render(<CategoryIcon category="water" />);
     const wrapper = container.querySelector("div");
-    expect(wrapper).not.toBeInTheDocument();
+    expect(wrapper).toBeInTheDocument();
+    expect(wrapper).toHaveStyle({ backgroundColor: "transparent" });
   });
 
   it("renders uncategorized icon", () => {
@@ -37,11 +39,11 @@ describe("CategoryIcon", () => {
     expect(svg).toBeInTheDocument();
   });
 
-  it("applies custom className", () => {
+  it("applies custom className to wrapper", () => {
     const { container } = render(
       <CategoryIcon category="water" className="custom-class" />,
     );
-    const svg = container.querySelector("svg");
-    expect(svg).toHaveClass("custom-class");
+    const wrapper = container.querySelector("div");
+    expect(wrapper).toHaveClass("custom-class");
   });
 });

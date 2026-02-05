@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useMemo } from "react";
 import FilterIcon from "@/components/icons/FilterIcon";
-import CategoryIcon from "@/components/CategoryIcon";
+import CategoryFilterItem from "@/components/CategoryFilterItem";
 import Checkbox from "@/components/Checkbox";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { useDragPanel } from "@/lib/hooks/useDragPanel";
@@ -52,6 +52,7 @@ interface CategoryFilterBoxProps {
     category: Category | typeof UNCATEGORIZED,
   ) => void;
   readonly onToggleShowArchived: () => void;
+  readonly onClearAllCategories: () => void;
 }
 
 /**
@@ -69,6 +70,7 @@ export default function CategoryFilterBox({
   onTogglePanel,
   onToggleCategory,
   onToggleShowArchived,
+  onClearAllCategories,
 }: CategoryFilterBoxProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -138,8 +140,9 @@ export default function CategoryFilterBox({
             <div className="overflow-y-auto flex-1">
               <div className="px-4 py-4 space-y-1">
                 {categoryCounts.map(({ category, count }) => (
-                  <Checkbox
+                  <CategoryFilterItem
                     key={category}
+                    category={category}
                     label={
                       category === UNCATEGORIZED
                         ? UNCATEGORIZED_LABEL
@@ -149,7 +152,6 @@ export default function CategoryFilterBox({
                     onChange={() => onToggleCategory(category)}
                     count={count}
                     isLoadingCount={isLoadingCounts}
-                    icon={<CategoryIcon category={category} size={20} />}
                   />
                 ))}
 
@@ -160,12 +162,32 @@ export default function CategoryFilterBox({
                     onChange={onToggleShowArchived}
                   />
                 </div>
+
+                {/* Clear All Button - Desktop only (mobile has it in footer) */}
+                {hasActiveFilters && (
+                  <div className="hidden sm:block border-t border-neutral-border pt-3 mt-1">
+                    <button
+                      type="button"
+                      onClick={onClearAllCategories}
+                      className={`w-full ${buttonSizes.md} ${buttonStyles.ghost} ${borderRadius.md}`}
+                    >
+                      Изчисти всички
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Mobile Footer with Close Button */}
-          <div className="border-t border-neutral-border px-4 py-4 flex justify-end sm:hidden">
+          {/* Mobile Footer with Clear and Close Buttons */}
+          <div className="border-t border-neutral-border px-4 py-4 flex gap-2 sm:hidden">
+            <button
+              type="button"
+              onClick={onClearAllCategories}
+              className={`flex-1 ${buttonSizes.md} ${buttonStyles.ghost} ${borderRadius.md} ${hasActiveFilters ? "" : "invisible"}`}
+            >
+              Изчисти всички
+            </button>
             <button
               type="button"
               onClick={onTogglePanel}

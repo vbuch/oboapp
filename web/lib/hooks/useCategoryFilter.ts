@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { Message } from "@/lib/types";
 import {
   Category,
+  CATEGORIES,
   CATEGORY_DISPLAY_ORDER,
   UNCATEGORIZED,
 } from "@oboapp/shared";
@@ -12,7 +13,7 @@ import { classifyMessage } from "@/lib/message-classification";
 const STORAGE_KEY = "categoryFilter";
 
 interface CategoryFilterState {
-  unselectedCategories: Set<Category | typeof UNCATEGORIZED>; // Categories user has unselected
+  selectedCategories: Set<Category | typeof UNCATEGORIZED>; // Categories user has selected (empty = show all)
   hasInteracted: boolean;
   showArchived: boolean; // Whether to show archived (past) items
 }
@@ -20,19 +21,6 @@ interface CategoryFilterState {
 interface CategoryCount {
   category: Category | typeof UNCATEGORIZED; // Display both real categories and uncategorized
   count: number;
-}
-
-export function computeSelectedCategories(
-  availableCategories: Set<Category | typeof UNCATEGORIZED>,
-  unselectedCategories: Set<Category | typeof UNCATEGORIZED>,
-): Set<Category | typeof UNCATEGORIZED> {
-  const selected = new Set<Category | typeof UNCATEGORIZED>();
-  for (const category of availableCategories) {
-    if (!unselectedCategories.has(category)) {
-      selected.add(category);
-    }
-  }
-  return selected;
 }
 
 export function computeCategoryCounts(
@@ -87,9 +75,8 @@ export function computeCategoryCounts(
 
 export function computeHasActiveFilters(
   selectedCategories: Set<Category | typeof UNCATEGORIZED>,
-  availableCategories: Set<Category | typeof UNCATEGORIZED>,
 ): boolean {
-  return selectedCategories.size !== availableCategories.size;
+  return selectedCategories.size > 0;
 }
 
 export function toggleCategorySelection(
@@ -105,26 +92,65 @@ export function toggleCategorySelection(
   return next;
 }
 
+function migrateOldFormat(parsed: {
+  unselectedCategories?: string[];
+  hasInteracted?: boolean;
+  showArchived?: boolean;
+}): CategoryFilterState {
+  const unselectedArray = parsed.unselectedCategories || [];
+
+  // If nothing was unselected in old format, that means "show all"
+  // In new format, empty selectedCategories also means "show all"
+  if (unselectedArray.length === 0) {
+    return {
+      selectedCategories: new Set(),
+      hasInteracted: parsed.hasInteracted || false,
+      showArchived: parsed.showArchived ?? false,
+    };
+  }
+
+  // Get all available categories to compute the inverse
+  const allCategories = [...CATEGORIES, UNCATEGORIZED];
+
+  // Convert unselected to selected (inverse)
+  const unselectedSet = new Set(unselectedArray);
+  const selectedCategories = allCategories.filter(
+    (cat) => !unselectedSet.has(cat),
+  );
+
+  return {
+    selectedCategories: new Set(selectedCategories),
+    hasInteracted: parsed.hasInteracted || false,
+    showArchived: parsed.showArchived ?? false,
+  };
+}
+
 function loadFilterState(): CategoryFilterState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-      // Default: nothing unselected (all selected), archived (past items) hidden by default
+      // Default: nothing selected (show all), archived (past items) hidden by default
       return {
-        unselectedCategories: new Set(),
+        selectedCategories: new Set(),
         hasInteracted: false,
         showArchived: false,
       };
     }
     const parsed = JSON.parse(stored);
+
+    // Check if this is old format (has unselectedCategories)
+    if ("unselectedCategories" in parsed && !("selectedCategories" in parsed)) {
+      return migrateOldFormat(parsed);
+    }
+
     return {
-      unselectedCategories: new Set(parsed.unselectedCategories || []),
+      selectedCategories: new Set(parsed.selectedCategories || []),
       hasInteracted: parsed.hasInteracted || false,
-      showArchived: parsed.showArchived ?? false, // Default to false if not set
+      showArchived: parsed.showArchived ?? false,
     };
   } catch {
     return {
-      unselectedCategories: new Set(),
+      selectedCategories: new Set(),
       hasInteracted: false,
       showArchived: false,
     };
@@ -136,7 +162,7 @@ function saveFilterState(state: CategoryFilterState): void {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        unselectedCategories: Array.from(state.unselectedCategories),
+        selectedCategories: Array.from(state.selectedCategories),
         hasInteracted: state.hasInteracted,
         showArchived: state.showArchived,
         lastUpdated: new Date().toISOString(),
@@ -162,10 +188,10 @@ export function useCategoryFilter(
   ) => void,
 ) {
   const initialFilterState = useMemo(() => loadFilterState(), []);
-  // Store which categories the user has UNSELECTED (not which are selected)
-  const [unselectedCategories, setUnselectedCategories] = useState<
+  // Store which categories the user has SELECTED (empty Set = show all)
+  const [selectedCategories, setSelectedCategories] = useState<
     Set<Category | typeof UNCATEGORIZED>
-  >(() => initialFilterState.unselectedCategories);
+  >(() => initialFilterState.selectedCategories);
   const [hasInteracted, setHasInteracted] = useState<boolean>(
     () => initialFilterState.hasInteracted,
   );
@@ -180,8 +206,8 @@ export function useCategoryFilter(
 
   // Save to localStorage when state changes
   useEffect(() => {
-    saveFilterState({ unselectedCategories, hasInteracted, showArchived });
-  }, [unselectedCategories, hasInteracted, showArchived]);
+    saveFilterState({ selectedCategories, hasInteracted, showArchived });
+  }, [selectedCategories, hasInteracted, showArchived]);
 
   // Convert availableCategories array to Set
   const availableCategoriesSet = useMemo<
@@ -189,16 +215,6 @@ export function useCategoryFilter(
   >(() => {
     return new Set(availableCategories);
   }, [availableCategories]);
-
-  // Compute selected categories: all available categories MINUS unselected ones
-  const selectedCategories = useMemo<
-    Set<Category | typeof UNCATEGORIZED>
-  >(() => {
-    return computeSelectedCategories(
-      availableCategoriesSet,
-      unselectedCategories,
-    );
-  }, [availableCategoriesSet, unselectedCategories]);
 
   // Notify parent when selected categories change
   useEffect(() => {
@@ -261,24 +277,23 @@ export function useCategoryFilter(
     return computeCategoryCounts(availableCategoriesSet, messagesToCount);
   }, [availableCategoriesSet, viewportMessages, showArchived]);
 
-  // Check if filters are active (something is unselected)
-  // Red dot shows when ANY category is unchecked (not in default "all selected" state)
+  // Check if filters are active (something is selected)
+  // Red dot shows when ANY category is checked (not in default "show all" state) or archived is shown
   const hasActiveFilters = useMemo<boolean>(() => {
-    return computeHasActiveFilters(selectedCategories, availableCategoriesSet);
-  }, [selectedCategories, availableCategoriesSet]);
+    return computeHasActiveFilters(selectedCategories) || showArchived;
+  }, [selectedCategories, showArchived]);
 
   // Toggle a single category's selection state
   // IMPORTANT: Only modifies the toggled category in localStorage, preserving all others
   // Example flow:
-  // 1. User sees [traffic, heating], unselects heating → stores ["heating"]
-  // 2. User sees [heating, water], unselects water → stores ["heating", "water"]
-  // 3. User sees [traffic, water] → traffic is selected (not in storage), water unselected (in storage)
-  // 4. User sees [traffic, heating, water] → heating & water unselected (in storage), traffic selected
+  // 1. Default state: selectedCategories = [] → shows all messages
+  // 2. User selects "heating" → stores ["heating"] → filters to only heating messages
+  // 3. User selects "water" → stores ["heating", "water"] → filters to heating OR water
+  // 4. User unselects "heating" → stores ["water"] → filters to only water
+  // 5. User unselects "water" → stores [] → shows all messages again
   const toggleCategory = useCallback(
     (category: Category | typeof UNCATEGORIZED) => {
-      setUnselectedCategories((prev) =>
-        toggleCategorySelection(prev, category),
-      );
+      setSelectedCategories((prev) => toggleCategorySelection(prev, category));
     },
     [],
   );
@@ -309,6 +324,11 @@ export function useCategoryFilter(
     setShowArchived((prev) => !prev);
   }, []);
 
+  const clearAllCategories = useCallback(() => {
+    setSelectedCategories(new Set());
+    setShowArchived(false);
+  }, []);
+
   return {
     categoryCounts,
     selectedCategories,
@@ -319,6 +339,7 @@ export function useCategoryFilter(
     showArchived,
     toggleCategory,
     toggleShowArchived,
+    clearAllCategories,
     openPanel,
     closePanel,
     togglePanel,

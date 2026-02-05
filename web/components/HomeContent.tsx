@@ -164,6 +164,7 @@ export default function HomeContent() {
           onTogglePanel={categoryFilter.togglePanel}
           onToggleCategory={categoryFilter.toggleCategory}
           onToggleShowArchived={categoryFilter.toggleShowArchived}
+          onClearAllCategories={categoryFilter.clearAllCategories}
         />
 
         <MapContainer
