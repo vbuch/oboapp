@@ -99,6 +99,117 @@ const setupFirebaseMock = async (mockMessages: any[]) => {
   vi.mocked(adminDb.collection).mockReturnValue(mockCollection as any);
 };
 
+describe("GET /api/messages - Query Parameter Validation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should reject non-numeric coordinate values with 400", async () => {
+    const mockRequest = new Request(
+      "http://localhost/api/messages?north=invalid&south=42.6&east=23.4&west=23.3",
+    );
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid query parameters");
+  });
+
+  it("should reject invalid zoom values (too low) with 400", async () => {
+    const mockRequest = new Request(
+      "http://localhost/api/messages?zoom=0",
+    );
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid query parameters");
+  });
+
+  it("should reject invalid zoom values (too high) with 400", async () => {
+    const mockRequest = new Request(
+      "http://localhost/api/messages?zoom=23",
+    );
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid query parameters");
+  });
+
+  it("should reject non-numeric zoom values with 400", async () => {
+    const mockRequest = new Request(
+      "http://localhost/api/messages?zoom=invalid",
+    );
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid query parameters");
+  });
+
+  it("should reject invalid category names with 400", async () => {
+    const mockRequest = new Request(
+      "http://localhost/api/messages?categories=invalid-category,water",
+    );
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid query parameters");
+  });
+
+  it("should accept valid category names (water,electricity)", async () => {
+    // This test just validates that valid category names don't cause a 400 error
+    // The actual filtering logic is tested in other test suites
+    const mockRequest = new Request(
+      "http://localhost/api/messages?categories=water,electricity",
+    );
+    const { searchParams } = new URL(mockRequest.url);
+    const { messagesQuerySchema } = await import("@/lib/api-query.schema");
+    const parsed = messagesQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries()),
+    );
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.categories).toEqual(["water", "electricity"]);
+  });
+
+  it("should accept 'uncategorized' as a special category value", async () => {
+    // This test validates that 'uncategorized' is accepted as a valid value
+    const mockRequest = new Request(
+      "http://localhost/api/messages?categories=uncategorized",
+    );
+    const { searchParams } = new URL(mockRequest.url);
+    const { messagesQuerySchema } = await import("@/lib/api-query.schema");
+    const parsed = messagesQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries()),
+    );
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.categories).toEqual(["uncategorized"]);
+  });
+
+  it("should accept valid coordinate bounds", async () => {
+    // This test validates that valid coordinates are accepted by the schema
+    const mockRequest = new Request(
+      "http://localhost/api/messages?north=42.75&south=42.65&east=23.45&west=23.25&zoom=15",
+    );
+    const { searchParams } = new URL(mockRequest.url);
+    const { messagesQuerySchema } = await import("@/lib/api-query.schema");
+    const parsed = messagesQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries()),
+    );
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.north).toBe(42.75);
+    expect(parsed.data?.south).toBe(42.65);
+    expect(parsed.data?.east).toBe(23.45);
+    expect(parsed.data?.west).toBe(23.25);
+    expect(parsed.data?.zoom).toBe(15);
+  });
+});
+
 describe("GET /api/messages - Date Filtering", () => {
   beforeEach(() => {
     vi.clearAllMocks();
