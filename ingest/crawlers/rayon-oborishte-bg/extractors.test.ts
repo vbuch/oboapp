@@ -99,6 +99,139 @@ describe("rayon-oborishte-bg/extractors", () => {
       expect(posts).toHaveLength(1);
       expect(posts[0].date).toBe("");
     });
+
+    it("should accept URLs containing 'ремонт' (repair)", async () => {
+      const mockEvaluate = vi.fn().mockResolvedValue([
+        {
+          url: "https://rayon-oborishte.bg/%d0%bf%d0%be%d0%b5%d1%82%d0%b0%d0%bf%d0%bd%d0%b8-%d1%80%d0%b5%d0%bc%d0%be%d0%bd%d1%82%d0%bd%d0%b8-%d0%b4%d0%b5%d0%b9%d0%bd%d0%be%d1%81%d1%82%d0%b8/",
+          title: "Поетапни ремонтни дейности",
+          date: "05 февруари 2026",
+        },
+      ]);
+
+      const page = createMockPage(mockEvaluate) as any;
+      const posts = await extractPostLinks(page);
+
+      expect(posts).toHaveLength(1);
+      expect(posts[0].title).toBe("Поетапни ремонтни дейности");
+    });
+
+    it("should accept URLs containing 'затваряни' (closing)", async () => {
+      const mockEvaluate = vi.fn().mockResolvedValue([
+        {
+          url: "https://rayon-oborishte.bg/%d0%b7%d0%b0%d1%82%d0%b2%d0%b0%d1%80%d1%8f%d0%bd%d0%b8%d1%8f-%d0%bd%d0%b0-%d1%83%d0%bb%d0%b8%d1%86%d0%b0/",
+          title: "Затваряния на улица",
+          date: "04 февруари 2026",
+        },
+      ]);
+
+      const page = createMockPage(mockEvaluate) as any;
+      const posts = await extractPostLinks(page);
+
+      expect(posts).toHaveLength(1);
+      expect(posts[0].title).toBe("Затваряния на улица");
+    });
+
+    it("should accept URLs with numeric IDs like /21862-2/", async () => {
+      const mockEvaluate = vi.fn().mockResolvedValue([
+        {
+          url: "https://rayon-oborishte.bg/21862-2/",
+          title: "Уведомление за строителни дейности",
+          date: "05 февруари 2026",
+        },
+      ]);
+
+      const page = createMockPage(mockEvaluate) as any;
+      const posts = await extractPostLinks(page);
+
+      expect(posts).toHaveLength(1);
+      expect(posts[0].title).toBe("Уведомление за строителни дейности");
+    });
+
+    it("should accept URLs with simple numeric IDs like /12345/", async () => {
+      const mockEvaluate = vi.fn().mockResolvedValue([
+        {
+          url: "https://rayon-oborishte.bg/12345/",
+          title: "Some Post",
+          date: "03 февруари 2026",
+        },
+      ]);
+
+      const page = createMockPage(mockEvaluate) as any;
+      const posts = await extractPostLinks(page);
+
+      expect(posts).toHaveLength(1);
+    });
+
+    it("should filter out navigation pages like 'контакти'", async () => {
+      const mockEvaluate = vi.fn().mockResolvedValue([
+        {
+          url: "https://rayon-oborishte.bg/%d0%ba%d0%be%d0%bd%d1%82%d0%b0%d0%ba%d1%82%d0%b8/",
+          title: "Контакти",
+          date: "",
+        },
+      ]);
+
+      const page = createMockPage(mockEvaluate) as any;
+      const posts = await extractPostLinks(page);
+
+      expect(posts).toHaveLength(0);
+    });
+
+    it("should filter out navigation pages like 'администрация'", async () => {
+      const mockEvaluate = vi.fn().mockResolvedValue([
+        {
+          url: "https://rayon-oborishte.bg/%d0%b0%d0%b4%d0%bc%d0%b8%d0%bd%d0%b8%d1%81%d1%82%d1%80%d0%b0%d1%86%d0%b8%d1%8f/",
+          title: "Администрация",
+          date: "",
+        },
+      ]);
+
+      const page = createMockPage(mockEvaluate) as any;
+      const posts = await extractPostLinks(page);
+
+      expect(posts).toHaveLength(0);
+    });
+
+    it("should correctly filter mixed valid and invalid URLs", async () => {
+      const mockEvaluate = vi.fn().mockResolvedValue([
+        {
+          url: "https://rayon-oborishte.bg/%d1%83%d0%b2%d0%b5%d0%b4%d0%be%d0%bc%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5-1/",
+          title: "Valid: уведомление",
+          date: "05 февруари 2026",
+        },
+        {
+          url: "https://rayon-oborishte.bg/%d0%ba%d0%be%d0%bd%d1%82%d0%b0%d0%ba%d1%82%d0%b8/",
+          title: "Invalid: контакти",
+          date: "",
+        },
+        {
+          url: "https://rayon-oborishte.bg/%d1%80%d0%b5%d0%bc%d0%be%d0%bd%d1%82-test/",
+          title: "Valid: ремонт",
+          date: "04 февруари 2026",
+        },
+        {
+          url: "https://rayon-oborishte.bg/21862-2/",
+          title: "Valid: numeric ID",
+          date: "03 февруари 2026",
+        },
+        {
+          url: "https://rayon-oborishte.bg/%d0%bf%d0%b0%d1%80%d1%82%d0%bd%d1%8c%d0%be%d1%80%d0%b8/",
+          title: "Invalid: партньори",
+          date: "",
+        },
+      ]);
+
+      const page = createMockPage(mockEvaluate) as any;
+      const posts = await extractPostLinks(page);
+
+      expect(posts).toHaveLength(3);
+      expect(posts.map((p) => p.title)).toEqual([
+        "Valid: уведомление",
+        "Valid: ремонт",
+        "Valid: numeric ID",
+      ]);
+    });
   });
 
   describe("extractPostDetails", () => {

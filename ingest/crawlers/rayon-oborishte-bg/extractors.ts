@@ -10,11 +10,24 @@ import {
  * Extract post links from the index page
  */
 export async function extractPostLinks(page: Page): Promise<PostLink[]> {
-  // Filter to only include actual post URLs (not category links, etc.)
-  const urlFilter = (url: string) =>
-    url.includes(
-      "/%d1%83%d0%b2%d0%b5%d0%b4%d0%be%d0%bc%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5-"
+  // Filter to include repair notifications while excluding navigation pages.
+  // Accept URLs containing: 'уведомление' (notification), 'ремонт' (repair),
+  // 'затваряни' (closing), or numeric IDs (e.g., /21862-2/).
+  // The AI categorization stage will handle final relevance filtering.
+  const urlFilter = (url: string) => {
+    let decodedUrl: string;
+    try {
+      decodedUrl = decodeURIComponent(url).toLowerCase();
+    } catch {
+      decodedUrl = url.toLowerCase();
+    }
+    return (
+      decodedUrl.includes("уведомление") ||
+      decodedUrl.includes("ремонт") ||
+      decodedUrl.includes("затваряни") ||
+      /\/\d+(-\d+)?\/?$/.test(decodedUrl) // Numeric IDs like /21862-2/
     );
+  };
 
   return extractPostLinksShared(page, SELECTORS, urlFilter);
 }
@@ -23,7 +36,7 @@ export async function extractPostLinks(page: Page): Promise<PostLink[]> {
  * Extract post details from individual post page
  */
 export async function extractPostDetails(
-  page: Page
+  page: Page,
 ): Promise<{ title: string; dateText: string; contentHtml: string }> {
   return extractPostDetailsGeneric(page, SELECTORS.POST, [
     "script",
