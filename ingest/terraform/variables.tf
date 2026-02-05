@@ -51,3 +51,8 @@ variable "firebase_project_id" {
   description = "Firebase project ID (can be public)"
   type        = string
 }
+
+variable "alert_email" {
+  description = "Email address for pipeline failure alerts"
+  type        = string
+}

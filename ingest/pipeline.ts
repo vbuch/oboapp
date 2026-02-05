@@ -5,6 +5,7 @@ import { resolve, join } from "node:path";
 import dotenv from "dotenv";
 import { verifyEnvSet } from "@/lib/verify-env";
 import { readdirSync, statSync } from "node:fs";
+import { logger } from "@/lib/logger";
 
 const program = new Command();
 
@@ -27,46 +28,55 @@ function getAvailableSources(): string[] {
 }
 
 async function runCrawler(source: string): Promise<boolean> {
-  console.log(`\n🚀 Running crawler: ${source}`);
+  logger.info(`Running crawler: ${source}`, { step: "crawl", source });
   try {
     const crawlerPath = `./crawlers/${source}/index.js`;
     const crawler = await import(crawlerPath);
     await crawler.crawl();
-    console.log(`✅ Crawler ${source} completed`);
+    logger.info(`Crawler ${source} completed`, { step: "crawl", source });
     return true;
   } catch (error) {
-    console.error(`❌ Error running crawler ${source}:`, error);
+    logger.error(`Crawler ${source} failed: ${error instanceof Error ? error.message : String(error)}`, {
+      step: "crawl",
+      source,
+    });
     return false;
   }
 }
 
 async function runIngest(): Promise<void> {
-  console.log("\n📥 Running ingest pipeline");
+  logger.info("Running ingest pipeline", { step: "ingest" });
   try {
     const { ingest } = await import("./messageIngest/from-sources");
     await ingest({});
-    console.log("✅ Ingest completed");
+    logger.info("Ingest completed", { step: "ingest" });
   } catch (error) {
-    console.error("❌ Error running ingest:", error);
+    logger.error(`Ingest failed: ${error instanceof Error ? error.message : String(error)}`, {
+      step: "ingest",
+    });
     throw error;
   }
 }
 
 async function runNotify(): Promise<void> {
-  console.log("\n📧 Running notification matching");
+  logger.info("Running notification matching", { step: "notify" });
   try {
     const { main } = await import("./notifications/match-and-notify");
     await main();
-    console.log("✅ Notify completed");
+    logger.info("Notify completed", { step: "notify" });
   } catch (error) {
-    console.error("❌ Error running notify:", error);
+    logger.error(`Notify failed: ${error instanceof Error ? error.message : String(error)}`, {
+      step: "notify",
+    });
     throw error;
   }
 }
 
 async function runPipeline(crawlers: string[], pipelineName: string) {
-  console.log(`🚀 Starting ${pipelineName} pipeline`);
-  console.log(`Crawlers: ${crawlers.join(", ")}`);
+  logger.info(`Starting ${pipelineName} pipeline`, {
+    pipeline: pipelineName,
+    crawlers,
+  });
 
   const results: Array<{ source: string; success: boolean }> = [];
 
@@ -81,12 +91,11 @@ async function runPipeline(crawlers: string[], pipelineName: string) {
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
 
-    console.log(
-      `\n📊 Crawler results: ${successful.length} succeeded, ${failed.length} failed`
-    );
-    if (failed.length > 0) {
-      console.log(`Failed crawlers: ${failed.map((r) => r.source).join(", ")}`);
-    }
+    logger.info(`Crawler results: ${successful.length} succeeded, ${failed.length} failed`, {
+      pipeline: pipelineName,
+      succeeded: successful.map((r) => r.source),
+      failed: failed.map((r) => r.source),
+    });
 
     // Continue with ingest and notify even if some crawlers failed
     // This ensures that successfully crawled data is processed
@@ -94,16 +103,21 @@ async function runPipeline(crawlers: string[], pipelineName: string) {
     await runNotify();
 
     if (failed.length > 0) {
-      console.log(
-        `\n⚠️  ${pipelineName} pipeline completed with ${failed.length} crawler failure(s)`
-      );
+      logger.error(`${pipelineName} pipeline completed with ${failed.length} crawler failure(s)`, {
+        pipeline: pipelineName,
+        failedCrawlers: failed.map((r) => r.source),
+      });
       process.exit(1); // Exit with error to signal partial failure
     } else {
-      console.log(`\n✅ ${pipelineName} pipeline completed successfully`);
+      logger.info(`${pipelineName} pipeline completed successfully`, {
+        pipeline: pipelineName,
+      });
       process.exit(0);
     }
   } catch (error) {
-    console.error(`\n❌ ${pipelineName} pipeline failed:`, error);
+    logger.error(`${pipelineName} pipeline failed: ${error instanceof Error ? error.message : String(error)}`, {
+      pipeline: pipelineName,
+    });
     process.exit(1);
   }
 }
