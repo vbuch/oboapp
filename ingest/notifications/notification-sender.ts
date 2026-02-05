@@ -13,8 +13,15 @@ import {
 import { convertTimestamp } from "./utils";
 
 // App URL (use env var or fallback for tests)
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const APP_URL_ENV = process.env.NEXT_PUBLIC_APP_URL;
 
+if (!APP_URL_ENV && process.env.NODE_ENV === "production") {
+  throw new Error(
+    "Environment variable NEXT_PUBLIC_APP_URL must be set in production.",
+  );
+}
+
+const APP_URL = APP_URL_ENV || "http://localhost:3000";
 /**
  * Build notification payload for FCM
  */
