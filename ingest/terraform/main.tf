@@ -51,6 +51,11 @@ resource "google_project_service" "secretmanager" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "monitoring" {
+  service            = "monitoring.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "artifactregistry" {
   service            = "artifactregistry.googleapis.com"
   disable_on_destroy = false
@@ -791,4 +796,50 @@ resource "google_cloud_scheduler_job" "gtfs_sync_schedule" {
     google_project_service.cloudscheduler,
     google_cloud_run_v2_job.gtfs_sync
   ]
+}
+
+# ── Alerting ──────────────────────────────────────────────────────────────────
+
+resource "google_monitoring_notification_channel" "email" {
+  display_name = "Pipeline Alert Email"
+  type         = "email"
+
+  labels = {
+    email_address = var.alert_email
+  }
+
+  depends_on = [google_project_service.monitoring]
+}
+
+resource "google_monitoring_alert_policy" "cloud_run_job_failures" {
+  display_name = "Cloud Run Job Failures"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Cloud Run Job execution failed"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="cloud_run_job"
+        severity>=ERROR
+      EOT
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  notification_channels = [
+    google_monitoring_notification_channel.email.name
+  ]
+
+  documentation {
+    content   = "A Cloud Run pipeline job logged an error. Check Cloud Run logs: https://console.cloud.google.com/run/jobs?project=${var.project_id}"
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_project_service.monitoring]
 }

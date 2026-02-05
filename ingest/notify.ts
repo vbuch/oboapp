@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { verifyEnvSet } from "@/lib/verify-env";
+import { logger } from "@/lib/logger";
 
 const program = new Command();
 
@@ -43,7 +44,9 @@ Examples:
 
       process.exit(0);
     } catch (error) {
-      console.error("❌ Notification matching failed:", error);
+      logger.error(`Notification matching failed: ${error instanceof Error ? error.message : String(error)}`, {
+        step: "notify",
+      });
       process.exit(1);
     }
   });

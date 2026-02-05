@@ -5,6 +5,7 @@ import { readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import dotenv from "dotenv";
 import { verifyEnvSet } from "@/lib/verify-env";
+import { logger } from "@/lib/logger";
 
 const program = new Command();
 
@@ -57,15 +58,18 @@ Examples:
     // Dynamically import and run the crawler
     try {
       const crawlerPath = `./crawlers/${options.source}/index.js`;
-      console.log(`🚀 Running crawler: ${options.source}`);
+      logger.info(`Running crawler: ${options.source}`, { step: "crawl", source: options.source });
 
       const crawler = await import(crawlerPath);
       await crawler.crawl();
 
-      console.log(`✅ Crawler ${options.source} completed`);
+      logger.info(`Crawler ${options.source} completed`, { step: "crawl", source: options.source });
       process.exit(0);
     } catch (error) {
-      console.error(`❌ Error running crawler ${options.source}:`, error);
+      logger.error(`Crawler ${options.source} failed: ${error instanceof Error ? error.message : String(error)}`, {
+        step: "crawl",
+        source: options.source,
+      });
       process.exit(1);
     }
   });

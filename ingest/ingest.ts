@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { verifyEnvSet } from "@/lib/verify-env";
+import { logger } from "@/lib/logger";
 import type { IngestOptions } from "@/lib/types";
 
 const program = new Command();
@@ -72,7 +73,9 @@ Examples:
 
       process.exit(0);
     } catch (error) {
-      console.error("❌ Ingestion failed:", error);
+      logger.error(`Ingestion failed: ${error instanceof Error ? error.message : String(error)}`, {
+        step: "ingest",
+      });
       process.exit(1);
     }
   });
@@ -94,10 +97,14 @@ program
 
       await syncGTFSStopsToFirestore();
 
-      console.log("✅ GTFS stops sync completed successfully");
+      logger.info("✅ GTFS stops sync completed successfully", {
+        step: "gtfs-sync",
+      });
       process.exit(0);
     } catch (error) {
-      console.error("❌ GTFS stops sync failed:", error);
+      logger.error(`GTFS stops sync failed: ${error instanceof Error ? error.message : String(error)}`, {
+        step: "gtfs-sync",
+      });
       process.exit(1);
     }
   });

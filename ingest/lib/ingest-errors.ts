@@ -1,4 +1,5 @@
 import type { IngestError, IngestErrorType } from "@/lib/types";
+import { logger } from "@/lib/logger";
 
 export interface IngestErrorRecorder {
   warn: (text: string) => void;
@@ -42,17 +43,17 @@ export function createIngestErrorCollector(): IngestErrorCollector {
   };
 
   const warn = (text: string) => {
-    console.warn(text);
+    logger.warn(text, { component: "ingest" });
     record("warning", text);
   };
 
   const error = (text: string) => {
-    console.error(text);
+    logger.error(text, { component: "ingest" });
     record("error", text);
   };
 
   const exception = (text: string) => {
-    console.error(text);
+    logger.error(text, { component: "ingest", errorType: "exception" });
     record("exception", text);
   };
 
@@ -74,13 +75,13 @@ export function getIngestErrorRecorder(
 
   return {
     warn: (text: string) => {
-      console.warn(text);
+      logger.warn(text, { component: "ingest" });
     },
     error: (text: string) => {
-      console.error(text);
+      logger.error(text, { component: "ingest" });
     },
     exception: (text: string) => {
-      console.error(text);
+      logger.error(text, { component: "ingest", errorType: "exception" });
     },
   };
 }
