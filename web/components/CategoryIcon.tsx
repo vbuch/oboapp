@@ -1,5 +1,5 @@
 import { CATEGORY_STYLES } from "@/lib/category-styles";
-import { Category, UNCATEGORIZED } from "@shared/schema/category.schema";
+import { Category, UNCATEGORIZED } from "@oboapp/shared";
 
 interface CategoryIconProps {
   readonly category: Category | typeof UNCATEGORIZED;

@@ -4,7 +4,7 @@ import {
   type CategorizationResult,
   type Category,
 } from "./categorize.schema";
-import { CategoryEnum } from "@shared/schema/category.schema";
+import { CategoryEnum } from "@oboapp/shared";
 
 describe("CategorizationResponseSchema", () => {
   describe("valid schemas", () => {

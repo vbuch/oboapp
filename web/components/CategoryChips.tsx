@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CATEGORY_LABELS, Category } from "@shared/schema/category.schema";
+import { CATEGORY_LABELS, Category } from "@oboapp/shared";
 import CategoryIcon from "@/components/CategoryIcon";
 import { getCategoryColor } from "@/lib/category-styles";
 

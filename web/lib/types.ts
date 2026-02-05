@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { CoordinatesSchema } from "@shared/schema/coordinates.schema";
+import { CoordinatesSchema } from "@oboapp/shared";
 import {
   GeoJsonFeatureCollectionSchema,
   GeoJsonFeatureSchema,
@@ -8,17 +8,14 @@ import {
   GeoJsonMultiPointSchema,
   GeoJsonPointSchema,
   GeoJsonPolygonSchema,
-} from "@shared/schema/geojson.schema";
-import { MessageSnapshotSchema } from "@shared/schema/message-snapshot.schema";
-import { NotificationHistoryItemSchema } from "@shared/schema/notification-history.schema";
-import { PinSchema } from "@shared/schema/pin.schema";
-import { StreetSectionSchema } from "@shared/schema/street-section.schema";
-import { TimespanSchema } from "@shared/schema/timespan.schema";
-import { AddressSchema } from "@shared/schema/address.schema";
-import {
-  ExtractedDataSchema,
-  CadastralPropertySchema,
-} from "@shared/schema/extracted-data.schema";
+} from "@oboapp/shared";
+import { MessageSnapshotSchema } from "@oboapp/shared";
+import { NotificationHistoryItemSchema } from "@oboapp/shared";
+import { PinSchema } from "@oboapp/shared";
+import { StreetSectionSchema } from "@oboapp/shared";
+import { TimespanSchema } from "@oboapp/shared";
+import { AddressSchema } from "@oboapp/shared";
+import { ExtractedDataSchema, CadastralPropertySchema } from "@oboapp/shared";
 
 // Import shared types
 export type {
@@ -26,7 +23,7 @@ export type {
   InternalMessage,
   IngestError,
   IngestErrorType,
-} from "@shared/schema";
+} from "@oboapp/shared";
 
 export type Address = z.infer<typeof AddressSchema>;
 

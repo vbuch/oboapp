@@ -2,10 +2,17 @@
 
 A civic tech platform that helps residents of Sofia stay informed about infrastructure disruptions. The app automatically aggregates public announcements about water shutoffs, heating maintenance, road repairs, and municipal works, displaying them on an interactive map with push notifications for areas you care about.
 
+## ⚠️ MONOREPO SETUP
+
+**This is an npm workspace monorepo. Always run `npm install` at the repository root.**
+
+The shared package builds automatically via postinstall hook. All workspace dependencies are hoisted to the root.
+
 ## Project Structure
 
-This monorepo contains two main components:
+This monorepo contains three packages:
 
+- **[shared/](shared)** - Shared TypeScript schemas (Zod) used by both web and ingest
 - **[ingest/](ingest)** - Automated data collection and processing pipeline
 - **[web/](web)** - Next.js web application
 

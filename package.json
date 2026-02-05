@@ -1,0 +1,25 @@
+{
+  "name": "oboapp",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "web",
+    "ingest",
+    "shared"
+  ],
+  "scripts": {
+    "build:shared": "npm run build --workspace=shared",
+    "build:all": "npm run build:shared && npm run build --workspace=ingest && npm run build --workspace=web",
+    "test:all": "npm run test:run --workspace=shared --workspace=ingest --workspace=web --if-present",
+    "lint:all": "npm run lint --workspace=shared --workspace=ingest --workspace=web --if-present",
+    "postinstall": "npm run build:shared"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "eslint": "^9.18.0",
+    "typescript": "^5",
+    "typescript-eslint": "^8.54.0",
+    "vitest": "^4.0.15",
+    "zod": "^4.3.6"
+  }
+}

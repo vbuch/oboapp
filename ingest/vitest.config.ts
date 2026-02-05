@@ -20,9 +20,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
-      "@shared": path.resolve(__dirname, "../shared"),
-      // Map zod to the local node_modules for shared files
-      zod: path.resolve(__dirname, "./node_modules/zod"),
     },
   },
 });

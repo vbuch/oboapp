@@ -12,7 +12,7 @@ import {
   UNCATEGORIZED,
   UNCATEGORIZED_LABEL,
   Category,
-} from "@shared/schema/category.schema";
+} from "@oboapp/shared";
 
 /**
  * Skeleton placeholder for category filter while loading

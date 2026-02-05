@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { normalizeCategoriesInput } from "./category-utils";
-import { CategoryEnum } from "@shared/schema/category.schema";
+import { CategoryEnum } from "@oboapp/shared";
 
 // Coordinate format validation: "latitude, longitude"
 const CoordinateString = z

@@ -2,10 +2,23 @@
   "name": "@oboapp/shared",
   "version": "0.1.0",
   "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    "./schema/*": "./schema/*.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.ts",
+      "default": "./dist/schema/index.js"
+    }
   },
-  "peerDependencies": {
-    "zod": "^4.3.5"
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
   }
 }

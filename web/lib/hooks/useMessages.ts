@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { Message } from "@/lib/types";
 import { buildMessagesUrl } from "./useMessages.utils";
 import { debounce } from "@/lib/debounce";
-import type { Category } from "@shared/schema/category.schema";
-import { CATEGORIES, UNCATEGORIZED } from "@shared/schema/category.schema";
+import type { Category } from "@oboapp/shared";
+import { CATEGORIES, UNCATEGORIZED } from "@oboapp/shared";
 
 interface ViewportBounds {
   north: number;

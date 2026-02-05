@@ -25,7 +25,7 @@ import {
   CircleHelp,
   type LucideIcon,
 } from "lucide-react";
-import { Category, UNCATEGORIZED } from "@shared/schema/category.schema";
+import { Category, UNCATEGORIZED } from "@oboapp/shared";
 
 export interface CategoryStyle {
   /** Lucide icon component */

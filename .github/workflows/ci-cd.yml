@@ -31,10 +31,9 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
-          cache-dependency-path: ingest/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        working-directory: ./ingest
+      - name: Install workspace dependencies
         run: npm ci
 
       - name: Run unit tests
@@ -58,10 +57,9 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        working-directory: ./web
+      - name: Install workspace dependencies
         run: npm ci
 
       - name: Run unit tests
@@ -98,9 +96,6 @@ jobs:
         id: build
         run: |
           set -e  # Exit on error
-          # Copy shared folder into ingest for Docker build context
-          cp -r shared ingest/docker-shared
-          cd ingest
           IMAGE_TAG="latest"
           REGISTRY_URL="europe-west1-docker.pkg.dev/$PROJECT_ID/oborishte-ingest"
 
@@ -111,8 +106,28 @@ jobs:
           echo "Full image: $REGISTRY_URL/$IMAGE_NAME:$IMAGE_TAG"
           echo "========================================="
 
-          # Submit build with the latest tag
-          if gcloud builds submit --tag $REGISTRY_URL/$IMAGE_NAME:$IMAGE_TAG .; then
+          # Submit build from repo root with ingest/Dockerfile
+          if gcloud builds submit \
+            --config=- \
+            --substitutions=_IMAGE_TAG=$IMAGE_TAG,_REGISTRY_URL=$REGISTRY_URL,_IMAGE_NAME=$IMAGE_NAME \
+            . <<EOF
+          steps:
+            - name: 'gcr.io/cloud-builders/docker'
+              args: 
+                - 'build'
+                - '-f'
+                - 'ingest/Dockerfile'
+                - '-t'
+                - '$_REGISTRY_URL/$_IMAGE_NAME:$_IMAGE_TAG'
+                - '.'
+            - name: 'gcr.io/cloud-builders/docker'
+              args: 
+                - 'push'
+                - '$_REGISTRY_URL/$_IMAGE_NAME:$_IMAGE_TAG'
+          images:
+            - '$_REGISTRY_URL/$_IMAGE_NAME:$_IMAGE_TAG'
+          EOF
+          then
             echo "========================================="
             echo "✅ Image built and tagged as $IMAGE_TAG"
             echo "========================================="

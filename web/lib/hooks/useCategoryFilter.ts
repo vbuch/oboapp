@@ -6,7 +6,7 @@ import {
   Category,
   CATEGORY_DISPLAY_ORDER,
   UNCATEGORIZED,
-} from "@shared/schema/category.schema";
+} from "@oboapp/shared";
 import { classifyMessage } from "@/lib/message-classification";
 
 const STORAGE_KEY = "categoryFilter";

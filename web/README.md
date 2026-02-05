@@ -2,6 +2,14 @@
 
 Next.js web application for **OboApp** - a civic engagement platform for residents of Sofia, Bulgaria. Aggregates and visualizes public announcements about local events, infrastructure work, and service disruptions on an interactive map.
 
+## ⚠️ WORKSPACE SETUP
+
+This package is part of an npm workspace. **Run `npm install` at the repository root**, not in this directory.
+
+## ⚠️ SHARED PACKAGE HOT RELOAD
+
+Next.js uses `transpilePackages: ['@oboapp/shared']` to automatically transpile and hot-reload changes from the shared package during development. No manual rebuild of shared is needed while running `npm run dev`.
+
 ## Tech Stack
 
 - **Next.js 16** with React 19 and TypeScript
@@ -9,6 +17,7 @@ Next.js web application for **OboApp** - a civic engagement platform for residen
 - **Google Maps API** for interactive mapping
 - **Turf.js** for geospatial analysis
 - **Tailwind CSS v4** with centralized theme system
+- **@oboapp/shared** - Shared Zod schemas from workspace
 
 ## Hosting
 
@@ -17,6 +26,7 @@ Hosted on Vercel.
 ## Styling
 
 The application uses a centralized Tailwind CSS theme system:
+
 - **Theme colors**: Defined in [lib/colors.ts](lib/colors.ts) as the single source of truth
 - **CSS variables**: Implemented in [app/globals.css](app/globals.css) using Tailwind v4 @theme
 - **Utilities**: Button styles and helpers available in [lib/theme.ts](lib/theme.ts)
@@ -35,6 +45,7 @@ See [AGENTS.md](../AGENTS.md#tailwind-theme-system) for usage guidelines.
 ### Browser Support
 
 Push notifications are supported on:
+
 - **Chrome/Edge/Opera** (Desktop & Android) - works in regular browser
 - **Firefox** (Desktop & Android) - works in regular browser
 - **Safari** (macOS 16.4+) - works in regular browser

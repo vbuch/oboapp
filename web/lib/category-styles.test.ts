@@ -5,7 +5,7 @@ import {
   getCategoryBgColor,
   CATEGORY_STYLES,
 } from "@/lib/category-styles";
-import { CATEGORIES, UNCATEGORIZED } from "@shared/schema/category.schema";
+import { CATEGORIES, UNCATEGORIZED } from "@oboapp/shared";
 
 describe("category-styles", () => {
   describe("CATEGORY_STYLES", () => {

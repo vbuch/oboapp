@@ -5,7 +5,7 @@ import {
   computeSelectedCategories,
   toggleCategorySelection,
 } from "./useCategoryFilter";
-import { Category, UNCATEGORIZED } from "@shared/schema/category.schema";
+import { Category, UNCATEGORIZED } from "@oboapp/shared";
 import { Message } from "@/lib/types";
 
 const buildFeatureCollection = (count: number) => ({

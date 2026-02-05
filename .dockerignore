@@ -1,0 +1,35 @@
+# Ignore web directory (not needed for ingest deployment)
+web/
+
+# Ignore node_modules
+**/node_modules/
+
+# Ignore test files
+**/*.test.ts
+**/*.spec.ts
+
+# Ignore tmp and development artifacts
+tmp/
+**/.next/
+**/dist/
+**/.cache/
+
+# Ignore development configs
+**/.env*
+!**/.env.example
+
+# Ignore git
+.git/
+.github/
+
+# Ignore docs
+docs/
+
+# Ignore editor files
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+
+# Ignore logs
+**/*.log

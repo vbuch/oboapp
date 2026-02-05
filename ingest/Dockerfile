@@ -3,20 +3,21 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy only dependency manifests
+# Copy workspace root package files
 COPY package*.json ./
 
-# Install ALL deps (needed for tsx + playwright install)
+# Copy shared and ingest package files
+COPY shared ./shared
+COPY ingest ./ingest
+
+# Install workspace dependencies (triggers postinstall → builds shared)
 RUN npm ci
 
 # Install Chromium ONLY (no system deps here)
-RUN npx playwright install chromium
+RUN cd ingest && npx playwright install chromium
 
-# Copy source code
-COPY . .
-
-# Use docker-specific tsconfig (uses ./docker-shared instead of ../shared)
-RUN npm run build:docker
+# Build ingest
+RUN cd ingest && npm run build
 
 # Production stage
 FROM node:20-slim
@@ -44,20 +45,30 @@ RUN apt-get update && apt-get install -y \
     fonts-freefont-ttf \
     && rm -rf /var/lib/apt/lists/*
 
-# Install only production dependencies
+# Copy workspace root package files
 COPY package*.json ./
+
+# Copy shared package
+COPY shared ./shared
+
+# Copy ingest package files
+COPY ingest/package*.json ./ingest/
+
+# Install only production dependencies
 RUN npm ci --production
 
 # Copy Playwright browser cache
 COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
 
 # Copy only the built JavaScript files and necessary runtime files
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/prompts ./prompts
-COPY --from=builder /app/crawlers ./crawlers
+COPY --from=builder /app/ingest/dist ./ingest/dist
+COPY --from=builder /app/ingest/package*.json ./ingest/
+COPY --from=builder /app/ingest/prompts ./ingest/prompts
+COPY --from=builder /app/ingest/crawlers ./ingest/crawlers
 
 ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
+
+WORKDIR /app/ingest
 
 CMD ["npm", "run", "prebuilt:crawl", "--", "--help"]

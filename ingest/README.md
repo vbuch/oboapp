@@ -2,6 +2,12 @@
 
 Data collection and processing pipeline for OboApp. Collects infrastructure disruption notices from public sources (water, heating, road repairs) across Sofia, processes them into geocoded GeoJSON, and delivers notifications to interested users.
 
+## ⚠️ WORKSPACE SETUP
+
+This package is part of an npm workspace. **Run `npm install` at the repository root**, not in this directory.
+
+The shared package (@oboapp/shared) is built automatically during workspace installation via postinstall hook.
+
 ## Pipeline Overview
 
 ```mermaid

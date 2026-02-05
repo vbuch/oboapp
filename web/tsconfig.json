@@ -23,7 +23,6 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@shared/*": ["../shared/*"],
       "zod": ["./node_modules/zod"]
     },
     "baseUrl": "."
@@ -35,8 +34,7 @@
     "**/*.mdx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts",
-    "../shared/**/*.ts"
+    "**/*.mts"
   ],
   "exclude": ["node_modules"]
 }

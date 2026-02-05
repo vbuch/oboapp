@@ -1,6 +1,6 @@
 import { CategorizedMessage } from "./categorize.schema";
 import type { Timestamp } from "firebase-admin/firestore";
-import type { GeoJsonGeometry } from "@shared/schema";
+import type { GeoJsonGeometry } from "@oboapp/shared";
 
 // Re-export shared types
 export type {
@@ -22,7 +22,7 @@ export type {
   IngestErrorType,
   Message,
   InternalMessage,
-} from "@shared/schema";
+} from "@oboapp/shared";
 
 // Re-export with GeoJSON prefix for backward compatibility
 export type {
@@ -33,7 +33,7 @@ export type {
   GeoJsonGeometry as GeoJSONGeometry,
   GeoJsonFeature as GeoJSONFeature,
   GeoJsonFeatureCollection as GeoJSONFeatureCollection,
-} from "@shared/schema";
+} from "@oboapp/shared";
 
 // Intersection coordinates
 export interface IntersectionCoordinates {
