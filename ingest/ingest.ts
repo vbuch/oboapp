@@ -97,7 +97,9 @@ program
 
       await syncGTFSStopsToFirestore();
 
-      console.log("✅ GTFS stops sync completed successfully");
+      logger.info("✅ GTFS stops sync completed successfully", {
+        step: "gtfs-sync",
+      });
       process.exit(0);
     } catch (error) {
       logger.error(`GTFS stops sync failed: ${error instanceof Error ? error.message : String(error)}`, {
