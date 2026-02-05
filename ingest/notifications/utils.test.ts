@@ -31,9 +31,9 @@ describe("utils", () => {
     });
 
     it("should return current time for invalid input", () => {
-      const beforeCall = new Date().getTime();
+      const beforeCall = Date.now();
       const result = convertTimestamp(null);
-      const afterCall = new Date().getTime();
+      const afterCall = Date.now();
 
       const resultTime = new Date(result).getTime();
 
@@ -42,9 +42,9 @@ describe("utils", () => {
     });
 
     it("should return current time for undefined", () => {
-      const beforeCall = new Date().getTime();
+      const beforeCall = Date.now();
       const result = convertTimestamp(undefined);
-      const afterCall = new Date().getTime();
+      const afterCall = Date.now();
 
       const resultTime = new Date(result).getTime();
 

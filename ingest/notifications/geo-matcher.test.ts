@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { matchMessageToInterest } from "./geo-matcher";
-import type { Message, Interest } from "@/lib/types";
-import type { GeoJSONFeatureCollection } from "@/lib/types";
+import type { Message, Interest, GeoJSONFeatureCollection } from "@/lib/types";
 
 describe("geo-matcher", () => {
   describe("matchMessageToInterest", () => {
