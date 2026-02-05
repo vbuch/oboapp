@@ -28,9 +28,16 @@ describe("ingest-errors", () => {
     collector.error("❌ Failed to extract");
     collector.exception("Ingestion exception: test");
 
-    expect(warnSpy).toHaveBeenCalledWith("⚠️  Partial geocoding");
-    expect(errorSpy).toHaveBeenCalledWith("❌ Failed to extract");
-    expect(errorSpy).toHaveBeenCalledWith("Ingestion exception: test");
+    expect(warnSpy).toHaveBeenCalledWith("⚠️  Partial geocoding", {
+      component: "ingest",
+    });
+    expect(errorSpy).toHaveBeenCalledWith("❌ Failed to extract", {
+      component: "ingest",
+    });
+    expect(errorSpy).toHaveBeenCalledWith("Ingestion exception: test", {
+      component: "ingest",
+      errorType: "exception",
+    });
 
     expect(collector.entries).toEqual([
       { text: "⚠️  Partial geocoding", type: "warning" },
@@ -78,8 +85,15 @@ describe("ingest-errors", () => {
     recorder.error("❌ Error");
     recorder.exception("Exception");
 
-    expect(warnSpy).toHaveBeenCalledWith("⚠️  Warning");
-    expect(errorSpy).toHaveBeenCalledWith("❌ Error");
-    expect(errorSpy).toHaveBeenCalledWith("Exception");
+    expect(warnSpy).toHaveBeenCalledWith("⚠️  Warning", {
+      component: "ingest",
+    });
+    expect(errorSpy).toHaveBeenCalledWith("❌ Error", {
+      component: "ingest",
+    });
+    expect(errorSpy).toHaveBeenCalledWith("Exception", {
+      component: "ingest",
+      errorType: "exception",
+    });
   });
 });
