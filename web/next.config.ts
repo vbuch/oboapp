@@ -5,6 +5,19 @@ const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   async headers() {
     return [
+      // Service Worker CSP - Defense in depth for worker context
+      {
+        source: "/firebase-messaging-sw.js",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value:
+              "default-src 'none'; script-src 'self' https://www.gstatic.com; connect-src 'self' https://fcm.googleapis.com https://*.googleapis.com; worker-src 'self'",
+          },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+        ],
+      },
+      // General security headers for all pages
       {
         source: "/(.*)",
         headers: [
