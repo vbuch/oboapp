@@ -29,9 +29,18 @@ import type { NextRequest } from "next/server";
  */
 export function middleware(request: NextRequest) {
   // Generate a unique cryptographic nonce for each request (16 bytes = 128 bits)
-  const nonce = Buffer.from(
-    crypto.getRandomValues(new Uint8Array(16)),
-  ).toString("base64");
+  let nonce: string;
+  try {
+    nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString(
+      "base64",
+    );
+  } catch (error) {
+    // Fallback to timestamp-based nonce if crypto fails (extremely rare)
+    console.error("Failed to generate cryptographic nonce:", error);
+    nonce = Buffer.from(`fallback-${Date.now()}-${Math.random()}`).toString(
+      "base64",
+    );
+  }
 
   // Build Content-Security-Policy header
   const cspHeader = `

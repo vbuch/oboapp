@@ -21,7 +21,11 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: [
+          // Defense in depth: X-Frame-Options for older browsers that don't support CSP frame-ancestors
+          { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
+          // Disable legacy XSS filter (can cause vulnerabilities, CSP is preferred)
+          { key: "X-XSS-Protection", value: "0" },
           {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
@@ -33,7 +37,7 @@ const nextConfig: NextConfig = {
           {
             key: "Permissions-Policy",
             value:
-              "geolocation=(self), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), speaker=(self), vibrate=(self), fullscreen=(self)",
+              "geolocation=self, camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), speaker=self, vibrate=self, fullscreen=self",
           },
         ],
       },

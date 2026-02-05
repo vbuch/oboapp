@@ -75,6 +75,34 @@ describe("middleware", () => {
       const calledArray = mockRandomValues.mock.calls[0][0];
       expect(calledArray.length).toBe(16);
     });
+
+    it("should handle nonce generation errors gracefully", () => {
+      // Mock crypto.getRandomValues to throw an error
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      mockRandomValues.mockImplementationOnce(() => {
+        throw new Error("Crypto API unavailable");
+      });
+
+      const request = new NextRequest("https://example.com/");
+      const response = middleware(request);
+
+      // Should still return a valid response
+      expect(response).toBeInstanceOf(NextResponse);
+
+      // Should log the error
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to generate cryptographic nonce:",
+        expect.any(Error),
+      );
+
+      // Should still have a CSP header with a fallback nonce
+      const csp = response.headers.get("Content-Security-Policy");
+      expect(csp).toContain("nonce-");
+
+      consoleErrorSpy.mockRestore();
+    });
   });
 
   describe("CSP header", () => {
@@ -122,9 +150,9 @@ describe("middleware", () => {
       expect(csp).toContain("https://lh3.googleusercontent.com");
       expect(csp).toContain("https://maps.googleapis.com");
       expect(csp).toContain("https://maps.gstatic.com");
-      // Should NOT contain overly permissive 'https:' without a domain (just the scheme)
-      // The pattern should match "https:" NOT followed by "//" (which would be a full URL)
-      expect(csp).not.toMatch(/img-src[^;]*\shttps:\s/);
+      // Should NOT contain overly permissive 'https:' scheme without domain
+      // Pattern matches "https:" NOT followed by "//" (which would be a full URL)
+      expect(csp).not.toMatch(/img-src[^;]*https:(?!\/\/)/);
     });
 
     it("should include worker-src for Firebase service worker", () => {
