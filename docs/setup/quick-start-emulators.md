@@ -20,9 +20,10 @@ cp web/.env.example.emulator web/.env.local
 ### 2. Install Dependencies
 
 ```bash
-cd ingest && npm install && cd ..
-cd web && npm install && cd ..
+npm install
 ```
+
+**Note:** run dependency installation the root folder of the monorepo
 
 ### 3. Start Emulators
 
