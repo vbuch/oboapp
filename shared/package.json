@@ -20,6 +20,6 @@
   },
   "dependencies": {
     "zod": "^4.3.6",
-    "@asteasolutions/zod-to-openapi": "^8.3.0"
+    "@asteasolutions/zod-to-openapi": "^8.4.0"
   }
 }
