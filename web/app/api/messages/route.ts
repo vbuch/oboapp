@@ -9,6 +9,7 @@ import {
   type ViewportBounds,
 } from "@/lib/bounds-utils";
 import { getCentroid } from "@/lib/geometry-utils";
+import { messagesQuerySchema } from "@/lib/api-query.schema";
 import admin from "firebase-admin";
 
 const { or, where } = admin.firestore.Filter;
@@ -58,39 +59,30 @@ function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
 
 export async function GET(request: Request) {
   try {
-    // Parse viewport bounds and zoom from query params
+    // Validate query params
     const { searchParams } = new URL(request.url);
-    const boundsParam = {
-      north: searchParams.get("north"),
-      south: searchParams.get("south"),
-      east: searchParams.get("east"),
-      west: searchParams.get("west"),
-    };
-    const zoomParam = searchParams.get("zoom");
-    const zoom = zoomParam ? Number.parseFloat(zoomParam) : undefined;
+    const parsed = messagesQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries()),
+    );
 
-    // Parse categories filter
-    const categoriesParam = searchParams.get("categories");
-    const selectedCategories = categoriesParam
-      ? categoriesParam
-          .split(",")
-          .map((c) => c.trim())
-          .filter(Boolean)
-      : null;
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid query parameters", details: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const { north, south, east, west, zoom, categories: selectedCategories } =
+      parsed.data;
 
     let viewportBounds: ViewportBounds | null = null;
     if (
-      boundsParam.north &&
-      boundsParam.south &&
-      boundsParam.east &&
-      boundsParam.west
+      north !== undefined &&
+      south !== undefined &&
+      east !== undefined &&
+      west !== undefined
     ) {
-      const rawBounds: ViewportBounds = {
-        north: Number.parseFloat(boundsParam.north),
-        south: Number.parseFloat(boundsParam.south),
-        east: Number.parseFloat(boundsParam.east),
-        west: Number.parseFloat(boundsParam.west),
-      };
+      const rawBounds: ViewportBounds = { north, south, east, west };
 
       // Clamp to Sofia bounds
       const clampedBounds = clampBounds(rawBounds);
@@ -107,7 +99,7 @@ export async function GET(request: Request) {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - relevanceDays);
 
-    // If categories are selected but empty array, return empty result
+    // If categories param was provided but resulted in empty array, return empty result
     if (selectedCategories && selectedCategories.length === 0) {
       return NextResponse.json({ messages: [] });
     }

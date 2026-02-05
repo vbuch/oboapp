@@ -1,0 +1,20 @@
+import { z } from "zod";
+import { CategoryEnum, UNCATEGORIZED } from "@oboapp/shared/schema";
+
+const commaDelimitedCategories = z
+  .string()
+  .transform((s) => s.split(",").map((c) => c.trim()).filter(Boolean))
+  .pipe(z.array(z.union([CategoryEnum, z.literal(UNCATEGORIZED)])));
+
+const finiteNumber = z.coerce.number().finite();
+
+export const messagesQuerySchema = z.object({
+  north: finiteNumber.optional(),
+  south: finiteNumber.optional(),
+  east: finiteNumber.optional(),
+  west: finiteNumber.optional(),
+  zoom: finiteNumber.min(1).max(22).optional(),
+  categories: commaDelimitedCategories.optional(),
+});
+
+export type MessagesQuery = z.infer<typeof messagesQuerySchema>;
