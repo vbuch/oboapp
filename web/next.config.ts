@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   transpilePackages: ["@oboapp/shared"],
+  serverExternalPackages: ["lightningcss"],
   experimental: {
     externalDir: true,
   },
