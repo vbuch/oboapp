@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../zod-openapi";
 import { PinSchema } from "./pin.schema";
 import { StreetSectionSchema } from "./street-section.schema";
 

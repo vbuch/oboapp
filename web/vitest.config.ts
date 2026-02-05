@@ -25,6 +25,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      // Force single React instance from root node_modules
+      react: path.resolve(__dirname, "../node_modules/react"),
+      "react-dom": path.resolve(__dirname, "../node_modules/react-dom"),
+      // Force single Zod instance from root node_modules for OpenAPI extension
+      zod: path.resolve(__dirname, "../node_modules/zod"),
     },
   },
 });

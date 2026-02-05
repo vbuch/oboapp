@@ -19,6 +19,7 @@
     "test": "echo \"No tests yet\" && exit 0"
   },
   "dependencies": {
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@asteasolutions/zod-to-openapi": "^8.3.0"
   }
 }

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../zod-openapi";
 
 export const TimespanSchema = z.object({
   start: z.string(),

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../zod-openapi";
 import { AddressSchema } from "./address.schema";
 import { CategoryEnum } from "./category.schema";
 import { ExtractedDataSchema } from "./extracted-data.schema";

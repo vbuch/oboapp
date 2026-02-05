@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../zod-openapi";
 import { MessageSnapshotSchema } from "./message-snapshot.schema";
 
 export const NotificationHistoryItemSchema = z.object({

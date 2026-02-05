@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../zod-openapi";
 import { CoordinatesSchema } from "./coordinates.schema";
 import { GeoJsonPointSchema } from "./geojson.schema";
 

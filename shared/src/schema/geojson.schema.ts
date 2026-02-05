@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../zod-openapi";
 
 export const GeoJsonPointSchema = z.object({
   type: z.literal("Point"),

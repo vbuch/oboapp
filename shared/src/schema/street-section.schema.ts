@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../zod-openapi";
 import { TimespanSchema } from "./timespan.schema";
 
 export const StreetSectionSchema = z.object({
