@@ -11,6 +11,7 @@ import {
   deleteSubscription,
 } from "./subscription-manager";
 import { convertTimestamp } from "./utils";
+import { logger } from "@/lib/logger";
 
 // App URL (use env var or fallback for tests)
 const APP_URL_ENV = process.env.NEXT_PUBLIC_APP_URL;
@@ -77,7 +78,7 @@ export async function sendPushNotification(
 
     return { success: true };
   } catch (error) {
-    console.error(`   ❌ Failed to send notification:`, error);
+    logger.error("Failed to send notification", { error: error instanceof Error ? error.message : String(error), errorCode: (error as { code?: string })?.code });
 
     // Check if the FCM token is invalid/expired
     const errorCode = (error as { code?: string })?.code;
@@ -111,7 +112,7 @@ export async function sendToUserDevices(
   const subscriptions = await getUserSubscriptions(adminDb, userId);
 
   if (subscriptions.length === 0) {
-    console.log(`   ⏭️  No subscriptions for user ${userId.substring(0, 8)}`);
+    logger.info("No subscriptions for user", { userId: userId.substring(0, 8) });
     return { successCount: 0, notifications: [] };
   }
 
@@ -184,7 +185,7 @@ export async function markMatchesAsNotified(
   adminDb: Firestore,
   matchIds: string[],
 ): Promise<void> {
-  console.log(`\n   📝 Marking ${matchIds.length} matches as notified...`);
+  logger.info("Marking matches as notified", { count: matchIds.length });
 
   const matchesRef = adminDb.collection("notificationMatches");
   const now = new Date();

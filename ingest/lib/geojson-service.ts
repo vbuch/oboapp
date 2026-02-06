@@ -8,6 +8,7 @@ import {
   IntersectionCoordinates,
 } from "./types";
 import { getStreetGeometry } from "./geocoding-router";
+import { logger } from "@/lib/logger";
 
 // Constants for street buffer widths (in meters)
 const BUFFER_WIDTH_BOULEVARD = 13; // 12-14m average
@@ -245,21 +246,18 @@ export async function convertToGeoJSON(
       features.push(feature);
     } catch (error) {
       // If street section creation fails, convert endpoints to pins as fallback
-      console.warn(
-        `⚠️  Failed to create street section for "${street.street}" from "${
-          street.from
-        }" to "${street.to}": ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+      logger.warn("Failed to create street section", {
+        street: street.street,
+        from: street.from,
+        to: street.to,
+        error: error instanceof Error ? error.message : String(error),
+      });
 
       const startCoords = preGeocodedAddresses.get(street.from);
       const endCoords = preGeocodedAddresses.get(street.to);
 
       if (startCoords && endCoords) {
-        console.log(
-          `   ✅ Converting to 2 pins instead (both endpoints have coordinates)`,
-        );
+        logger.info("Converting street to 2 fallback pins (both endpoints have coordinates)");
 
         // Create two pins from the street endpoints
         fallbackPins.push(
@@ -273,9 +271,7 @@ export async function convertToGeoJSON(
           },
         );
       } else {
-        console.error(
-          `   ❌ Cannot create fallback pins (missing coordinates): from=${!!startCoords}, to=${!!endCoords}`,
-        );
+        logger.error("Cannot create fallback pins (missing coordinates)", { hasFrom: !!startCoords, hasTo: !!endCoords });
       }
     }
   }
@@ -287,11 +283,7 @@ export async function convertToGeoJSON(
       const feature = createPinFeature(pin, preGeocodedAddresses);
       features.push(feature);
     } catch (error) {
-      console.error(
-        `Failed to create pin for "${pin.address}": ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+      logger.error("Failed to create pin", { address: pin.address, error: error instanceof Error ? error.message : String(error) });
     }
   }
 

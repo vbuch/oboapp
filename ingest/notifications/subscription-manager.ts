@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { NotificationSubscription } from "@/lib/types";
 import { convertTimestamp } from "./utils";
+import { logger } from "@/lib/logger";
 
 /**
  * Get user subscriptions
@@ -40,7 +41,5 @@ export async function deleteSubscription(
     .collection("notificationSubscriptions")
     .doc(subscriptionId)
     .delete();
-  console.log(
-    `   🗑️  Removed invalid subscription ${subscriptionId.substring(0, 8)}`,
-  );
+  logger.info("Removed invalid subscription", { subscriptionId: subscriptionId.substring(0, 8) });
 }

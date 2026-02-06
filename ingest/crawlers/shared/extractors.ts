@@ -1,4 +1,5 @@
 import type { Page } from "playwright";
+import { logger } from "@/lib/logger";
 
 export interface PostLink {
   url: string;
@@ -31,7 +32,7 @@ export async function extractPostLinks(
   selectors: Selectors,
   urlFilter?: (url: string) => boolean
 ): Promise<PostLink[]> {
-  console.log("📋 Extracting post links from index page...");
+  logger.info("Extracting post links from index page");
 
   const posts = await page.evaluate((selectors) => {
     const postLinks: { url: string; title: string; date: string }[] = [];
@@ -69,7 +70,7 @@ export async function extractPostLinks(
     ? posts.filter((p) => urlFilter(p.url))
     : posts;
 
-  console.log(`📊 Found ${filteredPosts.length} posts on index page`);
+  logger.info("Found posts on index page", { count: filteredPosts.length });
   return filteredPosts;
 }
 

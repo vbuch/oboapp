@@ -7,6 +7,7 @@ import {
   Messaging,
 } from "firebase/messaging";
 import { app } from "./firebase";
+import { logger } from "@/lib/logger";
 import { NotificationSubscription } from "./types";
 import type { FirebaseNotificationPayload } from "./types";
 
@@ -17,7 +18,7 @@ if (globalThis.window !== undefined) {
   try {
     messaging = getMessaging(app);
   } catch (error) {
-    console.error("Failed to initialize Firebase Messaging:", error);
+    logger.error("Failed to initialize Firebase Messaging", { error: error instanceof Error ? error.message : String(error) });
   }
 }
 
@@ -26,7 +27,7 @@ if (globalThis.window !== undefined) {
  */
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!("Notification" in globalThis)) {
-    console.warn("This browser does not support notifications");
+    logger.warn("This browser does not support notifications");
     return false;
   }
 
@@ -69,7 +70,7 @@ export async function hasValidSubscription(userId: string): Promise<boolean> {
     const data = await response.json();
     return data.hasSubscription === true;
   } catch (error) {
-    console.error("Error checking subscription:", error);
+    logger.error("Error checking subscription", { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
@@ -82,7 +83,7 @@ export async function subscribeToPushNotifications(
   idToken: string
 ): Promise<NotificationSubscription | null> {
   if (!messaging) {
-    console.error("Firebase Messaging not initialized");
+    logger.error("Firebase Messaging not initialized");
     return null;
   }
 
@@ -90,13 +91,13 @@ export async function subscribeToPushNotifications(
     // Get FCM token
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
     if (!vapidKey) {
-      console.error("VAPID key not configured");
+      logger.error("VAPID key not configured");
       return null;
     }
 
     const token = await getToken(messaging, { vapidKey });
     if (!token) {
-      console.warn("No registration token available");
+      logger.warn("No registration token available");
       return null;
     }
 
@@ -123,7 +124,7 @@ export async function subscribeToPushNotifications(
     const subscription = await response.json();
     return subscription;
   } catch (error) {
-    console.error("Error subscribing to push notifications:", error);
+    logger.error("Error subscribing to push notifications", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -135,7 +136,7 @@ export function setupForegroundMessageListener(
   onMessageReceived: (payload: FirebaseNotificationPayload) => void
 ) {
   if (!messaging) {
-    console.error("Firebase Messaging not initialized");
+    logger.error("Firebase Messaging not initialized");
     return () => {};
   }
 

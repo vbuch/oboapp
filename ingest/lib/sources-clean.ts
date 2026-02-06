@@ -1,4 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
+import { logger } from "@/lib/logger";
 
 interface SourceDocument {
   sourceType: string;
@@ -10,7 +11,7 @@ interface SourceDocument {
  * Get all source document IDs that have been ingested into messages
  */
 async function getIngestedSourceIds(adminDb: Firestore): Promise<Set<string>> {
-  console.log("📊 Checking which sources have been ingested...");
+  logger.info("Checking which sources have been ingested");
 
   const messagesSnapshot = await adminDb
     .collection("messages")
@@ -25,7 +26,7 @@ async function getIngestedSourceIds(adminDb: Firestore): Promise<Set<string>> {
     }
   });
 
-  console.log(`   Found ${ingestedIds.size} ingested source(s)`);
+  logger.info("Found ingested sources", { count: ingestedIds.size });
   return ingestedIds;
 }
 
@@ -36,18 +37,18 @@ export async function cleanSources(
   retainSourceType: string,
   dryRun: boolean,
 ): Promise<void> {
-  console.log(`🧹 Cleaning sources (${dryRun ? "dry-run" : "production"})\n`);
-  console.log(`📌 Retaining source type: ${retainSourceType}\n`);
+  logger.info("Cleaning sources", { mode: dryRun ? "dry-run" : "production" });
+  logger.info("Retaining source type", { retainSourceType });
 
   // Dynamically import firebase-admin after env is loaded
   const { adminDb } = await import("@/lib/firebase-admin");
 
   // Get all sources
   const sourcesSnapshot = await adminDb.collection("sources").get();
-  console.log(`📦 Total sources in database: ${sourcesSnapshot.size}\n`);
+  logger.info("Total sources in database", { count: sourcesSnapshot.size });
 
   if (sourcesSnapshot.empty) {
-    console.log("✨ No sources found in database");
+    logger.info("No sources found in database");
     return;
   }
 
@@ -80,35 +81,31 @@ export async function cleanSources(
   });
 
   // Display summary
-  console.log("\n" + "=".repeat(80));
-  console.log("📊 Summary");
-  console.log("=".repeat(80));
-  console.log(`✅ Retained (${retainSourceType}): ${retained.length}`);
-  console.log(`🔗 Retained (ingested): ${ingested.length}`);
-  console.log(`❌ To delete (unprocessed): ${toDelete.length}`);
-  console.log("=".repeat(80) + "\n");
+  logger.info("Source cleanup summary", {
+    retainedByType: retained.length,
+    retainSourceType,
+    retainedByIngestion: ingested.length,
+    toDelete: toDelete.length,
+  });
 
   if (toDelete.length === 0) {
-    console.log("✨ No sources to delete");
+    logger.info("No sources to delete");
     return;
   }
 
   // Show samples of what will be deleted
-  console.log("📋 Sources to delete (first 10):");
-  toDelete.slice(0, 10).forEach(({ doc }) => {
-    console.log(`   - [${doc.sourceType}] ${doc.title.substring(0, 60)}...`);
+  logger.info("Sources to delete (first 10)", {
+    samples: toDelete.slice(0, 10).map(({ doc }) => `[${doc.sourceType}] ${doc.title.substring(0, 60)}`),
+    remaining: toDelete.length > 10 ? toDelete.length - 10 : 0,
   });
-  if (toDelete.length > 10) {
-    console.log(`   ... and ${toDelete.length - 10} more\n`);
-  }
 
   if (dryRun) {
-    console.log("\n🔍 Dry-run complete. No sources were deleted.");
+    logger.info("Dry-run complete. No sources were deleted.");
     return;
   }
 
   // Delete sources in batches
-  console.log("\n🗑️  Deleting sources...");
+  logger.info("Deleting sources");
   const BATCH_SIZE = 500;
   let deleted = 0;
 
@@ -122,9 +119,9 @@ export async function cleanSources(
 
     await batch.commit();
     deleted += batchItems.length;
-    console.log(`   Deleted ${deleted}/${toDelete.length} sources...`);
+    logger.info("Deleted sources progress", { deleted, total: toDelete.length });
   }
 
-  console.log(`\n✅ Successfully deleted ${deleted} unprocessed source(s)`);
-  console.log(`✅ Retained ${retained.length + ingested.length} source(s)`);
+  logger.info("Successfully deleted unprocessed sources", { deleted });
+  logger.info("Retained sources", { count: retained.length + ingested.length });
 }

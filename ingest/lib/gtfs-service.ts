@@ -3,6 +3,7 @@ import { parse } from "csv-parse/sync";
 import { adminDb } from "./firebase-admin";
 import { isWithinSofia } from "./bounds";
 import { roundCoordinate } from "../crawlers/shared/coordinate-utils";
+import { logger } from "@/lib/logger";
 
 const GTFS_URL = "https://gtfs.sofiatraffic.bg/api/v1/static";
 const BATCH_SIZE = 100;
@@ -18,7 +19,7 @@ export interface GTFSStop {
  * Download and extract GTFS ZIP file, returning stops.txt content
  */
 async function downloadAndExtractGTFS(): Promise<string> {
-  console.log(`📥 Downloading GTFS data from ${GTFS_URL}...`);
+  logger.info("Downloading GTFS data", { url: GTFS_URL });
 
   const response = await fetch(GTFS_URL);
 
@@ -31,7 +32,7 @@ async function downloadAndExtractGTFS(): Promise<string> {
   const arrayBuffer = await response.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  console.log(`📦 Extracting stops.txt from ZIP archive...`);
+  logger.info("Extracting stops.txt from ZIP archive");
   const zip = new AdmZip(buffer);
   const stopsEntry = zip.getEntry("stops.txt");
 
@@ -71,9 +72,7 @@ export function parseStopsFile(csvContent: string): GTFSStop[] {
 
     // Validate coordinates
     if (Number.isNaN(lat) || Number.isNaN(lng)) {
-      console.warn(
-        `⚠️  Invalid coordinates for stop ${stopCode}: lat=${record.stop_lat}, lng=${record.stop_lon}`,
-      );
+      logger.warn("Invalid coordinates for stop", { stopCode, lat: record.stop_lat, lng: record.stop_lon });
       continue;
     }
 
@@ -92,12 +91,10 @@ export function parseStopsFile(csvContent: string): GTFSStop[] {
   }
 
   if (skippedNoCode > 0) {
-    console.log(`ℹ️  Skipped ${skippedNoCode} stops without stop_code`);
+    logger.info("Skipped stops without stop_code", { count: skippedNoCode });
   }
   if (skippedOutOfBounds > 0) {
-    console.log(
-      `ℹ️  Skipped ${skippedOutOfBounds} stops outside Sofia boundaries`,
-    );
+    logger.info("Skipped stops outside Sofia boundaries", { count: skippedOutOfBounds });
   }
 
   return stops;
@@ -108,12 +105,12 @@ export function parseStopsFile(csvContent: string): GTFSStop[] {
  * Uses upsert (set with merge) to update existing records
  */
 export async function syncGTFSStopsToFirestore(): Promise<void> {
-  console.log("🚏 Starting GTFS stops sync...");
+  logger.info("Starting GTFS stops sync");
 
   const csvContent = await downloadAndExtractGTFS();
   const stops = parseStopsFile(csvContent);
 
-  console.log(`✅ Parsed ${stops.length} valid stops`);
+  logger.info("Parsed valid stops", { count: stops.length });
 
   // Batch write to Firestore
   const db = adminDb;
@@ -143,10 +140,8 @@ export async function syncGTFSStopsToFirestore(): Promise<void> {
 
     await batch.commit();
     written += chunk.length;
-    console.log(
-      `📝 Wrote batch ${Math.floor(i / BATCH_SIZE) + 1}: ${written}/${stops.length} stops`,
-    );
+    logger.info("Wrote GTFS batch", { batch: Math.floor(i / BATCH_SIZE) + 1, written, total: stops.length });
   }
 
-  console.log(`✅ Successfully synced ${written} bus stops to Firestore`);
+  logger.info("Successfully synced bus stops to Firestore", { count: written });
 }

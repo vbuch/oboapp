@@ -1,5 +1,6 @@
 import * as proj4Module from "proj4";
 import { delay } from "./delay";
+import { logger } from "@/lib/logger";
 
 const proj4 = proj4Module.default || proj4Module;
 
@@ -273,7 +274,7 @@ export async function geocodeCadastralProperty(
   identifier: string,
 ): Promise<CadastralGeometry | null> {
   try {
-    console.log(`[Cadastre] Geocoding УПИ ${identifier}`);
+    logger.info("Geocoding cadastral property", { identifier });
 
     // Initialize session
     const session = await initializeSession();
@@ -286,7 +287,7 @@ export async function geocodeCadastralProperty(
     // Step 2: ReadFoundObjects
     const searchResult = await readFoundObjects(session);
     if (!searchResult) {
-      console.log(`[Cadastre] No results found for ${identifier}`);
+      logger.info("No cadastre results found", { identifier });
       return null;
     }
 
@@ -295,7 +296,7 @@ export async function geocodeCadastralProperty(
     // Step 3: GetGeometry
     const geometryResponse = await getGeometry(session, searchResult);
     if (!geometryResponse) {
-      console.log(`[Cadastre] No geometry found for ${identifier}`);
+      logger.info("No cadastre geometry found", { identifier });
       return null;
     }
 
@@ -304,9 +305,7 @@ export async function geocodeCadastralProperty(
       geometryResponse.SpatialReferenceCode !== "7801" &&
       geometryResponse.SpatialReferenceCode !== "7802"
     ) {
-      console.warn(
-        `[Cadastre] Unexpected spatial reference: ${geometryResponse.SpatialReferenceCode} (expected 7801 or 7802)`,
-      );
+      logger.warn("Unexpected cadastre spatial reference", { spatialReferenceCode: geometryResponse.SpatialReferenceCode, expected: "7801 or 7802" });
     }
 
     // Convert coordinates using the spatial reference from the API
@@ -315,19 +314,14 @@ export async function geocodeCadastralProperty(
       geometryResponse.SpatialReferenceCode,
     );
 
-    console.log(
-      `[Cadastre] Successfully geocoded ${identifier} with ${polygon[0].length} vertices`,
-    );
+    logger.info("Successfully geocoded cadastral property", { identifier, vertices: polygon[0].length });
 
     return {
       identifier,
       polygon,
     };
   } catch (error) {
-    console.error(
-      `[Cadastre] Failed to geocode ${identifier}:`,
-      error instanceof Error ? error.message : error,
-    );
+    logger.error("Failed to geocode cadastral property", { identifier, error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }

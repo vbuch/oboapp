@@ -14,6 +14,7 @@ import {
 } from "./geocoding-utils";
 import { delay } from "./delay";
 import { roundCoordinate } from "../crawlers/shared/coordinate-utils";
+import { logger } from "@/lib/logger";
 import { OverpassMockService } from "../__mocks__/services/overpass-mock-service";
 
 // Check if mocking is enabled
@@ -170,13 +171,11 @@ async function getStreetGeometryFromOverpass(
           if (!shouldTryFallback(error, response.status)) {
             // Client-side error - don't try other servers
             clearTimeout(timeoutId);
-            console.error(`   ✗ Client error (query issue): ${errorMsg}`);
+            logger.error("Client error (query issue)", { errorMsg });
             throw error;
           }
 
-          console.log(
-            `   ✗ Server error from ${new URL(instance).hostname}: ${errorMsg}`,
-          );
+          logger.info("Server error from Overpass instance", { hostname: new URL(instance).hostname, errorMsg });
           lastError = error;
           clearTimeout(timeoutId);
           continue;
@@ -186,7 +185,7 @@ async function getStreetGeometryFromOverpass(
         const text = await response.text();
         try {
           responseData = JSON.parse(text);
-          console.log(`   ✅ Response from ${new URL(instance).hostname}`);
+          logger.info("Response from Overpass instance", { hostname: new URL(instance).hostname });
         } catch (parseError) {
           // Failed to parse JSON - might be XML error with HTTP 200
           const errorMsg = parseOverpassError(text);
@@ -206,17 +205,15 @@ async function getStreetGeometryFromOverpass(
 
         // Check if this is a client-side error
         if (!shouldTryFallback(err)) {
-          console.error(`   ✗ Client error (query issue): ${err.message}`);
+          logger.error("Client error (query issue)", { error: err.message });
           throw err;
         }
 
         // Server-side error or timeout - try next instance
         if (err.name === "AbortError") {
-          console.log(`   ✗ Timeout with ${new URL(instance).hostname}`);
+          logger.info("Timeout with Overpass instance", { hostname: new URL(instance).hostname });
         } else {
-          console.log(
-            `   ✗ Failed with ${new URL(instance).hostname}: ${err.message}`,
-          );
+          logger.info("Failed with Overpass instance", { hostname: new URL(instance).hostname, error: err.message });
         }
         lastError = err;
         continue; // Try next instance
@@ -229,7 +226,7 @@ async function getStreetGeometryFromOverpass(
 
     if (!responseData.elements || responseData.elements.length === 0) {
       // No OSM ways found - API request succeeded but no data for this street name
-      console.log(`❌ Couldn't find: "${streetName}"`);
+      logger.info("Could not find street in OSM", { streetName });
       return null;
     }
 
@@ -271,15 +268,11 @@ async function getStreetGeometryFromOverpass(
     }
 
     if (lineStrings.length === 0) {
-      console.log(
-        `   ℹ️  No valid geometries in response for: "${streetName}"`,
-      );
+      logger.info("No valid geometries in response", { streetName });
       return null;
     }
 
-    console.log(
-      `✅ Found ${lineStrings.length} way segments with ${totalPoints} total points for: ${streetName}`,
-    );
+    logger.info("Found way segments", { segments: lineStrings.length, totalPoints, streetName });
 
     const multiLineString: Feature<MultiLineString> = {
       type: "Feature",
@@ -292,7 +285,7 @@ async function getStreetGeometryFromOverpass(
 
     return multiLineString;
   } catch (error) {
-    console.error(`Error fetching from Overpass for ${streetName}:`, error);
+    logger.error("Error fetching from Overpass", { streetName, error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -309,17 +302,11 @@ function findGeometricIntersection(
     const intersections = turf.lineIntersect(street1, street2);
 
     if (intersections.features.length > 0) {
-      console.log(
-        `   Found ${intersections.features.length} exact intersection(s)`,
-      );
+      logger.info("Found exact intersections", { count: intersections.features.length });
 
       if (intersections.features.length === 1) {
         const point = intersections.features[0].geometry.coordinates;
-        console.log(
-          `   ✅ Intersection at: [${point[1].toFixed(6)}, ${point[0].toFixed(
-            6,
-          )}]`,
-        );
+        logger.info("Intersection found", { lat: point[1].toFixed(6), lng: point[0].toFixed(6) });
         return { lng: point[0], lat: point[1] };
       }
 
@@ -345,17 +332,13 @@ function findGeometricIntersection(
       intersectionsWithDistance.sort((a, b) => a.distance - b.distance);
 
       const best = intersectionsWithDistance[0];
-      console.log(
-        `   ✅ Using closest to Sofia center: [${best.lat.toFixed(
-          6,
-        )}, ${best.lng.toFixed(6)}] (${best.distance.toFixed(0)}m away)`,
-      );
+      logger.info("Using closest intersection to Sofia center", { lat: best.lat.toFixed(6), lng: best.lng.toFixed(6), distanceMeters: best.distance.toFixed(0) });
 
       return { lng: best.lng, lat: best.lat };
     }
 
     // If no exact intersection, find nearest points
-    console.log(`   No exact intersections, finding nearest points...`);
+    logger.info("No exact intersections, finding nearest points");
 
     // Buffer the streets slightly to account for small gaps
     const buffered1 = turf.buffer(street1, BUFFER_DISTANCE_METERS, {
@@ -366,7 +349,7 @@ function findGeometricIntersection(
     });
 
     if (!buffered1 || !buffered2) {
-      console.warn(`   Could not create buffers`);
+      logger.warn("Could not create buffers");
       return null;
     }
 
@@ -378,7 +361,7 @@ function findGeometricIntersection(
     if (bufferedIntersection) {
       const center = turf.center(bufferedIntersection);
       const coords = center.geometry.coordinates;
-      console.log(`   Found buffered intersection`);
+      logger.info("Found buffered intersection");
       return { lng: coords[0], lat: coords[1] };
     }
 
@@ -408,22 +391,14 @@ function findGeometricIntersection(
 
     if (bestPoint && minDistance < 200) {
       // 200m threshold
-      console.log(
-        `✅ Found nearest point at: [${bestPoint.lat.toFixed(
-          6,
-        )}, ${bestPoint.lng.toFixed(6)}] (${minDistance.toFixed(1)}m gap)`,
-      );
+      logger.info("Found nearest point", { lat: bestPoint.lat.toFixed(6), lng: bestPoint.lng.toFixed(6), gapMeters: minDistance.toFixed(1) });
       return bestPoint;
     }
 
-    console.warn(
-      `   Streets too far apart (${minDistance.toFixed(
-        1,
-      )}m), no valid intersection`,
-    );
+    logger.warn("Streets too far apart, no valid intersection", { distanceMeters: minDistance.toFixed(1) });
     return null;
   } catch (error) {
-    console.error(`Error finding intersection:`, error);
+    logger.error("Error finding intersection", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -436,7 +411,7 @@ export async function overpassGeocodeIntersections(
 ): Promise<Address[]> {
   // Use mock if enabled
   if (USE_MOCK && mockService) {
-    console.log("[MOCK] Using Overpass mock for intersections");
+    logger.info("Using Overpass mock for intersections");
     return mockService.overpassGeocodeIntersections(intersections);
   }
 
@@ -450,7 +425,7 @@ export async function overpassGeocodeIntersections(
       .map((s) => s.trim());
 
     if (!street1Name || !street2Name) {
-      console.error(`Invalid intersection format: ${intersection}`);
+      logger.error("Invalid intersection format", { intersection });
       continue;
     }
 
@@ -480,10 +455,10 @@ export async function overpassGeocodeIntersections(
           },
         });
       } else {
-        console.error(`❌ Could not find intersection`);
+        logger.error("Could not find intersection");
       }
     } catch (error) {
-      console.error(`Error processing ${intersection}:`, error);
+      logger.error("Error processing intersection", { intersection, error: error instanceof Error ? error.message : String(error) });
     }
 
     // Rate limiting between requests
@@ -506,7 +481,7 @@ export async function getStreetSectionGeometry(
 ): Promise<Position[] | null> {
   // Use mock if enabled
   if (USE_MOCK && mockService) {
-    console.log("[MOCK] Using Overpass mock for street section geometry");
+    logger.info("Using Overpass mock for street section geometry");
     return mockService.getStreetSectionGeometry(
       streetName,
       startCoords,
@@ -515,14 +490,12 @@ export async function getStreetSectionGeometry(
   }
 
   try {
-    console.log(
-      `🔍 Finding street section: ${streetName} from [${startCoords.lat}, ${startCoords.lng}] to [${endCoords.lat}, ${endCoords.lng}]`,
-    );
+    logger.info("Finding street section", { streetName, from: { lat: startCoords.lat, lng: startCoords.lng }, to: { lat: endCoords.lat, lng: endCoords.lng } });
 
     // Get full street geometry
     const streetGeometry = await getStreetGeometryFromOverpass(streetName);
     if (!streetGeometry) {
-      console.warn(`   No geometry found for street: ${streetName}`);
+      logger.warn("No geometry found for street", { streetName });
       return null;
     }
 
@@ -580,16 +553,12 @@ export async function getStreetSectionGeometry(
     }
 
     if (bestSection && bestSection.length >= 2) {
-      console.log(
-        `   ✅ Found street section with ${bestSection.length} points`,
-      );
+      logger.info("Found street section", { points: bestSection.length });
       return bestSection;
     }
 
     // Fallback: try to connect multiple segments
-    console.log(
-      `   ⚠️  No single segment found, trying to connect segments...`,
-    );
+    logger.info("No single segment found, trying to connect segments");
 
     // Build a path by connecting segments
     const connectedPath: Position[] = [];
@@ -626,9 +595,7 @@ export async function getStreetSectionGeometry(
       }
 
       if (nearestSegmentIdx === -1 || nearestDist > 50) {
-        console.log(
-          `   ❌ Cannot connect segments (min dist: ${nearestDist}m)`,
-        );
+        logger.info("Cannot connect segments", { minDistanceMeters: nearestDist });
         break;
       }
 
@@ -664,22 +631,20 @@ export async function getStreetSectionGeometry(
 
       // Safety check
       if (usedSegments.size > 10) {
-        console.log(`   ❌ Too many segments, giving up`);
+        logger.info("Too many segments, giving up");
         break;
       }
     }
 
     if (connectedPath.length >= 2) {
-      console.log(
-        `   ✅ Connected ${usedSegments.size} segments into path with ${connectedPath.length} points`,
-      );
+      logger.info("Connected segments into path", { segments: usedSegments.size, points: connectedPath.length });
       return connectedPath;
     }
 
-    console.log(`   ❌ Could not extract street section`);
+    logger.info("Could not extract street section");
     return null;
   } catch (error) {
-    console.error(`Error getting street section geometry:`, error);
+    logger.error("Error getting street section geometry", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -711,7 +676,7 @@ async function geocodeAddressWithNominatim(
     });
 
     if (!response.ok) {
-      console.warn(`Nominatim API error: ${response.status}`);
+      logger.warn("Nominatim API error", { status: response.status });
       return null;
     }
 
@@ -727,26 +692,20 @@ async function geocodeAddressWithNominatim(
 
         // Validate coordinates are within Sofia
         if (isWithinSofia(coords.lat, coords.lng)) {
-          console.log(
-            `   ✅ Nominatim geocoded: "${address}" → [${coords.lat}, ${coords.lng}]`,
-          );
+          logger.info("Nominatim geocoded address", { address, lat: coords.lat, lng: coords.lng });
           return coords;
         }
-        console.warn(
-          `   ⚠️  Nominatim result for "${address}" outside Sofia: [${coords.lat}, ${coords.lng}]`,
-        );
+        logger.warn("Nominatim result outside Sofia", { address, lat: coords.lat, lng: coords.lng });
       }
 
-      console.warn(
-        `   ❌ All Nominatim results for "${address}" are outside Sofia`,
-      );
+      logger.warn("All Nominatim results outside Sofia", { address });
       return null;
     }
 
-    console.warn(`   ❌ Nominatim found no results for: "${address}"`);
+    logger.warn("Nominatim found no results", { address });
     return null;
   } catch (error) {
-    console.error(`Error geocoding with Nominatim for ${address}:`, error);
+    logger.error("Error geocoding with Nominatim", { address, error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -759,7 +718,7 @@ export async function overpassGeocodeAddresses(
 ): Promise<Address[]> {
   // Use mock if enabled
   if (USE_MOCK && mockService) {
-    console.log("[MOCK] Using Overpass mock for addresses");
+    logger.info("Using Overpass mock for addresses");
     return mockService.overpassGeocodeAddresses(addresses);
   }
 
@@ -777,7 +736,7 @@ export async function overpassGeocodeAddresses(
 
       if (hasNumber) {
         // Use Nominatim for specific addresses with house numbers
-        console.log(`   Geocoding numbered address with Nominatim: ${address}`);
+        logger.info("Geocoding numbered address with Nominatim", { address });
         coords = await geocodeAddressWithNominatim(address);
       } else {
         // Use Overpass for street names (get center of street)
@@ -804,10 +763,10 @@ export async function overpassGeocodeAddresses(
           },
         });
       } else {
-        console.warn(`   ⚠️  Failed to geocode: ${address}`);
+        logger.warn("Failed to geocode address", { address });
       }
     } catch (error) {
-      console.error(`Error geocoding ${address}:`, error);
+      logger.error("Error geocoding address", { address, error: error instanceof Error ? error.message : String(error) });
     }
 
     // Rate limiting

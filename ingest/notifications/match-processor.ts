@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import type { Message, Interest, NotificationMatch } from "@/lib/types";
 import { matchMessageToInterest } from "./geo-matcher";
 import { convertTimestamp } from "./utils";
+import { logger } from "@/lib/logger";
 
 export interface MatchResult {
   messageId: string;
@@ -17,7 +18,7 @@ export async function matchMessagesWithInterests(
   messages: Message[],
   interests: Interest[],
 ): Promise<MatchResult[]> {
-  console.log("\n🔍 Matching messages with interests...");
+  logger.info("Matching messages with interests");
 
   const matches: MatchResult[] = [];
 
@@ -49,22 +50,17 @@ export async function matchMessagesWithInterests(
           interestId: interest.id,
           distance,
         });
-        console.log(
-          `   ✅ Match: Message ${message.id.substring(
-            0,
-            8,
-          )} → User ${interest.userId.substring(
-            0,
-            8,
-          )} → Interest ${interest.id.substring(0, 8)} (${Math.round(
-            distance,
-          )}m)`,
-        );
+        logger.info("Match found", {
+          messageId: message.id.substring(0, 8),
+          userId: interest.userId.substring(0, 8),
+          interestId: interest.id.substring(0, 8),
+          distanceMeters: Math.round(distance),
+        });
       }
     }
   }
 
-  console.log(`\n   📊 Total matches found: ${matches.length}`);
+  logger.info("Total matches found", { count: matches.length });
 
   return matches;
 }
@@ -73,7 +69,7 @@ export async function matchMessagesWithInterests(
  * Deduplicate matches - one notification per user per message
  */
 export function deduplicateMatches(matches: MatchResult[]): MatchResult[] {
-  console.log("\n🔄 Deduplicating matches...");
+  logger.info("Deduplicating matches");
 
   const dedupedMap = new Map<string, MatchResult>();
 
@@ -88,11 +84,10 @@ export function deduplicateMatches(matches: MatchResult[]): MatchResult[] {
   }
 
   const deduped = Array.from(dedupedMap.values());
-  console.log(
-    `   ✅ After deduplication: ${deduped.length} matches (removed ${
-      matches.length - deduped.length
-    } duplicates)`,
-  );
+  logger.info("Deduplication complete", {
+    remaining: deduped.length,
+    removed: matches.length - deduped.length,
+  });
 
   return deduped;
 }
@@ -104,7 +99,7 @@ export async function storeNotificationMatches(
   adminDb: Firestore,
   matches: MatchResult[],
 ): Promise<void> {
-  console.log("\n💾 Storing notification matches...");
+  logger.info("Storing notification matches");
 
   const matchesRef = adminDb.collection("notificationMatches");
   const now = new Date();
@@ -120,7 +115,7 @@ export async function storeNotificationMatches(
     });
   }
 
-  console.log(`   ✅ Stored ${matches.length} matches`);
+  logger.info("Stored notification matches", { count: matches.length });
 }
 
 /**
@@ -129,7 +124,7 @@ export async function storeNotificationMatches(
 export async function getUnnotifiedMatches(
   adminDb: Firestore,
 ): Promise<NotificationMatch[]> {
-  console.log("\n🔔 Fetching unnotified matches...");
+  logger.info("Fetching unnotified matches");
 
   const matchesRef = adminDb.collection("notificationMatches");
   const snapshot = await matchesRef.where("notified", "==", false).get();
@@ -151,7 +146,7 @@ export async function getUnnotifiedMatches(
     });
   });
 
-  console.log(`   ✅ Found ${matches.length} unnotified matches`);
+  logger.info("Found unnotified matches", { count: matches.length });
 
   return matches;
 }

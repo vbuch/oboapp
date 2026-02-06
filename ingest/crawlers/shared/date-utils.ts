@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 /**
  * Parse Bulgarian date format (DD.MM.YYYY, DD.MM.YY, or DD/MM/YYYY) to ISO string
  * Supports both 2-digit (YY) and 4-digit (YYYY) years
@@ -22,10 +24,10 @@ export function parseBulgarianDate(dateStr: string): string {
         return date.toISOString();
       }
     }
-    console.warn(`⚠️ Unable to parse date: ${dateStr}, using current date`);
+    logger.warn("Unable to parse date, using current date", { dateStr });
     return new Date().toISOString();
   } catch (error) {
-    console.error(`❌ Error parsing date: ${dateStr}`, error);
+    logger.error("Error parsing date", { dateStr, error: error instanceof Error ? error.message : String(error) });
     return new Date().toISOString();
   }
 }
@@ -161,17 +163,10 @@ export function parseShortBulgarianDateTime(
       }
     }
 
-    console.warn(
-      `⚠️ Unable to parse short date: ${dateStr} ${
-        timeStr || ""
-      }, using current date`,
-    );
+    logger.warn("Unable to parse short date, using current date", { dateStr, timeStr: timeStr || "" });
     return new Date().toISOString();
   } catch (error) {
-    console.error(
-      `❌ Error parsing short date: ${dateStr} ${timeStr || ""}`,
-      error,
-    );
+    logger.error("Error parsing short date", { dateStr, timeStr: timeStr || "", error: error instanceof Error ? error.message : String(error) });
     return new Date().toISOString();
   }
 }
@@ -208,9 +203,7 @@ export function parseBulgarianMonthDate(dateStr: string): string {
     const match = cleaned.match(/^(\d{1,2})\s+(\S+)\s+(\d{4})$/);
 
     if (!match) {
-      console.warn(
-        `⚠️ Unable to parse Bulgarian month date: ${dateStr}, using current date`,
-      );
+      logger.warn("Unable to parse Bulgarian month date, using current date", { dateStr });
       return new Date().toISOString();
     }
 
@@ -219,9 +212,7 @@ export function parseBulgarianMonthDate(dateStr: string): string {
     const month = monthMap[monthLower];
 
     if (!month) {
-      console.warn(
-        `⚠️ Unknown Bulgarian month name: ${monthName}, using current date`,
-      );
+      logger.warn("Unknown Bulgarian month name, using current date", { monthName });
       return new Date().toISOString();
     }
 
@@ -237,9 +228,7 @@ export function parseBulgarianMonthDate(dateStr: string): string {
     );
 
     if (Number.isNaN(date.getTime())) {
-      console.warn(
-        `⚠️ Invalid date components: ${dateStr}, using current date`,
-      );
+      logger.warn("Invalid date components, using current date", { dateStr });
       return new Date().toISOString();
     }
 
@@ -253,15 +242,13 @@ export function parseBulgarianMonthDate(dateStr: string): string {
       date.getMonth() !== parsedMonth ||
       date.getFullYear() !== parsedYear
     ) {
-      console.warn(
-        `⚠️ Invalid date (out of range): ${dateStr}, using current date`,
-      );
+      logger.warn("Invalid date (out of range), using current date", { dateStr });
       return new Date().toISOString();
     }
 
     return date.toISOString();
   } catch (error) {
-    console.error(`❌ Error parsing Bulgarian month date: ${dateStr}`, error);
+    logger.error("Error parsing Bulgarian month date", { dateStr, error: error instanceof Error ? error.message : String(error) });
     return new Date().toISOString();
   }
 }

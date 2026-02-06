@@ -5,6 +5,7 @@ import type {
 } from "./types";
 import type { GeoJSONFeature, GeoJSONFeatureCollection } from "@/lib/types";
 import { sanitizeText, ensureDate, buildMessage } from "./formatters";
+import { logger } from "@/lib/logger";
 
 // Re-export for backward compatibility
 export { buildMessage } from "./formatters";
@@ -155,7 +156,7 @@ export async function buildSourceDocument(
 ): Promise<SofiyskaVodaSourceDocument | null> {
   const objectId = feature.attributes?.OBJECTID;
   if (typeof objectId !== "number") {
-    console.warn(`⚠️ Skipping feature without OBJECTID in layer ${layer.id}`);
+    logger.warn("Skipping feature without OBJECTID", { layerId: layer.id });
     return null;
   }
 
@@ -167,7 +168,7 @@ export async function buildSourceDocument(
   );
   const geoJson = buildGeoJsonFeatureCollection(feature, layer);
   if (!geoJson) {
-    console.warn(`⚠️ Skipping feature without geometry: ${url}`);
+    logger.warn("Skipping feature without geometry", { url });
     return null;
   }
   const lastUpdate =
@@ -198,14 +199,10 @@ export async function buildSourceDocument(
   // Fallback to lastUpdate if invalid or missing
   if (!isStartValid || !isEndValid) {
     if (!isStartValid && feature.attributes?.START_) {
-      console.warn(
-        `   ⚠️  START_ outside valid range for ${feature.attributes.OBJECTID}: ${feature.attributes.START_}`,
-      );
+      logger.warn("START_ outside valid range", { objectId: feature.attributes.OBJECTID, startValue: feature.attributes.START_ });
     }
     if (!isEndValid && feature.attributes?.ALERTEND) {
-      console.warn(
-        `   ⚠️  ALERTEND outside valid range for ${feature.attributes.OBJECTID}: ${feature.attributes.ALERTEND}`,
-      );
+      logger.warn("ALERTEND outside valid range", { objectId: feature.attributes.OBJECTID, alertEnd: feature.attributes.ALERTEND });
     }
     timespanStart = lastUpdate;
     timespanEnd = lastUpdate;

@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import type { Firestore } from "firebase-admin/firestore";
 import { GeoJSONFeatureCollection } from "@/lib/types";
 import { isWithinBoundaries, loadBoundaries } from "@/lib/boundary-utils";
+import { logger } from "@/lib/logger";
 
 // Load environment variables
 dotenv.config({ path: resolve(process.cwd(), ".env.local"), debug: false });
@@ -112,7 +113,7 @@ async function fetchSources(
   }
 
   const filterInfo = filters.length > 0 ? ` (${filters.join(", ")})` : "";
-  console.log(`📡 Fetched ${sources.length} source(s)${filterInfo}`);
+  logger.info("Fetched sources", { count: sources.length, filters: filterInfo || undefined });
   return sources;
 }
 
@@ -158,26 +159,22 @@ async function ingestSource(
   sourceDocumentId: string,
 ): Promise<boolean> {
   if (dryRun) {
-    console.log(`   📝 [dry-run] Would ingest: ${source.title}`);
+    logger.info("[dry-run] Would ingest source", { title: source.title });
     return true;
   }
 
-  // Prominent message header
-  console.log(`\n${"=".repeat(80)}`);
-  console.log(`📄 PROCESSING MESSAGE`);
-  console.log(`   Title: ${source.title}`);
-  console.log(`   URL: ${source.url}`);
-  console.log(`   Source Type: ${source.sourceType}`);
+  const logMeta: Record<string, unknown> = {
+    title: source.title,
+    url: source.url,
+    sourceType: source.sourceType,
+  };
   if (source.timespanStart && source.timespanEnd) {
-    console.log(
-      `   Timespan: ${source.timespanStart.toISOString()} - ${source.timespanEnd.toISOString()}`,
-    );
+    logMeta.timespanStart = source.timespanStart.toISOString();
+    logMeta.timespanEnd = source.timespanEnd.toISOString();
   } else if (source.geoJson) {
-    console.log(
-      `   ⚠️  Warning: Source has precomputed GeoJSON but missing timespans (will fallback to crawledAt)`,
-    );
+    logMeta.warning = "Source has precomputed GeoJSON but missing timespans (will fallback to crawledAt)";
   }
-  console.log(`${"=".repeat(80)}`);
+  logger.info("Processing message", logMeta);
 
   // Parse geoJson if it's a string
   let geoJson: GeoJSONFeatureCollection | null = null;
@@ -212,16 +209,14 @@ async function ingestSource(
     },
   );
 
-  console.log(`\n✅ COMPLETED: ${source.title}`);
-  console.log(`   Messages created: ${result.messages.length}`);
-  console.log(`   Total categorized: ${result.totalCategorized}`);
-  console.log(
-    `   Relevant: ${result.totalRelevant}, Irrelevant: ${result.totalIrrelevant}`,
-  );
-  for (const message of result.messages) {
-    console.log(`   Message ID: ${message.id}`);
-  }
-  console.log(`${"=".repeat(80)}\n`);
+  logger.info("Completed processing source", {
+    title: source.title,
+    messagesCreated: result.messages.length,
+    totalCategorized: result.totalCategorized,
+    totalRelevant: result.totalRelevant,
+    totalIrrelevant: result.totalIrrelevant,
+    messageIds: result.messages.map((m) => m.id),
+  });
   return true;
 }
 
@@ -250,9 +245,7 @@ async function filterByAge(
   }
 
   if (tooOld > 0) {
-    console.log(
-      `📅 Age filter: ${recentSources.length} recent, ${tooOld} too old (>=${maxAgeInDays} days)`,
-    );
+    logger.info("Age filter applied", { recent: recentSources.length, tooOld, maxAgeInDays });
   }
 
   return { recentSources, tooOld };
@@ -287,7 +280,7 @@ async function filterByBoundaries(
       typeof geoJson !== "object" ||
       !Array.isArray(geoJson.features)
     ) {
-      console.warn(`   ⚠️  Invalid GeoJSON for source: ${source.url}`);
+      logger.warn("Invalid GeoJSON for source", { url: source.url });
       // Include sources with invalid GeoJSON to avoid skipping them
       withinBounds.push(source);
       continue;
@@ -300,9 +293,7 @@ async function filterByBoundaries(
     }
   }
 
-  console.log(
-    `🗺️  Boundary filter: ${withinBounds.length} within, ${outsideBounds} outside`,
-  );
+  logger.info("Boundary filter applied", { withinBounds: withinBounds.length, outsideBounds });
 
   return { withinBounds, outsideBounds };
 }
@@ -315,15 +306,11 @@ async function maybeInitFirestore(): Promise<Firestore> {
 export async function ingest(
   options: IngestOptions = {},
 ): Promise<IngestSummary> {
-  console.log(
-    `📥 Starting source ingestion (${
-      options.dryRun ? "dry-run" : "production"
-    })`,
-  );
+  logger.info("Starting source ingestion", { mode: options.dryRun ? "dry-run" : "production" });
 
   const boundaries = loadBoundaries(options.boundariesPath);
   if (boundaries) {
-    console.log("🗺️  Using boundary filtering");
+    logger.info("Using boundary filtering");
   }
   const adminDb = await maybeInitFirestore();
 
@@ -350,9 +337,7 @@ export async function ingest(
   const alreadyIngestedCount = withinBounds.length - sourcesToIngest.length;
 
   if (alreadyIngestedCount > 0) {
-    console.log(
-      `✅ Skipping ${alreadyIngestedCount} already-ingested source(s)`,
-    );
+    logger.info("Skipping already-ingested sources", { count: alreadyIngestedCount });
   }
 
   const summary: IngestSummary = {
@@ -387,15 +372,13 @@ export async function ingest(
 
       // Don't log as error if it's just outside boundaries or filtered as irrelevant
       if (errorMessage.includes("No features within specified boundaries")) {
-        console.log(
-          `   ⏭️  ${source.title}: Outside boundaries after geocoding`,
-        );
+        logger.info("Source outside boundaries after geocoding", { title: source.title });
       } else if (errorMessage.includes("Message filtering failed")) {
         summary.filtered++;
-        console.log(`   ℹ️  ${source.title}: Filtered as irrelevant`);
+        logger.info("Source filtered as irrelevant", { title: source.title });
       } else {
         summary.errors.push({ url: source.url, error: errorMessage });
-        console.error(`   ❌ Failed to ingest ${source.title}:`, errorMessage);
+        logger.error("Failed to ingest source", { title: source.title, error: errorMessage, url: source.url });
       }
     }
   }
@@ -405,50 +388,36 @@ export async function ingest(
 }
 
 function logSummary(summary: IngestSummary, dryRun: boolean): void {
-  console.log("\n" + "=".repeat(60));
-  console.log("📊 Ingestion Summary");
-  console.log("=".repeat(60));
-  console.log(`📦 Total sources fetched: ${summary.total}`);
+  const summaryData: Record<string, unknown> = {
+    total: summary.total,
+    dryRun,
+  };
+
   if (summary.tooOld > 0) {
-    console.log(`📅 Too old (skipped): ${summary.tooOld}`);
+    summaryData.tooOld = summary.tooOld;
   }
   if (summary.withinBounds < summary.total - summary.tooOld) {
-    console.log(`🗺️  Within boundaries: ${summary.withinBounds}`);
-    console.log(`⏭️  Outside boundaries: ${summary.outsideBounds}`);
+    summaryData.withinBounds = summary.withinBounds;
+    summaryData.outsideBounds = summary.outsideBounds;
   }
   if (dryRun) {
-    console.log(
-      `📝 Would ingest: ${summary.withinBounds - summary.alreadyIngested}`,
-    );
+    summaryData.wouldIngest = summary.withinBounds - summary.alreadyIngested;
   } else {
-    console.log(`✅ Successfully ingested: ${summary.ingested}`);
-    console.log(`⏭️  Already ingested (skipped): ${summary.alreadyIngested}`);
+    summaryData.ingested = summary.ingested;
+    summaryData.alreadyIngested = summary.alreadyIngested;
     if (summary.filtered > 0) {
-      console.log(`🚦 Filtered as irrelevant: ${summary.filtered}`);
-      const filterPercentage = (
-        (summary.filtered / summary.withinBounds) *
-        100
-      ).toFixed(1);
-      console.log(`   (${filterPercentage}% of messages within bounds)`);
+      summaryData.filtered = summary.filtered;
+      summaryData.filterPercentage = ((summary.filtered / summary.withinBounds) * 100).toFixed(1);
     }
     if (summary.failed > 0) {
-      console.log(`❌ Failed: ${summary.failed}`);
+      summaryData.failed = summary.failed;
     }
   }
-  console.log("=".repeat(60));
+
+  logger.info("Ingestion summary", summaryData);
 
   if (summary.errors.length > 0) {
-    console.log("\n❌ Errors:");
-    for (const { url, error } of summary.errors) {
-      console.log(`   • ${url}`);
-      console.log(`     ${error}`);
-    }
-  }
-
-  if (dryRun) {
-    console.log(
-      "\n💡 Dry-run mode: no messages were created. Run without --dry-run to ingest.",
-    );
+    logger.error("Ingestion errors", { errors: summary.errors });
   }
 }
 // Run only when executed directly
@@ -457,7 +426,7 @@ if (require.main === module) {
     const options = await parseArguments();
     await ingest(options);
   })().catch((error) => {
-    console.error("❌ Ingestion failed:", error);
+    logger.error("Ingestion failed", { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   });
 }

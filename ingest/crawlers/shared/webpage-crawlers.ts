@@ -6,6 +6,7 @@ import { PostLink } from "./types";
 import { launchBrowser } from "./browser";
 import { isUrlProcessed, saveSourceDocument } from "./firestore";
 import { delay } from "@/lib/delay";
+import { logger } from "@/lib/logger";
 
 const turndownService = createTurndownService();
 
@@ -70,12 +71,12 @@ export async function processWordpressPost<
 ): Promise<void> {
   const { url, title } = postLink;
 
-  console.log(`\n🔍 Processing: ${title.substring(0, 60)}...`);
+  logger.info("Processing post", { title: title.substring(0, 60) });
 
   const page = await browser.newPage();
 
   try {
-    console.log(`📥 Fetching: ${url}`);
+    logger.info("Fetching post", { url });
     await page.goto(url, { waitUntil: "networkidle" });
 
     const details = await extractPostDetails(page);
@@ -96,9 +97,9 @@ export async function processWordpressPost<
 
     await saveSourceDocument(sourceDoc, adminDb);
 
-    console.log(`✅ Successfully processed: ${title.substring(0, 60)}...`);
+    logger.info("Successfully processed post", { title: title.substring(0, 60) });
   } catch (error) {
-    console.error(`❌ Error processing post: ${url}`, error);
+    logger.error("Error processing post", { url, error: error instanceof Error ? error.message : String(error) });
     throw error;
   } finally {
     await page.close();
@@ -130,31 +131,29 @@ export async function crawlWordpressPage(options: {
     delayBetweenRequests: _delayBetweenRequests = 2000,
   } = options;
 
-  console.log(`🚀 Starting ${sourceType} crawler...\n`);
-  console.log(`📍 Index URL: ${indexUrl}`);
-  console.log(`🗄️  Source type: ${sourceType}\n`);
+  logger.info("Starting crawler", { sourceType, indexUrl });
 
   const { adminDb } = await import("@/lib/firebase-admin");
 
   let browser: Browser | null = null;
 
   try {
-    console.log("🌐 Launching browser...");
+    logger.info("Launching browser");
     browser = await launchBrowser();
 
     const page = await browser.newPage();
-    console.log(`📥 Fetching index page: ${indexUrl}`);
+    logger.info("Fetching index page", { url: indexUrl });
     await page.goto(indexUrl, { waitUntil: "networkidle" });
 
     const postLinks = await extractPostLinks(page);
     await page.close();
 
     if (postLinks.length === 0) {
-      console.warn("⚠️ No posts found on index page");
+      logger.warn("No posts found on index page");
       return;
     }
 
-    console.log(`\n📊 Total posts to process: ${postLinks.length}\n`);
+    logger.info("Total posts to process", { count: postLinks.length });
 
     let processedCount = 0;
     let skippedCount = 0;
@@ -165,37 +164,24 @@ export async function crawlWordpressPage(options: {
 
         if (wasProcessed) {
           skippedCount++;
-          console.log(
-            `⏭️  Skipped (already processed): ${postLink.title.substring(
-              0,
-              60,
-            )}...`,
-          );
+          logger.info("Skipped already processed post", { title: postLink.title.substring(0, 60) });
         } else {
           await processPost(browser, postLink, adminDb);
           processedCount++;
         }
       } catch (error) {
-        console.error(`❌ Error processing post: ${postLink.url}`, error);
+        logger.error("Error processing post", { url: postLink.url, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
-    console.log("\n" + "=".repeat(60));
-    console.log("✅ Crawling completed successfully!");
-    console.log(`📊 Total posts found: ${postLinks.length}`);
-    console.log(`✅ Newly processed: ${processedCount}`);
-    console.log(`⏭️  Skipped (already exists): ${skippedCount}`);
-    console.log("=".repeat(60) + "\n");
+    logger.info("Crawling completed successfully", { totalPosts: postLinks.length, processedCount, skippedCount });
   } catch (error) {
-    console.error("\n" + "=".repeat(60));
-    console.error("❌ Crawling failed with error:");
-    console.error(error);
-    console.error("=".repeat(60) + "\n");
+    logger.error("Crawling failed", { error: error instanceof Error ? error.message : String(error) });
     throw error;
   } finally {
     if (browser) {
       await browser.close();
-      console.log("🔒 Browser closed");
+      logger.info("Browser closed");
     }
   }
 }

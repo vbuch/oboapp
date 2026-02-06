@@ -160,12 +160,12 @@ Examples:
 
     // Validate that exactly one option is provided
     if (options.emergent && options.all) {
-      console.error("❌ Error: Cannot use both --emergent and --all options");
+      logger.error("Cannot use both --emergent and --all options");
       process.exit(1);
     }
 
     if (!options.emergent && !options.all) {
-      console.error("❌ Error: Must specify either --emergent or --all");
+      logger.error("Must specify either --emergent or --all");
       program.help();
     }
 

@@ -1,5 +1,6 @@
 import { adminDb } from "./firebase-admin";
 import type { Address } from "./types";
+import { logger } from "@/lib/logger";
 
 export interface BusStopGeometry {
   stopCode: string;
@@ -19,7 +20,7 @@ async function geocodeBusStop(
     const doc = await db.collection("gtfsStops").doc(stopCode).get();
 
     if (!doc.exists) {
-      console.warn(`[GTFS] Bus stop ${stopCode} not found in GTFS data`);
+      logger.warn("Bus stop not found in GTFS data", { stopCode });
       return null;
     }
 
@@ -35,10 +36,7 @@ async function geocodeBusStop(
       lng: data.coordinates.longitude,
     };
   } catch (error) {
-    console.error(
-      `[GTFS] Failed to geocode bus stop ${stopCode}:`,
-      error instanceof Error ? error.message : error,
-    );
+    logger.error("Failed to geocode bus stop", { stopCode, error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -65,7 +63,7 @@ export async function geocodeBusStops(stopCodes: string[]): Promise<Address[]> {
           coordinates: [geometry.lng, geometry.lat],
         },
       });
-      console.log(`[GTFS] Geocoded bus stop ${stopCode}: ${geometry.stopName}`);
+      logger.info("Geocoded bus stop", { stopCode, stopName: geometry.stopName });
     }
   }
 

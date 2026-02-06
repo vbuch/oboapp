@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { Message } from "@/lib/types";
 import { convertTimestamp } from "./utils";
+import { logger } from "@/lib/logger";
 
 /**
  * Get all unprocessed messages (messages without notificationsSent flag)
@@ -8,7 +9,7 @@ import { convertTimestamp } from "./utils";
 export async function getUnprocessedMessages(
   adminDb: Firestore,
 ): Promise<Message[]> {
-  console.log("📨 Fetching unprocessed messages...");
+  logger.info("Fetching unprocessed messages");
 
   const messagesRef = adminDb.collection("messages");
 
@@ -31,7 +32,7 @@ export async function getUnprocessedMessages(
     }
   });
 
-  console.log(`   ✅ Found ${unprocessedMessages.length} unprocessed messages`);
+  logger.info("Found unprocessed messages", { count: unprocessedMessages.length });
 
   return unprocessedMessages;
 }
@@ -43,7 +44,7 @@ export async function markMessagesAsNotified(
   adminDb: Firestore,
   messageIds: string[],
 ): Promise<void> {
-  console.log(`\n📝 Marking ${messageIds.length} messages as notified...`);
+  logger.info("Marking messages as notified", { count: messageIds.length });
 
   const messagesRef = adminDb.collection("messages");
   const now = new Date();
@@ -55,5 +56,5 @@ export async function markMessagesAsNotified(
     });
   }
 
-  console.log(`   ✅ Marked ${messageIds.length} messages as notified`);
+  logger.info("Marked messages as notified", { count: messageIds.length });
 }

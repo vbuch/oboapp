@@ -16,6 +16,7 @@ import {
 import { storeIncomingMessage, updateMessage } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
 import { generateMessageId, formatCategorizedMessageLogInfo } from "./utils";
+import { logger } from "@/lib/logger";
 
 export { extractAddressesFromMessage } from "./extract-addresses";
 export {
@@ -265,11 +266,11 @@ async function processCategorizedMessages(
   const categorizedMessages = await categorize(text);
 
   if (!categorizedMessages || categorizedMessages.length === 0) {
-    console.error("❌ Failed to categorize message");
+    logger.error("Failed to categorize message");
     throw new Error("Message categorization failed");
   }
 
-  console.log(`📊 Categorized into ${categorizedMessages.length} message(s)`);
+  logger.info("Categorized message", { count: categorizedMessages.length });
 
   const messages: InternalMessage[] = [];
   let totalRelevant = 0;
@@ -344,7 +345,7 @@ function logCategorizedMessageInfo(
     totalMessages,
     messageId,
   );
-  logMessages.forEach((message) => console.log(message));
+  logMessages.forEach((message) => logger.info(message));
 }
 
 /**
@@ -392,7 +393,7 @@ async function handleIrrelevantMessage(
   text: string,
   ingestErrors: IngestErrorCollector,
 ): Promise<InternalMessage> {
-  console.log("ℹ️  Message filtered as irrelevant, marking as finalized");
+  logger.info("Message filtered as irrelevant, marking as finalized");
   await updateMessage(messageId, {
     finalizedAt: new Date(),
     isRelevant: false,
@@ -654,9 +655,7 @@ async function applyBoundaryFilteringIfNeeded(
   const filteredGeoJson = filterFeaturesByBoundaries(geoJson, boundaryFilter);
 
   if (!filteredGeoJson) {
-    console.log(
-      `⏭️  Message ${messageId} has no features within boundaries, skipping storage`,
-    );
+    logger.info("Message has no features within boundaries, skipping storage", { messageId });
     throw new Error("No features within specified boundaries");
   }
 

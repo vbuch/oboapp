@@ -1,4 +1,5 @@
 import { adminAuth } from "@/lib/firebase-admin";
+import { logger } from "@/lib/logger";
 
 /**
  * Helper: Verify authentication token and extract user info
@@ -20,7 +21,7 @@ export async function verifyAuthToken(authHeader: string | null): Promise<{
       userEmail: decodedToken.email || null,
     };
   } catch (error) {
-    console.error("Error verifying auth token:", error);
+    logger.error("Error verifying auth token", { error: error instanceof Error ? error.message : String(error) });
     throw new Error("Invalid auth token");
   }
 }

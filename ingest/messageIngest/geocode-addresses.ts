@@ -12,6 +12,7 @@ import {
 } from "@/lib/types";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
 import type { CategorizedMessage } from "@/lib/categorize.schema";
+import { logger } from "@/lib/logger";
 
 // Internal types for the geocoding pipeline
 export interface GeocodingResult {
@@ -179,9 +180,10 @@ export async function geocodeAddressesFromExtractedData(
     cadastralGeometries =
       await geocodeCadastralPropertiesFromIdentifiers(identifiers);
 
-    console.log(
-      `[Geocoding] Geocoded ${cadastralGeometries.size}/${identifiers.length} cadastral properties`,
-    );
+    logger.info("Geocoded cadastral properties", {
+      geocoded: cadastralGeometries.size,
+      total: identifiers.length,
+    });
   }
 
   // Geocode bus stops using GTFS
@@ -193,9 +195,10 @@ export async function geocodeAddressesFromExtractedData(
       preGeocodedMap.set(addr.originalText, addr.coordinates);
     });
 
-    console.log(
-      `[Geocoding] Geocoded ${geocodedBusStops.length}/${categorize.busStops.length} bus stops`,
-    );
+    logger.info("Geocoded bus stops", {
+      geocoded: geocodedBusStops.length,
+      total: categorize.busStops.length,
+    });
   }
 
   // Deduplicate addresses before returning

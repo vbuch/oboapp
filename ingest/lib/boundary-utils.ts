@@ -2,6 +2,7 @@ import * as turf from "@turf/turf";
 import type { Feature } from "geojson";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { logger } from "@/lib/logger";
 import type { GeoJSONFeatureCollection, GeoJSONFeature } from "./types";
 
 // Cache boundaries by absolute path to avoid re-reading files
@@ -35,10 +36,7 @@ export function loadBoundaries(
 
     return geojson;
   } catch (error) {
-    console.error(
-      `❌ Failed to load boundaries from ${boundariesPath}:`,
-      error,
-    );
+    logger.error("Failed to load boundaries", { boundariesPath, error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 }
@@ -78,9 +76,7 @@ function checkBoundingBoxOverlap(
         : String(originalError);
     const bboxErrorMessage =
       error instanceof Error ? error.message : String(error);
-    console.warn(
-      `⚠️  Could not check geometry intersection (${errorMessage}), bbox check also failed (${bboxErrorMessage}), including by default`,
-    );
+    logger.warn("Could not check geometry intersection, bbox check also failed, including by default", { intersectionError: errorMessage, bboxError: bboxErrorMessage });
     return true;
   }
 }
@@ -143,7 +139,7 @@ export function filterFeaturesByBoundaries(
 
   const filteredFeatures = sourceGeoJson.features.filter((feature) => {
     if (!feature.geometry?.coordinates) {
-      console.warn("⚠️  Skipping feature without valid geometry");
+      logger.warn("Skipping feature without valid geometry");
       return false;
     }
 
@@ -171,7 +167,7 @@ export function isWithinBoundaries(
     // Check if any feature in source intersects with boundaries
     for (const feature of sourceGeoJson.features) {
       if (!feature.geometry?.coordinates) {
-        console.warn("⚠️  Skipping feature without valid geometry");
+        logger.warn("Skipping feature without valid geometry");
         continue;
       }
 
@@ -182,7 +178,7 @@ export function isWithinBoundaries(
 
     return false;
   } catch (error) {
-    console.warn("⚠️  Error checking boundaries intersection:", error);
+    logger.warn("Error checking boundaries intersection", { error: error instanceof Error ? error.message : String(error) });
     // In case of error, include the source to be safe
     return true;
   }

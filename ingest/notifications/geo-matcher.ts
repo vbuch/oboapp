@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as turf from "@turf/turf";
 import type { Message, Interest, GeoJSONFeatureCollection } from "@/lib/types";
+import { logger } from "@/lib/logger";
 
 // Cache Sofia GeoJSON
 let sofiaGeoJson: GeoJSONFeatureCollection | null = null;
@@ -75,7 +76,7 @@ export function matchMessageToInterest(
         }
       }
     } catch (error) {
-      console.warn(`   ⚠️  Error checking intersection for feature:`, error);
+      logger.warn("Error checking intersection for feature", { error: error instanceof Error ? error.message : String(error) });
     }
   }
 

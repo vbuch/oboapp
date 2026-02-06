@@ -1,6 +1,7 @@
 import type { ExtractedData } from "./types";
 import type { CategorizationResult } from "./categorize.schema";
 import type { IngestErrorRecorder } from "./ingest-errors";
+import { logger } from "@/lib/logger";
 import { GeminiMockService } from "../__mocks__/services/gemini-mock-service";
 import {
   validateText,
@@ -24,7 +25,7 @@ export async function categorize(
 ): Promise<CategorizationResult | null> {
   // Use mock if enabled
   if (USE_MOCK && mockService) {
-    console.log("[MOCK] Using Gemini mock for categorization");
+    logger.info("Using Gemini mock for categorization");
     return mockService.categorize(text);
   }
 
@@ -69,7 +70,7 @@ export async function extractStructuredData(
 ): Promise<ExtractedData | null> {
   // Use mock if enabled
   if (USE_MOCK && mockService) {
-    console.log("[MOCK] Using Gemini mock for extraction");
+    logger.info("Using Gemini mock for extraction");
     return mockService.extractStructuredData(text);
   }
 

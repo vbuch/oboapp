@@ -11,6 +11,7 @@ import { extractPinRecords } from "./extractors";
 import { deduplicatePinRecords } from "./deduplication";
 import { parseTimespans } from "./timespan-parsing";
 import { groupPinsByEventId } from "./grouping";
+import { logger } from "@/lib/logger";
 import type {
   ApiResponse,
   CrawlSummary,
@@ -31,7 +32,7 @@ const SOURCE_TYPE = "erm-zapad";
  * Discover active София-град municipalities from the index page
  */
 async function discoverMunicipalities(): Promise<Municipality[]> {
-  console.log("🔍 Discovering София-град municipalities...");
+  logger.info("Discovering София-град municipalities");
 
   const browser = await launchBrowser();
   const page = await browser.newPage();
@@ -85,8 +86,7 @@ async function discoverMunicipalities(): Promise<Municipality[]> {
       return results;
     });
 
-    console.log(`   ✅ Found ${municipalities.length} municipalities`);
-    municipalities.forEach((m) => console.log(`      • ${m.code}: ${m.name}`));
+    logger.info("Found municipalities", { count: municipalities.length, municipalities: municipalities.map((m) => `${m.code}: ${m.name}`) });
 
     return municipalities;
   } finally {
@@ -140,7 +140,7 @@ async function fetchMunicipalityIncidents(
  */
 function buildSourceDocument(pins: PinRecord[]): ErmZapadSourceDocument | null {
   if (pins.length === 0) {
-    console.warn(`   ⚠️  Skipping empty pin array`);
+    logger.warn("Skipping empty pin array");
     return null;
   }
 
@@ -149,29 +149,27 @@ function buildSourceDocument(pins: PinRecord[]): ErmZapadSourceDocument | null {
 
   // Validate required fields
   if (!pin.eventId || typeof pin.eventId !== "string") {
-    console.warn(`   ⚠️  Skipping pin without eventId`);
+    logger.warn("Skipping pin without eventId");
     return null;
   }
 
   // Build GeoJSON with all pins for this incident
   const geoJson = buildGeoJSON(pins);
   if (!geoJson) {
-    console.warn(`   ⚠️  Skipping incident without geometry: ${pin.eventId}`);
+    logger.warn("Skipping incident without geometry", { eventId: pin.eventId });
     return null;
   }
 
   // Validate and fix GeoJSON
   const validation = validateAndFixGeoJSON(geoJson, pin.eventId);
   if (!validation.isValid || !validation.geoJson) {
-    console.warn(`   ⚠️  Invalid GeoJSON for ${pin.eventId}:`);
-    validation.errors.forEach((err) => console.warn(`      ${err}`));
+    logger.warn("Invalid GeoJSON for incident", { eventId: pin.eventId, errors: validation.errors });
     return null;
   }
 
   // Log any coordinate fixes
   if (validation.warnings.length > 0) {
-    console.warn(`   ⚠️  Fixed GeoJSON for ${pin.eventId}:`);
-    validation.warnings.forEach((warn) => console.warn(`      ${warn}`));
+    logger.warn("Fixed GeoJSON for incident", { eventId: pin.eventId, warnings: validation.warnings });
   }
 
   const url = `${BASE_URL}/incidents/${pin.eventId}`;
@@ -184,9 +182,7 @@ function buildSourceDocument(pins: PinRecord[]): ErmZapadSourceDocument | null {
     try {
       datePublished = parseBulgarianDateTime(pin.begin_event).toISOString();
     } catch {
-      console.warn(
-        `   ⚠️  Invalid date format for ${pin.eventId}: ${pin.begin_event}`,
-      );
+      logger.warn("Invalid date format", { eventId: pin.eventId, beginEvent: pin.begin_event });
     }
   }
 
@@ -214,11 +210,11 @@ function buildSourceDocument(pins: PinRecord[]): ErmZapadSourceDocument | null {
 async function processMunicipality(
   municipality: Municipality,
 ): Promise<PinRecord[]> {
-  console.log(`\n📍 Processing ${municipality.name} (${municipality.code})...`);
+  logger.info("Processing municipality", { name: municipality.name, code: municipality.code });
 
   try {
     const incidents = await fetchMunicipalityIncidents(municipality.code);
-    console.log(`   Found ${incidents.length} incident(s)`);
+    logger.info("Found incidents for municipality", { count: incidents.length });
 
     if (incidents.length === 0) {
       return [];
@@ -231,13 +227,10 @@ async function processMunicipality(
       allPins.push(...pins);
     }
 
-    console.log(`   Extracted ${allPins.length} pin(s)`);
+    logger.info("Extracted pins", { count: allPins.length });
     return allPins;
   } catch (error) {
-    console.error(
-      `   ❌ Failed to fetch incidents for ${municipality.code}:`,
-      error,
-    );
+    logger.error("Failed to fetch incidents for municipality", { code: municipality.code, error: error instanceof Error ? error.message : String(error) });
     throw error; // Re-throw to fail the crawl
   }
 }
@@ -260,13 +253,13 @@ async function saveIncidents(
 
       const saved = await saveSourceDocumentIfNew(doc, adminDb);
       if (saved) {
-        console.log(`   ✅ Saved: ${doc.title} (${pins.length} pin(s))`);
+        logger.info("Saved incident", { title: doc.title, pinCount: pins.length });
         summary.saved++;
       } else {
         summary.skipped++;
       }
     } catch (error) {
-      console.error(`   ❌ Failed to process incident ${eventId}:`, error);
+      logger.error("Failed to process incident", { eventId, error: error instanceof Error ? error.message : String(error) });
       summary.failed++;
     }
   }
@@ -276,7 +269,7 @@ async function saveIncidents(
  * Main crawler function
  */
 async function crawl(): Promise<void> {
-  console.log("🚀 Starting ERM-Zapad crawler...\n");
+  logger.info("Starting ERM-Zapad crawler");
 
   const startTime = Date.now();
   const totalSummary: CrawlSummary = { saved: 0, skipped: 0, failed: 0 };
@@ -286,7 +279,7 @@ async function crawl(): Promise<void> {
     const municipalities = await discoverMunicipalities();
 
     if (municipalities.length === 0) {
-      console.log("⚠️  No София-град municipalities found");
+      logger.warn("No София-град municipalities found");
       return;
     }
 
@@ -302,20 +295,16 @@ async function crawl(): Promise<void> {
       }
     }
 
-    console.log(`\n📊 Total pins extracted: ${allPins.length}`);
+    logger.info("Total pins extracted", { count: allPins.length });
 
     // Deduplicate globally across all municipalities
     const uniquePins = deduplicatePinRecords(allPins);
-    console.log(
-      `📊 Unique pins after deduplication: ${uniquePins.length} (removed ${allPins.length - uniquePins.length} duplicates)`,
-    );
+    logger.info("Unique pins after deduplication", { uniqueCount: uniquePins.length, removedDuplicates: allPins.length - uniquePins.length });
 
     // Group pins by eventId to handle potential duplicates across municipalities
     const incidentMap = groupPinsByEventId(uniquePins);
 
-    console.log(
-      `📊 Incidents after grouping: ${incidentMap.size} (${uniquePins.length} total pins)`,
-    );
+    logger.info("Incidents after grouping", { incidentCount: incidentMap.size, totalPins: uniquePins.length });
 
     // Dynamic import after dotenv.config
     const { adminDb } = await import("@/lib/firebase-admin");
@@ -325,9 +314,7 @@ async function crawl(): Promise<void> {
 
     // Final summary
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(
-      `\n✅ Crawl complete in ${duration}s. Saved: ${totalSummary.saved}; Skipped: ${totalSummary.skipped}; Failed: ${totalSummary.failed}`,
-    );
+    logger.info("Crawl complete", { durationSeconds: duration, saved: totalSummary.saved, skipped: totalSummary.skipped, failed: totalSummary.failed });
 
     // Exit with error if all failed
     if (
@@ -335,11 +322,11 @@ async function crawl(): Promise<void> {
       totalSummary.saved === 0 &&
       totalSummary.skipped === 0
     ) {
-      console.error("\n❌ All pins failed to process");
+      logger.error("All pins failed to process");
       process.exit(1);
     }
   } catch (error) {
-    console.error("\n❌ Crawl failed:", error);
+    logger.error("Crawl failed", { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   }
 }

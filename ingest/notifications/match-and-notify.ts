@@ -22,6 +22,7 @@ import {
   markMatchesAsNotified,
 } from "./notification-sender";
 import { convertTimestamp } from "./utils";
+import { logger } from "@/lib/logger";
 
 // Load environment variables
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -34,7 +35,7 @@ async function sendNotifications(
   messaging: Messaging,
   matches: NotificationMatch[],
 ): Promise<void> {
-  console.log("\n📤 Sending notifications...");
+  logger.info("Sending notifications");
 
   const messagesRef = adminDb.collection("messages");
 
@@ -57,9 +58,10 @@ async function sendNotifications(
   }
 
   const uniqueMatches = Array.from(notificationMap.values());
-  console.log(
-    `   ℹ️  Sending ${uniqueMatches.length} unique notifications (deduplicated from ${matches.length} matches)`,
-  );
+  logger.info("Sending unique notifications", {
+    unique: uniqueMatches.length,
+    total: matches.length,
+  });
 
   // Track which matches were processed to mark them all as notified
   const allMatchIds = matches
@@ -74,7 +76,7 @@ async function sendNotifications(
     // Get message details
     const messageDoc = await messagesRef.doc(match.messageId).get();
     if (!messageDoc.exists) {
-      console.warn(`   ⚠️  Message ${match.messageId} not found`);
+      logger.warn("Message not found for notification", { messageId: match.messageId });
       continue;
     }
 
@@ -94,22 +96,18 @@ async function sendNotifications(
 
     if (deviceSuccessCount > 0) {
       successCount++;
-      console.log(
-        `   ✅ Sent to user ${match.userId.substring(
-          0,
-          8,
-        )} on ${deviceSuccessCount}/${
-          notifications.length
-        } devices for message ${match.messageId.substring(0, 8)}`,
-      );
+      logger.info("Notification sent", {
+        userId: match.userId.substring(0, 8),
+        devicesSuccess: deviceSuccessCount,
+        devicesTotal: notifications.length,
+        messageId: match.messageId.substring(0, 8),
+      });
     } else {
       errorCount++;
-      console.log(
-        `   ❌ Failed to send to any device for user ${match.userId.substring(
-          0,
-          8,
-        )}`,
-      );
+      logger.error("Failed to send to any device", {
+        userId: match.userId.substring(0, 8),
+        messageId: match.messageId.substring(0, 8),
+      });
     }
 
     // Update match document with results
@@ -126,8 +124,7 @@ async function sendNotifications(
   // Mark all related matches as notified
   await markMatchesAsNotified(adminDb, allMatchIds);
 
-  console.log(`\n   📊 Notifications sent: ${successCount}`);
-  console.log(`   ❌ Errors: ${errorCount}`);
+  logger.info("Notification sending complete", { successCount, errorCount });
 }
 
 /**
@@ -150,7 +147,7 @@ async function initFirebase(): Promise<{
  * Main function
  */
 export async function main(): Promise<void> {
-  console.log("🔔 Starting notification matching and sending...\n");
+  logger.info("Starting notification matching and sending");
 
   const { adminDb, messaging } = await initFirebase();
 
@@ -158,7 +155,7 @@ export async function main(): Promise<void> {
   const unprocessedMessages = await getUnprocessedMessages(adminDb);
 
   if (unprocessedMessages.length === 0) {
-    console.log("\n✨ No new messages to process");
+    logger.info("No new messages to process");
     return;
   }
 
@@ -166,7 +163,7 @@ export async function main(): Promise<void> {
   const interests = await getAllInterests(adminDb);
 
   if (interests.length === 0) {
-    console.log("\n✨ No user interests configured");
+    logger.info("No user interests configured");
     // Still mark messages as processed so we don't reprocess them
     const messageIds = unprocessedMessages
       .map((m) => m.id)
@@ -182,7 +179,7 @@ export async function main(): Promise<void> {
   );
 
   if (matches.length === 0) {
-    console.log("\n✨ No matches found");
+    logger.info("No matches found");
     // Still mark messages as processed
     const messageIds = unprocessedMessages
       .map((m) => m.id)
@@ -201,7 +198,7 @@ export async function main(): Promise<void> {
   const unnotifiedMatches = await getUnnotifiedMatches(adminDb);
 
   if (unnotifiedMatches.length === 0) {
-    console.log("\n✨ No unnotified matches to send");
+    logger.info("No unnotified matches to send");
     // Mark messages as processed
     const messageIds = unprocessedMessages
       .map((m) => m.id)
@@ -219,7 +216,7 @@ export async function main(): Promise<void> {
     .filter((id): id is string => !!id);
   await markMessagesAsNotified(adminDb, messageIds);
 
-  console.log("\n✅ Notification processing complete!\n");
+  logger.info("Notification processing complete");
 }
 
 // Run the script only when executed directly
@@ -228,7 +225,7 @@ if (require.main === module) {
     try {
       await main();
     } catch (error) {
-      console.error("\n❌ Fatal error:", error);
+      logger.error("Fatal error in notification processing", { error: error instanceof Error ? error.message : String(error) });
       process.exit(1);
     }
   })();

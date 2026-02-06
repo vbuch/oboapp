@@ -8,6 +8,7 @@
  */
 
 import { Address, StreetSection, Coordinates } from "./types";
+import { logger } from "@/lib/logger";
 import { geocodeAddresses as geocodeAddressesTraditional } from "./geocoding-service";
 import {
   overpassGeocodeAddresses,
@@ -121,7 +122,7 @@ export async function geocodeCadastralPropertiesFromIdentifiers(
 
   // Use mock if enabled
   if (USE_CADASTRE_MOCK && cadastreMockService) {
-    console.log("[MOCK] Using Cadastre mock for properties");
+    logger.info("Using Cadastre mock for properties");
     const mockResults =
       await cadastreMockService.geocodeCadastralPropertiesFromIdentifiers(
         identifiers.map((id) => ({ identifier: id, timespans: [] })),

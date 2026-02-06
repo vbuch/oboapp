@@ -1,5 +1,6 @@
 import type { ToploIncident, ToploIncidentInfo } from "./types";
 import { validateAndFixGeoJSON } from "../shared/geojson-validation";
+import { logger } from "@/lib/logger";
 
 /**
  * Extract incidents from Toplo.bg HTML containing embedded JavaScript
@@ -45,20 +46,18 @@ export function parseIncidents(html: string): ToploIncident[] {
       const validation = validateAndFixGeoJSON(rawGeoJson, info.Name);
 
       if (!validation.isValid || !validation.geoJson) {
-        console.warn(`⚠️  Invalid GeoJSON for incident "${info.Name}":`);
-        validation.errors.forEach((err) => console.warn(`   ${err}`));
+        logger.warn("Invalid GeoJSON for incident", { name: info.Name, errors: validation.errors });
         continue;
       }
 
       // Log warnings about coordinate fixes
       if (validation.warnings.length > 0) {
-        console.warn(`⚠️  Fixed GeoJSON for incident "${info.Name}":`);
-        validation.warnings.forEach((warn) => console.warn(`   ${warn}`));
+        logger.warn("Fixed GeoJSON for incident", { name: info.Name, warnings: validation.warnings });
       }
 
       incidents.push({ info, geoJson: validation.geoJson });
     } catch (error) {
-      console.warn("Failed to parse incident:", (error as Error).message);
+      logger.warn("Failed to parse incident", { error: (error as Error).message });
       continue;
     }
   }

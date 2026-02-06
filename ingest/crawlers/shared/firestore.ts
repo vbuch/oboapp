@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { normalizeCategoriesInput } from "@/lib/category-utils";
 import type { BaseSourceDocument } from "./types";
+import { logger } from "@/lib/logger";
 
 /**
  * Encode URL to a safe Firestore document ID
@@ -49,7 +50,7 @@ export async function saveSourceDocument<T extends BaseSourceDocument>(
   await docRef.set(data);
 
   if (options?.logSuccess !== false) {
-    console.log(`✅ Saved document: ${doc.title.substring(0, 50)}...`);
+    logger.info("Saved document", { title: doc.title.substring(0, 50) });
   }
 }
 

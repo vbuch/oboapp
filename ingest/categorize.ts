@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { readFileSync, existsSync } from "node:fs";
 import dotenv from "dotenv";
 import { verifyEnvSet } from "@/lib/verify-env";
+import { logger } from "@/lib/logger";
 
 // Load environment variables before Firebase Admin initialization
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -34,32 +35,28 @@ Examples:
 
       // Check if file exists
       if (!existsSync(filePath)) {
-        console.error(`❌ File not found: ${filePath}`);
+        logger.error("File not found", { filePath });
         process.exit(1);
       }
 
-      console.log(`📄 Processing file: ${options.path}\n`);
+      logger.info("Processing file", { path: options.path });
 
       // Read message content
       let messageText: string;
       try {
         messageText = readFileSync(filePath, "utf-8");
       } catch (error) {
-        console.error(`❌ Could not read file: ${filePath}`);
-        console.error(error);
+        logger.error("Could not read file", { filePath, error: error instanceof Error ? error.message : String(error) });
         process.exit(1);
       }
 
-      console.log(`📝 Message content (${messageText.length} chars):`);
-      console.log(
-        messageText.substring(0, 300) + (messageText.length > 300 ? "..." : "")
-      );
-      console.log();
+      logger.info("Message content preview", {
+        chars: messageText.length,
+        preview: messageText.substring(0, 300) + (messageText.length > 300 ? "..." : ""),
+      });
 
       if (options.dryRun) {
-        console.log(
-          "🔍 DRY RUN - Would categorize this message with AI service"
-        );
+        logger.info("DRY RUN - Would categorize this message with AI service");
         process.exit(0);
       }
 
@@ -67,21 +64,19 @@ Examples:
       const { categorize } = await import("@/lib/ai-service");
 
       // Categorize the message
-      console.log("🔍 Categorizing message with AI service...");
+      logger.info("Categorizing message with AI service");
       const categories = await categorize(messageText);
 
       if (!categories) {
-        console.log("❌ Categorization failed - no result returned");
+        logger.error("Categorization failed - no result returned");
         process.exit(1);
       }
 
-      console.log("✅ Categorization result:");
-      console.log(JSON.stringify(categories, null, 2));
-
-      console.log("\n🎉 Categorization completed successfully!");
+      logger.info("Categorization result", { result: categories });
+      logger.info("Categorization completed successfully");
       process.exit(0);
     } catch (error) {
-      console.error("Fatal error:", error);
+      logger.error("Fatal error in categorize", { error: error instanceof Error ? error.message : String(error) });
       process.exit(1);
     }
   });

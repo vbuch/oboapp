@@ -4,6 +4,7 @@ import type {
   WarningLevel,
   WarningType,
 } from "./types";
+import { logger } from "@/lib/logger";
 
 /**
  * Column mapping for the weather warning table
@@ -99,7 +100,7 @@ export function parseWeatherPage(html: string): WeatherPageData | null {
     /прогноза за[:\s]+(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})/i;
   const forecastDateMatch = forecastDateRegex.exec(html);
   if (!forecastDateMatch) {
-    console.warn("⚠️  Could not find forecast date in HTML");
+    logger.warn("Could not find forecast date in HTML");
     return null;
   }
 

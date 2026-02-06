@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert, App } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
 import { getAuth, Auth } from "firebase-admin/auth";
+import { logger } from "@/lib/logger";
 
 let adminApp: App;
 let adminDb: Firestore;
@@ -13,7 +14,7 @@ const useEmulators = process.env.USE_FIREBASE_EMULATORS === "true";
 if (!getApps().length) {
   if (useEmulators) {
     // Emulator mode - no credentials needed
-    console.log("[Firebase Admin] Using emulators");
+    logger.info("Firebase Admin using emulators");
     adminApp = initializeApp({
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "demo-project",
     });
@@ -30,15 +31,13 @@ if (!getApps().length) {
           projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
         });
       } catch (error) {
-        console.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:", error);
+        logger.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY", { error: error instanceof Error ? error.message : String(error) });
         throw new Error(
           "Failed to initialize Firebase Admin SDK: Invalid service account JSON",
         );
       }
     } else {
-      console.error(
-        "FIREBASE_SERVICE_ACCOUNT_KEY environment variable not found!",
-      );
+      logger.error("FIREBASE_SERVICE_ACCOUNT_KEY environment variable not found");
       throw new Error(
         "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is required. " +
           "Please add your Firebase service account JSON to .env.local",

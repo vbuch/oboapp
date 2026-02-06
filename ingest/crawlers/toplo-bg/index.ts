@@ -7,6 +7,7 @@ import { launchBrowser } from "../shared/browser";
 import { saveSourceDocumentIfNew } from "../shared/firestore";
 import type { SourceDocumentWithGeoJson } from "../shared/types";
 import { validateTimespanRange } from "@/lib/timespan-utils";
+import { logger } from "@/lib/logger";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
@@ -28,7 +29,7 @@ interface CrawlSummary {
 export async function crawl(dryRun = false): Promise<void> {
   const summary: CrawlSummary = { saved: 0, skipped: 0, failed: 0 };
 
-  console.log(`🔥 Fetching incidents from ${TARGET_URL}...`);
+  logger.info("Fetching incidents", { url: TARGET_URL });
 
   // Launch browser and fetch HTML
   const browser = await launchBrowser();
@@ -37,17 +38,17 @@ export async function crawl(dryRun = false): Promise<void> {
   const html = await page.content();
   await browser.close();
 
-  console.log(`📄 Parsing incidents...`);
+  logger.info("Parsing incidents");
 
   // Parse incidents from HTML
   const incidents = parseIncidents(html);
 
   if (incidents.length === 0) {
-    console.error("❌ No incidents found in HTML");
+    logger.error("No incidents found in HTML");
     process.exit(1);
   }
 
-  console.log(`📊 Found ${incidents.length} incidents`);
+  logger.info("Found incidents", { count: incidents.length });
 
   // Load Firebase Admin (lazy)
   const adminDb = dryRun
@@ -75,15 +76,11 @@ export async function crawl(dryRun = false): Promise<void> {
         if (validateTimespanRange(parsed)) {
           timespanStart = parsed;
         } else {
-          console.warn(
-            `   ⚠️  FromDate outside valid range for ${info.ContentItemId}: ${info.FromDate}`,
-          );
+          logger.warn("FromDate outside valid range", { contentItemId: info.ContentItemId, fromDate: info.FromDate });
           timespanStart = new Date();
         }
       } catch (error) {
-        console.warn(
-          `   ⚠️  Invalid FromDate for ${info.ContentItemId}: ${info.FromDate} - ${error}`,
-        );
+        logger.warn("Invalid FromDate", { contentItemId: info.ContentItemId, fromDate: info.FromDate, error: error instanceof Error ? error.message : String(error) });
         timespanStart = new Date();
       }
 
@@ -94,18 +91,14 @@ export async function crawl(dryRun = false): Promise<void> {
           if (validateTimespanRange(parsed)) {
             timespanEnd = parsed;
           } else {
-            console.warn(
-              `   ⚠️  UntilDate outside valid range for ${info.ContentItemId}: ${info.UntilDate}`,
-            );
+            logger.warn("UntilDate outside valid range", { contentItemId: info.ContentItemId, untilDate: info.UntilDate });
             timespanEnd = timespanStart;
           }
         } else {
           timespanEnd = timespanStart; // Use start date for both
         }
       } catch (error) {
-        console.warn(
-          `   ⚠️  Invalid UntilDate for ${info.ContentItemId}: ${info.UntilDate} - ${error}`,
-        );
+        logger.warn("Invalid UntilDate", { contentItemId: info.ContentItemId, untilDate: info.UntilDate, error: error instanceof Error ? error.message : String(error) });
         timespanEnd = timespanStart;
       }
 
@@ -125,7 +118,7 @@ export async function crawl(dryRun = false): Promise<void> {
       };
 
       if (dryRun) {
-        console.log(`📝 [dry-run] ${doc.title}`);
+        logger.info("Dry-run incident", { title: doc.title });
         summary.saved++;
       } else if (adminDb) {
         const saved = await saveSourceDocumentIfNew(doc, adminDb, {
@@ -137,26 +130,24 @@ export async function crawl(dryRun = false): Promise<void> {
           logSuccess: false,
         });
         if (saved) {
-          console.log(`✅ Saved: ${doc.title}`);
+          logger.info("Saved incident", { title: doc.title });
           summary.saved++;
         } else {
           summary.skipped++;
         }
       }
     } catch (error) {
-      console.warn(`⚠️  Failed to process incident:`, error);
+      logger.warn("Failed to process incident", { error: error instanceof Error ? error.message : String(error) });
       summary.failed++;
     }
   }
 
   // Print summary
-  console.log(
-    `\n📈 Saved: ${summary.saved}; Skipped: ${summary.skipped}; Failed: ${summary.failed}`,
-  );
+  logger.info("Crawl summary", { saved: summary.saved, skipped: summary.skipped, failed: summary.failed });
 
   // Exit with error if all failed
   if (summary.failed > 0 && summary.saved === 0 && summary.skipped === 0) {
-    console.error("\n❌ All incidents failed to process");
+    logger.error("All incidents failed to process");
     process.exit(1);
   }
 }
@@ -164,7 +155,7 @@ export async function crawl(dryRun = false): Promise<void> {
 // Run if called directly
 if (require.main === module) {
   crawl(false).catch((error) => {
-    console.error("Fatal error:", error);
+    logger.error("Fatal error", { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   });
 }

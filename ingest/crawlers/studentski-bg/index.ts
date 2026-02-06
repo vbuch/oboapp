@@ -10,6 +10,7 @@ import {
   crawlWordpressPage,
   processWordpressPost,
 } from "../shared/webpage-crawlers";
+import { logger } from "@/lib/logger";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
@@ -50,7 +51,7 @@ const processPost = (
 
 if (require.main === module) {
   crawl().catch((error) => {
-    console.error("Fatal error:", error);
+    logger.error("Fatal error", { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   });
 }

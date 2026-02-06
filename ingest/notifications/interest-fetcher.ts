@@ -1,12 +1,13 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { Interest } from "@/lib/types";
 import { convertTimestamp } from "./utils";
+import { logger } from "@/lib/logger";
 
 /**
  * Get all user interests
  */
 export async function getAllInterests(adminDb: Firestore): Promise<Interest[]> {
-  console.log("📍 Fetching user interests...");
+  logger.info("Fetching user interests");
 
   const interestsRef = adminDb.collection("interests");
   const snapshot = await interestsRef.get();
@@ -24,11 +25,10 @@ export async function getAllInterests(adminDb: Firestore): Promise<Interest[]> {
     });
   });
 
-  console.log(
-    `   ✅ Found ${interests.length} interests from ${
-      new Set(interests.map((i) => i.userId)).size
-    } users`,
-  );
+  logger.info("Found user interests", {
+    count: interests.length,
+    uniqueUsers: new Set(interests.map((i) => i.userId)).size,
+  });
 
   return interests;
 }

@@ -5,6 +5,7 @@ import {
   isGenericCityAddress,
 } from "./geocoding-utils";
 import { delay } from "./delay";
+import { logger } from "@/lib/logger";
 import { GoogleGeocodingMockService } from "../__mocks__/services/google-geocoding-mock-service";
 
 // Check if mocking is enabled
@@ -17,7 +18,7 @@ const GEOCODING_BATCH_DELAY_MS = 200;
 export async function geocodeAddress(address: string): Promise<Address | null> {
   // Use mock if enabled
   if (USE_MOCK && mockService) {
-    console.log(`[MOCK] Using Google Geocoding mock for: ${address}`);
+    logger.info("Using Google Geocoding mock", { address });
     return mockService.geocodeAddress(address);
   }
 
@@ -39,19 +40,13 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
 
         // Reject results that match Sofia center exactly (Google's fallback)
         if (isSofiaCenterFallback(lat, lng)) {
-          console.warn(
-            `⚠️  Result for "${address}" is Sofia city center: [${lat.toFixed(
-              6,
-            )}, ${lng.toFixed(6)}] - generic fallback, rejecting`,
-          );
+          logger.warn("Result is Sofia city center generic fallback, rejecting", { address, lat: lat.toFixed(6), lng: lng.toFixed(6) });
           continue;
         }
 
         // Reject generic city-level addresses (e.g., "Sofia, Bulgaria")
         if (isGenericCityAddress(formattedAddress)) {
-          console.warn(
-            `⚠️  Rejecting generic address for "${address}": ${formattedAddress}`,
-          );
+          logger.warn("Rejecting generic address", { address, formattedAddress });
           continue;
         }
 
@@ -67,23 +62,17 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
             },
           };
         }
-        console.warn(
-          `⚠️  Result for "${address}" is outside Sofia: [${lat.toFixed(
-            6,
-          )}, ${lng.toFixed(6)}]`,
-        );
+        logger.warn("Result is outside Sofia", { address, lat: lat.toFixed(6), lng: lng.toFixed(6) });
       }
 
       // All results were outside Sofia
-      console.warn(
-        `❌ No results for "${address}" found within Sofia boundaries`,
-      );
+      logger.warn("No results found within Sofia boundaries", { address });
       return null;
     }
 
     return null;
   } catch (error) {
-    console.error("Error geocoding address:", error);
+    logger.error("Error geocoding address", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -99,7 +88,7 @@ export async function geocodeAddresses(
     if (geocoded) {
       geocodedAddresses.push(geocoded);
     } else {
-      console.warn(`Failed to geocode address: ${address}`);
+      logger.warn("Failed to geocode address", { address });
     }
     // Add a small delay to avoid hitting rate limits
     await delay(GEOCODING_BATCH_DELAY_MS);

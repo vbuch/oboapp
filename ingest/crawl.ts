@@ -50,8 +50,7 @@ Examples:
 
     // Validate source
     if (!availableSources.includes(options.source)) {
-      console.error(`❌ Error: Unknown source "${options.source}"`);
-      console.error(`\nAvailable sources: ${availableSources.join(", ")}`);
+      logger.error("Unknown source", { source: options.source, availableSources });
       process.exit(1);
     }
 

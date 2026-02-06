@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { logger } from "@/lib/logger";
 
 /**
  * Loads a prompt template from the prompts directory
@@ -8,7 +9,7 @@ export function loadPrompt(filename: string): string {
   try {
     return readFileSync(join(process.cwd(), "prompts", filename), "utf-8");
   } catch (error) {
-    console.error(`Failed to load prompt template ${filename}:`, error);
+    logger.error("Failed to load prompt template", { filename, error: error instanceof Error ? error.message : String(error) });
     throw new Error(`Prompt template file not found: ${filename}`);
   }
 }

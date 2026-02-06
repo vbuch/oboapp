@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { verifyEnvSet } from "@/lib/verify-env";
+import { logger } from "@/lib/logger";
 
 const program = new Command();
 
@@ -37,7 +38,7 @@ Sources that have corresponding messages in the messages collection will be pres
       const { cleanSources } = await import("./lib/sources-clean");
       await cleanSources(options.retain, options.dryRun ?? false);
     } catch (error) {
-      console.error("\n❌ Fatal error:", error);
+      logger.error("Fatal error in sources:clean", { error: error instanceof Error ? error.message : String(error) });
       process.exit(1);
     }
   });

@@ -14,6 +14,7 @@ import {
   saveSourceDocument as saveSourceDocumentShared,
 } from "../shared/firestore";
 import { buildSourceDocument } from "./builders";
+import { logger } from "@/lib/logger";
 
 // Load environment variables to match the rest of the crawlers
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -129,11 +130,11 @@ async function saveSourceDocument(
     }),
     logSuccess: false,
   });
-  console.log(`✅ Записано събитие: ${doc.title}`);
+  logger.info("Записано събитие", { title: doc.title });
 }
 
 export async function crawl(): Promise<void> {
-  console.log("🚰 Стартиране на crawler за Sofiyska Voda...\n");
+  logger.info("Стартиране на crawler за Sofiyska Voda");
 
   const summary: CrawlSummary = { saved: 0, skipped: 0, emptyLayers: 0 };
   const seenUrls = new Set<string>();
@@ -159,9 +160,9 @@ async function processLayer(
   seenUrls: Set<string>,
   adminDb: Firestore | null,
 ): Promise<CrawlSummary> {
-  console.log(`\n📡 Зареждане на слой ${layer.id} – ${layer.name}`);
+  logger.info("Зареждане на слой", { layerId: layer.id, layerName: layer.name });
   const features = await fetchLayerFeatures(layer);
-  console.log(`   ➜ Получени записи: ${features.length}`);
+  logger.info("Получени записи", { count: features.length });
 
   if (features.length === 0) {
     return { saved: 0, skipped: 0, emptyLayers: 1 };
@@ -208,17 +209,13 @@ async function handleFeature(
 }
 
 function logSummary(summary: CrawlSummary): void {
-  console.log("\n" + "=".repeat(60));
-  console.log("📊 Резюме на обработката");
-  console.log(`✅ Нови записи: ${summary.saved}`);
-  console.log(`ℹ️ Празни слоеве: ${summary.emptyLayers}`);
-  console.log("=".repeat(60));
+  logger.info("Резюме на обработката", { saved: summary.saved, skipped: summary.skipped, emptyLayers: summary.emptyLayers });
 }
 
 // Run only when executed directly
 if (require.main === module) {
   crawl().catch((error) => {
-    console.error("❌ Софийска вода crawler се провали:", error);
+    logger.error("Софийска вода crawler се провали", { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   });
 }

@@ -1,4 +1,5 @@
 import { Address } from "@/lib/types";
+import { logger } from "@/lib/logger";
 
 /**
  * Calculate the Haversine distance between two coordinates in meters
@@ -82,16 +83,14 @@ export function filterOutlierCoordinates(
 
   // Log outliers if any were found
   if (outliers.length > 0) {
-    console.log(`\n⚠️  Filtered ${outliers.length} outlier coordinate(s):`);
-    outliers.forEach(({ address, distance }) => {
-      console.log(
-        `   ❌ "${address.originalText}" at [${address.coordinates.lat.toFixed(
-          6
-        )}, ${address.coordinates.lng.toFixed(6)}]`
-      );
-      console.log(
-        `      → ${(distance / 1000).toFixed(2)}km away from nearest address`
-      );
+    logger.warn("Filtered outlier coordinates", {
+      count: outliers.length,
+      outliers: outliers.map(({ address, distance }) => ({
+        text: address.originalText,
+        lat: address.coordinates.lat.toFixed(6),
+        lng: address.coordinates.lng.toFixed(6),
+        distanceKm: (distance / 1000).toFixed(2),
+      })),
     });
   }
 

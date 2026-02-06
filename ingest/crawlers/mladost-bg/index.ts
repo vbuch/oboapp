@@ -11,6 +11,7 @@ import {
   processWordpressPost,
 } from "../shared/webpage-crawlers";
 import { parseBulgarianMonthDate } from "../shared/date-utils";
+import { logger } from "@/lib/logger";
 
 // Load environment variables from .env.local
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -53,7 +54,7 @@ export async function crawl(): Promise<void> {
 // Run the crawler if executed directly
 if (require.main === module) {
   crawl().catch((error) => {
-    console.error("Fatal error:", error);
+    logger.error("Fatal error", { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   });
 }

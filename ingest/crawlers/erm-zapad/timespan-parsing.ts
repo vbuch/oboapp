@@ -1,6 +1,7 @@
 import { parseBulgarianDateTime } from "../shared/date-utils";
 import { validateTimespanRange } from "@/lib/timespan-utils";
 import type { PinRecord } from "./types";
+import { logger } from "@/lib/logger";
 
 /**
  * Parse and validate timespans from pin record
@@ -21,15 +22,11 @@ export function parseTimespans(pin: PinRecord): {
       if (validateTimespanRange(parsed)) {
         timespanStart = parsed;
       } else {
-        console.warn(
-          `   ⚠️  begin_event outside valid range for ${pin.eventId}: ${pin.begin_event}`,
-        );
+        logger.warn("begin_event outside valid range", { eventId: pin.eventId, beginEvent: pin.begin_event });
       }
     }
   } catch (error) {
-    console.warn(
-      `   ⚠️  Invalid begin_event for ${pin.eventId}: ${pin.begin_event} - ${error}`,
-    );
+    logger.warn("Invalid begin_event", { eventId: pin.eventId, beginEvent: pin.begin_event, error: error instanceof Error ? error.message : String(error) });
   }
 
   // Parse end time
@@ -39,9 +36,7 @@ export function parseTimespans(pin: PinRecord): {
       if (validateTimespanRange(parsed)) {
         timespanEnd = parsed;
       } else {
-        console.warn(
-          `   ⚠️  end_event outside valid range for ${pin.eventId}: ${pin.end_event}`,
-        );
+        logger.warn("end_event outside valid range", { eventId: pin.eventId, endEvent: pin.end_event });
         timespanEnd = timespanStart;
       }
     } else if (pin.begin_event) {
@@ -49,9 +44,7 @@ export function parseTimespans(pin: PinRecord): {
       timespanEnd = timespanStart;
     }
   } catch (error) {
-    console.warn(
-      `   ⚠️  Invalid end_event for ${pin.eventId}: ${pin.end_event} - ${error}`,
-    );
+    logger.warn("Invalid end_event", { eventId: pin.eventId, endEvent: pin.end_event, error: error instanceof Error ? error.message : String(error) });
     timespanEnd = timespanStart;
   }
 
