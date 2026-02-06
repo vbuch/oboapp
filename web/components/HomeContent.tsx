@@ -22,7 +22,7 @@ import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
 import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
 import { classifyMessage } from "@/lib/message-classification";
 import { createMessageUrl } from "@/lib/url-utils";
-import { Message } from "@/lib/types";
+import type { Message } from "@/lib/types";
 import { isValidMessageId } from "@oboapp/shared";
 
 /**
