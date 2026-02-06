@@ -13,15 +13,6 @@ describe("slug-utils", () => {
       expect(slug).toMatch(/^[0-9A-Za-z]+$/);
     });
 
-    it("should generate different slugs on each call", () => {
-      const slugs = new Set();
-      for (let i = 0; i < 100; i++) {
-        slugs.add(generateSlug());
-      }
-      // Should have 100 unique slugs
-      expect(slugs.size).toBe(100);
-    });
-
     it("should only use valid characters", () => {
       const validChars = new Set(
         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",

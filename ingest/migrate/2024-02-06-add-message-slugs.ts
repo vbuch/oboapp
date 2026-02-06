@@ -23,64 +23,11 @@ import { resolve } from "node:path";
 // Load environment
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
-/**
- * Generates a random URL-friendly slug
- * Using base62 (alphanumeric) for URL-friendliness
- */
-function generateSlug(): string {
-  const chars =
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-  const length = 8;
-  let slug = "";
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * chars.length);
-    slug += chars[randomIndex];
-  }
-  return slug;
-}
-
-/**
- * Checks if a slug already exists in the database
- */
-async function slugExists(
-  db: FirebaseFirestore.Firestore,
-  slug: string,
-): Promise<boolean> {
-  const snapshot = await db
-    .collection("messages")
-    .where("slug", "==", slug)
-    .limit(1)
-    .get();
-  return !snapshot.empty;
-}
-
-/**
- * Generates a unique slug that doesn't exist in the database
- */
-async function generateUniqueSlug(
-  db: FirebaseFirestore.Firestore,
-): Promise<string> {
-  let attempts = 0;
-  const maxAttempts = 10;
-
-  while (attempts < maxAttempts) {
-    const slug = generateSlug();
-    const exists = await slugExists(db, slug);
-    if (!exists) {
-      return slug;
-    }
-    attempts++;
-  }
-
-  throw new Error(
-    `Failed to generate unique slug after ${maxAttempts} attempts`,
-  );
-}
-
 async function migrateMessageSlugs() {
   console.log("🔄 Starting message slug migration...\n");
 
   const { adminDb } = await import("@/lib/firebase-admin");
+  const { generateUniqueSlug } = await import("@/lib/slug-utils");
 
   // Get all messages that don't have a slug
   const messagesRef = adminDb.collection("messages");
@@ -115,7 +62,7 @@ async function migrateMessageSlugs() {
 
     for (const doc of batchMessages) {
       try {
-        const slug = await generateUniqueSlug(adminDb);
+        const slug = await generateUniqueSlug();
         batch.update(doc.ref, { slug });
         processedCount++;
 

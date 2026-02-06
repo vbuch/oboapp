@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter, notFound } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Message } from "@/lib/types";
 import MessageDetailView from "@/components/MessageDetailView";
@@ -25,7 +25,8 @@ export default function MessagePage() {
         );
 
         if (response.status === 404) {
-          notFound();
+          setError("Съобщението не е намерено");
+          setIsLoading(false);
           return;
         }
 
@@ -34,6 +35,9 @@ export default function MessagePage() {
         }
 
         const data = await response.json();
+        if (!data || !data.message) {
+          throw new Error("Missing message in response");
+        }
         setMessage(data.message);
       } catch (err) {
         console.error("Error fetching message:", err);
