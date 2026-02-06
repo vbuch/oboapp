@@ -2,6 +2,8 @@
  * Utility functions for URL manipulation
  */
 
+import { Message } from "./types";
+
 /**
  * Extracts the hostname from a URL and removes common prefixes
  * @param url - The URL to extract hostname from
@@ -19,4 +21,40 @@ export function extractHostname(url: string): string {
   } catch {
     return url;
   }
+}
+
+/**
+ * Creates a URL for a message, using slug if available, otherwise falls back to ID
+ * @param message - The message object
+ * @returns The URL path for the message
+ *
+ * @example
+ * createMessageUrl({ id: "123", slug: "aB3xYz12" }) // "/m/aB3xYz12"
+ * createMessageUrl({ id: "123" }) // "/?messageId=123"
+ */
+export function createMessageUrl(message: Message): string {
+  if (message.slug) {
+    return `/m/${message.slug}`;
+  }
+  return `/?messageId=${message.id}`;
+}
+
+/**
+ * Creates a URL for a message from messageId and optional slug
+ * @param messageId - The message ID
+ * @param slug - Optional slug
+ * @returns The URL path for the message
+ *
+ * @example
+ * createMessageUrlFromId("123", "aB3xYz12") // "/m/aB3xYz12"
+ * createMessageUrlFromId("123") // "/?messageId=123"
+ */
+export function createMessageUrlFromId(
+  messageId: string,
+  slug?: string,
+): string {
+  if (slug) {
+    return `/m/${slug}`;
+  }
+  return `/?messageId=${messageId}`;
 }

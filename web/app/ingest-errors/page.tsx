@@ -64,16 +64,28 @@ export default function IngestErrorsPage() {
   );
 
   const selectedMessage = useMemo(() => {
+    const slug = searchParams.get("slug");
     const messageId = searchParams.get("messageId");
-    if (messageId && messages.length > 0) {
+    
+    if (messages.length === 0) return null;
+    
+    if (slug) {
+      return messages.find((message) => message.slug === slug) || null;
+    }
+    
+    if (messageId) {
       return messages.find((message) => message.id === messageId) || null;
     }
+    
     return null;
   }, [messages, searchParams]);
 
   const handleMessageClick = useCallback(
     (message: InternalMessage) => {
-      router.push(`/ingest-errors?messageId=${message.id}`, { scroll: false });
+      const url = message.slug
+        ? `/ingest-errors?slug=${message.slug}`
+        : `/ingest-errors?messageId=${message.id}`;
+      router.push(url, { scroll: false });
     },
     [router],
   );

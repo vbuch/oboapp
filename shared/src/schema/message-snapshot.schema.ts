@@ -5,6 +5,7 @@ export const MessageSnapshotSchema = z.object({
   createdAt: z.string(),
   source: z.string().optional(),
   sourceUrl: z.string().optional(),
+  slug: z.string().optional(),
 });
 
 export type MessageSnapshot = z.infer<typeof MessageSnapshotSchema>;

@@ -44,6 +44,7 @@ export async function GET(request: Request) {
       const data = doc.data();
       messages.push({
         id: doc.id,
+        slug: data.slug,
         text: data.text,
         markdownText: data.markdownText,
         addresses: data.addresses ? JSON.parse(data.addresses) : [],

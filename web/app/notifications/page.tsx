@@ -1,11 +1,10 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { NotificationHistoryItem } from "@/lib/types";
 import Link from "next/link";
 import Card from "@/components/Card";
+import { createMessageUrlFromId } from "@/lib/url-utils";
 
 export default function NotificationsPage() {
   const { user } = useAuth();
@@ -137,7 +136,10 @@ function NotificationHistoryCard({ item }: NotificationHistoryCardProps) {
   });
 
   return (
-    <Link href={`/?messageId=${item.messageId}`} className="block">
+    <Link
+      href={createMessageUrlFromId(item.messageId, item.messageSnapshot.slug)}
+      className="block"
+    >
       <Card clickable>
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1">

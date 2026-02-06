@@ -14,6 +14,7 @@ import { CadastralPropertySchema } from "./extracted-data.schema";
  */
 export const MessageSchema = z.object({
   id: z.string().optional(),
+  slug: z.string().optional(), // Short, URL-friendly identifier (e.g., "aB3xYz")
   text: z.string(),
   addresses: z.array(AddressSchema).optional(),
   geoJson: GeoJsonFeatureCollectionSchema.optional(),

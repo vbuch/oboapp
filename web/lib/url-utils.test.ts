@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { extractHostname } from "./url-utils";
+import { extractHostname, createMessageUrl } from "./url-utils";
+import type { Message } from "./types";
 
 describe("extractHostname", () => {
   it("should extract hostname from https URL", () => {
@@ -62,5 +63,36 @@ describe("extractHostname", () => {
     expect(extractHostname("https://so-slatina.org/2024/news")).toBe(
       "so-slatina.org",
     );
+  });
+});
+
+describe("createMessageUrl", () => {
+  it("should use slug when available", () => {
+    const message: Message = {
+      id: "abc123def456",
+      slug: "aB3xYz12",
+      text: "Test message",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(createMessageUrl(message)).toBe("/m/aB3xYz12");
+  });
+
+  it("should fallback to ID when slug is not available", () => {
+    const message: Message = {
+      id: "abc123def456",
+      text: "Test message",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(createMessageUrl(message)).toBe("/?messageId=abc123def456");
+  });
+
+  it("should handle empty slug", () => {
+    const message: Message = {
+      id: "abc123def456",
+      slug: "",
+      text: "Test message",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(createMessageUrl(message)).toBe("/?messageId=abc123def456");
   });
 });

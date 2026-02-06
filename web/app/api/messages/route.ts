@@ -29,6 +29,7 @@ function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
 
   return {
     id: doc.id,
+    slug: data.slug,
     text: data.text,
     addresses: data.addresses ? JSON.parse(data.addresses) : [],
     geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,

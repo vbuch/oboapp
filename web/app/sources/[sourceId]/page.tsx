@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   useParams,
@@ -13,7 +11,7 @@ import { Message, SourceConfig } from "@/lib/types";
 import MessagesGrid from "@/components/MessagesGrid";
 import MessageDetailView from "@/components/MessageDetailView/MessageDetailView";
 import sourcesData from "@/lib/sources.json";
-import { extractHostname } from "@/lib/url-utils";
+import { extractHostname, createMessageUrl } from "@/lib/url-utils";
 
 export default function SourcePage() {
   const params = useParams();
@@ -60,19 +58,32 @@ export default function SourcePage() {
     }
   }, [sourceId, source]);
 
-  // Derive selected message from URL parameter
+  // Derive selected message from URL parameter (supports both slug and messageId)
   const selectedMessage = useMemo(() => {
+    const slug = searchParams.get("slug");
     const messageId = searchParams.get("messageId");
-    if (messageId && messages.length > 0) {
+    
+    if (messages.length === 0) return null;
+    
+    if (slug) {
+      return messages.find((m) => m.slug === slug) || null;
+    }
+    
+    if (messageId) {
       return messages.find((m) => m.id === messageId) || null;
     }
+    
     return null;
   }, [searchParams, messages]);
 
   // Handle message click
   const handleMessageClick = useCallback(
     (message: Message) => {
-      router.push(`/sources/${sourceId}?messageId=${message.id}`, {
+      // Stay on sources page with query param to keep source context
+      const messageUrl = message.slug
+        ? `/sources/${sourceId}?slug=${message.slug}`
+        : `/sources/${sourceId}?messageId=${message.id}`;
+      router.push(messageUrl, {
         scroll: false,
       });
     },

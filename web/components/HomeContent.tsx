@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapContainer from "@/components/MapContainer";
@@ -15,6 +13,7 @@ import { useMapNavigation } from "@/lib/hooks/useMapNavigation";
 import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
 import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
 import { classifyMessage } from "@/lib/message-classification";
+import { createMessageUrl } from "@/lib/url-utils";
 
 /**
  * HomeContent - Main application component managing map, messages, and user interactions
@@ -111,8 +110,8 @@ export default function HomeContent() {
     (messageId: string) => {
       const message = messages.find((m) => m.id === messageId);
       if (message) {
-        // Update URL with query parameter - this will trigger selectedMessage derivation
-        router.push(`/?messageId=${messageId}`, { scroll: false });
+        // Update URL - use slug if available, otherwise fall back to ID
+        router.push(createMessageUrl(message), { scroll: false });
       }
     },
     [messages, router],
@@ -197,7 +196,7 @@ export default function HomeContent() {
             messages={filteredMessages}
             isLoading={isLoading}
             onMessageClick={(message) => {
-              router.push(`/?messageId=${message.id}`, { scroll: false });
+              router.push(createMessageUrl(message), { scroll: false });
             }}
             variant="list"
           />
