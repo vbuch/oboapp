@@ -13,7 +13,7 @@
  * 
  * BATCH SIZE: Processes 500 messages per Firestore batch commit
  * 
- * USAGE: npm run migrate:slugs
+ * USAGE: npx tsx migrate/2024-02-06-add-message-slugs.ts
  * 
  * Related PR: Replace message IDs with short slugs in URLs
  */

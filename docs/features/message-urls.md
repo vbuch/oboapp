@@ -60,7 +60,7 @@ Run migration script to backfill slugs for existing messages:
 
 ```bash
 cd ingest
-npm run migrate:slugs
+npx tsx migrate/2024-02-06-add-message-slugs.ts
 ```
 
 The script is located in `ingest/migrate/2024-02-06-add-message-slugs.ts` and:

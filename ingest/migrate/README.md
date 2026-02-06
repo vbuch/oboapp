@@ -10,10 +10,16 @@ Example: `2024-02-06-add-message-slugs.ts`
 
 ## Running Migrations
 
-Migrations are run manually via npm scripts defined in `package.json`:
+Run migrations directly with tsx:
 
 ```bash
-npm run migrate:<name>
+npx tsx migrate/2024-02-06-add-message-slugs.ts
+```
+
+Or any migration by name:
+
+```bash
+npx tsx migrate/<migration-name>.ts
 ```
 
 ## Creating a New Migration
@@ -24,8 +30,7 @@ npm run migrate:<name>
    - Why it's needed
    - What data it modifies
 3. Make the script idempotent (safe to re-run)
-4. Add an npm script in `package.json`
-5. Test with emulators before running in production
+4. Test with emulators before running in production
 
 ## Migration Guidelines
 
