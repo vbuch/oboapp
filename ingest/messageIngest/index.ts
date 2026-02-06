@@ -17,8 +17,7 @@ import { storeIncomingMessage, updateMessage } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
 import { generateMessageId, formatCategorizedMessageLogInfo } from "./utils";
 import { logger } from "@/lib/logger";
-import { generateUniqueSlug } from "@/lib/slug-utils";
-import { getMessageById } from "./db";
+import { ensureMessageHasSlugAtomic } from "@/lib/slug-utils";
 
 export { extractAddressesFromMessage } from "./extract-addresses";
 export {
@@ -85,18 +84,10 @@ export interface MessageIngestResult {
 
 /**
  * Generate a slug for a message if it doesn't already have one
- * Ensures slug immutability - once assigned, it never changes
+ * Uses atomic transaction to ensure slug immutability even with concurrent updates
  */
 async function ensureMessageHasSlug(messageId: string): Promise<string> {
-  const message = await getMessageById(messageId);
-  
-  // If message already has a slug, return it (immutability)
-  if (message?.slug) {
-    return message.slug;
-  }
-  
-  // Otherwise generate a new unique slug
-  return await generateUniqueSlug();
+  return await ensureMessageHasSlugAtomic(messageId);
 }
 
 /**

@@ -13,12 +13,19 @@
  * 
  * BATCH SIZE: Processes 500 messages per Firestore batch commit
  * 
+ * COLLISION PREVENTION:
+ * - Uses crypto-secure random generation (crypto.randomInt)
+ * - Checks database for existing slugs
+ * - Tracks generated slugs in-memory to prevent duplicates within the migration run
+ * 
  * USAGE: npx tsx migrate/2024-02-06-add-message-slugs.ts
  * 
  * Related PR: Replace message IDs with short slugs in URLs
  */
 import dotenv from "dotenv";
 import { resolve } from "node:path";
+import { randomInt } from "node:crypto";
+import { SLUG_CHARS, SLUG_LENGTH } from "@oboapp/shared";
 
 // Load environment
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -27,7 +34,6 @@ async function migrateMessageSlugs() {
   console.log("🔄 Starting message slug migration...\n");
 
   const { adminDb } = await import("@/lib/firebase-admin");
-  const { generateUniqueSlug } = await import("@/lib/slug-utils");
 
   // Get all messages that don't have a slug
   const messagesRef = adminDb.collection("messages");
@@ -45,6 +51,64 @@ async function migrateMessageSlugs() {
   if (messagesWithoutSlug.length === 0) {
     console.log("✅ All messages already have slugs!\n");
     return;
+  }
+
+  // Track all slugs generated during this migration run to prevent duplicates
+  const generatedSlugsInRun = new Set<string>();
+
+  /**
+   * Generates a cryptographically secure random slug
+   */
+  function generateSlug(): string {
+    let slug = "";
+    for (let i = 0; i < SLUG_LENGTH; i++) {
+      const randomIndex = randomInt(0, SLUG_CHARS.length);
+      slug += SLUG_CHARS[randomIndex];
+    }
+    return slug;
+  }
+
+  /**
+   * Checks if a slug exists in the database
+   */
+  async function slugExistsInDb(slug: string): Promise<boolean> {
+    const existingSnapshot = await messagesRef
+      .where("slug", "==", slug)
+      .limit(1)
+      .get();
+    return !existingSnapshot.empty;
+  }
+
+  /**
+   * Generates a unique slug, checking both database and in-memory set
+   */
+  async function generateUniqueSlug(): Promise<string> {
+    const maxAttempts = 20; // Increased for migration safety
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      const slug = generateSlug();
+
+      // Check if slug was generated in this run
+      if (generatedSlugsInRun.has(slug)) {
+        attempts++;
+        continue;
+      }
+
+      // Check if slug exists in database
+      const existsInDb = await slugExistsInDb(slug);
+      if (!existsInDb) {
+        // Reserve this slug for this run
+        generatedSlugsInRun.add(slug);
+        return slug;
+      }
+
+      attempts++;
+    }
+
+    throw new Error(
+      `Failed to generate unique slug after ${maxAttempts} attempts`,
+    );
   }
 
   // Process messages in batches of 500 (Firestore batch limit)
@@ -81,6 +145,7 @@ async function migrateMessageSlugs() {
 
   console.log("📈 Migration Summary:");
   console.log(`  ✅ Successfully migrated: ${processedCount} messages`);
+  console.log(`  🔒 Unique slugs tracked in run: ${generatedSlugsInRun.size}`);
   if (errorCount > 0) {
     console.log(`  ✗ Failed: ${errorCount} messages`);
   }
