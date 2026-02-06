@@ -65,7 +65,7 @@ npx tsx migrate/2024-02-06-add-message-slugs.ts
 
 The script is located in `ingest/migrate/2024-02-06-add-message-slugs.ts` and:
 - Processes all messages without slugs
-- Generates unique slugs in batches of 500
+- Generates unique slugs in batches of 100
 - Updates Firestore documents
 - Logs progress and errors
 - Is safe to re-run (skips messages with existing slugs)
