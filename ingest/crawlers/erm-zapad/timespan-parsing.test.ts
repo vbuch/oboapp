@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { parseTimespans } from "./timespan-parsing";
 import type { PinRecord } from "./types";
+import { logger } from "@/lib/logger";
 
 describe("parseTimespans", () => {
   const mockPin: PinRecord = {
@@ -14,14 +15,14 @@ describe("parseTimespans", () => {
     cities: "",
   };
 
-  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let loggerWarnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    loggerWarnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
   });
 
   afterEach(() => {
-    consoleWarnSpy.mockRestore();
+    loggerWarnSpy.mockRestore();
   });
 
   it("should parse valid begin_event and end_event", () => {
@@ -81,8 +82,9 @@ describe("parseTimespans", () => {
     const beforeCall = new Date();
     const result = parseTimespans(pin);
 
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Invalid begin_event"),
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      "Invalid begin_event",
+      expect.objectContaining({ eventId: "SF_1234" }),
     );
     expect(result.timespanStart.getTime()).toBeGreaterThanOrEqual(
       beforeCall.getTime(),
@@ -98,8 +100,9 @@ describe("parseTimespans", () => {
 
     const result = parseTimespans(pin);
 
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Invalid end_event"),
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      "Invalid end_event",
+      expect.objectContaining({ eventId: "SF_1234" }),
     );
     expect(result.timespanStart).toEqual(new Date("2026-01-29T10:00:00"));
     expect(result.timespanEnd).toEqual(result.timespanStart);
@@ -114,8 +117,9 @@ describe("parseTimespans", () => {
 
     parseTimespans(pin);
 
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("begin_event outside valid range"),
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      "begin_event outside valid range",
+      expect.objectContaining({ eventId: "SF_1234" }),
     );
   });
 
@@ -128,8 +132,9 @@ describe("parseTimespans", () => {
 
     const result = parseTimespans(pin);
 
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("end_event outside valid range"),
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      "end_event outside valid range",
+      expect.objectContaining({ eventId: "SF_1234" }),
     );
     // Should fall back to start time
     expect(result.timespanEnd).toEqual(result.timespanStart);

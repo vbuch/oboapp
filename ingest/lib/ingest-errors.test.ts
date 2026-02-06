@@ -6,14 +6,15 @@ import {
   getIngestErrorRecorder,
   truncateIngestPayload,
 } from "./ingest-errors";
+import { logger } from "@/lib/logger";
 
 describe("ingest-errors", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+    errorSpy = vi.spyOn(logger, "error").mockImplementation(() => undefined);
   });
 
   afterEach(() => {

@@ -47,7 +47,7 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
         // Verify it contains the mock check at the start
         expect(categorizeFnSource).toContain("if (USE_MOCK && mockService)");
         expect(categorizeFnSource).toContain(
-          "[MOCK] Using Gemini mock for categorization",
+          "Using Gemini mock for categorization",
         );
         expect(categorizeFnSource).toContain(
           "return mockService.categorize(text)",
@@ -71,7 +71,7 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
         // Verify it contains the mock check at the start
         expect(extractFnSource).toContain("if (USE_MOCK && mockService)");
         expect(extractFnSource).toContain(
-          "[MOCK] Using Gemini mock for extraction",
+          "Using Gemini mock for extraction",
         );
         expect(extractFnSource).toContain(
           "return mockService.extractStructuredData(text)",
