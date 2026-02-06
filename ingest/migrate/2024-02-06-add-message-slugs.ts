@@ -55,33 +55,26 @@ async function migrateMessageSlugs() {
   }
 
   // Track all slugs generated during this migration run to prevent duplicates
+  // This is a statistical safeguard - generateUniqueSlug() already checks the database
   const generatedSlugsInRun = new Set<string>();
 
   /**
-   * Generates a unique slug, checking both database and in-memory set
-   * Wraps the imported generateUniqueSlug to add in-memory tracking
+   * Generates a unique slug with in-memory tracking
+   * The underlying generateUniqueSlug() already has retry logic and database checks
+   * This wrapper adds in-memory tracking to catch extremely rare collisions within the batch
    */
   async function generateUniqueSlugWithTracking(): Promise<string> {
-    const maxAttempts = 20;
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      const slug = await generateUniqueSlug();
-
-      // Check if slug was generated in this run
-      if (generatedSlugsInRun.has(slug)) {
-        attempts++;
-        continue;
-      }
-
-      // Reserve this slug for this run
-      generatedSlugsInRun.add(slug);
-      return slug;
+    const slug = await generateUniqueSlug();
+    
+    // Statistical safeguard: extremely unlikely but check if we generated this slug already
+    if (generatedSlugsInRun.has(slug)) {
+      console.warn(`Rare collision detected for slug ${slug} within batch, retrying...`);
+      // Recursively retry - generateUniqueSlug will find a different one
+      return generateUniqueSlugWithTracking();
     }
 
-    throw new Error(
-      `Failed to generate unique slug after ${maxAttempts} attempts`,
-    );
+    generatedSlugsInRun.add(slug);
+    return slug;
   }
 
   /**
