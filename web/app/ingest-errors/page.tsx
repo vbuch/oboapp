@@ -65,15 +65,20 @@ export default function IngestErrorsPage() {
 
   const selectedMessage = useMemo(() => {
     const messageId = searchParams.get("messageId");
-    if (messageId && messages.length > 0) {
+
+    if (messages.length === 0) return null;
+
+    if (messageId) {
       return messages.find((message) => message.id === messageId) || null;
     }
+
     return null;
   }, [messages, searchParams]);
 
   const handleMessageClick = useCallback(
     (message: InternalMessage) => {
-      router.push(`/ingest-errors?messageId=${message.id}`, { scroll: false });
+      const url = `/ingest-errors?messageId=${encodeURIComponent(String(message.id))}`;
+      router.push(url, { scroll: false });
     },
     [router],
   );

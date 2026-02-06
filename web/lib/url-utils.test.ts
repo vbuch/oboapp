@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { extractHostname } from "./url-utils";
+import {
+  extractHostname,
+  createMessageUrl,
+  createMessageUrlFromId,
+} from "./url-utils";
+import type { Message } from "./types";
 
 describe("extractHostname", () => {
   it("should extract hostname from https URL", () => {
@@ -61,6 +66,38 @@ describe("extractHostname", () => {
     );
     expect(extractHostname("https://so-slatina.org/2024/news")).toBe(
       "so-slatina.org",
+    );
+  });
+});
+
+describe("createMessageUrl", () => {
+  it("should create URL from message with ID", () => {
+    const message: Message = {
+      id: "aB3xYz12",
+      text: "Test message",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(createMessageUrl(message)).toBe("/?messageId=aB3xYz12");
+  });
+
+  it("should URL-encode special characters in ID", () => {
+    const message: Message & { id: string } = {
+      id: "test/id?value",
+      text: "Test message",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(createMessageUrl(message)).toBe("/?messageId=test%2Fid%3Fvalue");
+  });
+});
+
+describe("createMessageUrlFromId", () => {
+  it("should create URL from ID string", () => {
+    expect(createMessageUrlFromId("aB3xYz12")).toBe("/?messageId=aB3xYz12");
+  });
+
+  it("should URL-encode special characters in ID", () => {
+    expect(createMessageUrlFromId("test/id?value")).toBe(
+      "/?messageId=test%2Fid%3Fvalue",
     );
   });
 });

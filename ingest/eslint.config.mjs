@@ -1,8 +1,18 @@
 import tseslint from "typescript-eslint";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const eslintConfig = [
   ...tseslint.configs.recommended,
   {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: __dirname,
+      },
+    },
     rules: {
       // Code quality rules - TypeScript-aware unused vars detection
       "@typescript-eslint/no-unused-vars": [
@@ -44,6 +54,7 @@ const eslintConfig = [
       "**/*.d.ts", // Type declaration files
       "emulator-data/**",
       "terraform/**/.terraform/**",
+      "**/*.mjs", // Config files not in tsconfig
     ],
   },
 ];

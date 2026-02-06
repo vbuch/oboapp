@@ -43,6 +43,7 @@ See [web/](web) for details.
 ### Features
 
 - [Message Filtering](docs/features/message-filtering.md) - AI-powered content filtering, address extraction, geocoding, and time-based relevance
+- [Message URLs](docs/features/message-urls.md) - Short, shareable URLs for deep-linking to messages
 - [Geocoding System](docs/features/geocoding-overview.md) - Multi-service geocoding with Google, OpenStreetMap, Bulgarian Cadastre, and GTFS APIs
 - [Onboarding Flow](docs/features/onboarding-flow.md) - User onboarding state machine for notifications and zone creation
 - [Your Sofia API](web/app/api/ysm/README.md) - Public API contract for the Your Sofia mobile client

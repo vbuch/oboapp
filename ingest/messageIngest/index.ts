@@ -15,7 +15,7 @@ import {
 } from "@/lib/ingest-errors";
 import { storeIncomingMessage, updateMessage } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
-import { generateMessageId, formatCategorizedMessageLogInfo } from "./utils";
+import { formatCategorizedMessageLogInfo } from "./utils";
 import { logger } from "@/lib/logger";
 
 export { extractAddressesFromMessage } from "./extract-addresses";
@@ -212,8 +212,6 @@ async function processPrecomputedGeoJsonMessage(
   sourceDocumentId: string | undefined,
   options: MessageIngestOptions,
 ): Promise<MessageIngestResult> {
-  const messageId = sourceDocumentId ? `${sourceDocumentId}-1` : undefined;
-
   const storedMessageId = await storeIncomingMessage(
     text,
     userId,
@@ -221,7 +219,6 @@ async function processPrecomputedGeoJsonMessage(
     source,
     options.sourceUrl,
     options.crawledAt,
-    messageId,
     sourceDocumentId,
   );
 
@@ -279,23 +276,21 @@ async function processCategorizedMessages(
   for (let i = 0; i < categorizedMessages.length; i++) {
     const categorizedMessage = categorizedMessages[i];
     const messageIndex = i + 1;
-    const messageId = generateMessageId(sourceDocumentId, messageIndex);
-
-    logCategorizedMessageInfo(
-      categorizedMessage,
-      messageIndex,
-      categorizedMessages.length,
-      messageId,
-    );
 
     const storedMessageId = await storeCategorizedMessage(
       categorizedMessage,
       userId,
       userEmail,
       source,
-      messageId,
       sourceDocumentId,
       options,
+    );
+
+    logCategorizedMessageInfo(
+      categorizedMessage,
+      messageIndex,
+      categorizedMessages.length,
+      storedMessageId,
     );
 
     const ingestErrors = createIngestErrorCollector();
@@ -356,7 +351,6 @@ async function storeCategorizedMessage(
   userId: string,
   userEmail: string | null,
   source: string,
-  messageId: string | undefined,
   sourceDocumentId: string | undefined,
   options: MessageIngestOptions,
 ): Promise<string> {
@@ -367,7 +361,6 @@ async function storeCategorizedMessage(
     source,
     options.sourceUrl,
     options.crawledAt,
-    messageId,
     sourceDocumentId,
   );
 
