@@ -100,7 +100,7 @@ resource "google_project_iam_member" "firestore_user" {
   member  = "serviceAccount:${google_service_account.ingest_runner.email}"
 }
 
-# Grant Cloud Run Invoker (for scheduler to trigger jobs)
+# Grant Cloud Run Invoker (for scheduler to trigger workflows and workflows to invoke jobs)
 resource "google_project_iam_member" "run_invoker" {
   project = var.project_id
   role    = "roles/run.invoker"
@@ -111,13 +111,6 @@ resource "google_project_iam_member" "run_invoker" {
 resource "google_project_iam_member" "secret_accessor" {
   project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.ingest_runner.email}"
-}
-
-# Grant service account permission to invoke Cloud Run jobs from Workflows
-resource "google_project_iam_member" "workflows_run_invoker" {
-  project = var.project_id
-  role    = "roles/run.developer"
   member  = "serviceAccount:${google_service_account.ingest_runner.email}"
 }
 
