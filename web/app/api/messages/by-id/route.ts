@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ message });
   } catch (error) {
-    console.error("Error fetching message by slug:", error);
+    console.error("Error fetching message by id:", error);
     return NextResponse.json(
       { error: "Failed to fetch message" },
       { status: 500 },
