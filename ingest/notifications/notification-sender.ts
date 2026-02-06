@@ -39,6 +39,9 @@ export function buildNotificationPayload(
     ? ` (${Math.round(match.distance)}m от вашия район)`
     : "";
 
+  // Message ID is URL-encoded to handle any special characters
+  const messageUrl = `${APP_URL}/m/${encodeURIComponent(match.messageId)}`;
+
   return {
     data: {
       title: "Ново съобщение в OboApp",
@@ -48,11 +51,11 @@ export function buildNotificationPayload(
       messageId: match.messageId,
       interestId: match.interestId,
       matchId: match.id || "",
-      url: `${APP_URL}/?messageId=${match.messageId}`,
+      url: messageUrl,
     },
     webpush: {
       fcmOptions: {
-        link: `${APP_URL}/?messageId=${match.messageId}`,
+        link: messageUrl,
       },
     },
   };
@@ -78,7 +81,10 @@ export async function sendPushNotification(
 
     return { success: true };
   } catch (error) {
-    logger.error("Failed to send notification", { error: error instanceof Error ? error.message : String(error), errorCode: (error as { code?: string })?.code });
+    logger.error("Failed to send notification", {
+      error: error instanceof Error ? error.message : String(error),
+      errorCode: (error as { code?: string })?.code,
+    });
 
     // Check if the FCM token is invalid/expired
     const errorCode = (error as { code?: string })?.code;
@@ -112,7 +118,9 @@ export async function sendToUserDevices(
   const subscriptions = await getUserSubscriptions(adminDb, userId);
 
   if (subscriptions.length === 0) {
-    logger.info("No subscriptions for user", { userId: userId.substring(0, 8) });
+    logger.info("No subscriptions for user", {
+      userId: userId.substring(0, 8),
+    });
     return { successCount: 0, notifications: [] };
   }
 

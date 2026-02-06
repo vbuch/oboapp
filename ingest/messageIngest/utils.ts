@@ -4,21 +4,6 @@
  */
 
 /**
- * Generate a deterministic message ID based on source document and index
- * @param sourceDocumentId - Optional source document ID
- * @param messageIndex - Index of the message (1-based)
- * @returns Generated message ID or undefined if no source document ID
- */
-export function generateMessageId(
-  sourceDocumentId: string | undefined,
-  messageIndex: number
-): string | undefined {
-  return sourceDocumentId && sourceDocumentId.trim() !== ""
-    ? `${sourceDocumentId}-${messageIndex}`
-    : undefined;
-}
-
-/**
  * Format log messages for categorized message processing
  * @param categorizedMessage - The categorized message object
  * @param messageIndex - Current message index (1-based)

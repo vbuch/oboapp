@@ -380,14 +380,17 @@ describe("processFieldsForFirestore", () => {
       expect(result.isDeleted).toBe(false);
     });
 
-    it("should pass through undefined unchanged", () => {
+    it("should filter out undefined values", () => {
       const input = {
         optionalField: undefined,
+        validField: "value",
       };
 
       const result = processFieldsForFirestore(input);
 
       expect(result.optionalField).toBeUndefined();
+      expect(result).not.toHaveProperty("optionalField");
+      expect(result.validField).toBe("value");
     });
   });
 

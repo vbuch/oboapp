@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useRef, useMemo } from "react";
+import React, {
+  useCallback,
+  useRef,
+  useMemo,
+  useState,
+  useEffect,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapContainer from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView";
@@ -15,6 +21,9 @@ import { useMapNavigation } from "@/lib/hooks/useMapNavigation";
 import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
 import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
 import { classifyMessage } from "@/lib/message-classification";
+import { createMessageUrl } from "@/lib/url-utils";
+import { Message } from "@/lib/types";
+import { isValidMessageId } from "@oboapp/shared";
 
 /**
  * HomeContent - Main application component managing map, messages, and user interactions
@@ -110,9 +119,9 @@ export default function HomeContent() {
   const handleFeatureClick = useCallback(
     (messageId: string) => {
       const message = messages.find((m) => m.id === messageId);
-      if (message) {
-        // Update URL with query parameter - this will trigger selectedMessage derivation
-        router.push(`/?messageId=${messageId}`, { scroll: false });
+      if (message?.id) {
+        // Update URL for the selected message using its canonical URL
+        router.push(createMessageUrl(message), { scroll: false });
       }
     },
     [messages, router],
@@ -126,13 +135,70 @@ export default function HomeContent() {
 
   // Derive selected message from URL parameter
   // Note: We search in unfiltered 'messages' to preserve selection even when filtered out
-  const selectedMessage = useMemo(() => {
-    const messageId = searchParams.get("messageId");
+  const messageId = searchParams.get("messageId");
+
+  // Message fetched from API when messageId doesn't match any viewport message
+  const [fetchedMessage, setFetchedMessage] = useState<{
+    id: string;
+    message: Message;
+  } | null>(null);
+
+  // Try to find the message in viewport messages first
+  const viewportMatch = useMemo(() => {
     if (messageId && messages.length > 0) {
       return messages.find((m) => m.id === messageId) || null;
     }
     return null;
-  }, [searchParams, messages]);
+  }, [messageId, messages]);
+
+  // Fetch message by ID from API if not found in viewport (e.g., shared link)
+  useEffect(() => {
+    // Don't fetch if: no messageId, already in viewport, or invalid messageId
+    if (!messageId || viewportMatch || !isValidMessageId(messageId)) {
+      return;
+    }
+
+    // Skip if we already have this message fetched
+    if (fetchedMessage?.id === messageId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    fetch(`/api/messages/by-id?id=${encodeURIComponent(messageId)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Not found");
+        return res.json();
+      })
+      .then((data) => {
+        if (!cancelled && data?.message) {
+          setFetchedMessage({ id: messageId, message: data.message });
+        }
+      })
+      .catch(() => {
+        // Don't update state on error - leave previous message or null
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [messageId, viewportMatch, fetchedMessage]);
+
+  // Derive selected message: use viewport match or fetched message (only if ID matches current messageId)
+  const selectedMessage = useMemo(() => {
+    if (!messageId) {
+      return null;
+    }
+    // Prioritize viewport match, then fetched message (with ID validation to prevent stale data)
+    if (viewportMatch) {
+      return viewportMatch;
+    }
+    // Only use fetchedMessage if its ID matches the current messageId from URL
+    if (fetchedMessage?.id === messageId) {
+      return fetchedMessage.message;
+    }
+    return null;
+  }, [messageId, viewportMatch, fetchedMessage]);
 
   return (
     <div
@@ -197,7 +263,7 @@ export default function HomeContent() {
             messages={filteredMessages}
             isLoading={isLoading}
             onMessageClick={(message) => {
-              router.push(`/?messageId=${message.id}`, { scroll: false });
+              router.push(createMessageUrl(message), { scroll: false });
             }}
             variant="list"
           />

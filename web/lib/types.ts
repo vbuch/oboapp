@@ -1,6 +1,6 @@
 import type { z } from "zod";
-import { CoordinatesSchema } from "@oboapp/shared";
 import {
+  CoordinatesSchema,
   GeoJsonFeatureCollectionSchema,
   GeoJsonFeatureSchema,
   GeoJsonGeometrySchema,
@@ -8,14 +8,15 @@ import {
   GeoJsonMultiPointSchema,
   GeoJsonPointSchema,
   GeoJsonPolygonSchema,
+  MessageSnapshotSchema,
+  NotificationHistoryItemSchema,
+  PinSchema,
+  StreetSectionSchema,
+  TimespanSchema,
+  AddressSchema,
+  ExtractedDataSchema,
+  CadastralPropertySchema,
 } from "@oboapp/shared";
-import { MessageSnapshotSchema } from "@oboapp/shared";
-import { NotificationHistoryItemSchema } from "@oboapp/shared";
-import { PinSchema } from "@oboapp/shared";
-import { StreetSectionSchema } from "@oboapp/shared";
-import { TimespanSchema } from "@oboapp/shared";
-import { AddressSchema } from "@oboapp/shared";
-import { ExtractedDataSchema, CadastralPropertySchema } from "@oboapp/shared";
 
 // Import shared types
 export type {

@@ -1,12 +1,14 @@
 import { z } from "../zod-openapi";
 import { AddressSchema } from "./address.schema";
 import { CategoryEnum } from "./category.schema";
-import { ExtractedDataSchema } from "./extracted-data.schema";
+import {
+  ExtractedDataSchema,
+  CadastralPropertySchema,
+} from "./extracted-data.schema";
 import { GeoJsonFeatureCollectionSchema } from "./geojson.schema";
 import { IngestErrorSchema } from "./ingest-error.schema";
 import { PinSchema } from "./pin.schema";
 import { StreetSectionSchema } from "./street-section.schema";
-import { CadastralPropertySchema } from "./extracted-data.schema";
 
 /**
  * Public MessageSchema - exposes only validated, controlled fields
