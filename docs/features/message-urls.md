@@ -174,5 +174,5 @@ Users clicking notifications navigate directly to the message detail page via cl
 
 - Existing messages work without slugs (fallback to ID)
 - Migration can run gradually without downtime
-- Slugs are immutable once assigned
+- Slugs are immutable once assigned (enforced in ingestion pipeline)
 - No breaking changes to existing functionality

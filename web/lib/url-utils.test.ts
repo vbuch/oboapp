@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { extractHostname, createMessageUrl } from "./url-utils";
+import {
+  extractHostname,
+  createMessageUrl,
+  createMessageUrlFromId,
+} from "./url-utils";
 import type { Message } from "./types";
 
 describe("extractHostname", () => {
@@ -94,5 +98,31 @@ describe("createMessageUrl", () => {
       createdAt: "2024-01-01T00:00:00Z",
     };
     expect(createMessageUrl(message)).toBe("/?messageId=abc123def456");
+  });
+});
+
+describe("createMessageUrlFromId", () => {
+  it("should use slug when provided", () => {
+    expect(createMessageUrlFromId("abc123def456", "aB3xYz12")).toBe(
+      "/m/aB3xYz12",
+    );
+  });
+
+  it("should fallback to messageId when slug is not provided", () => {
+    expect(createMessageUrlFromId("abc123def456")).toBe(
+      "/?messageId=abc123def456",
+    );
+  });
+
+  it("should fallback to messageId when slug is undefined", () => {
+    expect(createMessageUrlFromId("abc123def456", undefined)).toBe(
+      "/?messageId=abc123def456",
+    );
+  });
+
+  it("should fallback to messageId when slug is empty string", () => {
+    expect(createMessageUrlFromId("abc123def456", "")).toBe(
+      "/?messageId=abc123def456",
+    );
   });
 });

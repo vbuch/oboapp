@@ -18,6 +18,7 @@ import { encodeDocumentId } from "../crawlers/shared/firestore";
 import { generateMessageId, formatCategorizedMessageLogInfo } from "./utils";
 import { logger } from "@/lib/logger";
 import { generateUniqueSlug } from "@/lib/slug-utils";
+import { getMessageById } from "./db";
 
 export { extractAddressesFromMessage } from "./extract-addresses";
 export {
@@ -80,6 +81,22 @@ export interface MessageIngestResult {
   totalCategorized: number;
   totalRelevant: number;
   totalIrrelevant: number;
+}
+
+/**
+ * Generate a slug for a message if it doesn't already have one
+ * Ensures slug immutability - once assigned, it never changes
+ */
+async function ensureMessageHasSlug(messageId: string): Promise<string> {
+  const message = await getMessageById(messageId);
+  
+  // If message already has a slug, return it (immutability)
+  if (message?.slug) {
+    return message.slug;
+  }
+  
+  // Otherwise generate a new unique slug
+  return await generateUniqueSlug();
 }
 
 /**
@@ -395,7 +412,7 @@ async function handleIrrelevantMessage(
   ingestErrors: IngestErrorCollector,
 ): Promise<InternalMessage> {
   logger.info("Message filtered as irrelevant, marking as finalized");
-  const slug = await generateUniqueSlug();
+  const slug = await ensureMessageHasSlug(messageId);
   await updateMessage(messageId, {
     slug,
     finalizedAt: new Date(),
@@ -588,7 +605,7 @@ async function finalizeFailedMessage(
   ingestErrors.error(
     "❌ Failed to extract data from message, marking as finalized",
   );
-  const slug = await generateUniqueSlug();
+  const slug = await ensureMessageHasSlug(messageId);
   await updateMessage(messageId, {
     slug,
     finalizedAt: new Date(),
@@ -675,7 +692,7 @@ async function finalizeMessageWithResults(
   geoJson: GeoJSONFeatureCollection | null,
   ingestErrors: IngestErrorCollector,
 ): Promise<void> {
-  const slug = await generateUniqueSlug();
+  const slug = await ensureMessageHasSlug(messageId);
   if (geoJson) {
     await updateMessage(messageId, {
       slug,
@@ -690,7 +707,7 @@ async function finalizeMessageWithoutGeoJson(
   messageId: string,
   ingestErrors: IngestErrorCollector,
 ): Promise<void> {
-  const slug = await generateUniqueSlug();
+  const slug = await ensureMessageHasSlug(messageId);
   await updateMessage(messageId, {
     slug,
     finalizedAt: new Date(),
