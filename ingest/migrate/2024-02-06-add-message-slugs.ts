@@ -1,4 +1,22 @@
 #!/usr/bin/env tsx
+/**
+ * MIGRATION: Add URL-friendly slugs to messages
+ * 
+ * WHAT: Generates and assigns unique 8-character alphanumeric slugs to all existing messages
+ * 
+ * WHY: Implements user-friendly shareable URLs (e.g., oboapp.online/m/aB3xYz12)
+ *      replacing long Firestore document IDs in query strings
+ * 
+ * MODIFIES: Updates all documents in the 'messages' collection that don't have a 'slug' field
+ * 
+ * SAFE TO RE-RUN: Yes - automatically skips messages that already have slugs
+ * 
+ * BATCH SIZE: Processes 500 messages per Firestore batch commit
+ * 
+ * USAGE: npm run migrate:slugs
+ * 
+ * Related PR: Replace message IDs with short slugs in URLs
+ */
 import dotenv from "dotenv";
 import { resolve } from "node:path";
 

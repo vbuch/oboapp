@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapContainer from "@/components/MapContainer";

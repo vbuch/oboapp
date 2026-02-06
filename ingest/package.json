@@ -20,7 +20,7 @@
     "emulator:seed": "tsx scripts/seed-emulator.ts",
     "emulator:check": "tsx scripts/check-emulator-data.ts",
     "emulator:clear": "tsx scripts/clear-emulator-data.ts",
-    "migrate:slugs": "tsx scripts/migrate-message-slugs.ts",
+    "migrate:slugs": "tsx migrate/2024-02-06-add-message-slugs.ts",
     "capture-fixtures": "tsx scripts/capture-api-responses.ts",
     "capture:firestore": "tsx scripts/capture-from-firestore.ts",
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
