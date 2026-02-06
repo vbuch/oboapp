@@ -271,7 +271,7 @@ When adding a new crawler to the system:
 1. Implement crawler in `ingest/crawlers/{source-name}/`
 2. Add Cloud Run job definition to `ingest/terraform/main.tf`
 3. Update `ingest/terraform/workflows/all.yaml` - add crawler to parallel step
-4. If emergent crawler: Also update `ingest/terraform/workflows/emergent.yaml`
+4. If emergent crawler: Also update `ingest/terraform/workflows/emergent.yaml` and the `EMERGENT_CRAWLERS` constant in `ingest/pipeline.ts`
 5. Deploy via Terraform: `terraform apply`
 
 See [AGENTS.md](../../AGENTS.md) for detailed crawler development guidelines.
