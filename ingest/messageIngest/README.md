@@ -95,7 +95,7 @@ See [Geocoding System Overview](../../docs/features/geocoding-overview.md) for s
 
 Sources with ready GeoJSON bypass AI categorization:
 
-- Single message per source (1:1 hip)
+- Single message per source (1:1 relationship)
 - Timespans transfer from source to message if present
 - Validation against minimum date threshold
 - Fallback to `crawledAt` if source lacks valid timespans
