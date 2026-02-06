@@ -341,9 +341,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
           "responsibleEntity": {
             "type": "string",
           },
-          "slug": {
-            "type": "string",
-          },
           "source": {
             "type": "string",
           },
@@ -735,9 +732,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 "responsibleEntity": {
                   "type": "string",
                 },
-                "slug": {
-                  "type": "string",
-                },
                 "source": {
                   "type": "string",
                 },
@@ -827,9 +821,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
             "messageSnapshot": {
               "properties": {
                 "createdAt": {
-                  "type": "string",
-                },
-                "slug": {
                   "type": "string",
                 },
                 "source": {

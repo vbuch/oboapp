@@ -1,6 +1,6 @@
 import { adminDb } from "@/lib/firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { generateUniqueMessageId } from "@/lib/slug-utils";
+import { generateSlug } from "@/lib/slug-utils";
 
 /**
  * Step 1: Store the incoming message in the database
@@ -34,7 +34,28 @@ export async function storeIncomingMessage(
     docData.sourceDocumentId = sourceDocumentId;
   }
 
-  const messageId = await generateUniqueMessageId();
-  await messagesRef.doc(messageId).set(docData);
-  return messageId;
+  // Atomically create document with retry on collision
+  const maxAttempts = 5;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const messageId = generateSlug();
+    try {
+      await messagesRef.doc(messageId).create(docData);
+      return messageId;
+    } catch (err: unknown) {
+      // If the document already exists, retry with a new ID
+      if (
+        err &&
+        typeof err === "object" &&
+        "code" in err &&
+        (err.code === "already-exists" || err.code === "ALREADY_EXISTS")
+      ) {
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw new Error(
+    "Failed to generate a unique message ID after multiple attempts.",
+  );
 }

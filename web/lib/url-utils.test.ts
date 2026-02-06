@@ -79,10 +79,25 @@ describe("createMessageUrl", () => {
     };
     expect(createMessageUrl(message)).toBe("/?messageId=aB3xYz12");
   });
+
+  it("should URL-encode special characters in message ID", () => {
+    const message: Message & { id: string } = {
+      id: "test/id?value",
+      text: "Test message",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(createMessageUrl(message)).toBe("/?messageId=test%2Fid%3Fvalue");
+  });
 });
 
 describe("createMessageUrlFromId", () => {
   it("should create URL from message ID", () => {
     expect(createMessageUrlFromId("aB3xYz12")).toBe("/?messageId=aB3xYz12");
+  });
+
+  it("should URL-encode special characters in message ID", () => {
+    expect(createMessageUrlFromId("test/id?value")).toBe(
+      "/?messageId=test%2Fid%3Fvalue",
+    );
   });
 });

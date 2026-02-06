@@ -5,14 +5,14 @@ import type { Message, NotificationMatch } from "@/lib/types";
 describe("notification-sender", () => {
   describe("buildNotificationPayload", () => {
     const baseMessage: Message = {
-      id: "msg123",
+      id: "aB3xYz12",
       text: "Test message",
       createdAt: "2026-02-05T12:00:00.000Z",
     };
 
     const baseMatch: NotificationMatch = {
       id: "match123",
-      messageId: "msg123",
+      messageId: "aB3xYz12",
       userId: "user123",
       interestId: "int123",
       matchedAt: "2026-02-05T12:00:00.000Z",
@@ -60,7 +60,7 @@ describe("notification-sender", () => {
       expect(payload.data).toHaveProperty("body");
       expect(payload.data).toHaveProperty("icon");
       expect(payload.data).toHaveProperty("badge");
-      expect(payload.data).toHaveProperty("messageId", "msg123");
+      expect(payload.data).toHaveProperty("messageId", "aB3xYz12");
       expect(payload.data).toHaveProperty("interestId", "int123");
       expect(payload.data).toHaveProperty("matchId", "match123");
       expect(payload.data).toHaveProperty("url");
@@ -69,8 +69,8 @@ describe("notification-sender", () => {
     it("should use message ID in URL (ID is the slug)", () => {
       const payload = buildNotificationPayload(baseMessage, baseMatch);
 
-      expect(payload.data.url).toContain("/m/msg123");
-      expect(payload.webpush.fcmOptions.link).toContain("/m/msg123");
+      expect(payload.data.url).toContain("/m/aB3xYz12");
+      expect(payload.webpush.fcmOptions.link).toContain("/m/aB3xYz12");
     });
   });
 });

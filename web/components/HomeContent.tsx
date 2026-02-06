@@ -120,7 +120,7 @@ export default function HomeContent() {
     (messageId: string) => {
       const message = messages.find((m) => m.id === messageId);
       if (message) {
-        // Update URL - use slug if available, otherwise fall back to ID
+        // Update URL for the selected message using its canonical URL
         router.push(createMessageUrl(message), { scroll: false });
       }
     },

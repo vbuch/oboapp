@@ -25,14 +25,14 @@ export function extractHostname(url: string): string {
 
 /**
  * Creates a URL for a message using its ID (which is a slug-format identifier)
- * @param message - The message object
+ * @param message - The message object with ID
  * @returns The URL path for the message
  *
  * @example
  * createMessageUrl({ id: "aB3xYz12" }) // "/?messageId=aB3xYz12"
  */
-export function createMessageUrl(message: Message): string {
-  return `/?messageId=${message.id}`;
+export function createMessageUrl(message: Message & { id: string }): string {
+  return `/?messageId=${encodeURIComponent(message.id)}`;
 }
 
 /**
@@ -44,5 +44,5 @@ export function createMessageUrl(message: Message): string {
  * createMessageUrlFromId("aB3xYz12") // "/?messageId=aB3xYz12"
  */
 export function createMessageUrlFromId(messageId: string): string {
-  return `/?messageId=${messageId}`;
+  return `/?messageId=${encodeURIComponent(messageId)}`;
 }
