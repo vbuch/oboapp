@@ -20,7 +20,7 @@ Internal links (map clicks, message cards, notification history) use query param
 
 **Example**: `https://oboapp.online/m/aB3xYz12`
 
-External links (push notifications, social sharing) use the clean `/m/{id}` path format. The `/m/[id]` route **redirects** to `/?messageId={id}`, so the message detail always renders as a homepage overlay.
+External links (push notifications, social sharing) use the clean `/m/{id}` path format. The `/m/[slug]` route **redirects** to `/?messageId={id}`, so the message detail always renders as a homepage overlay.
 
 - **Short**: 8 characters, easy to share
 - **Persistent**: Document ID never changes
