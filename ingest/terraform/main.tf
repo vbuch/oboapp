@@ -56,6 +56,11 @@ resource "google_project_service" "monitoring" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "workflows" {
+  service            = "workflows.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "artifactregistry" {
   service            = "artifactregistry.googleapis.com"
   disable_on_destroy = false
@@ -109,6 +114,13 @@ resource "google_project_iam_member" "secret_accessor" {
   member  = "serviceAccount:${google_service_account.ingest_runner.email}"
 }
 
+# Grant service account permission to invoke Cloud Run jobs from Workflows
+resource "google_project_iam_member" "workflows_run_invoker" {
+  project = var.project_id
+  role    = "roles/run.developer"
+  member  = "serviceAccount:${google_service_account.ingest_runner.email}"
+}
+
 # Reference existing secrets (these should be created manually or via setup script)
 # We use data sources to reference secrets that should be created before running terraform
 data "google_secret_manager_secret" "firebase_sa_key" {
@@ -138,6 +150,32 @@ data "google_secret_manager_secret" "google_maps_api_key" {
   
   depends_on = [google_project_service.secretmanager]
 }
+
+# ── Cloud Workflows ───────────────────────────────────────────────────────────
+
+# Workflow for emergent crawler pipeline (runs every 30 minutes)
+resource "google_workflows_workflow" "pipeline_emergent" {
+  name            = "pipeline-emergent"
+  region          = var.region
+  description     = "Orchestrates emergent crawlers (erm-zapad, toplo, sofiyska-voda) in parallel, then ingest and notify"
+  service_account = google_service_account.ingest_runner.id
+  source_contents = file("${path.module}/workflows/emergent.yaml")
+  
+  depends_on = [google_project_service.workflows]
+}
+
+# Workflow for all crawlers pipeline (runs 3x daily)
+resource "google_workflows_workflow" "pipeline_all" {
+  name            = "pipeline-all"
+  region          = var.region
+  description     = "Orchestrates all 11 crawlers in parallel, then ingest and notify"
+  service_account = google_service_account.ingest_runner.id
+  source_contents = file("${path.module}/workflows/all.yaml")
+  
+  depends_on = [google_project_service.workflows]
+}
+
+# ── Cloud Run Jobs ────────────────────────────────────────────────────────────
 
 # Cloud Run Jobs
 locals {
@@ -189,6 +227,24 @@ locals {
       memory       = "1Gi"
       timeout      = "1800s"
       description  = "Crawl Sredec district"
+    }
+    slatina = {
+      source       = "so-slatina-org"
+      memory       = "1Gi"
+      timeout      = "1800s"
+      description  = "Crawl Slatina district"
+    }
+    lozenets = {
+      source       = "lozenets-sofia-bg"
+      memory       = "1Gi"
+      timeout      = "1800s"
+      description  = "Crawl Lozenets district"
+    }
+    nimh-severe-weather = {
+      source       = "nimh-severe-weather"
+      memory       = "512Mi"
+      timeout      = "1800s"
+      description  = "Crawl NIMH severe weather warnings"
     }
   }
 }
@@ -473,6 +529,7 @@ resource "google_cloud_run_v2_job" "notify" {
 }
 
 # Pipeline Cloud Run Jobs
+# Note: These jobs remain for local/manual testing. Cloud Scheduler uses Workflows instead.
 resource "google_cloud_run_v2_job" "pipeline_emergent" {
   name     = "pipeline-emergent"
   location = var.region
@@ -572,7 +629,7 @@ resource "google_cloud_run_v2_job" "pipeline_all" {
   template {
     template {
       service_account = google_service_account.ingest_runner.email
-      timeout         = "10800s"  # 3 hours for full pipeline (8 crawlers + ingest + notify)
+      timeout         = "10800s"  # 3 hours for full pipeline (11 crawlers + ingest + notify)
       
       containers {
         image = local.full_image_url
@@ -661,7 +718,7 @@ resource "google_cloud_run_v2_job" "pipeline_all" {
 # Individual crawler, ingest, and notify jobs remain available for manual triggering
 resource "google_cloud_scheduler_job" "pipeline_emergent_schedule" {
   name             = "pipeline-emergent-schedule"
-  description      = "Run emergent crawlers (ERM, Toplo, Sofiyska Voda) + ingest + notify every 30 minutes"
+  description      = "Trigger emergent workflow (crawlers + ingest + notify) every 30 minutes"
   schedule         = var.schedules.pipeline_emergent
   time_zone        = var.schedule_timezone
   attempt_deadline = "320s"
@@ -673,7 +730,7 @@ resource "google_cloud_scheduler_job" "pipeline_emergent_schedule" {
 
   http_target {
     http_method = "POST"
-    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/pipeline-emergent:run"
+    uri         = "https://workflowexecutions.googleapis.com/v1/projects/${var.project_id}/locations/${var.region}/workflows/pipeline-emergent/executions"
 
     oauth_token {
       service_account_email = google_service_account.ingest_runner.email
@@ -682,13 +739,13 @@ resource "google_cloud_scheduler_job" "pipeline_emergent_schedule" {
 
   depends_on = [
     google_project_service.cloudscheduler,
-    google_cloud_run_v2_job.pipeline_emergent
+    google_workflows_workflow.pipeline_emergent
   ]
 }
 
 resource "google_cloud_scheduler_job" "pipeline_all_schedule" {
   name             = "pipeline-all-schedule"
-  description      = "Run all crawlers + ingest + notify 3 times daily"
+  description      = "Trigger all workflow (crawlers + ingest + notify) 3 times daily"
   schedule         = var.schedules.pipeline_all
   time_zone        = var.schedule_timezone
   attempt_deadline = "320s"
@@ -700,7 +757,7 @@ resource "google_cloud_scheduler_job" "pipeline_all_schedule" {
 
   http_target {
     http_method = "POST"
-    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/pipeline-all:run"
+    uri         = "https://workflowexecutions.googleapis.com/v1/projects/${var.project_id}/locations/${var.region}/workflows/pipeline-all/executions"
 
     oauth_token {
       service_account_email = google_service_account.ingest_runner.email
@@ -709,7 +766,7 @@ resource "google_cloud_scheduler_job" "pipeline_all_schedule" {
 
   depends_on = [
     google_project_service.cloudscheduler,
-    google_cloud_run_v2_job.pipeline_all
+    google_workflows_workflow.pipeline_all
   ]
 }
 

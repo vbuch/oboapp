@@ -203,6 +203,61 @@ Examples:
 
 **Note:** Individual crawler, ingest, and notify jobs remain available for manual triggering but are not scheduled. Only the two pipeline jobs run on schedule.
 
+### Cloud Workflows Orchestration
+
+The pipeline uses Google Cloud Workflows for orchestration:
+
+- **Workflow definitions**: `workflows/emergent.yaml` and `workflows/all.yaml`
+- **Triggered by**: Cloud Scheduler (same schedules as before)
+- **Execution**: Crawlers run in parallel, followed by sequential ingest and notify
+
+**Workflow changes**: When modifying workflow YAML files:
+
+```bash
+terraform plan   # Workflows will be updated
+terraform apply
+```
+
+**Adding new crawlers**: Update the appropriate workflow YAML file:
+
+1. For all crawlers: Update `workflows/all.yaml`
+2. For emergent crawlers (30-min intervals): Also update `workflows/emergent.yaml` and `EMERGENT_CRAWLERS` in `pipeline.ts`
+3. Add crawler job name to the parallel execution step
+4. `pipeline.ts` syncs automatically (discovers crawlers from filesystem)
+
+**Manual workflow testing**:
+
+```bash
+# Execute workflow directly
+gcloud workflows execute pipeline-emergent --location=europe-west1
+
+# View execution details
+gcloud workflows executions describe [EXECUTION_ID] \
+  --workflow=pipeline-emergent \
+  --location=europe-west1
+
+# List recent workflow executions
+gcloud workflows executions list \
+  --workflow=pipeline-emergent \
+  --location=europe-west1 \
+  --limit=10
+```
+
+**Legacy pipeline jobs**: The monolithic `pipeline-emergent` and `pipeline-all` Cloud Run jobs remain available for local testing and emergency manual execution, but are no longer scheduled by Cloud Scheduler.
+
+```bash
+# Manual execution of legacy pipeline job
+gcloud run jobs execute pipeline-emergent --region=europe-west1 --wait
+```
+
+**Local development:**
+
+```bash
+cd ingest
+npm run pipeline:emergant
+npm run pipeline:all
+```
+
 ### Modifying Resources
 
 Change memory/CPU in `main.tf`:

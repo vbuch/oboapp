@@ -229,6 +229,12 @@ flowchart LR
 - **Scripts:** Use the standard template (shebang, dotenv, dynamic imports). Run via `npm run tsx tmp/script.ts`.
 - **Precomputed GeoJSON:** If crawler provides GeoJSON, it bypasses message categorization and extraction stages. Timespans transfer from source to message during ingestion.
 - **City-Wide Messages:** Set `cityWide: true` with empty FeatureCollection for alerts applying to entire city. Bypasses viewport filtering (always visible), uses sofia.geojson for notification matching.
+- **Workflow Sync (CRITICAL):** When adding/removing crawlers, update BOTH locations:
+  1. `ingest/crawlers/{source-name}/` - Crawler implementation
+  2. `ingest/terraform/workflows/all.yaml` - Add crawler to parallel execution step
+  3. If emergent crawler (short-lived, 30-min intervals): Also update `ingest/terraform/workflows/emergent.yaml` and `EMERGENT_CRAWLERS` in `ingest/pipeline.ts`
+  4. `ingest/pipeline.ts` syncs automatically (discovers crawlers from filesystem)
+- **Emergent Classification:** Emergent crawlers (erm-zapad, toplo-bg, sofiyska-voda) run every 30 minutes. All others run 3x daily. This classification affects workflow definitions and Cloud Scheduler.
 
 ### Geocoding Services
 
