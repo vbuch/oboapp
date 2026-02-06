@@ -151,7 +151,7 @@ resource "google_workflows_workflow" "pipeline_emergent" {
   name            = "pipeline-emergent"
   region          = var.region
   description     = "Orchestrates emergent crawlers (erm-zapad, toplo, sofiyska-voda) in parallel, then ingest and notify"
-  service_account = google_service_account.ingest_runner.id
+  service_account = google_service_account.ingest_runner.email
   source_contents = file("${path.module}/workflows/emergent.yaml")
   
   depends_on = [google_project_service.workflows]
@@ -162,7 +162,7 @@ resource "google_workflows_workflow" "pipeline_all" {
   name            = "pipeline-all"
   region          = var.region
   description     = "Orchestrates all 11 crawlers in parallel, then ingest and notify"
-  service_account = google_service_account.ingest_runner.id
+  service_account = google_service_account.ingest_runner.email
   source_contents = file("${path.module}/workflows/all.yaml")
   
   depends_on = [google_project_service.workflows]
