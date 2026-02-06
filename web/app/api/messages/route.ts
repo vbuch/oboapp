@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import type { Message } from "@/lib/types";
 import {
   clampBounds,
   addBuffer,
