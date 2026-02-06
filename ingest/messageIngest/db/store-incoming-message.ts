@@ -3,6 +3,18 @@ import { FieldValue } from "firebase-admin/firestore";
 import { generateSlug } from "@/lib/slug-utils";
 
 /**
+ * Maximum number of attempts to generate a unique message ID before failing.
+ * With 62^8 possible combinations, collisions are extremely rare.
+ */
+const MAX_MESSAGE_ID_GENERATION_ATTEMPTS = 5;
+
+/**
+ * Firestore error codes for document already exists.
+ * Different Firestore SDK versions may use different formats.
+ */
+const FIRESTORE_ALREADY_EXISTS_CODES = ["already-exists", "ALREADY_EXISTS"];
+
+/**
  * Step 1: Store the incoming message in the database
  * Always uses an 8-character slug-format ID as the document ID.
  * The document ID doubles as the URL slug (e.g., /m/aB3xYz12).
@@ -35,8 +47,7 @@ export async function storeIncomingMessage(
   }
 
   // Atomically create document with retry on collision
-  const maxAttempts = 5;
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+  for (let attempt = 0; attempt < MAX_MESSAGE_ID_GENERATION_ATTEMPTS; attempt++) {
     const messageId = generateSlug();
     try {
       await messagesRef.doc(messageId).create(docData);
@@ -47,7 +58,8 @@ export async function storeIncomingMessage(
         err &&
         typeof err === "object" &&
         "code" in err &&
-        (err.code === "already-exists" || err.code === "ALREADY_EXISTS")
+        typeof err.code === "string" &&
+        FIRESTORE_ALREADY_EXISTS_CODES.includes(err.code)
       ) {
         continue;
       }
