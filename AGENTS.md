@@ -171,7 +171,7 @@ The pipeline processes messages about public infrastructure disruptions in Sofia
    - Single AI call processes entire message
    - Determines if message contains public infrastructure information
    - Returns array of categorized messages with rich metadata
-   - Each message includes: categories, relations, geographic scope, addresses, coordinates
+   - Each message includes: categories, geographic scope, addresses, coordinates
    - Irrelevant messages are finalized immediately without geocoding
 
 2. **Extraction Stage** (`ingest/prompts/data-extraction-overpass.md`)
@@ -218,7 +218,6 @@ flowchart LR
 - `categories` (array-contains) + `timespanEnd` (descending) - Category + time filtering
 - `timespanEnd` (descending) - Uncategorized time filtering
 - `categories` (array-contains) + `finalizedAt` (descending) - Legacy category filtering
-- `relations` (array-contains) + `finalizedAt` (descending) - Relations clustering
 - Deploy via `firebase deploy --only firestore:indexes` before code changes
 
 ### Crawler Development

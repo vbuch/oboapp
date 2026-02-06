@@ -47,7 +47,6 @@ export const InternalMessageSchema = MessageSchema.extend({
   ingestErrors: z.array(IngestErrorSchema).optional(),
   sourceDocumentId: z.string().optional(),
   isRelevant: z.boolean().optional(),
-  relations: z.array(z.string()).optional(),
 });
 
 export type InternalMessage = z.infer<typeof InternalMessageSchema>;

@@ -58,7 +58,6 @@ flowchart TD
 
 - **AI Categorization** - Single text input → multiple categorized messages with rich metadata
 - **Categories** - Infrastructure types: water, heating, traffic, construction, etc.
-- **Relations** - Extracted relationship terms for message clustering
 - **Geographic Scope** - City-wide vs. specific addresses, coordinates, bus stops, УПИ properties
 - **Relevance Decision** - Each categorized message marked as relevant/irrelevant
 - **Normalized Text** - Clean text for downstream processing
@@ -96,7 +95,7 @@ See [Geocoding System Overview](../../docs/features/geocoding-overview.md) for s
 
 Sources with ready GeoJSON bypass AI categorization:
 
-- Single message per source (1:1 relationship)
+- Single message per source (1:1 hip)
 - Timespans transfer from source to message if present
 - Validation against minimum date threshold
 - Fallback to `crawledAt` if source lacks valid timespans

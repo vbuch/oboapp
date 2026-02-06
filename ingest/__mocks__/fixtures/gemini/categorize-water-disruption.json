@@ -1,7 +1,6 @@
 [
   {
     "categories": ["water"],
-    "relations": [],
     "withSpecificAddress": true,
     "specificAddresses": ["бул. Витоша 1"],
     "coordinates": [],

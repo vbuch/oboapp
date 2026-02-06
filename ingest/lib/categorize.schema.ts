@@ -13,7 +13,6 @@ const CoordinateString = z
 // Schema for a single categorized message object
 const CategorizedMessageSchema = z.object({
   categories: z.preprocess(normalizeCategoriesInput, z.array(CategoryEnum)),
-  relations: z.array(z.string()).optional(),
   withSpecificAddress: z.boolean(),
   specificAddresses: z.array(z.string()).default([]),
   coordinates: z.array(CoordinateString).default([]),

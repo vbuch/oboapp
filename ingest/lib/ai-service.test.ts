@@ -27,7 +27,6 @@ describe("categorize function validation", () => {
     const mockAiResponse = [
       {
         categories: ["water", "construction-and-repairs"],
-        relations: ["метро", "строителство"],
         withSpecificAddress: true,
         specificAddresses: ["бул. Витоша 1"],
         coordinates: ["42.6977, 23.3219"],
@@ -115,7 +114,6 @@ describe("categorize function validation", () => {
       },
       {
         categories: ["heating", "construction-and-repairs"],
-        relations: ["зимна поддръжка"],
         withSpecificAddress: false,
         specificAddresses: [],
         coordinates: [],

@@ -155,7 +155,6 @@ describe("ai-response-parser", () => {
       const response = JSON.stringify([
         {
           categories: ["water"],
-          relations: [],
           withSpecificAddress: false,
           specificAddresses: [],
           coordinates: [],

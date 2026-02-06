@@ -6,7 +6,6 @@ import { normalizeCategoriesInput } from "@/lib/category-utils";
  * These enable array-contains queries and maintain structure for frontend use
  */
 const NATIVE_ARRAY_FIELDS = [
-  "relations",
   "ingestErrors",
   "pins",
   "streets",
@@ -19,7 +18,7 @@ const NATIVE_ARRAY_FIELDS = [
  * - Converts Date objects to Firestore server timestamps (except timespanStart/timespanEnd)
  * - Preserves timespanStart/timespanEnd as Date for server-side filtering
  * - Stringifies complex objects (extractedData, geoJson, categorize)
- * - Keeps categories and relations as native arrays for Firestore indexes
+ * - Keeps categories as native arrays for Firestore indexes
  *   (array-contains queries require native arrays, not stringified JSON)
  * - Keeps denormalized fields (pins, streets, cadastralProperties, busStops, responsibleEntity) as native types
  * - Passes through primitives unchanged

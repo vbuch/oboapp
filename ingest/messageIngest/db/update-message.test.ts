@@ -56,7 +56,6 @@ describe("processFieldsForFirestore", () => {
       },
       categorize: {
         categories: ["water"],
-        relations: [],
         withSpecificAddress: true,
         specificAddresses: ["ул. Оборище 15"],
         coordinates: [],

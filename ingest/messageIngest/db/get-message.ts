@@ -53,6 +53,5 @@ export async function getMessageById(
         : data.ingestErrors,
     sourceDocumentId: data.sourceDocumentId,
     isRelevant: data.isRelevant,
-    relations: Array.isArray(data.relations) ? data.relations : undefined,
   };
 }

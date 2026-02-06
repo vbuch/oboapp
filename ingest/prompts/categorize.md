@@ -37,7 +37,6 @@ The app is not interested in:
   - waste
   - water
   - weather
-- `relations` (optional): array of strings describing related <relation>s.
 - `withSpecificAddress`: boolean. True if the normalizedText contains any address or geo location that a person could geolocate to a single street section or a single point on a map.
 - `specificAddresses`: array of strings. The addresses or locations referred to by `withSpecificAddress`.
 - `coordinates`: array of `<latitude>, <longitude>` strings of geo coordinates found referred by `withSpecificAddress`.

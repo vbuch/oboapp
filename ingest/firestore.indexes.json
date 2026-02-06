@@ -12,14 +12,6 @@
       "collectionGroup": "messages",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "relations", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "finalizedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "messages",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "categories", "arrayConfig": "CONTAINS" },
         { "fieldPath": "timespanEnd", "order": "DESCENDING" }
       ]

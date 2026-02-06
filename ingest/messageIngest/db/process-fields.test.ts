@@ -67,7 +67,7 @@ describe("processFieldsForFirestore", () => {
     });
   });
 
-  describe("categories and relations array handling", () => {
+  describe("categories array handling", () => {
     it("should keep categories as native array", () => {
       const input = {
         categories: ["water", "electricity", "heating"],
@@ -77,17 +77,6 @@ describe("processFieldsForFirestore", () => {
 
       expect(result.categories).toEqual(["water", "electricity", "heating"]);
       expect(Array.isArray(result.categories)).toBe(true);
-    });
-
-    it("should keep relations as native array", () => {
-      const input = {
-        relations: ["rel1", "rel2"],
-      };
-
-      const result = processFieldsForFirestore(input);
-
-      expect(result.relations).toEqual(["rel1", "rel2"]);
-      expect(Array.isArray(result.relations)).toBe(true);
     });
 
     it("should keep empty categories array", () => {
@@ -316,7 +305,6 @@ describe("processFieldsForFirestore", () => {
       const input = {
         categorize: {
           categories: ["water"],
-          relations: [],
           isRelevant: true,
         },
       };
@@ -414,7 +402,6 @@ describe("processFieldsForFirestore", () => {
         createdAt: new Date("2026-01-18"),
         // Arrays (special handling)
         categories: ["water", "electricity"],
-        relations: ["rel1"],
         // Objects (stringified)
         extractedData: { pins: [], streets: [] },
         geoJson: { type: "FeatureCollection", features: [] },
@@ -431,7 +418,6 @@ describe("processFieldsForFirestore", () => {
         _methodName: "FieldValue.serverTimestamp",
       });
       expect(result.categories).toEqual(["water", "electricity"]);
-      expect(result.relations).toEqual(["rel1"]);
       expect(typeof result.extractedData).toBe("string");
       expect(typeof result.geoJson).toBe("string");
       expect(result.deletedAt).toBeNull();
@@ -444,7 +430,7 @@ describe("processFieldsForFirestore", () => {
       expect(result).toEqual({});
     });
 
-    it("should handle arrays that are not categories or relations (stringify them)", () => {
+    it("should handle arrays that are not categories (stringify them)", () => {
       const input = {
         addresses: [{ street: "Main St" }],
       };

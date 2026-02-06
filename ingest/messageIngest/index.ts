@@ -376,7 +376,6 @@ async function storeCategorizedMessage(
     categorize: categorizedMessage,
     // Flatten fields to root level for Firestore index queries
     categories: categorizedMessage.categories,
-    relations: categorizedMessage.relations,
     isRelevant: categorizedMessage.isRelevant,
     // Denormalize busStops for public API exposure
     busStops: categorizedMessage.busStops,
@@ -655,7 +654,9 @@ async function applyBoundaryFilteringIfNeeded(
   const filteredGeoJson = filterFeaturesByBoundaries(geoJson, boundaryFilter);
 
   if (!filteredGeoJson) {
-    logger.info("Message has no features within boundaries, skipping storage", { messageId });
+    logger.info("Message has no features within boundaries, skipping storage", {
+      messageId,
+    });
     throw new Error("No features within specified boundaries");
   }
 

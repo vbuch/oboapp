@@ -12,7 +12,6 @@ describe("CategorizationResponseSchema", () => {
       const validData: CategorizationResult = [
         {
           categories: ["water", "construction-and-repairs"],
-          relations: ["метро", "строителство"],
           withSpecificAddress: true,
           specificAddresses: ["бул. Витоша 1", "ул. Граф Игнатиев 125"],
           coordinates: ["42.6977, 23.3219", "42.7000, 23.3250"],
@@ -132,7 +131,6 @@ describe("CategorizationResponseSchema", () => {
         },
         {
           categories: ["heating", "construction-and-repairs"],
-          relations: ["зимна поддръжка"],
           withSpecificAddress: false,
           specificAddresses: [],
           coordinates: [],

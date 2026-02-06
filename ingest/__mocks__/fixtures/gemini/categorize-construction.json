@@ -1,7 +1,6 @@
 [
   {
     "categories": ["construction-and-repairs", "public-transport", "traffic"],
-    "relations": ["метро"],
     "withSpecificAddress": true,
     "specificAddresses": ["площад Македония"],
     "coordinates": [],

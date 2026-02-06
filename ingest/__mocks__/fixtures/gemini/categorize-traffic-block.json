@@ -1,7 +1,6 @@
 [
   {
     "categories": ["traffic", "road-block"],
-    "relations": [],
     "withSpecificAddress": true,
     "specificAddresses": ["бул. Цариградско шосе"],
     "coordinates": [],
