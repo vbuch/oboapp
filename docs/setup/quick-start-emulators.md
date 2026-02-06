@@ -41,6 +41,7 @@ cd ingest
 npm run emulators
 ```
 
+Wait for: `✔  All emulators ready! It is now safe to connect your app.`
 **Emulator UI:** http://localhost:4000
 
 ### 4. Seed Test Data (First Time)
