@@ -63,16 +63,22 @@ export default function SourcePage() {
   // Derive selected message from URL parameter
   const selectedMessage = useMemo(() => {
     const messageId = searchParams.get("messageId");
-    if (messageId && messages.length > 0) {
+    
+    if (messages.length === 0) return null;
+    
+    if (messageId) {
       return messages.find((m) => m.id === messageId) || null;
     }
+    
     return null;
   }, [searchParams, messages]);
 
   // Handle message click
   const handleMessageClick = useCallback(
     (message: Message) => {
-      router.push(`/sources/${sourceId}?messageId=${message.id}`, {
+      // Stay on sources page with query param to keep source context
+      const messageUrl = `/sources/${sourceId}?messageId=${message.id}`;
+      router.push(messageUrl, {
         scroll: false,
       });
     },

@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  generateMessageId,
   formatCategorizedMessageLogInfo,
   createIngestionStatistics,
   isValidMessageIndex,
@@ -8,28 +7,6 @@ import {
 } from "./utils";
 
 describe("messageIngest utils", () => {
-  describe("generateMessageId", () => {
-    it("should generate message ID with source document and index", () => {
-      const result = generateMessageId("doc123", 1);
-      expect(result).toBe("doc123-1");
-    });
-
-    it("should generate message ID with different indices", () => {
-      expect(generateMessageId("doc456", 2)).toBe("doc456-2");
-      expect(generateMessageId("doc789", 10)).toBe("doc789-10");
-    });
-
-    it("should return undefined when no source document ID", () => {
-      const result = generateMessageId(undefined, 1);
-      expect(result).toBeUndefined();
-    });
-
-    it("should return undefined for empty string source document ID", () => {
-      const result = generateMessageId("", 1);
-      expect(result).toBeUndefined();
-    });
-  });
-
   describe("formatCategorizedMessageLogInfo", () => {
     it("should format log info for relevant message", () => {
       const categorizedMessage = {

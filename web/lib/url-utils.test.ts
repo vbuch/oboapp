@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { extractHostname } from "./url-utils";
+import {
+  extractHostname,
+  createMessageUrl,
+  createMessageUrlFromId,
+} from "./url-utils";
+import type { Message } from "./types";
 
 describe("extractHostname", () => {
   it("should extract hostname from https URL", () => {
@@ -62,5 +67,22 @@ describe("extractHostname", () => {
     expect(extractHostname("https://so-slatina.org/2024/news")).toBe(
       "so-slatina.org",
     );
+  });
+});
+
+describe("createMessageUrl", () => {
+  it("should create URL from message ID", () => {
+    const message: Message = {
+      id: "aB3xYz12",
+      text: "Test message",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(createMessageUrl(message)).toBe("/?messageId=aB3xYz12");
+  });
+});
+
+describe("createMessageUrlFromId", () => {
+  it("should create URL from message ID", () => {
+    expect(createMessageUrlFromId("aB3xYz12")).toBe("/?messageId=aB3xYz12");
   });
 });

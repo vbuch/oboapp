@@ -66,10 +66,11 @@ describe("notification-sender", () => {
       expect(payload.data).toHaveProperty("url");
     });
 
-    it("should include webpush link", () => {
+    it("should use message ID in URL (ID is the slug)", () => {
       const payload = buildNotificationPayload(baseMessage, baseMatch);
 
-      expect(payload.webpush.fcmOptions.link).toContain("messageId=msg123");
+      expect(payload.data.url).toContain("/m/msg123");
+      expect(payload.webpush.fcmOptions.link).toContain("/m/msg123");
     });
   });
 });

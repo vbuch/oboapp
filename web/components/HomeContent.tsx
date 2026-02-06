@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useRef, useMemo } from "react";
+import React, {
+  useCallback,
+  useRef,
+  useMemo,
+  useState,
+  useEffect,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapContainer from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView";
@@ -15,6 +21,9 @@ import { useMapNavigation } from "@/lib/hooks/useMapNavigation";
 import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
 import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
 import { classifyMessage } from "@/lib/message-classification";
+import { createMessageUrl } from "@/lib/url-utils";
+import { Message } from "@/lib/types";
+import { isValidSlug } from "@oboapp/shared";
 
 /**
  * HomeContent - Main application component managing map, messages, and user interactions
@@ -111,8 +120,8 @@ export default function HomeContent() {
     (messageId: string) => {
       const message = messages.find((m) => m.id === messageId);
       if (message) {
-        // Update URL with query parameter - this will trigger selectedMessage derivation
-        router.push(`/?messageId=${messageId}`, { scroll: false });
+        // Update URL - use slug if available, otherwise fall back to ID
+        router.push(createMessageUrl(message), { scroll: false });
       }
     },
     [messages, router],
@@ -126,13 +135,61 @@ export default function HomeContent() {
 
   // Derive selected message from URL parameter
   // Note: We search in unfiltered 'messages' to preserve selection even when filtered out
-  const selectedMessage = useMemo(() => {
-    const messageId = searchParams.get("messageId");
+  const messageId = searchParams.get("messageId");
+
+  // Message fetched from API when messageId doesn't match any viewport message
+  const [fetchedMessage, setFetchedMessage] = useState<Message | null>(null);
+
+  // Try to find the message in viewport messages first
+  const viewportMatch = useMemo(() => {
     if (messageId && messages.length > 0) {
       return messages.find((m) => m.id === messageId) || null;
     }
     return null;
-  }, [searchParams, messages]);
+  }, [messageId, messages]);
+
+  // Fetch message by ID from API if not found in viewport (e.g., shared link)
+  useEffect(() => {
+    if (!messageId || viewportMatch) {
+      setFetchedMessage(null);
+      return;
+    }
+
+    // Only fetch via slug API if the messageId is a valid slug-format ID
+    if (!isValidSlug(messageId)) {
+      setFetchedMessage(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    fetch(`/api/messages/by-slug?slug=${encodeURIComponent(messageId)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Not found");
+        return res.json();
+      })
+      .then((data) => {
+        if (!cancelled && data?.message) {
+          setFetchedMessage(data.message);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedMessage(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [messageId, viewportMatch]);
+
+  const selectedMessage = viewportMatch || fetchedMessage;
+
+  // Clear fetched message when URL no longer has a messageId
+  useEffect(() => {
+    if (!messageId) {
+      setFetchedMessage(null);
+    }
+  }, [messageId]);
 
   return (
     <div
@@ -197,7 +254,7 @@ export default function HomeContent() {
             messages={filteredMessages}
             isLoading={isLoading}
             onMessageClick={(message) => {
-              router.push(`/?messageId=${message.id}`, { scroll: false });
+              router.push(createMessageUrl(message), { scroll: false });
             }}
             variant="list"
           />

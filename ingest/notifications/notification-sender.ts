@@ -39,6 +39,9 @@ export function buildNotificationPayload(
     ? ` (${Math.round(match.distance)}m от вашия район)`
     : "";
 
+  // Message ID is the slug — use it directly in the URL
+  const messageUrl = `${APP_URL}/m/${match.messageId}`;
+
   return {
     data: {
       title: "Ново съобщение в OboApp",
@@ -48,11 +51,11 @@ export function buildNotificationPayload(
       messageId: match.messageId,
       interestId: match.interestId,
       matchId: match.id || "",
-      url: `${APP_URL}/?messageId=${match.messageId}`,
+      url: messageUrl,
     },
     webpush: {
       fcmOptions: {
-        link: `${APP_URL}/?messageId=${match.messageId}`,
+        link: messageUrl,
       },
     },
   };
