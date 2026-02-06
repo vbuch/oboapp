@@ -17,6 +17,7 @@ import { storeIncomingMessage, updateMessage } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
 import { generateMessageId, formatCategorizedMessageLogInfo } from "./utils";
 import { logger } from "@/lib/logger";
+import { generateUniqueSlug } from "@/lib/slug-utils";
 
 export { extractAddressesFromMessage } from "./extract-addresses";
 export {
@@ -394,7 +395,9 @@ async function handleIrrelevantMessage(
   ingestErrors: IngestErrorCollector,
 ): Promise<InternalMessage> {
   logger.info("Message filtered as irrelevant, marking as finalized");
+  const slug = await generateUniqueSlug();
   await updateMessage(messageId, {
+    slug,
     finalizedAt: new Date(),
     isRelevant: false,
     ...buildIngestErrorsField(ingestErrors),
@@ -585,7 +588,9 @@ async function finalizeFailedMessage(
   ingestErrors.error(
     "❌ Failed to extract data from message, marking as finalized",
   );
+  const slug = await generateUniqueSlug();
   await updateMessage(messageId, {
+    slug,
     finalizedAt: new Date(),
     ...buildIngestErrorsField(ingestErrors),
   });
@@ -670,8 +675,10 @@ async function finalizeMessageWithResults(
   geoJson: GeoJSONFeatureCollection | null,
   ingestErrors: IngestErrorCollector,
 ): Promise<void> {
+  const slug = await generateUniqueSlug();
   if (geoJson) {
     await updateMessage(messageId, {
+      slug,
       geoJson,
       finalizedAt: new Date(),
       ...buildIngestErrorsField(ingestErrors),
@@ -683,7 +690,9 @@ async function finalizeMessageWithoutGeoJson(
   messageId: string,
   ingestErrors: IngestErrorCollector,
 ): Promise<void> {
+  const slug = await generateUniqueSlug();
   await updateMessage(messageId, {
+    slug,
     finalizedAt: new Date(),
     ...buildIngestErrorsField(ingestErrors),
   });

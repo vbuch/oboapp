@@ -39,6 +39,11 @@ export function buildNotificationPayload(
     ? ` (${Math.round(match.distance)}m от вашия район)`
     : "";
 
+  // Use slug if available, otherwise fall back to messageId
+  const messageUrl = message.slug
+    ? `${APP_URL}/m/${message.slug}`
+    : `${APP_URL}/?messageId=${match.messageId}`;
+
   return {
     data: {
       title: "Ново съобщение в OboApp",
@@ -48,11 +53,11 @@ export function buildNotificationPayload(
       messageId: match.messageId,
       interestId: match.interestId,
       matchId: match.id || "",
-      url: `${APP_URL}/?messageId=${match.messageId}`,
+      url: messageUrl,
     },
     webpush: {
       fcmOptions: {
-        link: `${APP_URL}/?messageId=${match.messageId}`,
+        link: messageUrl,
       },
     },
   };
@@ -170,6 +175,9 @@ export async function updateMatchWithResults(
   }
   if (messageData?.sourceUrl) {
     messageSnapshot.sourceUrl = messageData.sourceUrl as string;
+  }
+  if (messageData?.slug) {
+    messageSnapshot.slug = messageData.slug as string;
   }
 
   await adminDb.collection("notificationMatches").doc(matchId).update({
