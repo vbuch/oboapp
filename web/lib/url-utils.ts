@@ -2,7 +2,7 @@
  * Utility functions for URL manipulation
  */
 
-import { Message } from "./types";
+import type { Message } from "./types";
 
 /**
  * Extracts the hostname from a URL and removes common prefixes
