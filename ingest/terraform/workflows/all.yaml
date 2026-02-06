@@ -1,5 +1,6 @@
 # Cloud Workflow for All Crawlers Pipeline
-# Runs all 8 crawlers in parallel, then runs ingest and notify sequentially.
+# Runs all 11 crawlers in two parallel batches (10 + 1 due to GCP limit),
+# then runs ingest and notify sequentially.
 # Always continues to ingest/notify even if some crawlers fail.
 
 main:
@@ -10,218 +11,222 @@ main:
           - region: ${sys.get_env("GOOGLE_CLOUD_LOCATION")}
           - crawlerResults: {}
 
-    - runCrawlersInParallel:
+    - runCrawlersParallel1:
         parallel:
           shared: [crawlerResults]
           branches:
             - crawlErmZapad:
-                try:
-                  steps:
-                    - callErmZapad:
+                steps:
+                  - tryCallErmZapad:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-erm-zapad:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.ermZapad
-                except:
-                  as: e
-                  steps:
-                    - logErmZapadError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler erm-zapad failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler erm-zapad failed: " + string(e)}
+                                severity: ERROR
 
             - crawlToplo:
-                try:
-                  steps:
-                    - callToplo:
+                steps:
+                  - tryCallToplo:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-toplo:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.toplo
-                except:
-                  as: e
-                  steps:
-                    - logToploError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler toplo failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler toplo failed: " + string(e)}
+                                severity: ERROR
 
             - crawlSofiyskaVoda:
-                try:
-                  steps:
-                    - callSofiyskaVoda:
+                steps:
+                  - tryCallSofiyskaVoda:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-sofiyska-voda:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.sofiyskaVoda
-                except:
-                  as: e
-                  steps:
-                    - logSofiyskaVodaError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler sofiyska-voda failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler sofiyska-voda failed: " + string(e)}
+                                severity: ERROR
 
             - crawlRayonOborishte:
-                try:
-                  steps:
-                    - callRayonOborishte:
+                steps:
+                  - tryCallRayonOborishte:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-rayon-oborishte:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.rayonOborishte
-                except:
-                  as: e
-                  steps:
-                    - logRayonOborishteError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler rayon-oborishte failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler rayon-oborishte failed: " + string(e)}
+                                severity: ERROR
 
             - crawlSofia:
-                try:
-                  steps:
-                    - callSofia:
+                steps:
+                  - tryCallSofia:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-sofia:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.sofia
-                except:
-                  as: e
-                  steps:
-                    - logSofiaError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler sofia failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler sofia failed: " + string(e)}
+                                severity: ERROR
 
             - crawlMladost:
-                try:
-                  steps:
-                    - callMladost:
+                steps:
+                  - tryCallMladost:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-mladost:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.mladost
-                except:
-                  as: e
-                  steps:
-                    - logMladostError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler mladost failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler mladost failed: " + string(e)}
+                                severity: ERROR
 
             - crawlStudentski:
-                try:
-                  steps:
-                    - callStudentski:
+                steps:
+                  - tryCallStudentski:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-studentski:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.studentski
-                except:
-                  as: e
-                  steps:
-                    - logStudentskiError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler studentski failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler studentski failed: " + string(e)}
+                                severity: ERROR
 
             - crawlSredec:
-                try:
-                  steps:
-                    - callSredec:
+                steps:
+                  - tryCallSredec:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-sredec:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.sredec
-                except:
-                  as: e
-                  steps:
-                    - logSredecError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler sredec failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler sredec failed: " + string(e)}
+                                severity: ERROR
 
             - crawlSlatina:
-                try:
-                  steps:
-                    - callSlatina:
+                steps:
+                  - tryCallSlatina:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-slatina:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.slatina
-                except:
-                  as: e
-                  steps:
-                    - logSlatinaError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler slatina failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler slatina failed: " + string(e)}
+                                severity: ERROR
 
             - crawlLozenets:
-                try:
-                  steps:
-                    - callLozenets:
+                steps:
+                  - tryCallLozenets:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-lozenets:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.lozenets
-                except:
-                  as: e
-                  steps:
-                    - logLozenetsError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler lozenets failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler lozenets failed: " + string(e)}
+                                severity: ERROR
 
+    - runCrawlersParallel2:
+        parallel:
+          shared: [crawlerResults]
+          branches:
             - crawlNimhSevereWeather:
-                try:
-                  steps:
-                    - callNimhSevereWeather:
+                steps:
+                  - tryCallNimhSevereWeather:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-nimh-severe-weather:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.nimhSevereWeather
-                except:
-                  as: e
-                  steps:
-                    - logNimhSevereWeatherError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler nimh-severe-weather failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler nimh-severe-weather failed: " + string(e)}
+                                severity: ERROR
 
     - runIngest:
         try:
@@ -234,10 +239,10 @@ main:
         except:
           as: e
           steps:
-            - logIngestError:
+            - logError:
                 call: sys.log
                 args:
-                  text: "${'Ingest failed: ' + string(e)}"
+                  text: ${"Ingest failed: " + string(e)}
                   severity: ERROR
 
     - runNotify:
@@ -251,10 +256,10 @@ main:
         except:
           as: e
           steps:
-            - logNotifyError:
+            - logError:
                 call: sys.log
                 args:
-                  text: "${'Notify failed: ' + string(e)}"
+                  text: ${"Notify failed: " + string(e)}
                   severity: ERROR
 
     - complete:

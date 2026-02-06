@@ -16,61 +16,61 @@ main:
           shared: [crawlerResults]
           branches:
             - crawlErmZapad:
-                try:
-                  steps:
-                    - callErmZapad:
+                steps:
+                  - tryCallErmZapad:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-erm-zapad:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.ermZapad
-                except:
-                  as: e
-                  steps:
-                    - logErmZapadError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler erm-zapad failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler erm-zapad failed: " + string(e)}
+                                severity: ERROR
 
             - crawlToplo:
-                try:
-                  steps:
-                    - callToplo:
+                steps:
+                  - tryCallToplo:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-toplo:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.toplo
-                except:
-                  as: e
-                  steps:
-                    - logToploError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler toplo failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler toplo failed: " + string(e)}
+                                severity: ERROR
 
             - crawlSofiyskaVoda:
-                try:
-                  steps:
-                    - callSofiyskaVoda:
+                steps:
+                  - tryCallSofiyskaVoda:
+                      try:
                         call: http.post
                         args:
                           url: ${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-sofiyska-voda:run"}
                           auth:
                             type: OAuth2
                         result: crawlerResults.sofiyskaVoda
-                except:
-                  as: e
-                  steps:
-                    - logSofiyskaVodaError:
-                        call: sys.log
-                        args:
-                          text: "${'Crawler sofiyska-voda failed: ' + string(e)}"
-                          severity: ERROR
+                      except:
+                        as: e
+                        steps:
+                          - logError:
+                              call: sys.log
+                              args:
+                                text: ${"Crawler sofiyska-voda failed: " + string(e)}
+                                severity: ERROR
 
     - runIngest:
         try:
@@ -83,12 +83,12 @@ main:
         except:
           as: e
           steps:
-            - logIngestError:
+            - logError:
                 call: sys.log
                 args:
-                  text: "${'Ingest failed: ' + string(e)}"
+                  text: ${"Ingest failed: " + string(e)}
                   severity: ERROR
-
+    
     - runNotify:
         try:
           call: http.post
@@ -100,11 +100,7 @@ main:
         except:
           as: e
           steps:
-            - logNotifyError:
+            - logError:
                 call: sys.log
                 args:
-                  text: "${'Notify failed: ' + string(e)}"
-                  severity: ERROR
-
-    - complete:
-        return: ${crawlerResults}
+                  text: ${"Notify failed: " + string(e)}
