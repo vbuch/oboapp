@@ -9,14 +9,16 @@
  * 
  * MODIFIES: Updates all documents in the 'messages' collection that don't have a 'slug' field
  * 
- * SAFE TO RE-RUN: Yes - automatically skips messages that already have slugs
+ * SAFE TO RE-RUN: Yes - uses transactions to only set slug if still missing (concurrent-safe)
  * 
- * BATCH SIZE: Processes 500 messages per Firestore batch commit
+ * BATCH SIZE: Processes 100 messages per batch (uses transactions, not batch writes)
  * 
  * COLLISION PREVENTION:
+ * - Reuses slug generation utilities from ingest/lib/slug-utils.ts
  * - Uses crypto-secure random generation (crypto.randomInt)
  * - Checks database for existing slugs
  * - Tracks generated slugs in-memory to prevent duplicates within the migration run
+ * - Uses Firestore transactions to prevent race conditions
  * 
  * USAGE: npx tsx migrate/2024-02-06-add-message-slugs.ts
  * 
@@ -24,8 +26,6 @@
  */
 import dotenv from "dotenv";
 import { resolve } from "node:path";
-import { randomInt } from "node:crypto";
-import { SLUG_CHARS, SLUG_LENGTH } from "@oboapp/shared";
 
 // Load environment
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -34,6 +34,7 @@ async function migrateMessageSlugs() {
   console.log("🔄 Starting message slug migration...\n");
 
   const { adminDb } = await import("@/lib/firebase-admin");
+  const { generateUniqueSlug } = await import("@/lib/slug-utils");
 
   // Get all messages that don't have a slug
   const messagesRef = adminDb.collection("messages");
@@ -57,37 +58,15 @@ async function migrateMessageSlugs() {
   const generatedSlugsInRun = new Set<string>();
 
   /**
-   * Generates a cryptographically secure random slug
-   */
-  function generateSlug(): string {
-    let slug = "";
-    for (let i = 0; i < SLUG_LENGTH; i++) {
-      const randomIndex = randomInt(0, SLUG_CHARS.length);
-      slug += SLUG_CHARS[randomIndex];
-    }
-    return slug;
-  }
-
-  /**
-   * Checks if a slug exists in the database
-   */
-  async function slugExistsInDb(slug: string): Promise<boolean> {
-    const existingSnapshot = await messagesRef
-      .where("slug", "==", slug)
-      .limit(1)
-      .get();
-    return !existingSnapshot.empty;
-  }
-
-  /**
    * Generates a unique slug, checking both database and in-memory set
+   * Wraps the imported generateUniqueSlug to add in-memory tracking
    */
-  async function generateUniqueSlug(): Promise<string> {
-    const maxAttempts = 20; // Increased for migration safety
+  async function generateUniqueSlugWithTracking(): Promise<string> {
+    const maxAttempts = 20;
     let attempts = 0;
 
     while (attempts < maxAttempts) {
-      const slug = generateSlug();
+      const slug = await generateUniqueSlug();
 
       // Check if slug was generated in this run
       if (generatedSlugsInRun.has(slug)) {
@@ -95,15 +74,9 @@ async function migrateMessageSlugs() {
         continue;
       }
 
-      // Check if slug exists in database
-      const existsInDb = await slugExistsInDb(slug);
-      if (!existsInDb) {
-        // Reserve this slug for this run
-        generatedSlugsInRun.add(slug);
-        return slug;
-      }
-
-      attempts++;
+      // Reserve this slug for this run
+      generatedSlugsInRun.add(slug);
+      return slug;
     }
 
     throw new Error(
@@ -111,13 +84,44 @@ async function migrateMessageSlugs() {
     );
   }
 
-  // Process messages in batches of 500 (Firestore batch limit)
-  const batchSize = 500;
+  /**
+   * Atomically sets slug on a message using a transaction
+   * Only sets if the message still doesn't have a slug
+   */
+  async function setSlugIfMissing(
+    messageId: string,
+    slug: string,
+  ): Promise<boolean> {
+    const messageRef = messagesRef.doc(messageId);
+
+    return await adminDb.runTransaction(async (transaction) => {
+      const doc = await transaction.get(messageRef);
+
+      if (!doc.exists) {
+        console.warn(`  ⚠️  Message ${messageId} not found, skipping`);
+        return false;
+      }
+
+      const data = doc.data();
+
+      // If slug was set by another process, skip
+      if (data?.slug) {
+        return false;
+      }
+
+      // Set the slug atomically
+      transaction.update(messageRef, { slug });
+      return true;
+    });
+  }
+
+  // Process messages in batches of 100 (using transactions, not batch writes)
+  const batchSize = 100;
   let processedCount = 0;
+  let skippedCount = 0;
   let errorCount = 0;
 
   for (let i = 0; i < messagesWithoutSlug.length; i += batchSize) {
-    const batch = adminDb.batch();
     const batchMessages = messagesWithoutSlug.slice(i, i + batchSize);
 
     console.log(
@@ -126,12 +130,18 @@ async function migrateMessageSlugs() {
 
     for (const doc of batchMessages) {
       try {
-        const slug = await generateUniqueSlug();
-        batch.update(doc.ref, { slug });
-        processedCount++;
+        const slug = await generateUniqueSlugWithTracking();
+        const wasSet = await setSlugIfMissing(doc.id, slug);
 
-        if (processedCount % 100 === 0) {
-          console.log(`  ✓ Generated ${processedCount} slugs...`);
+        if (wasSet) {
+          processedCount++;
+          if (processedCount % 100 === 0) {
+            console.log(`  ✓ Generated ${processedCount} slugs...`);
+          }
+        } else {
+          skippedCount++;
+          // Remove from in-memory tracking since it wasn't used
+          generatedSlugsInRun.delete(slug);
         }
       } catch (error) {
         console.error(`  ✗ Failed to generate slug for ${doc.id}:`, error);
@@ -139,13 +149,15 @@ async function migrateMessageSlugs() {
       }
     }
 
-    await batch.commit();
-    console.log(`  ✅ Batch committed (${processedCount} total)\n`);
+    console.log(`  ✅ Batch completed (${processedCount} total)\n`);
   }
 
   console.log("📈 Migration Summary:");
   console.log(`  ✅ Successfully migrated: ${processedCount} messages`);
   console.log(`  🔒 Unique slugs tracked in run: ${generatedSlugsInRun.size}`);
+  if (skippedCount > 0) {
+    console.log(`  ⏭️  Skipped (already had slug): ${skippedCount} messages`);
+  }
   if (errorCount > 0) {
     console.log(`  ✗ Failed: ${errorCount} messages`);
   }

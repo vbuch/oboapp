@@ -52,6 +52,14 @@ export async function generateUniqueSlug(): Promise<string> {
 /**
  * Atomically assigns a slug to a message using Firestore transaction
  * Ensures that only the first writer sets the slug, preventing race conditions
+ * 
+ * Note: While this ensures atomicity for a single message document, it does NOT
+ * guarantee global slug uniqueness across all messages because slug generation
+ * happens outside the transaction. This is an acceptable trade-off given:
+ * 1. The collision probability with 62^8 combinations is extremely low
+ * 2. Duplicate detection exists in the API layer
+ * 3. True global uniqueness would require a separate slug reservation collection
+ * 
  * Returns the slug (either newly assigned or existing)
  */
 export async function ensureMessageHasSlugAtomic(
@@ -73,7 +81,7 @@ export async function ensureMessageHasSlugAtomic(
       return data.slug;
     }
 
-    // Generate a new unique slug
+    // Generate a new unique slug (outside transaction - see note above)
     const slug = await generateUniqueSlug();
 
     // Set the slug atomically

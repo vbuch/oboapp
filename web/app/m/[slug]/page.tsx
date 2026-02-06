@@ -26,7 +26,6 @@ export default function MessagePage() {
 
         if (response.status === 404) {
           setError("Съобщението не е намерено");
-          setIsLoading(false);
           return;
         }
 
