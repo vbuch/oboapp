@@ -14,8 +14,8 @@ import { redirect } from "next/navigation";
 export default async function MessageRedirectPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }) {
-  const { slug: id } = await params;
+  const { slug: id } = params;
   redirect(`/?messageId=${encodeURIComponent(id)}`);
 }
