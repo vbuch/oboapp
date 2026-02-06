@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { Message } from "@/lib/types";
 import { convertTimestamp } from "@/lib/firestore-utils";
-import { isValidSlug } from "@/lib/slug-utils";
+import { isValidSlug } from "@oboapp/shared";
 
 /**
  * Convert Firestore document to Message object

@@ -1,17 +1,5 @@
 import { adminDb } from "./firebase-admin";
-
-/**
- * Characters used in slug generation
- * Using base62 (alphanumeric) for URL-friendliness
- */
-const SLUG_CHARS =
-  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
-/**
- * Length of generated slugs
- * 8 characters gives us 62^8 = ~218 trillion possible combinations
- */
-const SLUG_LENGTH = 8;
+import { SLUG_CHARS, SLUG_LENGTH } from "@oboapp/shared";
 
 /**
  * Generates a random URL-friendly slug
