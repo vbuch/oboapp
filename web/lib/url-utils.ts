@@ -29,12 +29,12 @@ export function extractHostname(url: string): string {
  * @returns The URL path for the message
  *
  * @example
- * createMessageUrl({ id: "123", slug: "aB3xYz12" }) // "/m/aB3xYz12"
+ * createMessageUrl({ id: "123", slug: "aB3xYz12" }) // "/?slug=aB3xYz12"
  * createMessageUrl({ id: "123" }) // "/?messageId=123"
  */
 export function createMessageUrl(message: Message): string {
   if (message.slug) {
-    return `/m/${message.slug}`;
+    return `/?slug=${message.slug}`;
   }
   return `/?messageId=${message.id}`;
 }
@@ -46,7 +46,7 @@ export function createMessageUrl(message: Message): string {
  * @returns The URL path for the message
  *
  * @example
- * createMessageUrlFromId("123", "aB3xYz12") // "/m/aB3xYz12"
+ * createMessageUrlFromId("123", "aB3xYz12") // "/?slug=aB3xYz12"
  * createMessageUrlFromId("123") // "/?messageId=123"
  */
 export function createMessageUrlFromId(
@@ -54,7 +54,7 @@ export function createMessageUrlFromId(
   slug?: string,
 ): string {
   if (slug) {
-    return `/m/${slug}`;
+    return `/?slug=${slug}`;
   }
   return `/?messageId=${messageId}`;
 }

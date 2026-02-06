@@ -78,7 +78,7 @@ describe("createMessageUrl", () => {
       text: "Test message",
       createdAt: "2024-01-01T00:00:00Z",
     };
-    expect(createMessageUrl(message)).toBe("/m/aB3xYz12");
+    expect(createMessageUrl(message)).toBe("/?slug=aB3xYz12");
   });
 
   it("should fallback to ID when slug is not available", () => {
@@ -104,7 +104,7 @@ describe("createMessageUrl", () => {
 describe("createMessageUrlFromId", () => {
   it("should use slug when provided", () => {
     expect(createMessageUrlFromId("abc123def456", "aB3xYz12")).toBe(
-      "/m/aB3xYz12",
+      "/?slug=aB3xYz12",
     );
   });
 

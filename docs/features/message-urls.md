@@ -6,13 +6,22 @@ Messages are accessible via user-friendly, shareable URLs similar to YouTube's s
 
 ## URL Format
 
-### Direct Message Links
+### Internal Navigation (Query Params)
+
+**Format**: `/?slug={slug}`
+
+**Example**: `https://oboapp.online/?slug=aB3xYz12`
+
+Internal links (map clicks, message cards, notifications) use query parameters so the message detail opens as an overlay on top of the map — same as the legacy `?messageId=` flow. This avoids unmounting the homepage and preserves the map context.
+
+### Shareable/External Links
 
 **Format**: `/m/{slug}`
 
 **Example**: `https://oboapp.online/m/aB3xYz12`
 
-Direct links open the message detail view immediately. These URLs are:
+External links (push notifications, social sharing) use the clean `/m/{slug}` path format. The `/m/[slug]` route **redirects** to `/?slug={slug}`, so the message detail always renders as a homepage overlay.
+
 - **Short**: 8 characters, easy to share
 - **Persistent**: Slug never changes once assigned
 - **Unique**: Base62 encoding provides 218 trillion possible combinations
@@ -23,13 +32,14 @@ Direct links open the message detail view immediately. These URLs are:
 
 **Example**: `https://oboapp.online/?messageId=abc123def456`
 
-Messages without slugs (pre-migration data) continue to work via Firestore document IDs. The system automatically falls back to this format when no slug exists.
+Messages without slugs (pre-migration data) continue to work via Firestore document IDs.
 
 ## Slug Generation
 
 ### Character Set
 
 Slugs use base62 encoding (0-9, A-Z, a-z) for URL-safety and readability:
+
 - No special characters requiring URL encoding
 - Case-sensitive for maximum entropy
 - Human-readable and typeable
@@ -37,6 +47,7 @@ Slugs use base62 encoding (0-9, A-Z, a-z) for URL-safety and readability:
 ### Collision Handling
 
 The system checks for duplicates before assignment:
+
 1. Generate random 8-character slug
 2. Query Firestore for existing slug
 3. If collision detected, retry (max 10 attempts)
@@ -64,6 +75,7 @@ npx tsx migrate/2024-02-06-add-message-slugs.ts
 ```
 
 The script is located in `ingest/migrate/2024-02-06-add-message-slugs.ts` and:
+
 - Processes all messages without slugs
 - Generates unique slugs in batches of 100
 - Updates Firestore documents
@@ -82,7 +94,7 @@ Use `createMessageUrl()` from `web/lib/url-utils.ts`:
 import { createMessageUrl } from "@/lib/url-utils";
 
 const url = createMessageUrl(message);
-// Returns: "/m/aB3xYz12" (if slug exists)
+// Returns: "/?slug=aB3xYz12" (if slug exists)
 // Returns: "/?messageId=abc123" (fallback if no slug)
 ```
 
@@ -92,23 +104,26 @@ For notification cards with partial data:
 import { createMessageUrlFromId } from "@/lib/url-utils";
 
 const url = createMessageUrlFromId(messageId, slug);
-// Returns: "/m/aB3xYz12" (if slug provided)
+// Returns: "/?slug=aB3xYz12" (if slug provided)
 // Returns: "/?messageId=abc123" (fallback)
 ```
 
 ### Route Handling
 
-Two routes handle message display:
+All message details render as an overlay on the homepage map:
 
-1. **`/m/[slug]/page.tsx`** - Primary route for slug-based URLs
-   - Fetches message via `/api/messages/by-slug?slug={slug}`
-   - Renders MessageDetailView component
-   - 404 if slug not found
+1. **Homepage `/?slug={slug}`** - Primary route for slug-based URLs
+   - `HomeContent` looks up the message in viewport messages by slug
+   - If not found in viewport (e.g., message outside current map bounds), fetches via `/api/messages/by-slug`
+   - Renders `MessageDetailView` as a slide-in panel over the map
 
 2. **Homepage `/?messageId={id}`** - Legacy fallback
-   - Fetches message via main messages API
-   - Supports filtering by messageId query param
+   - Same overlay behavior, matches by Firestore document ID
    - Backwards compatible with old links
+
+3. **`/m/[slug]/page.tsx`** - External URL redirect
+   - Redirects to `/?slug={slug}`
+   - Exists to support clean shareable URLs from push notifications and social sharing
 
 ## API Endpoints
 
@@ -117,6 +132,7 @@ Two routes handle message display:
 **GET** `/api/messages/by-slug?slug={slug}`
 
 **Response**:
+
 ```json
 {
   "message": {
@@ -130,6 +146,7 @@ Two routes handle message display:
 ```
 
 **Error Codes**:
+
 - `400` - Invalid slug format
 - `404` - Message not found
 - `500` - Server error
@@ -163,11 +180,13 @@ Users clicking notifications navigate directly to the message detail page via cl
 ### Firestore Fields
 
 **messages collection**:
+
 - `slug` (string, optional): 8-character unique identifier
 - Automatically indexed for equality queries
 - No composite index required
 
 **notificationMatches collection**:
+
 - `messageSnapshot.slug` (string, optional): Denormalized for notification rendering
 
 ### Migration Considerations

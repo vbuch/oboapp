@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useRef, useMemo } from "react";
+import React, {
+  useCallback,
+  useRef,
+  useMemo,
+  useState,
+  useEffect,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapContainer from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView";
@@ -16,6 +22,7 @@ import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
 import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
 import { classifyMessage } from "@/lib/message-classification";
 import { createMessageUrl } from "@/lib/url-utils";
+import { Message } from "@/lib/types";
 
 /**
  * HomeContent - Main application component managing map, messages, and user interactions
@@ -125,15 +132,61 @@ export default function HomeContent() {
     router.push("/", { scroll: false });
   }, [router]);
 
-  // Derive selected message from URL parameter
+  // Derive selected message from URL parameter (messageId or slug)
   // Note: We search in unfiltered 'messages' to preserve selection even when filtered out
-  const selectedMessage = useMemo(() => {
-    const messageId = searchParams.get("messageId");
+  const slug = searchParams.get("slug");
+  const messageId = searchParams.get("messageId");
+
+  // Message fetched from API when slug doesn't match any viewport message
+  const [fetchedMessage, setFetchedMessage] = useState<Message | null>(null);
+
+  // Try to find the message in viewport messages first
+  const viewportMatch = useMemo(() => {
+    if (slug && messages.length > 0) {
+      return messages.find((m) => m.slug === slug) || null;
+    }
     if (messageId && messages.length > 0) {
       return messages.find((m) => m.id === messageId) || null;
     }
     return null;
-  }, [searchParams, messages]);
+  }, [slug, messageId, messages]);
+
+  // Fetch message by slug from API if not found in viewport
+  useEffect(() => {
+    if (!slug || viewportMatch) {
+      setFetchedMessage(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    fetch(`/api/messages/by-slug?slug=${encodeURIComponent(slug)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Not found");
+        return res.json();
+      })
+      .then((data) => {
+        if (!cancelled && data?.message) {
+          setFetchedMessage(data.message);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedMessage(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, viewportMatch]);
+
+  const selectedMessage = viewportMatch || fetchedMessage;
+
+  // Clear fetched message when URL no longer has a slug
+  useEffect(() => {
+    if (!slug && !messageId) {
+      setFetchedMessage(null);
+    }
+  }, [slug, messageId]);
 
   return (
     <div

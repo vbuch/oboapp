@@ -1,97 +1,28 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
-import { Message } from "@/lib/types";
-import MessageDetailView from "@/components/MessageDetailView";
+import { useEffect } from "react";
 
-export default function MessagePage() {
+/**
+ * Redirect /m/{slug} to /?slug={slug} so the message detail opens
+ * as an overlay on the homepage map instead of a standalone page.
+ *
+ * This route exists to support shareable/external URLs (push notifications,
+ * social sharing, bookmarks). The homepage handles slug-based message
+ * selection natively via the `slug` query parameter.
+ */
+export default function MessageRedirectPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
 
-  const [message, setMessage] = useState<Message | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
-    const fetchMessage = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const response = await fetch(
-          `/api/messages/by-slug?slug=${encodeURIComponent(slug)}`,
-        );
-
-        if (response.status === 404) {
-          setError("Съобщението не е намерено");
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch message");
-        }
-
-        const data = await response.json();
-        if (!data || !data.message) {
-          throw new Error("Missing message in response");
-        }
-        setMessage(data.message);
-      } catch (err) {
-        console.error("Error fetching message:", err);
-        setError("Неуспешно зареждане на съобщението");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (slug) {
-      fetchMessage();
-    }
-  }, [slug]);
-
-  const handleClose = useCallback(() => {
-    router.push("/");
-  }, [router]);
-
-  const handleAddressClick = useCallback(
-    (lat: number, lng: number) => {
-      router.push(`/?lat=${lat}&lng=${lng}`);
-    },
-    [router],
-  );
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-error text-lg mb-4">{error}</p>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="text-primary hover:text-primary-hover"
-          >
-            Към началната страница
-          </button>
-        </div>
-      </div>
-    );
-  }
+    router.replace(`/?slug=${encodeURIComponent(slug)}`);
+  }, [slug, router]);
 
   return (
-    <MessageDetailView
-      message={message}
-      onClose={handleClose}
-      onAddressClick={handleAddressClick}
-    />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
   );
 }
