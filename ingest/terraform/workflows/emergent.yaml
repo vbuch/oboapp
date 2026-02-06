@@ -28,7 +28,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logErmZapadError:
                               call: sys.log
                               args:
                                 text: '${"Crawler erm-zapad failed: " + string(e)}'
@@ -47,7 +47,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logToploError:
                               call: sys.log
                               args:
                                 text: '${"Crawler toplo failed: " + string(e)}'
@@ -66,7 +66,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logSofiyskaVodaError:
                               call: sys.log
                               args:
                                 text: '${"Crawler sofiyska-voda failed: " + string(e)}'
@@ -83,7 +83,7 @@ main:
         except:
           as: e
           steps:
-            - logError:
+            - logIngestError:
                 call: sys.log
                 args:
                   text: '${"Ingest failed: " + string(e)}'
@@ -100,7 +100,7 @@ main:
         except:
           as: e
           steps:
-            - logError:
+            - logNotifyError:
                 call: sys.log
                 args:
                   text: '${"Notify failed: " + string(e)}'

@@ -28,7 +28,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logErmZapadError:
                               call: sys.log
                               args:
                                 text: '${"Crawler erm-zapad failed: " + string(e)}'
@@ -47,29 +47,10 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logToploError:
                               call: sys.log
                               args:
                                 text: '${"Crawler toplo failed: " + string(e)}'
-                                severity: ERROR
-
-            - crawlSofiyskaVoda:
-                steps:
-                  - tryCallSofiyskaVoda:
-                      try:
-                        call: http.post
-                        args:
-                          url: '${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-sofiyska-voda:run"}'
-                          auth:
-                            type: OAuth2
-                        result: crawlerResults.sofiyskaVoda
-                      except:
-                        as: e
-                        steps:
-                          - logError:
-                              call: sys.log
-                              args:
-                                text: '${"Crawler sofiyska-voda failed: " + string(e)}'
                                 severity: ERROR
 
             - crawlRayonOborishte:
@@ -85,7 +66,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logRayonOborishteError:
                               call: sys.log
                               args:
                                 text: '${"Crawler rayon-oborishte failed: " + string(e)}'
@@ -104,7 +85,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logSofiaError:
                               call: sys.log
                               args:
                                 text: '${"Crawler sofia failed: " + string(e)}'
@@ -123,7 +104,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logMladostError:
                               call: sys.log
                               args:
                                 text: '${"Crawler mladost failed: " + string(e)}'
@@ -142,7 +123,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logStudentskiError:
                               call: sys.log
                               args:
                                 text: '${"Crawler studentski failed: " + string(e)}'
@@ -161,7 +142,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logSredecError:
                               call: sys.log
                               args:
                                 text: '${"Crawler sredec failed: " + string(e)}'
@@ -180,7 +161,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logSlatinaError:
                               call: sys.log
                               args:
                                 text: '${"Crawler slatina failed: " + string(e)}'
@@ -199,16 +180,35 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logLozenetsError:
                               call: sys.log
                               args:
-                                text: '${"Crawler lozenets failed: " + string(e)}'
+                                text: '${"+"Crawler lozenets failed: " + string(e)}'
                                 severity: ERROR
 
     - runCrawlersParallel2:
         parallel:
           shared: [crawlerResults]
           branches:
+            - crawlSofiyskaVoda:
+                steps:
+                  - tryCallSofiyskaVoda:
+                      try:
+                        call: http.post
+                        args:
+                          url: '${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-sofiyska-voda:run"}'
+                          auth:
+                            type: OAuth2
+                        result: crawlerResults.sofiyskaVoda
+                      except:
+                        as: e
+                        steps:
+                          - logSofiyskaVodaError:
+                              call: sys.log
+                              args:
+                                text: '${"Crawler sofiyska-voda failed: " + string(e)}'
+                                severity: ERROR
+
             - crawlNimhSevereWeather:
                 steps:
                   - tryCallNimhSevereWeather:
@@ -222,7 +222,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - logError:
+                          - logNimhSevereWeatherError:
                               call: sys.log
                               args:
                                 text: '${"Crawler nimh-severe-weather failed: " + string(e)}'
@@ -239,7 +239,7 @@ main:
         except:
           as: e
           steps:
-            - logError:
+            - logIngestError:
                 call: sys.log
                 args:
                   text: '${"Ingest failed: " + string(e)}'
@@ -256,7 +256,7 @@ main:
         except:
           as: e
           steps:
-            - logError:
+            - logNotifyError:
                 call: sys.log
                 args:
                   text: '${"Notify failed: " + string(e)}'
