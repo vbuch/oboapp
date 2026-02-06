@@ -62,7 +62,7 @@ cd web
 npm run dev
 ```
 
-If using emulators, make sure to add your Google Maps API key to the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable in `web/.env.local`.
+Make sure to add your Google Maps API key to the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable in `web/.env.local`.
 
 **App:** http://localhost:3000
 
