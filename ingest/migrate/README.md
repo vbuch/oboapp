@@ -35,7 +35,7 @@ npx tsx migrate/<migration-name>.ts
 ## Migration Guidelines
 
 - **Idempotent**: Script should skip already-migrated data
-- **Batch Processing**: Process in batches of 500 (Firestore limit)
+- **Batch Processing**: For batch writes, process in batches of up to 500 (Firestore limit). For transaction-based migrations, use an appropriate smaller batch size (for example, 100).
 - **Error Handling**: Log errors but continue processing
 - **Progress Logging**: Show clear progress indicators
 - **Validation**: Check data before and after migration
