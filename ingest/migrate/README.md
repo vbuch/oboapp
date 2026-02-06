@@ -4,7 +4,7 @@ This folder contains one-time migration scripts for updating existing data in Fi
 
 ## Naming Convention
 
-Migration scripts follow the pattern: `YYYY-MM-DD-description.ts`
+Migration script names follow the pattern: `YYYY-MM-DD-description.ts`
 
 Example: `2024-02-06-add-message-slugs.ts`
 
