@@ -6,6 +6,7 @@ docker-shared/
 # Firebase Emulator data - allow base directory, ignore exports
 emulator-data/**/*_export
 emulator-data/**/*.log
+*export-metadata.json
 
 # Mock fixtures - allow base directory, ignore custom fixtures
 __mocks__/fixtures/**/*-custom.json

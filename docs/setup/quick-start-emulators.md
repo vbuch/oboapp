@@ -26,11 +26,20 @@ cd web && npm install && cd ..
 
 ### 3. Start Emulators
 
+#### 3.1. via Docker
+
 ```bash
 docker-compose up firebase-emulators
 ```
 
 Wait for: `✔  All emulators ready! It is now safe to connect your app.`
+
+#### 3.2. without using Docker
+
+```bash
+cd ingest
+npm run emulators
+```
 
 **Emulator UI:** http://localhost:4000
 
@@ -51,6 +60,8 @@ Stop emulators (Ctrl+C), then restart. Data persists across restarts.
 cd web
 npm run dev
 ```
+
+If using emulators, make sure you've added your Google Maps API key to `web/.env.local`
 
 **App:** http://localhost:3000
 
