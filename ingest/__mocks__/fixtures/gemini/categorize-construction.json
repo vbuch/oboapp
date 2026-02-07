@@ -1,13 +1,3 @@
-[
-  {
-    "categories": ["construction-and-repairs", "public-transport", "traffic"],
-    "withSpecificAddress": true,
-    "specificAddresses": ["площад Македония"],
-    "coordinates": [],
-    "busStops": [],
-    "cadastralProperties": [],
-    "cityWide": false,
-    "isRelevant": true,
-    "normalizedText": "Ремонт на метростанция на площад Македония до края на месеца."
-  }
-]
+{
+  "categories": ["construction-and-repairs"]
+}

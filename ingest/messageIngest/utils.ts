@@ -4,15 +4,15 @@
  */
 
 /**
- * Format log messages for categorized message processing
- * @param categorizedMessage - The categorized message object
+ * Format log messages for message processing
+ * @param messageInfo - Object with categories and relevance info
  * @param messageIndex - Current message index (1-based)
  * @param totalMessages - Total number of messages
  * @param messageId - Generated or auto-generated message ID
  * @returns Array of formatted log message strings
  */
-export function formatCategorizedMessageLogInfo(
-  categorizedMessage: {
+export function formatMessageLogInfo(
+  messageInfo: {
     categories: string[];
     isRelevant: boolean;
   },
@@ -22,8 +22,8 @@ export function formatCategorizedMessageLogInfo(
 ): string[] {
   return [
     `\n📄 Processing message ${messageIndex}/${totalMessages}`,
-    `   Categories: ${categorizedMessage.categories.join(", ")}`,
-    `   Relevant: ${categorizedMessage.isRelevant}`,
+    `   Categories: ${messageInfo.categories.join(", ")}`,
+    `   Relevant: ${messageInfo.isRelevant}`,
     `   Message ID: ${messageId || "auto-generated"}`,
   ];
 }

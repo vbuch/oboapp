@@ -1,8 +1,15 @@
-import type { ExtractedData } from "./types";
+import {
+  FilterSplitResponseSchema,
+  type FilterSplitResult,
+} from "./filter-split.schema";
 import {
   CategorizationResponseSchema,
   type CategorizationResult,
 } from "./categorize.schema";
+import {
+  ExtractedLocationsSchema,
+  type ExtractedLocations,
+} from "./extract-locations.schema";
 import {
   formatIngestErrorText,
   getIngestErrorRecorder,
@@ -12,205 +19,101 @@ import {
 
 const MAX_INGEST_ERROR_LENGTH = 1000;
 
-interface Timespan {
-  start: string;
-  end: string;
-}
-
-interface Pin {
-  address: string;
-  timespans: Timespan[];
-}
-
-interface Street {
-  street: string;
-  from: string;
-  to: string;
-  timespans: Timespan[];
-}
-
-interface CadastralProperty {
-  identifier: string;
-  timespans: Timespan[];
+/**
+ * Extracts a JSON string from AI response text.
+ * Handles both clean JSON and JSON wrapped in markdown code blocks.
+ */
+function extractJson(responseText: string): string | null {
+  // Try matching a JSON array or object (greedy)
+  const jsonMatch = responseText.match(/[\[{][\s\S]*[\]}]/);
+  return jsonMatch ? jsonMatch[0] : null;
 }
 
 /**
- * Validates and filters pin objects from AI response
+ * Parses and validates filter & split response from AI (Step 1)
  */
-export function validatePins(pins: unknown): Pin[] {
-  if (!Array.isArray(pins)) {
-    return [];
+export function parseFilterSplitResponse(
+  responseText: string,
+  ingestErrors?: IngestErrorRecorder,
+): FilterSplitResult | null {
+  const recorder = getIngestErrorRecorder(ingestErrors);
+
+  const jsonStr = extractJson(responseText);
+  if (!jsonStr) {
+    recorder.error("No JSON found in filter & split AI response");
+    return null;
   }
 
-  return pins
-    .filter(
-      (pin: unknown): pin is Record<string, unknown> =>
-        pin !== null &&
-        typeof pin === "object" &&
-        "address" in pin &&
-        typeof (pin as Record<string, unknown>)["address"] === "string" &&
-        ((pin as Record<string, unknown>)["address"] as string).trim().length >
-          0 &&
-        "timespans" in pin &&
-        Array.isArray((pin as Record<string, unknown>)["timespans"]),
-    )
-    .map((pin: Record<string, unknown>) => ({
-      address: pin["address"] as string,
-      timespans: validateTimespans(pin["timespans"] as unknown[]),
-    }));
-}
-
-/**
- * Validates and filters street objects from AI response
- */
-export function validateStreets(streets: unknown): Street[] {
-  if (!Array.isArray(streets)) {
-    return [];
+  try {
+    const parsed = JSON.parse(jsonStr);
+    return FilterSplitResponseSchema.parse(parsed);
+  } catch (parseError) {
+    recorder.error(
+      `Failed to parse filter & split response: ${formatIngestErrorText(parseError)}`,
+    );
+    const summary = truncateIngestPayload(responseText, MAX_INGEST_ERROR_LENGTH);
+    recorder.error(
+      `Full AI response (${summary.originalLength} chars): ${summary.summary}`,
+    );
+    return null;
   }
-
-  return streets
-    .filter(
-      (street: unknown): street is Record<string, unknown> =>
-        street !== null &&
-        typeof street === "object" &&
-        "street" in street &&
-        typeof (street as Record<string, unknown>)["street"] === "string" &&
-        "from" in street &&
-        typeof (street as Record<string, unknown>)["from"] === "string" &&
-        "to" in street &&
-        typeof (street as Record<string, unknown>)["to"] === "string" &&
-        "timespans" in street &&
-        Array.isArray((street as Record<string, unknown>)["timespans"]),
-    )
-    .map((street: Record<string, unknown>) => ({
-      street: street["street"] as string,
-      from: street["from"] as string,
-      to: street["to"] as string,
-      timespans: validateTimespans(street["timespans"] as unknown[]),
-    }));
 }
 
 /**
- * Validates and filters cadastral property objects from AI response
+ * Parses and validates categorization response from AI (Step 2)
  */
-export function validateCadastralProperties(
-  properties: unknown,
-): CadastralProperty[] {
-  if (!Array.isArray(properties)) {
-    return [];
-  }
-
-  return properties
-    .filter(
-      (prop: unknown): prop is Record<string, unknown> =>
-        prop !== null &&
-        typeof prop === "object" &&
-        "identifier" in prop &&
-        typeof (prop as Record<string, unknown>)["identifier"] === "string" &&
-        ((prop as Record<string, unknown>)["identifier"] as string).trim()
-          .length > 0 &&
-        "timespans" in prop &&
-        Array.isArray((prop as Record<string, unknown>)["timespans"]),
-    )
-    .map((prop: Record<string, unknown>) => ({
-      identifier: prop["identifier"] as string,
-      timespans: validateTimespans(prop["timespans"] as unknown[]),
-    }));
-}
-
-/**
- * Validates and filters timespan objects
- */
-function validateTimespans(timespans: unknown[]): Timespan[] {
-  return timespans.filter(
-    (time: unknown): time is Timespan =>
-      time !== null &&
-      typeof time === "object" &&
-      "start" in time &&
-      typeof (time as Record<string, unknown>)["start"] === "string" &&
-      "end" in time &&
-      typeof (time as Record<string, unknown>)["end"] === "string",
-  ) as Timespan[];
-}
-
-/**
- * Parses and validates categorization response from AI
- */
-export function parseCategorizationResponse(
+export function parseCategorizeResponse(
   responseText: string,
   ingestErrors?: IngestErrorRecorder,
 ): CategorizationResult | null {
   const recorder = getIngestErrorRecorder(ingestErrors);
 
+  const jsonStr = extractJson(responseText);
+  if (!jsonStr) {
+    recorder.error("No JSON found in categorize AI response");
+    return null;
+  }
+
   try {
-    const parsedResponse = JSON.parse(responseText);
-    const validatedResponse =
-      CategorizationResponseSchema.parse(parsedResponse);
-    return validatedResponse;
+    const parsed = JSON.parse(jsonStr);
+    return CategorizationResponseSchema.parse(parsed);
   } catch (parseError) {
     recorder.error(
-      `Failed to parse or validate JSON response from AI: ${formatIngestErrorText(
-        parseError,
-      )}`,
+      `Failed to parse categorize response: ${formatIngestErrorText(parseError)}`,
     );
-    const responseSummary = truncateIngestPayload(
-      responseText,
-      MAX_INGEST_ERROR_LENGTH,
-    );
+    const summary = truncateIngestPayload(responseText, MAX_INGEST_ERROR_LENGTH);
     recorder.error(
-      `Full AI response (${responseSummary.originalLength} chars): ${responseSummary.summary}`,
+      `Full AI response (${summary.originalLength} chars): ${summary.summary}`,
     );
     return null;
   }
 }
 
 /**
- * Parses and validates extraction response from AI
+ * Parses and validates extract locations response from AI (Step 3)
  */
-export function parseExtractionResponse(
+export function parseExtractLocationsResponse(
   responseText: string,
   ingestErrors?: IngestErrorRecorder,
-): ExtractedData | null {
+): ExtractedLocations | null {
   const recorder = getIngestErrorRecorder(ingestErrors);
 
-  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
+  const jsonStr = extractJson(responseText);
+  if (!jsonStr) {
+    recorder.error("No JSON found in extract locations AI response");
     return null;
   }
 
   try {
-    const parsedResponse = JSON.parse(jsonMatch[0]);
-
-    const extractedData: ExtractedData = {
-      responsible_entity: parsedResponse.responsible_entity || "",
-      pins: validatePins(parsedResponse.pins),
-      streets: validateStreets(parsedResponse.streets),
-      cadastralProperties: validateCadastralProperties(
-        parsedResponse.cadastralProperties,
-      ),
-      markdown_text: parsedResponse.markdown_text || "",
-    };
-
-    return extractedData;
+    const parsed = JSON.parse(jsonStr);
+    return ExtractedLocationsSchema.parse(parsed);
   } catch (parseError) {
     recorder.error(
-      `Failed to parse JSON response from AI: ${formatIngestErrorText(
-        parseError,
-      )}`,
+      `Failed to parse extract locations response: ${formatIngestErrorText(parseError)}`,
     );
-    const rawJsonSummary = truncateIngestPayload(
-      jsonMatch[0],
-      MAX_INGEST_ERROR_LENGTH,
-    );
+    const summary = truncateIngestPayload(responseText, MAX_INGEST_ERROR_LENGTH);
     recorder.error(
-      `Raw JSON that failed to parse (${rawJsonSummary.originalLength} chars): ${rawJsonSummary.summary}`,
-    );
-    const fullResponseSummary = truncateIngestPayload(
-      responseText,
-      MAX_INGEST_ERROR_LENGTH,
-    );
-    recorder.error(
-      `Full AI response (${fullResponseSummary.originalLength} chars): ${fullResponseSummary.summary}`,
+      `Full AI response (${summary.originalLength} chars): ${summary.summary}`,
     );
     return null;
   }

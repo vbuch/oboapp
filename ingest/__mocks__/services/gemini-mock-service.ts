@@ -1,13 +1,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ExtractedData } from "@/lib/types";
+import type { ExtractedLocations } from "@/lib/extract-locations.schema";
 import type { CategorizationResult } from "@/lib/categorize.schema";
+import type { FilterSplitResult } from "@/lib/filter-split.schema";
 
 interface FixtureMap {
   [key: string]: any;
 }
 
 export class GeminiMockService {
+  private filterSplitFixtures: FixtureMap = {};
   private categorizeFixtures: FixtureMap = {};
   private extractFixtures: FixtureMap = {};
   private customFixturePath: string | null = null;
@@ -21,6 +23,27 @@ export class GeminiMockService {
     const fixtureDir = join(__dirname, "../fixtures/gemini");
 
     try {
+      this.filterSplitFixtures = {
+        water: JSON.parse(
+          readFileSync(
+            join(fixtureDir, "filter-split-water.json"),
+            "utf-8",
+          ),
+        ),
+        traffic: JSON.parse(
+          readFileSync(
+            join(fixtureDir, "filter-split-traffic.json"),
+            "utf-8",
+          ),
+        ),
+        construction: JSON.parse(
+          readFileSync(
+            join(fixtureDir, "filter-split-construction.json"),
+            "utf-8",
+          ),
+        ),
+      };
+
       this.categorizeFixtures = {
         water: JSON.parse(
           readFileSync(
@@ -55,46 +78,52 @@ export class GeminiMockService {
     }
   }
 
-  async categorize(text: string): Promise<CategorizationResult | null> {
-    // Use custom fixture if specified
-    if (this.customFixturePath) {
-      return JSON.parse(readFileSync(this.customFixturePath, "utf-8"));
-    }
-
-    // Simple pattern matching for fixture selection
+  private matchPattern(text: string): string {
     const lowerText = text.toLowerCase();
 
     if (lowerText.includes("вод") || lowerText.includes("water")) {
-      return this.categorizeFixtures.water ?? null;
+      return "water";
     }
-
     if (
       lowerText.includes("движение") ||
       lowerText.includes("трафик") ||
       lowerText.includes("traffic")
     ) {
-      return this.categorizeFixtures.traffic ?? null;
+      return "traffic";
     }
-
     if (
       lowerText.includes("ремонт") ||
       lowerText.includes("строителст") ||
       lowerText.includes("construction")
     ) {
-      return this.categorizeFixtures.construction ?? null;
+      return "construction";
     }
-
-    // Default fallback
-    return this.categorizeFixtures.water ?? null;
+    return "water"; // default fallback
   }
 
-  async extractStructuredData(text: string): Promise<ExtractedData | null> {
-    // Use custom fixture if specified
+  async filterAndSplit(text: string): Promise<FilterSplitResult | null> {
     if (this.customFixturePath) {
       return JSON.parse(readFileSync(this.customFixturePath, "utf-8"));
     }
 
-    // Simple pattern matching
+    const pattern = this.matchPattern(text);
+    return this.filterSplitFixtures[pattern] ?? null;
+  }
+
+  async categorize(text: string): Promise<CategorizationResult | null> {
+    if (this.customFixturePath) {
+      return JSON.parse(readFileSync(this.customFixturePath, "utf-8"));
+    }
+
+    const pattern = this.matchPattern(text);
+    return this.categorizeFixtures[pattern] ?? null;
+  }
+
+  async extractLocations(text: string): Promise<ExtractedLocations | null> {
+    if (this.customFixturePath) {
+      return JSON.parse(readFileSync(this.customFixturePath, "utf-8"));
+    }
+
     const lowerText = text.toLowerCase();
 
     if (

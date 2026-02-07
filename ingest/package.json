@@ -10,7 +10,7 @@
     "crawl": "tsx crawl",
     "ingest": "tsx ingest",
     "notify": "tsx notify",
-    "categorize": "tsx categorize",
+
     "sources:clean": "tsx sources-clean",
     "gtfs-stops": "tsx ingest gtfs-stops",
     "pipeline:emergent": "tsx pipeline --emergent",

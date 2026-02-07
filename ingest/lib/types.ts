@@ -1,4 +1,3 @@
-import { CategorizedMessage } from "./categorize.schema";
 import type { Timestamp } from "firebase-admin/firestore";
 import type { GeoJsonGeometry } from "@oboapp/shared";
 
@@ -9,7 +8,8 @@ export type {
   Pin,
   StreetSection,
   CadastralProperty,
-  ExtractedData,
+  ExtractedLocations,
+  ExtractedData, // Legacy alias for ExtractedLocations
   Coordinates,
   GeoJsonPoint,
   GeoJsonMultiPoint,
@@ -152,42 +152,6 @@ export interface SnapPoint {
   lat: number;
   lng: number;
   distance: number;
-}
-
-// AI Service Types
-export interface RawPin {
-  address: string;
-  timespans: RawTimespan[];
-}
-
-export interface RawStreet {
-  street: string;
-  from: string;
-  to: string;
-  timespans: RawTimespan[];
-}
-
-export interface RawCadastralProperty {
-  identifier: string;
-  timespans: RawTimespan[];
-}
-
-export interface RawTimespan {
-  start: string;
-  end: string;
-}
-
-export interface RawExtractedData {
-  responsible_entity: string;
-  pins?: RawPin[];
-  streets?: RawStreet[];
-  cadastralProperties?: RawCadastralProperty[];
-  markdown_text?: string;
-}
-
-// Message Processing Types
-export interface MessageProcessingOptions {
-  categorizedMessage?: CategorizedMessage;
 }
 
 export interface CadastralGeometryCollection {

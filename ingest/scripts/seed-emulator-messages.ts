@@ -58,14 +58,15 @@ function createMessageData(
     geoJson: JSON.stringify(geoJson), // Stringify for Firestore
   };
 
-  // Add extractedData if present
+  // Add location data to process array if present
   if (config.extractedData) {
-    baseData.extractedData = JSON.stringify(config.extractedData);
-  }
-
-  // Add categorize if present
-  if (config.categorize) {
-    baseData.categorize = JSON.stringify(config.categorize);
+    baseData.process = [
+      { step: "extractLocations", result: config.extractedData },
+    ];
+    // Denormalize location fields
+    if (config.extractedData.pins) baseData.pins = config.extractedData.pins;
+    if (config.extractedData.streets)
+      baseData.streets = config.extractedData.streets;
   }
 
   return baseData;

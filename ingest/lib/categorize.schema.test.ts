@@ -7,146 +7,25 @@ import {
 import { CategoryEnum } from "@oboapp/shared";
 
 describe("CategorizationResponseSchema", () => {
-  describe("valid schemas", () => {
-    it("should validate complete valid categorization result", () => {
-      const validData: CategorizationResult = [
-        {
-          categories: ["water", "construction-and-repairs"],
-          withSpecificAddress: true,
-          specificAddresses: ["бул. Витоша 1", "ул. Граф Игнатиев 125"],
-          coordinates: ["42.6977, 23.3219", "42.7000, 23.3250"],
-          busStops: ["0001", "0234"],
-          cadastralProperties: ["68134.501.123", "68134.502.456"],
-          cityWide: false,
-          isRelevant: true,
-          normalizedText:
-            "Спиране на водоснабдяването поради строителство на метро.",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(validData);
+  describe("valid inputs", () => {
+    it("should validate a categories array", () => {
+      const input = { categories: ["water", "traffic"] };
+      const result = CategorizationResponseSchema.safeParse(input);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data).toEqual(validData);
+        expect(result.data).toEqual({ categories: ["water", "traffic"] });
       }
     });
 
-    it("should validate minimal valid categorization result", () => {
-      const validData: CategorizationResult = [
-        {
-          categories: [],
-          withSpecificAddress: false,
-          specificAddresses: [],
-          coordinates: [],
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: false,
-          isRelevant: false,
-          normalizedText: "",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(validData);
-      expect(result.success).toBe(true);
-    });
-
-    it("should coerce JSON array string categories", () => {
-      const validData = [
-        {
-          categories: '["water", "traffic"]',
-          withSpecificAddress: false,
-          specificAddresses: [],
-          coordinates: [],
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: false,
-          isRelevant: true,
-          normalizedText: "Test message.",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(validData);
+    it("should validate an empty categories array", () => {
+      const result = CategorizationResponseSchema.safeParse({ categories: [] });
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data[0].categories).toEqual(["water", "traffic"]);
+        expect(result.data.categories).toEqual([]);
       }
     });
 
-    it("should coerce comma-separated categories", () => {
-      const validData = [
-        {
-          categories: "water, traffic",
-          withSpecificAddress: false,
-          specificAddresses: [],
-          coordinates: [],
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: false,
-          isRelevant: true,
-          normalizedText: "Test message.",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(validData);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data[0].categories).toEqual(["water", "traffic"]);
-      }
-    });
-
-    it("should coerce whitespace-only categories to empty array", () => {
-      const validData = [
-        {
-          categories: "   ",
-          withSpecificAddress: false,
-          specificAddresses: [],
-          coordinates: [],
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: false,
-          isRelevant: false,
-          normalizedText: "",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(validData);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data[0].categories).toEqual([]);
-      }
-    });
-
-    it("should validate multiple categorized messages", () => {
-      const validData: CategorizationResult = [
-        {
-          categories: ["water"],
-          withSpecificAddress: true,
-          specificAddresses: ["бул. Витоша 1"],
-          coordinates: [],
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: false,
-          isRelevant: true,
-          normalizedText: "Спиране на водоснабдяването.",
-        },
-        {
-          categories: ["heating", "construction-and-repairs"],
-          withSpecificAddress: false,
-          specificAddresses: [],
-          coordinates: [],
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: true,
-          isRelevant: true,
-          normalizedText: "Планова поддръжка на отоплението в целия град.",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(validData);
-      expect(result.success).toBe(true);
-    });
-
-    it("should validate all valid category enum values", () => {
+    it("should validate all category enum values", () => {
       const allCategories: Category[] = [
         "air-quality",
         "art",
@@ -167,181 +46,129 @@ describe("CategorizationResponseSchema", () => {
         "weather",
       ];
 
-      const validData: CategorizationResult = [
-        {
-          categories: allCategories,
-          withSpecificAddress: false,
-          specificAddresses: [],
-          coordinates: [],
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: false,
-          isRelevant: true,
-          normalizedText: "Test message with all categories.",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(validData);
-      expect(result.success).toBe(true);
-    });
-
-    it("should default omitted address fields to empty arrays", () => {
-      // This simulates AI output when withSpecificAddress is false
-      const dataWithOmittedFields = [
-        {
-          categories: ["water"],
-          withSpecificAddress: false,
-          cityWide: false,
-          isRelevant: true,
-          normalizedText: "General water maintenance.",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(
-        dataWithOmittedFields,
-      );
+      const result = CategorizationResponseSchema.safeParse({
+        categories: allCategories,
+      });
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data[0].specificAddresses).toEqual([]);
-        expect(result.data[0].coordinates).toEqual([]);
-        expect(result.data[0].busStops).toEqual([]);
-        expect(result.data[0].cadastralProperties).toEqual([]);
+        expect(result.data.categories).toEqual(allCategories);
       }
     });
 
-    it("should validate various coordinate formats", () => {
-      const validCoordinates = [
-        "42.6977, 23.3219",
-        "42.7000, 23.3250",
-        "-42.6977, -23.3219",
-        "0.0, 0.0",
-        "42.6977,23.3219", // no space after comma
-        "42.6977,  23.3219", // multiple spaces after comma
-      ];
-
-      const validData: CategorizationResult = [
-        {
-          categories: ["water"],
-          withSpecificAddress: true,
-          specificAddresses: [],
-          coordinates: validCoordinates,
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: false,
-          isRelevant: true,
-          normalizedText: "Test coordinates.",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(validData);
+    it("should validate a single category", () => {
+      const result = CategorizationResponseSchema.safeParse({
+        categories: ["parking"],
+      });
       expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.categories).toEqual(["parking"]);
+      }
     });
   });
 
-  describe("invalid schemas", () => {
-    it("should reject invalid category enum values", () => {
-      const invalidData = [
-        {
-          categories: ["invalid-category", "water"], // invalid category
-          withSpecificAddress: false,
-          specificAddresses: [],
-          coordinates: [],
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: false,
-          isRelevant: true,
-          normalizedText: "Test message.",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(invalidData);
-      expect(result.success).toBe(false);
-    });
-
-    it("should reject invalid coordinate formats", () => {
-      const invalidCoordinates = [
-        "invalid-coordinate",
-        "42.6977",
-        "42.6977,",
-        ",23.3219",
-        "42,23", // missing decimal places
-        "42.6977 23.3219", // space instead of comma
-        "42.6977; 23.3219", // semicolon instead of comma
-      ];
-
-      for (const invalidCoordinate of invalidCoordinates) {
-        const invalidData = [
-          {
-            categories: ["water"],
-            withSpecificAddress: true,
-            specificAddresses: [],
-            coordinates: [invalidCoordinate],
-            busStops: [],
-            cadastralProperties: [],
-            cityWide: false,
-            isRelevant: true,
-            normalizedText: "Test message.",
-          },
-        ];
-
-        const result = CategorizationResponseSchema.safeParse(invalidData);
-        expect(result.success).toBe(false);
+  describe("normalizeCategoriesInput preprocessing", () => {
+    it("should parse a JSON array string", () => {
+      const result = CategorizationResponseSchema.safeParse({
+        categories: '["water", "traffic"]',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.categories).toEqual(["water", "traffic"]);
       }
     });
 
-    it("should reject missing required fields", () => {
-      const invalidData = [
-        {
-          categories: ["water"],
-          // missing required fields
-        },
-      ];
+    it("should split a comma-separated string", () => {
+      const result = CategorizationResponseSchema.safeParse({
+        categories: "water, traffic",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.categories).toEqual(["water", "traffic"]);
+      }
+    });
 
-      const result = CategorizationResponseSchema.safeParse(invalidData);
+    it("should convert a whitespace-only string to an empty array", () => {
+      const result = CategorizationResponseSchema.safeParse({
+        categories: "   ",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.categories).toEqual([]);
+      }
+    });
+
+    it("should treat a single non-comma string as a one-element array", () => {
+      const result = CategorizationResponseSchema.safeParse({
+        categories: "water",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.categories).toEqual(["water"]);
+      }
+    });
+
+    it("should trim whitespace from array elements", () => {
+      const result = CategorizationResponseSchema.safeParse({
+        categories: [" water ", " traffic "],
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.categories).toEqual(["water", "traffic"]);
+      }
+    });
+  });
+
+  describe("invalid inputs", () => {
+    it("should reject an invalid category value", () => {
+      const result = CategorizationResponseSchema.safeParse({
+        categories: ["invalid-category"],
+      });
       expect(result.success).toBe(false);
     });
 
-    it("should reject wrong types for fields", () => {
-      const invalidData = [
-        {
-          categories: [123], // invalid category type
-          withSpecificAddress: "true", // should be boolean
-          specificAddresses: "address", // should be array
-          coordinates: [],
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: false,
-          isRelevant: true,
-          normalizedText: "Test message.",
-        },
-      ];
-
-      const result = CategorizationResponseSchema.safeParse(invalidData);
+    it("should reject a mix of valid and invalid categories", () => {
+      const result = CategorizationResponseSchema.safeParse({
+        categories: ["water", "not-a-category"],
+      });
       expect(result.success).toBe(false);
     });
 
-    it("should reject non-array root structure", () => {
-      const invalidData = {
-        categories: ["water"],
-        withSpecificAddress: false,
-        specificAddresses: [],
-        coordinates: [],
-        busStops: [],
-        cadastralProperties: [],
-        cityWide: false,
-        isRelevant: true,
-        normalizedText: "Test message.",
-      };
-
-      const result = CategorizationResponseSchema.safeParse(invalidData);
+    it("should reject non-string elements in the array", () => {
+      const result = CategorizationResponseSchema.safeParse({
+        categories: [123, true],
+      });
       expect(result.success).toBe(false);
     });
 
-    it("should reject null or undefined input", () => {
+    it("should reject null input", () => {
       expect(CategorizationResponseSchema.safeParse(null).success).toBe(false);
+    });
+
+    it("should reject undefined input", () => {
       expect(CategorizationResponseSchema.safeParse(undefined).success).toBe(
         false,
       );
+    });
+
+    it("should reject missing categories field", () => {
+      expect(CategorizationResponseSchema.safeParse({}).success).toBe(false);
+    });
+
+    it("should reject an array at the root level", () => {
+      const result = CategorizationResponseSchema.safeParse([
+        { categories: ["water"] },
+      ]);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("type: CategorizationResult", () => {
+    it("should be assignable from a parsed result", () => {
+      const result = CategorizationResponseSchema.parse({
+        categories: ["water", "heating"],
+      });
+      const typed: CategorizationResult = result;
+      expect(typed.categories).toEqual(["water", "heating"]);
     });
   });
 

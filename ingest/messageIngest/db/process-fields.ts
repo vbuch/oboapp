@@ -11,13 +11,14 @@ const NATIVE_ARRAY_FIELDS = new Set([
   "streets",
   "cadastralProperties",
   "busStops",
+  "process",
 ]);
 
 /**
  * Process fields for Firestore storage
  * - Converts Date objects to Firestore server timestamps (except timespanStart/timespanEnd)
  * - Preserves timespanStart/timespanEnd as Date for server-side filtering
- * - Stringifies complex objects (extractedData, geoJson, categorize)
+ * - Stringifies complex objects (geoJson, addresses, process)
  * - Keeps categories as native array for Firestore indexes
  *   (array-contains queries require native arrays, not stringified JSON)
  * - Keeps denormalized fields (pins, streets, cadastralProperties, busStops, responsibleEntity) as native types
@@ -50,7 +51,7 @@ export function processFieldsForFirestore(
       // Keep responsibleEntity as native string (not stringified)
       processedFields[key] = value;
     } else if (typeof value === "object" && value !== null) {
-      // Stringify objects (extractedData, geoJson, categorize, addresses)
+      // Stringify objects (geoJson, addresses, process)
       processedFields[key] = JSON.stringify(value);
     } else {
       processedFields[key] = value;

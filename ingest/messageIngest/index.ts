@@ -1,11 +1,11 @@
 import {
   Address,
-  ExtractedData,
+  ExtractedLocations,
   GeoJSONFeatureCollection,
   InternalMessage,
   Coordinates,
 } from "@/lib/types";
-import type { CategorizedMessage } from "@/lib/categorize.schema";
+import type { FilteredMessage } from "@/lib/filter-split.schema";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
 import {
   createIngestErrorCollector,
@@ -15,10 +15,8 @@ import {
 } from "@/lib/ingest-errors";
 import { storeIncomingMessage, updateMessage } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
-import { formatCategorizedMessageLogInfo } from "./utils";
 import { logger } from "@/lib/logger";
 
-export { extractAddressesFromMessage } from "./extract-addresses";
 export {
   geocodeAddressesFromExtractedData,
   type GeocodingResult,
@@ -82,7 +80,7 @@ export interface MessageIngestResult {
 }
 
 /**
- * Execute the full message ingest pipeline with categorization support
+ * Execute the full message ingest pipeline
  * @param text - The message text to process
  * @param source - The source of the message (e.g., 'web-interface', 'api', etc.)
  * @param userId - The ID of the user creating the message
@@ -104,7 +102,7 @@ export async function messageIngest(
     sourceDocumentId = encodeDocumentId(options.sourceUrl);
   }
 
-  // For messages with precomputed GeoJSON, create single message without categorization
+  // For messages with precomputed GeoJSON, create single message without AI pipeline
   if (hasPrecomputedGeoJson) {
     return await processPrecomputedGeoJsonMessage(
       text,
@@ -116,8 +114,8 @@ export async function messageIngest(
     );
   }
 
-  // Use categorize for messages without precomputed GeoJSON
-  return await processCategorizedMessages(
+  // Use 3-step AI pipeline for messages without precomputed GeoJSON
+  return await processWithAIPipeline(
     text,
     userId,
     userEmail,
@@ -128,17 +126,16 @@ export async function messageIngest(
 }
 
 /**
- * Process a single message through the geocoding pipeline
+ * Process a single message through the geocoding pipeline (after AI steps are complete)
  */
 async function processSingleMessage(
   messageId: string,
   text: string,
   precomputedGeoJson: GeoJSONFeatureCollection | null,
   options: MessageIngestOptions,
-  categorizedMessage: CategorizedMessage | undefined,
+  extractedLocations: ExtractedLocations | null,
   ingestErrors: IngestErrorCollector,
 ): Promise<InternalMessage> {
-  let extractedData: ExtractedData | null = null;
   let addresses: Address[] = [];
   let geoJson: GeoJSONFeatureCollection | null = precomputedGeoJson;
 
@@ -146,43 +143,45 @@ async function processSingleMessage(
   const crawledAt = ensureCrawledAtDate(options.crawledAt);
 
   if (precomputedGeoJson) {
-    extractedData = await handlePrecomputedGeoJsonData(
+    await handlePrecomputedGeoJsonData(
       messageId,
       options.markdownText,
       options.timespanStart,
       options.timespanEnd,
       crawledAt,
     );
-  } else {
+  } else if (extractedLocations) {
     try {
-      const extractionResult = await extractAndGeocodeFromText(
+      const geocodingResult = await performGeocoding(extractedLocations);
+      addresses = await filterAndStoreAddresses(
         messageId,
-        text,
-        categorizedMessage,
-        crawledAt,
-        ingestErrors,
+        geocodingResult.addresses,
+        geocodingResult.preGeocodedMap,
       );
 
-      if (!extractionResult) {
-        return await finalizeFailedMessage(messageId, text, ingestErrors);
-      }
+      // Identify geocoded bus stops for GeoJSON feature creation
+      const geocodedBusStops =
+        extractedLocations.busStops && extractedLocations.busStops.length > 0
+          ? addresses.filter((addr) => addr.originalText.startsWith("Спирка "))
+          : undefined;
 
-      extractedData = extractionResult.extractedData;
-      addresses = extractionResult.addresses;
-      geoJson = extractionResult.geoJson;
+      geoJson = await convertToGeoJson(
+        extractedLocations,
+        geocodingResult.preGeocodedMap,
+        geocodingResult.cadastralGeometries,
+        geocodedBusStops,
+        ingestErrors,
+      );
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       ingestErrors.exception(`Ingestion exception: ${errorMessage}`);
       await finalizeMessageWithoutGeoJson(messageId, ingestErrors);
-      return await buildFinalMessageResponse(
-        messageId,
-        text,
-        addresses,
-        extractedData,
-        null,
-      );
+      return await buildFinalMessageResponse(messageId, text, addresses, null);
     }
+  } else {
+    // No extracted locations and no precomputed GeoJSON
+    return await finalizeFailedMessage(messageId, text, ingestErrors);
   }
 
   geoJson = await applyBoundaryFilteringIfNeeded(
@@ -193,16 +192,11 @@ async function processSingleMessage(
 
   await finalizeMessageWithResults(messageId, geoJson, ingestErrors);
 
-  return await buildFinalMessageResponse(
-    messageId,
-    text,
-    addresses,
-    extractedData,
-    geoJson,
-  );
+  return await buildFinalMessageResponse(messageId, text, addresses, geoJson);
 }
+
 /**
- * Handle messages that come with precomputed GeoJSON (skip categorization)
+ * Handle messages that come with precomputed GeoJSON (skip AI pipeline)
  */
 async function processPrecomputedGeoJsonMessage(
   text: string,
@@ -236,7 +230,7 @@ async function processPrecomputedGeoJsonMessage(
     text,
     options.precomputedGeoJson || null,
     options,
-    undefined,
+    null,
     createIngestErrorCollector(),
   );
 
@@ -249,9 +243,9 @@ async function processPrecomputedGeoJsonMessage(
 }
 
 /**
- * Handle messages that need categorization via AI service
+ * 3-step AI pipeline: Filter & Split -> Categorize -> Extract Locations
  */
-async function processCategorizedMessages(
+async function processWithAIPipeline(
   text: string,
   userId: string,
   userEmail: string | null,
@@ -259,126 +253,212 @@ async function processCategorizedMessages(
   sourceDocumentId: string | undefined,
   options: MessageIngestOptions,
 ): Promise<MessageIngestResult> {
-  const { categorize } = await import("../lib/ai-service");
-  const categorizedMessages = await categorize(text);
+  const { filterAndSplit } = await import("../lib/ai-service");
 
-  if (!categorizedMessages || categorizedMessages.length === 0) {
-    logger.error("Failed to categorize message");
-    throw new Error("Message categorization failed");
+  // Step 1: Filter & Split
+  const filterResult = await filterAndSplit(text);
+
+  if (!filterResult || filterResult.length === 0) {
+    logger.error("Failed to filter & split message");
+    throw new Error("Message filter & split failed");
   }
 
-  logger.info("Categorized message", { count: categorizedMessages.length });
+  logger.info("Filter & split complete", { count: filterResult.length });
 
   const messages: InternalMessage[] = [];
   let totalRelevant = 0;
   let totalIrrelevant = 0;
 
-  for (let i = 0; i < categorizedMessages.length; i++) {
-    const categorizedMessage = categorizedMessages[i];
+  for (let i = 0; i < filterResult.length; i++) {
+    const filteredMessage = filterResult[i];
     const messageIndex = i + 1;
 
-    const storedMessageId = await storeCategorizedMessage(
-      categorizedMessage,
+    // Store incoming message
+    const storedMessageId = await storeIncomingMessage(
+      filteredMessage.normalizedText || text,
       userId,
       userEmail,
       source,
+      options.sourceUrl,
+      options.crawledAt,
       sourceDocumentId,
-      options,
     );
 
-    logCategorizedMessageInfo(
-      categorizedMessage,
+    // Store filter & split result
+    await storeFilteredMessage(storedMessageId, filteredMessage);
+
+    logFilteredMessageInfo(
+      filteredMessage,
       messageIndex,
-      categorizedMessages.length,
+      filterResult.length,
       storedMessageId,
     );
 
     const ingestErrors = createIngestErrorCollector();
 
-    if (categorizedMessage.isRelevant) {
-      totalRelevant++;
-      const message = await processSingleMessage(
-        storedMessageId,
-        categorizedMessage.normalizedText,
-        null,
-        options,
-        categorizedMessage,
-        ingestErrors,
-      );
-      messages.push(message);
-    } else {
+    if (!filteredMessage.isRelevant) {
       totalIrrelevant++;
       const message = await handleIrrelevantMessage(
         storedMessageId,
-        categorizedMessage.normalizedText,
+        filteredMessage.normalizedText,
         ingestErrors,
       );
       messages.push(message);
+      continue;
     }
+
+    totalRelevant++;
+
+    // Step 2: Categorize
+    const { categorize } = await import("../lib/ai-service");
+    const categorizationResult = await categorize(
+      filteredMessage.normalizedText,
+      ingestErrors,
+    );
+
+    if (categorizationResult) {
+      await storeCategorization(storedMessageId, categorizationResult);
+
+      // Zero categories -> finalize immediately
+      if (categorizationResult.categories.length === 0) {
+        logger.info("Message has zero categories, finalizing");
+        await updateMessage(storedMessageId, {
+          finalizedAt: new Date(),
+          ...buildIngestErrorsField(ingestErrors),
+        });
+        const message = await buildFinalMessageResponse(
+          storedMessageId,
+          filteredMessage.normalizedText,
+          [],
+          null,
+        );
+        messages.push(message);
+        continue;
+      }
+    }
+
+    // Step 3: Extract Locations
+    const { extractLocations } = await import("../lib/ai-service");
+    const extractedLocations = await extractLocations(
+      filteredMessage.normalizedText,
+      ingestErrors,
+    );
+
+    const crawledAt = ensureCrawledAtDate(options.crawledAt);
+    await storeExtractedLocations(
+      storedMessageId,
+      extractedLocations,
+      crawledAt,
+    );
+
+    // Continue through geocoding pipeline
+    const message = await processSingleMessage(
+      storedMessageId,
+      filteredMessage.normalizedText,
+      null,
+      options,
+      extractedLocations,
+      ingestErrors,
+    );
+    messages.push(message);
   }
 
   return {
     messages,
-    totalCategorized: categorizedMessages.length,
+    totalCategorized: filterResult.length,
     totalRelevant,
     totalIrrelevant,
   };
 }
 
 /**
- * Log information about a categorized message being processed
+ * Log information about a filtered message being processed
  */
-function logCategorizedMessageInfo(
-  categorizedMessage: CategorizedMessage,
+function logFilteredMessageInfo(
+  filteredMessage: FilteredMessage,
   messageIndex: number,
   totalMessages: number,
   messageId: string | undefined,
 ): void {
-  const logMessages = formatCategorizedMessageLogInfo(
-    categorizedMessage,
-    messageIndex,
-    totalMessages,
-    messageId,
-  );
-  logMessages.forEach((message) => logger.info(message));
-}
-
-/**
- * Store a categorized message with its categorization result
- */
-async function storeCategorizedMessage(
-  categorizedMessage: CategorizedMessage,
-  userId: string,
-  userEmail: string | null,
-  source: string,
-  sourceDocumentId: string | undefined,
-  options: MessageIngestOptions,
-): Promise<string> {
-  const storedMessageId = await storeIncomingMessage(
-    categorizedMessage.normalizedText,
-    userId,
-    userEmail,
-    source,
-    options.sourceUrl,
-    options.crawledAt,
-    sourceDocumentId,
-  );
-
-  // Store categorization data - both nested object and flattened fields for Firestore indexes
-  await updateMessage(storedMessageId, {
-    categorize: categorizedMessage,
-    // Flatten fields to root level for Firestore index queries
-    categories: categorizedMessage.categories,
-    isRelevant: categorizedMessage.isRelevant,
-    // Denormalize busStops for public API exposure
-    busStops: categorizedMessage.busStops,
+  logger.info(`Processing message ${messageIndex}/${totalMessages}`, {
+    isRelevant: filteredMessage.isRelevant,
+    messageId: messageId || "auto-generated",
+    responsibleEntity: filteredMessage.responsible_entity || "",
   });
-
-  return storedMessageId;
 }
 
 /**
- * Handle messages that are categorized as irrelevant
+ * Store filter & split result (Step 1)
+ */
+async function storeFilteredMessage(
+  messageId: string,
+  filteredMessage: FilteredMessage,
+): Promise<void> {
+  await updateMessage(messageId, {
+    normalizedText: filteredMessage.normalizedText,
+    isRelevant: filteredMessage.isRelevant,
+    markdownText: filteredMessage.markdown_text,
+    responsibleEntity: filteredMessage.responsible_entity,
+    process: [{ step: "filterAndSplit", result: filteredMessage }],
+  });
+}
+
+/**
+ * Store categorization result (Step 2)
+ */
+async function storeCategorization(
+  messageId: string,
+  categorizationResult: { categories: string[] },
+): Promise<void> {
+  const { FieldValue } = await import("firebase-admin/firestore");
+  await updateMessage(messageId, {
+    categories: categorizationResult.categories,
+    process: FieldValue.arrayUnion({ step: "categorize", result: categorizationResult }),
+  });
+}
+
+/**
+ * Store extracted locations result (Step 3)
+ * Denormalizes location fields to root level for Firestore queries
+ */
+async function storeExtractedLocations(
+  messageId: string,
+  extractedLocations: ExtractedLocations | null,
+  crawledAt: Date,
+): Promise<void> {
+  const { extractTimespanRangeFromExtractedLocations, validateAndFallback } =
+    await import("@/lib/timespan-utils");
+
+  const pins = extractedLocations?.pins || [];
+  const streets = extractedLocations?.streets || [];
+  const cadastralProperties = extractedLocations?.cadastralProperties || [];
+  const busStops = extractedLocations?.busStops || [];
+  const cityWide = extractedLocations?.cityWide || false;
+
+  // Extract timespans from extracted locations (pins/streets)
+  const { timespanStart, timespanEnd } = extractTimespanRangeFromExtractedLocations(
+    extractedLocations,
+    crawledAt,
+  );
+
+  // Validate and fallback to crawledAt if invalid
+  const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
+
+  const { FieldValue } = await import("firebase-admin/firestore");
+  await updateMessage(messageId, {
+    pins,
+    streets,
+    cadastralProperties,
+    busStops,
+    cityWide,
+    timespanStart: validated.timespanStart,
+    timespanEnd: validated.timespanEnd,
+    process: FieldValue.arrayUnion({ step: "extractLocations", result: extractedLocations }),
+  });
+}
+
+/**
+ * Handle messages that are filtered as irrelevant
  */
 async function handleIrrelevantMessage(
   messageId: string,
@@ -393,57 +473,7 @@ async function handleIrrelevantMessage(
   });
 
   const { buildMessageResponse } = await import("./build-response");
-  return await buildMessageResponse(messageId, text, [], null, null);
-}
-
-/**
- * Extract data from text and perform geocoding
- */
-async function extractAndGeocodeFromText(
-  messageId: string,
-  text: string,
-  categorizedMessage: CategorizedMessage | undefined,
-  crawledAt: Date,
-  ingestErrors: IngestErrorRecorder,
-): Promise<{
-  extractedData: ExtractedData;
-  addresses: Address[];
-  geoJson: GeoJSONFeatureCollection | null;
-} | null> {
-  const { extractAddressesFromMessage } = await import("./extract-addresses");
-  const extractedData = await extractAddressesFromMessage(text, ingestErrors);
-
-  await storeExtractedData(messageId, extractedData, crawledAt);
-
-  if (!extractedData) {
-    return null;
-  }
-
-  const geocodingResults = await performGeocoding(
-    extractedData,
-    categorizedMessage,
-  );
-  const addresses = await filterAndStoreAddresses(
-    messageId,
-    geocodingResults.addresses,
-    geocodingResults.preGeocodedMap,
-  );
-
-  // Extract geocoded bus stops for GeoJSON conversion
-  const geocodedBusStops =
-    categorizedMessage?.busStops && categorizedMessage.busStops.length > 0
-      ? addresses.filter((addr) => addr.originalText.startsWith("Спирка "))
-      : undefined;
-
-  const geoJson = await convertToGeoJson(
-    extractedData,
-    geocodingResults.preGeocodedMap,
-    geocodingResults.cadastralGeometries,
-    geocodedBusStops,
-    ingestErrors,
-  );
-
-  return { extractedData, addresses, geoJson };
+  return await buildMessageResponse(messageId, text, [], null);
 }
 
 /**
@@ -456,7 +486,6 @@ function ensureCrawledAtDate(crawledAt: Date | string | undefined): Date {
   }
   if (crawledAt) {
     const date = new Date(crawledAt);
-    // Check if date is valid (Invalid Date has NaN getTime())
     if (!Number.isNaN(date.getTime())) {
       return date;
     }
@@ -465,58 +494,12 @@ function ensureCrawledAtDate(crawledAt: Date | string | undefined): Date {
 }
 
 /**
- * Store extracted data and markdown text in the message
- * Denormalizes extractedData fields for public API exposure
+ * Perform geocoding on extracted locations
  */
-async function storeExtractedData(
-  messageId: string,
-  extractedData: ExtractedData | null,
-  crawledAt: Date,
-): Promise<void> {
-  const { extractTimespanRangeFromExtractedData, validateAndFallback } =
-    await import("@/lib/timespan-utils");
-
-  const markdownText = extractedData?.markdown_text || "";
-  const responsibleEntity = extractedData?.responsible_entity || "";
-  const pins = extractedData?.pins || [];
-  const streets = extractedData?.streets || [];
-  const cadastralProperties = extractedData?.cadastralProperties || [];
-
-  // Extract timespans from extractedData (pins/streets)
-  const { timespanStart, timespanEnd } = extractTimespanRangeFromExtractedData(
-    extractedData,
-    crawledAt,
-  );
-
-  // Validate and fallback to crawledAt if invalid
-  const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
-
-  await updateMessage(messageId, {
-    extractedData,
-    // Denormalize fields for public API exposure
-    markdownText,
-    responsibleEntity,
-    pins,
-    streets,
-    cadastralProperties,
-    timespanStart: validated.timespanStart,
-    timespanEnd: validated.timespanEnd,
-  });
-}
-
-/**
- * Perform geocoding on extracted data
- */
-async function performGeocoding(
-  extractedData: ExtractedData,
-  categorizedMessage?: CategorizedMessage,
-) {
+async function performGeocoding(extractedLocations: ExtractedLocations) {
   const { geocodeAddressesFromExtractedData } =
     await import("./geocode-addresses");
-  return await geocodeAddressesFromExtractedData(
-    extractedData,
-    categorizedMessage,
-  );
+  return await geocodeAddressesFromExtractedData(extractedLocations);
 }
 
 /**
@@ -549,7 +532,7 @@ async function filterAndStoreAddresses(
  * Convert geocoding results to GeoJSON format
  */
 async function convertToGeoJson(
-  extractedData: ExtractedData,
+  extractedLocations: ExtractedLocations,
   preGeocodedMap: Map<string, Coordinates>,
   cadastralGeometries: Map<string, CadastralGeometry> | undefined,
   geocodedBusStops?: Address[],
@@ -558,7 +541,7 @@ async function convertToGeoJson(
   const { convertMessageGeocodingToGeoJson } =
     await import("./convert-to-geojson");
   return await convertMessageGeocodingToGeoJson(
-    extractedData,
+    extractedLocations,
     preGeocodedMap,
     cadastralGeometries,
     geocodedBusStops,
@@ -575,7 +558,7 @@ async function finalizeFailedMessage(
   ingestErrors: IngestErrorCollector,
 ): Promise<InternalMessage> {
   ingestErrors.error(
-    "❌ Failed to extract data from message, marking as finalized",
+    "Failed to extract data from message, marking as finalized",
   );
   await updateMessage(messageId, {
     finalizedAt: new Date(),
@@ -583,7 +566,7 @@ async function finalizeFailedMessage(
   });
 
   const { buildMessageResponse } = await import("./build-response");
-  return await buildMessageResponse(messageId, text, [], null, null);
+  return await buildMessageResponse(messageId, text, [], null);
 }
 
 /**
@@ -595,18 +578,10 @@ async function handlePrecomputedGeoJsonData(
   timespanStart: Date | undefined,
   timespanEnd: Date | undefined,
   crawledAt: Date,
-): Promise<ExtractedData | null> {
+): Promise<void> {
   const { validateAndFallback } = await import("@/lib/timespan-utils");
 
   if (markdownText) {
-    const extractedData: ExtractedData = {
-      responsible_entity: "",
-      pins: [],
-      streets: [],
-      markdown_text: markdownText,
-    };
-
-    // Validate timespans from source
     const validated = validateAndFallback(
       timespanStart,
       timespanEnd,
@@ -614,8 +589,6 @@ async function handlePrecomputedGeoJsonData(
     );
 
     await updateMessage(messageId, {
-      extractedData,
-      // Denormalize fields for public API exposure
       markdownText,
       responsibleEntity: "",
       pins: [],
@@ -624,11 +597,7 @@ async function handlePrecomputedGeoJsonData(
       timespanStart: validated.timespanStart,
       timespanEnd: validated.timespanEnd,
     });
-
-    return extractedData;
   }
-
-  return null;
 }
 
 /**
@@ -670,6 +639,8 @@ async function finalizeMessageWithResults(
       finalizedAt: new Date(),
       ...buildIngestErrorsField(ingestErrors),
     });
+  } else {
+    await finalizeMessageWithoutGeoJson(messageId, ingestErrors);
   }
 }
 
@@ -690,15 +661,8 @@ async function buildFinalMessageResponse(
   messageId: string,
   text: string,
   addresses: Address[],
-  extractedData: ExtractedData | null,
   geoJson: GeoJSONFeatureCollection | null,
 ): Promise<InternalMessage> {
   const { buildMessageResponse } = await import("./build-response");
-  return await buildMessageResponse(
-    messageId,
-    text,
-    addresses,
-    extractedData,
-    geoJson,
-  );
+  return await buildMessageResponse(messageId, text, addresses, geoJson);
 }

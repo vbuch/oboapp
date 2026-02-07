@@ -90,4 +90,4 @@ Bus stops are geocoded using static GTFS data from Sofia's public transport syst
 
 - [Message Filtering](message-filtering.md) - AI-powered relevance filtering and extraction
 - [Message Ingest Pipeline](../../ingest/messageIngest/README.md) - Complete processing pipeline
-- [Data Extraction Prompt](../../ingest/prompts/data-extraction-overpass.md) - AI extraction rules for locations
+- [Location Extraction Prompt](../../ingest/prompts/extract-locations.md) - AI extraction rules for locations

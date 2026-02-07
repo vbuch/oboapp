@@ -1,5 +1,5 @@
 import type {
-  ExtractedData,
+  ExtractedLocations,
   GeoJSONFeatureCollection,
   Timespan,
 } from "./types";
@@ -160,7 +160,7 @@ function collectTimespansFromArray(
   return timespans;
 }
 
-function collectAllTimespans(extractedData: ExtractedData): Timespan[] {
+function collectAllTimespans(extractedData: ExtractedLocations): Timespan[] {
   const allTimespans: Timespan[] = [];
 
   if (extractedData.pins && Array.isArray(extractedData.pins)) {
@@ -189,8 +189,8 @@ function collectAllTimespans(extractedData: ExtractedData): Timespan[] {
  * @param fallbackDate - Date to use when no timespans exist or all are invalid
  * @returns Object with timespanStart and timespanEnd dates
  */
-export function extractTimespanRangeFromExtractedData(
-  extractedData: ExtractedData | null,
+export function extractTimespanRangeFromExtractedLocations(
+  extractedData: ExtractedLocations | null,
   fallbackDate: Date,
 ): { timespanStart: Date; timespanEnd: Date } {
   if (!extractedData) {

@@ -165,49 +165,53 @@ When adding npm dependencies always prefer running `npm install` over directly e
 
 The pipeline processes messages about public infrastructure disruptions in Sofia, Bulgaria.
 
-**Two-Stage LLM Processing:**
+**Three-Stage LLM Processing:**
 
-1. **Categorization Stage** (`ingest/lib/ai-service.ts` + `ingest/prompts/categorize.md`)
-   - Single AI call processes entire message
-   - Determines if message contains public infrastructure information
-   - Returns array of categorized messages with rich metadata
-   - Each message includes: categories, geographic scope, addresses, coordinates
-   - Irrelevant messages are finalized immediately without geocoding
+1. **Filter & Split** (`filterAndSplit()` in `ingest/lib/ai-service.ts` + `ingest/prompts/filter-split.md`)
+   - Splits a source notification into individual messages
+   - Assesses relevance, normalizes text, extracts responsible_entity and markdown_text
+   - Schema: array of `{ normalizedText, isRelevant, responsible_entity, markdown_text }`
+   - Irrelevant messages are finalized immediately without further processing
 
-2. **Extraction Stage** (`ingest/prompts/data-extraction-overpass.md`)
-   - Processes normalized text from filtering stage
-   - Extracts pins (point locations), streets (sections), timespans
-   - Generates markdown-formatted text for display
-   - Returns structured `ExtractedData` object
+2. **Categorize** (`categorize()` in `ingest/lib/ai-service.ts` + `ingest/prompts/categorize.md`)
+   - Pure classification only (no splitting, no location extraction)
+   - Schema: `{ categories }`
+
+3. **Extract Locations** (`extractLocations()` in `ingest/lib/ai-service.ts` + `ingest/prompts/extract-locations.md`)
+   - Extracts all location data: pins, streets, cadastralProperties, busStops, cityWide, withSpecificAddress
+   - Replaces the old `extractStructuredData()` function entirely
 
 **Pipeline Flow:**
 
 ```mermaid
 flowchart LR
     A[Raw Text] --> B{Has Precomputed GeoJSON?}
-    B -->|No| C[Categorize - 1 source many messages]
+    B -->|No| C[Filter & Split - 1 source many messages]
     B -->|Yes| H[Skip to GeoJSON]
     C --> D{Relevant?}
     D -->|No| E[Finalize]
-    D -->|Yes| F[Extract]
-    F --> G[Geocode]
-    G --> H
+    D -->|Yes| F[Categorize]
+    F --> G[Extract Locations]
+    G --> J[Geocode]
+    J --> H
     H --> I[Finalize]
 ```
 
 **Crawler Integration:**
 
-- Crawlers with `precomputedGeoJson` (sofiyska-voda, toplo-bg, erm-zapad, nimh-severe-weather) **skip categorization**
-- Crawlers without GeoJSON (rayon-oborishte-bg, sofia-bg, mladost-bg, studentski-bg, sredec-sofia-org, so-slatina-org, lozenets-sofia-bg) **go through categorization**
+- Crawlers with `precomputedGeoJson` (sofiyska-voda, toplo-bg, erm-zapad, nimh-severe-weather) **skip all AI processing**
+- Crawlers without GeoJSON (rayon-oborishte-bg, sofia-bg, mladost-bg, studentski-bg, sredec-sofia-org, so-slatina-org, lozenets-sofia-bg) **go through the 3-step AI pipeline** (Filter & Split, Categorize, Extract Locations)
 - Markdown text from crawlers is stored directly via `options.markdownText`
 
 **Field Storage:**
 
 - `text` - Original user/crawler input
-- `categorize` - Rich categorization result if categorization was performed
 - `sourceDocumentId` - Links back to source document
-- `extractedData` - Structured data (pins, streets, cadastral properties with timespans)
-- `markdownText` - Denormalized from extractedData.markdown_text or crawler option
+- `normalizedText` - Normalized text from Filter & Split stage
+- `markdownText` - Markdown-formatted text from Filter & Split or crawler option
+- `categories` - Array of category strings from Categorize stage
+- `pins`, `streets`, `cadastralProperties`, `busStops`, `cityWide` - Location fields denormalized at root level from Extract Locations stage
+- `process` - Array of debug/audit trail entries tracking each pipeline step
 - `timespanStart` - Denormalized MIN start time (enables Firestore queries)
 - `timespanEnd` - Denormalized MAX end time (enables Firestore queries)
 - `geoJson` - Final geometry (determines public visibility)
@@ -226,7 +230,7 @@ flowchart LR
 - **GeoJSON:** Parse and validate geometry immediately.
 - **Timespans:** Extract timespans in crawlers and store at source root as `timespanStart/End`.
 - **Scripts:** Use the standard template (shebang, dotenv, dynamic imports). Run via `npm run tsx tmp/script.ts`.
-- **Precomputed GeoJSON:** If crawler provides GeoJSON, it bypasses message categorization and extraction stages. Timespans transfer from source to message during ingestion.
+- **Precomputed GeoJSON:** If crawler provides GeoJSON, it bypasses all AI processing stages (Filter & Split, Categorize, Extract Locations). Timespans transfer from source to message during ingestion.
 - **City-Wide Messages:** Set `cityWide: true` with empty FeatureCollection for alerts applying to entire city. Bypasses viewport filtering (always visible), uses sofia.geojson for notification matching.
 - **Workflow Sync (CRITICAL):** When adding/removing crawlers, update BOTH locations:
   1. `ingest/crawlers/{source-name}/` - Crawler implementation
@@ -249,9 +253,10 @@ flowchart LR
 
 **Routing**: `geocoding-router.ts` dispatches by location type:
 
-- `geocodeAddresses()` → Google (pins with numbers)
+- `geocodeAddresses()` → Google (pins with numbers); skips geocoding for pre-resolved coordinates from AI
 - `geocodeIntersectionsForStreets()` → Overpass (street ∩ street)
 - `geocodeCadastralPropertiesFromIdentifiers()` → Cadastre (УПИ)
+- Bus stops → resolved from ExtractedLocations data
 
 **Validation**: All services check `isWithinSofia()` boundary.
 

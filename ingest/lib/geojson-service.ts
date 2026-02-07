@@ -1,5 +1,5 @@
 import {
-  ExtractedData,
+  ExtractedLocations,
   StreetSection,
   GeoJSONFeatureCollection,
   GeoJSONFeature,
@@ -233,7 +233,7 @@ async function createClosureFeature(
 
 // Step 5 — Feature Collection Assembly
 export async function convertToGeoJSON(
-  extractedData: ExtractedData,
+  extractedData: ExtractedLocations,
   preGeocodedAddresses: Map<string, IntersectionCoordinates>,
 ): Promise<GeoJSONFeatureCollection> {
   const features: GeoJSONFeature[] = [];

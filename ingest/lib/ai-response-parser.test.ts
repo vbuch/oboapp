@@ -1,209 +1,133 @@
 import { describe, it, expect } from "vitest";
 import {
-  validatePins,
-  validateStreets,
-  validateCadastralProperties,
-  parseCategorizationResponse,
-  parseExtractionResponse,
+  parseFilterSplitResponse,
+  parseCategorizeResponse,
+  parseExtractLocationsResponse,
 } from "./ai-response-parser";
+import type { IngestErrorRecorder } from "./ingest-errors";
+
+function createMockRecorder(): IngestErrorRecorder & { errors: string[] } {
+  const errors: string[] = [];
+  return {
+    errors,
+    warn: () => {},
+    error: (msg: string) => errors.push(msg),
+    exception: () => {},
+  };
+}
 
 describe("ai-response-parser", () => {
-  describe("validatePins", () => {
-    it("should validate valid pins", () => {
-      const pins = [
-        {
-          address: "бул. Витоша 1",
-          timespans: [
-            { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
-          ],
-        },
-      ];
-      const result = validatePins(pins);
-      expect(result).toHaveLength(1);
-      expect(result[0].address).toBe("бул. Витоша 1");
-      expect(result[0].timespans).toHaveLength(1);
-    });
-
-    it("should filter out pins without addresses", () => {
-      const pins = [
-        {
-          timespans: [
-            { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
-          ],
-        },
-      ];
-      const result = validatePins(pins);
-      expect(result).toHaveLength(0);
-    });
-
-    it("should filter out pins with empty addresses", () => {
-      const pins = [
-        {
-          address: "   ",
-          timespans: [
-            { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
-          ],
-        },
-      ];
-      const result = validatePins(pins);
-      expect(result).toHaveLength(0);
-    });
-
-    it("should filter out pins without timespans", () => {
-      const pins = [{ address: "бул. Витоша 1" }];
-      const result = validatePins(pins);
-      expect(result).toHaveLength(0);
-    });
-
-    it("should filter out invalid timespans", () => {
-      const pins = [
-        {
-          address: "бул. Витоша 1",
-          timespans: [
-            { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
-            { start: "invalid" }, // Missing end
-            { end: "2024-01-01T14:00:00Z" }, // Missing start
-          ],
-        },
-      ];
-      const result = validatePins(pins);
-      expect(result).toHaveLength(1);
-      expect(result[0].timespans).toHaveLength(1);
-    });
-
-    it("should return empty array for non-array input", () => {
-      const result = validatePins("not an array");
-      expect(result).toEqual([]);
-    });
-
-    it("should return empty array for null input", () => {
-      const result = validatePins(null);
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("validateStreets", () => {
-    it("should validate valid streets", () => {
-      const streets = [
-        {
-          street: "бул. Витоша",
-          from: "ул. Алабин",
-          to: "пл. България",
-          timespans: [
-            { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
-          ],
-        },
-      ];
-      const result = validateStreets(streets);
-      expect(result).toHaveLength(1);
-      expect(result[0].street).toBe("бул. Витоша");
-      expect(result[0].from).toBe("ул. Алабин");
-      expect(result[0].to).toBe("пл. България");
-    });
-
-    it("should filter out streets without required fields", () => {
-      const streets = [
-        { street: "бул. Витоша", timespans: [] }, // Missing from/to
-        { from: "ул. Алабин", to: "пл. България", timespans: [] }, // Missing street
-      ];
-      const result = validateStreets(streets);
-      expect(result).toHaveLength(0);
-    });
-
-    it("should return empty array for non-array input", () => {
-      const result = validateStreets({});
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("validateCadastralProperties", () => {
-    it("should validate valid cadastral properties", () => {
-      const properties = [
-        {
-          identifier: "68134.501.123",
-          timespans: [
-            { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
-          ],
-        },
-      ];
-      const result = validateCadastralProperties(properties);
-      expect(result).toHaveLength(1);
-      expect(result[0].identifier).toBe("68134.501.123");
-    });
-
-    it("should filter out properties with empty identifiers", () => {
-      const properties = [
-        {
-          identifier: "  ",
-          timespans: [
-            { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
-          ],
-        },
-      ];
-      const result = validateCadastralProperties(properties);
-      expect(result).toHaveLength(0);
-    });
-
-    it("should return empty array for non-array input", () => {
-      const result = validateCadastralProperties(undefined);
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("parseCategorizationResponse", () => {
-    it("should parse valid categorization response", () => {
+  describe("parseFilterSplitResponse", () => {
+    it("should parse a valid filter & split response", () => {
       const response = JSON.stringify([
         {
-          categories: ["water"],
-          withSpecificAddress: false,
-          specificAddresses: [],
-          coordinates: [],
-          busStops: [],
-          cadastralProperties: [],
-          cityWide: false,
+          normalizedText: "Water outage tomorrow",
           isRelevant: true,
-          normalizedText: "Test message",
+          responsible_entity: "Sofiyska Voda",
+          markdown_text: "**Water outage** tomorrow",
+        },
+        {
+          normalizedText: "Irrelevant post",
+          isRelevant: false,
         },
       ]);
-      const result = parseCategorizationResponse(response);
+      const result = parseFilterSplitResponse(response);
+      expect(result).not.toBeNull();
+      expect(result).toHaveLength(2);
+      expect(result![0].normalizedText).toBe("Water outage tomorrow");
+      expect(result![0].isRelevant).toBe(true);
+      expect(result![0].responsible_entity).toBe("Sofiyska Voda");
+      expect(result![0].markdown_text).toBe("**Water outage** tomorrow");
+      expect(result![1].isRelevant).toBe(false);
+      // Defaults applied for omitted optional fields
+      expect(result![1].responsible_entity).toBe("");
+      expect(result![1].markdown_text).toBe("");
+    });
+
+    it("should extract JSON from markdown code blocks", () => {
+      const response = `Here is the result:\n\`\`\`json\n[{"normalizedText":"test","isRelevant":true}]\n\`\`\``;
+      const result = parseFilterSplitResponse(response);
       expect(result).not.toBeNull();
       expect(result).toHaveLength(1);
-      expect(result![0].categories).toContain("water");
+      expect(result![0].normalizedText).toBe("test");
+    });
+
+    it("should return null when no JSON is present", () => {
+      const recorder = createMockRecorder();
+      const result = parseFilterSplitResponse("no json here", recorder);
+      expect(result).toBeNull();
+      expect(recorder.errors.length).toBeGreaterThan(0);
     });
 
     it("should return null for invalid JSON", () => {
-      const errors: string[] = [];
-      const mockRecorder = {
-        error: (msg: string) => errors.push(msg),
-        warn: () => {},
-        exception: () => {},
-      };
-      const result = parseCategorizationResponse(
-        "not valid json",
-        mockRecorder,
-      );
+      const recorder = createMockRecorder();
+      const result = parseFilterSplitResponse("{ broken json }", recorder);
       expect(result).toBeNull();
-      expect(errors.length).toBeGreaterThan(0);
+      expect(recorder.errors.length).toBeGreaterThan(0);
     });
 
-    it("should return null for invalid schema", () => {
-      const errors: string[] = [];
-      const mockRecorder = {
-        error: (msg: string) => errors.push(msg),
-        warn: () => {},
-        exception: () => {},
-      };
-      const response = JSON.stringify([{ invalid: "data" }]);
-      const result = parseCategorizationResponse(response, mockRecorder);
+    it("should return null when schema validation fails", () => {
+      const recorder = createMockRecorder();
+      // Missing required field normalizedText
+      const response = JSON.stringify([{ isRelevant: true }]);
+      const result = parseFilterSplitResponse(response, recorder);
       expect(result).toBeNull();
-      expect(errors.length).toBeGreaterThan(0);
+      expect(recorder.errors.length).toBeGreaterThan(0);
     });
   });
 
-  describe("parseExtractionResponse", () => {
-    it("should parse valid extraction response", () => {
+  describe("parseCategorizeResponse", () => {
+    it("should parse a valid categorization response", () => {
       const response = JSON.stringify({
-        responsible_entity: "Софийска вода",
+        categories: ["water", "construction-and-repairs"],
+      });
+      const result = parseCategorizeResponse(response);
+      expect(result).not.toBeNull();
+      expect(result!.categories).toEqual(["water", "construction-and-repairs"]);
+    });
+
+    it("should handle categories as a comma-separated string", () => {
+      const response = JSON.stringify({
+        categories: "water, electricity",
+      });
+      const result = parseCategorizeResponse(response);
+      expect(result).not.toBeNull();
+      expect(result!.categories).toEqual(["water", "electricity"]);
+    });
+
+    it("should handle a single category string", () => {
+      const response = JSON.stringify({
+        categories: "water",
+      });
+      const result = parseCategorizeResponse(response);
+      expect(result).not.toBeNull();
+      expect(result!.categories).toEqual(["water"]);
+    });
+
+    it("should return null for invalid JSON", () => {
+      const recorder = createMockRecorder();
+      const result = parseCategorizeResponse("not valid json", recorder);
+      expect(result).toBeNull();
+      expect(recorder.errors.length).toBeGreaterThan(0);
+    });
+
+    it("should return null for invalid categories", () => {
+      const recorder = createMockRecorder();
+      const response = JSON.stringify({
+        categories: ["not-a-real-category"],
+      });
+      const result = parseCategorizeResponse(response, recorder);
+      expect(result).toBeNull();
+      expect(recorder.errors.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("parseExtractLocationsResponse", () => {
+    it("should parse a valid extract locations response", () => {
+      const response = JSON.stringify({
+        withSpecificAddress: true,
+        busStops: ["Bus stop A"],
+        cityWide: false,
         pins: [
           {
             address: "бул. Витоша 1",
@@ -212,88 +136,78 @@ describe("ai-response-parser", () => {
             ],
           },
         ],
-        streets: [],
-        cadastralProperties: [],
-        markdown_text: "Test markdown",
-      });
-      const result = parseExtractionResponse(response);
-      expect(result).not.toBeNull();
-      expect(result!.responsible_entity).toBe("Софийска вода");
-      expect(result!.pins).toHaveLength(1);
-      expect(result!.markdown_text).toBe("Test markdown");
-    });
-
-    it("should return null if no JSON found", () => {
-      const result = parseExtractionResponse("no json here");
-      expect(result).toBeNull();
-    });
-
-    it("should return null for invalid JSON in matched text", async () => {
-      const errors: string[] = [];
-      const mockRecorder = {
-        error: (msg: string) => errors.push(msg),
-        warn: () => {},
-        exception: () => {},
-      };
-      // Include valid JSON structure but with syntax error
-      const result = parseExtractionResponse(
-        '{ "invalid": json }',
-        mockRecorder,
-      );
-      expect(result).toBeNull();
-      expect(errors.length).toBeGreaterThan(0);
-    });
-
-    it("should handle missing optional fields", () => {
-      const response = JSON.stringify({
-        pins: [],
-        streets: [],
-        cadastralProperties: [],
-      });
-      const result = parseExtractionResponse(response);
-      expect(result).not.toBeNull();
-      expect(result!.responsible_entity).toBe("");
-      expect(result!.markdown_text).toBe("");
-    });
-
-    it("should filter invalid items from arrays", () => {
-      const response = JSON.stringify({
-        pins: [
-          {
-            address: "valid",
-            timespans: [
-              { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
-            ],
-          },
-          { address: "" }, // Empty address - should be filtered
-          { timespans: [] }, // No address - should be filtered
-        ],
         streets: [
           {
-            street: "valid",
-            from: "A",
-            to: "B",
+            street: "бул. Витоша",
+            from: "ул. Алабин",
+            to: "пл. България",
             timespans: [
               { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
             ],
           },
-          { street: "invalid" }, // Missing from/to - should be filtered
         ],
         cadastralProperties: [
           {
-            identifier: "valid",
+            identifier: "68134.501.123",
             timespans: [
               { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
             ],
           },
-          { identifier: "  " }, // Empty identifier - should be filtered
         ],
       });
-      const result = parseExtractionResponse(response);
+      const result = parseExtractLocationsResponse(response);
       expect(result).not.toBeNull();
+      expect(result!.withSpecificAddress).toBe(true);
+      expect(result!.cityWide).toBe(false);
+      expect(result!.busStops).toEqual(["Bus stop A"]);
       expect(result!.pins).toHaveLength(1);
+      expect(result!.pins[0].address).toBe("бул. Витоша 1");
       expect(result!.streets).toHaveLength(1);
+      expect(result!.streets[0].street).toBe("бул. Витоша");
       expect(result!.cadastralProperties).toHaveLength(1);
+      expect(result!.cadastralProperties[0].identifier).toBe("68134.501.123");
+    });
+
+    it("should apply defaults for omitted array fields", () => {
+      const response = JSON.stringify({
+        withSpecificAddress: false,
+        cityWide: true,
+      });
+      const result = parseExtractLocationsResponse(response);
+      expect(result).not.toBeNull();
+      expect(result!.pins).toEqual([]);
+      expect(result!.streets).toEqual([]);
+      expect(result!.cadastralProperties).toEqual([]);
+      expect(result!.busStops).toEqual([]);
+    });
+
+    it("should return null when no JSON is found", () => {
+      const recorder = createMockRecorder();
+      const result = parseExtractLocationsResponse(
+        "no json here",
+        recorder,
+      );
+      expect(result).toBeNull();
+      expect(recorder.errors.length).toBeGreaterThan(0);
+    });
+
+    it("should return null for invalid JSON", () => {
+      const recorder = createMockRecorder();
+      const result = parseExtractLocationsResponse(
+        '{ "invalid": json }',
+        recorder,
+      );
+      expect(result).toBeNull();
+      expect(recorder.errors.length).toBeGreaterThan(0);
+    });
+
+    it("should return null when required fields are missing", () => {
+      const recorder = createMockRecorder();
+      // Missing withSpecificAddress and cityWide
+      const response = JSON.stringify({ pins: [] });
+      const result = parseExtractLocationsResponse(response, recorder);
+      expect(result).toBeNull();
+      expect(recorder.errors.length).toBeGreaterThan(0);
     });
   });
 });
