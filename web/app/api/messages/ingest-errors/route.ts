@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { InternalMessage } from "@/lib/types";
-import { convertTimestamp } from "@/lib/firestore-utils";
+import { convertTimestamp, safeJsonParse } from "@/lib/firestore-utils";
 import admin from "firebase-admin";
 
 const PAGE_SIZE = 12;
@@ -99,7 +99,7 @@ export async function GET(request: Request) {
             process: Array.isArray(data.process) ? data.process : undefined,
             ingestErrors:
               typeof data.ingestErrors === "string"
-                ? JSON.parse(data.ingestErrors)
+                ? safeJsonParse(data.ingestErrors, [], "ingestErrors")
                 : data.ingestErrors,
           });
         }

@@ -49,3 +49,26 @@ export function convertTimestamp(timestamp: unknown): string {
   // Fallback
   return new Date().toISOString();
 }
+
+/**
+ * Safely parse JSON string with fallback to default value
+ * Logs parse failures to help track data quality issues
+ *
+ * @param value - String to parse
+ * @param fallback - Value to return if parsing fails (default: undefined)
+ * @param context - Optional context for logging (e.g., field name)
+ * @returns Parsed JSON or fallback value
+ */
+export function safeJsonParse<T = unknown>(
+  value: string,
+  fallback?: T,
+  context?: string,
+): T | undefined {
+  try {
+    return JSON.parse(value) as T;
+  } catch (error) {
+    const contextMsg = context ? ` (${context})` : "";
+    console.warn(`Failed to parse JSON${contextMsg}:`, error);
+    return fallback;
+  }
+}
