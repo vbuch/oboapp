@@ -73,7 +73,7 @@ export async function filterAndSplit(
 /**
  * Step 2: Categorize
  * Classifies a single pre-split message into categories.
- * Input should be a normalizedText from Step 1.
+ * Input should be a plainText from Step 1.
  */
 export async function categorize(
   text: string,
@@ -119,7 +119,7 @@ export async function categorize(
  * Step 3: Extract Locations
  * Extracts all location data from a single pre-split message:
  * pins, streets, cadastralProperties, busStops, cityWide, withSpecificAddress.
- * Input should be a normalizedText from Step 1.
+ * Input should be a plainText from Step 1.
  */
 export async function extractLocations(
   text: string,

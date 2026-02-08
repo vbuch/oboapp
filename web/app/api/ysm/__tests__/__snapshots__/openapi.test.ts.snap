@@ -305,7 +305,7 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
           "markdownText": {
             "type": "string",
           },
-          "normalizedText": {
+          "plainText": {
             "type": "string",
           },
           "pins": {
@@ -744,7 +744,7 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 "markdownText": {
                   "type": "string",
                 },
-                "normalizedText": {
+                "plainText": {
                   "type": "string",
                 },
                 "pins": {

@@ -273,9 +273,9 @@ async function processWithAIPipeline(
     const filteredMessage = filterResult[i];
     const messageIndex = i + 1;
 
-    // Use originalText from the split (per-message text), or normalizedText if relevant
+    // Use originalText from the split (per-message text), or plainText if relevant
     // Fall back to full source text only if both are empty (backwards compatibility)
-    const messageText = filteredMessage.normalizedText || text;
+    const messageText = filteredMessage.plainText || text;
 
     // Store incoming message
     const storedMessageId = await storeIncomingMessage(
@@ -302,8 +302,8 @@ async function processWithAIPipeline(
 
     if (!filteredMessage.isRelevant) {
       totalIrrelevant++;
-      // Use normalizedText for irrelevant messages, fall back to full text
-      const irrelevantMessageText = filteredMessage.normalizedText || text;
+      // Use plainText for irrelevant messages, fall back to full text
+      const irrelevantMessageText = filteredMessage.plainText || text;
       const message = await handleIrrelevantMessage(
         storedMessageId,
         irrelevantMessageText,
@@ -318,7 +318,7 @@ async function processWithAIPipeline(
     // Step 2: Categorize
     const { categorize } = await import("../lib/ai-service");
     const categorizationResult = await categorize(
-      filteredMessage.normalizedText,
+      filteredMessage.plainText,
       ingestErrors,
     );
 
@@ -347,7 +347,7 @@ async function processWithAIPipeline(
     // Step 3: Extract Locations
     const { extractLocations } = await import("../lib/ai-service");
     const extractedLocations = await extractLocations(
-      filteredMessage.normalizedText,
+      filteredMessage.plainText,
       ingestErrors,
     );
 
@@ -361,7 +361,7 @@ async function processWithAIPipeline(
     // Continue through geocoding pipeline
     const message = await processSingleMessage(
       storedMessageId,
-      filteredMessage.normalizedText,
+      filteredMessage.plainText,
       null,
       options,
       extractedLocations,
@@ -404,7 +404,7 @@ async function storeFilteredMessage(
   filteredMessage: FilteredMessage,
 ): Promise<void> {
   await updateMessage(messageId, {
-    normalizedText: filteredMessage.normalizedText,
+    plainText: filteredMessage.plainText,
     isRelevant: filteredMessage.isRelevant,
     markdownText: filteredMessage.markdownText,
     responsibleEntity: filteredMessage.responsibleEntity,

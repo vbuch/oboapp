@@ -29,10 +29,10 @@ export function deduplicateAddresses(addresses: Address[]): Address[] {
   const DISTANCE_THRESHOLD_METERS = 50;
 
   for (const addr of addresses) {
-    const normalizedText = addr.originalText.toLowerCase().trim();
+    const plainText = addr.originalText.toLowerCase().trim();
 
     // Check if we've seen this exact text
-    if (seen.has(normalizedText)) {
+    if (seen.has(plainText)) {
       continue;
     }
 
@@ -52,7 +52,7 @@ export function deduplicateAddresses(addresses: Address[]): Address[] {
     }
 
     if (!isDuplicate) {
-      seen.set(normalizedText, addr);
+      seen.set(plainText, addr);
     }
   }
 
@@ -163,7 +163,10 @@ export async function geocodeAddressesFromExtractedData(
           coordinates: street.fromCoordinates,
           geoJson: {
             type: "Point",
-            coordinates: [street.fromCoordinates.lng, street.fromCoordinates.lat],
+            coordinates: [
+              street.fromCoordinates.lng,
+              street.fromCoordinates.lat,
+            ],
           },
         });
       }
@@ -183,7 +186,8 @@ export async function geocodeAddressesFromExtractedData(
 
     // Filter to streets that still need Overpass geocoding (at least one endpoint missing)
     const streetsNeedingGeocoding = extractedData.streets.filter(
-      (street) => !preGeocodedMap.has(street.from) || !preGeocodedMap.has(street.to),
+      (street) =>
+        !preGeocodedMap.has(street.from) || !preGeocodedMap.has(street.to),
     );
 
     if (streetsNeedingGeocoding.length > 0) {
@@ -259,5 +263,9 @@ export async function geocodeAddressesFromExtractedData(
   // Deduplicate addresses before returning
   const deduplicatedAddresses = deduplicateAddresses(addresses);
 
-  return { preGeocodedMap, addresses: deduplicatedAddresses, cadastralGeometries };
+  return {
+    preGeocodedMap,
+    addresses: deduplicatedAddresses,
+    cadastralGeometries,
+  };
 }

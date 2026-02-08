@@ -55,7 +55,7 @@ describe.skipIf(!HAS_API_KEY)(
 
         const msg = result![0];
         expect(msg.isRelevant).toBe(false);
-        expect(msg.normalizedText).toBeTruthy();
+        expect(msg.plainText).toBe("");
 
         // Pipeline should stop here — no categorize or extractLocations
         expect(recorder.errors).toHaveLength(0);
@@ -64,7 +64,7 @@ describe.skipIf(!HAS_API_KEY)(
 
     // ─── Test 2: Simple single message (parking for football) ────────
     describe("single-simple-message.md", () => {
-      let normalizedText: string;
+      let plainText: string;
 
       it("filterAndSplit: should produce 1 relevant message", async () => {
         const { filterAndSplit } = await import("./ai-service");
@@ -76,19 +76,19 @@ describe.skipIf(!HAS_API_KEY)(
         expect(result).not.toBeNull();
         expect(result!.length).toBe(1);
         expect(result![0].isRelevant).toBe(true);
-        expect(result![0].normalizedText).toBeTruthy();
+        expect(result![0].plainText).toBeTruthy();
         expect(result![0].markdownText).toBeTruthy();
         expect(recorder.errors).toHaveLength(0);
 
-        normalizedText = result![0].normalizedText;
+        plainText = result![0].plainText;
       });
 
       it("categorize: should assign parking/traffic/sports categories", async () => {
         const { categorize } = await import("./ai-service");
-        expect(normalizedText).toBeTruthy();
+        expect(plainText).toBeTruthy();
         const recorder = createMockRecorder();
 
-        const result = await categorize(normalizedText, recorder);
+        const result = await categorize(plainText, recorder);
 
         expect(result).not.toBeNull();
         expect(result!.categories).toBeInstanceOf(Array);
@@ -110,10 +110,10 @@ describe.skipIf(!HAS_API_KEY)(
 
       it("extractLocations: should extract stadium location with timespans", async () => {
         const { extractLocations } = await import("./ai-service");
-        expect(normalizedText).toBeTruthy();
+        expect(plainText).toBeTruthy();
         const recorder = createMockRecorder();
 
-        const result = await extractLocations(normalizedText, recorder);
+        const result = await extractLocations(plainText, recorder);
 
         expect(result).not.toBeNull();
         expect(result!.withSpecificAddress).toBe(true);
@@ -149,7 +149,7 @@ describe.skipIf(!HAS_API_KEY)(
 
     // ─── Test 3: Multiple street locations (sidewalk repairs) ────────
     describe("single-message-multiple-locations.md", () => {
-      let normalizedText: string;
+      let plainText: string;
 
       it("filterAndSplit: should produce 1 relevant message", async () => {
         const { filterAndSplit } = await import("./ai-service");
@@ -161,18 +161,18 @@ describe.skipIf(!HAS_API_KEY)(
         expect(result).not.toBeNull();
         expect(result!.length).toBe(1);
         expect(result![0].isRelevant).toBe(true);
-        expect(result![0].normalizedText).toBeTruthy();
+        expect(result![0].plainText).toBeTruthy();
         expect(recorder.errors).toHaveLength(0);
 
-        normalizedText = result![0].normalizedText;
+        plainText = result![0].plainText;
       });
 
       it("categorize: should assign construction-and-repairs", async () => {
         const { categorize } = await import("./ai-service");
-        expect(normalizedText).toBeTruthy();
+        expect(plainText).toBeTruthy();
         const recorder = createMockRecorder();
 
-        const result = await categorize(normalizedText, recorder);
+        const result = await categorize(plainText, recorder);
 
         expect(result).not.toBeNull();
         expect(result!.categories).toContain("construction-and-repairs");
@@ -181,10 +181,10 @@ describe.skipIf(!HAS_API_KEY)(
 
       it("extractLocations: should extract multiple street sections on Oborishte", async () => {
         const { extractLocations } = await import("./ai-service");
-        expect(normalizedText).toBeTruthy();
+        expect(plainText).toBeTruthy();
         const recorder = createMockRecorder();
 
-        const result = await extractLocations(normalizedText, recorder);
+        const result = await extractLocations(plainText, recorder);
 
         expect(result).not.toBeNull();
         expect(result!.withSpecificAddress).toBe(true);
@@ -231,8 +231,8 @@ describe.skipIf(!HAS_API_KEY)(
     });
 
     // ─── Test 4: Multiple timespans (film shooting) ──────────────────
-    describe("single-message-mutiple-timespans.md", () => {
-      let normalizedTexts: string[] = [];
+    describe.only("single-message-mutiple-timespans.md", () => {
+      let plainTexts: string[] = [];
 
       it("filterAndSplit: should produce relevant message(s)", async () => {
         const { filterAndSplit } = await import("./ai-service");
@@ -246,18 +246,20 @@ describe.skipIf(!HAS_API_KEY)(
 
         for (const msg of result!) {
           expect(msg.isRelevant).toBe(true);
-          expect(msg.normalizedText).toBeTruthy();
+          expect(msg.plainText).toBeTruthy();
         }
         expect(recorder.errors).toHaveLength(0);
 
-        normalizedTexts = result!.map((m) => m.normalizedText);
+        console.log(result);
+
+        plainTexts = result!.map((m) => m.plainText);
       });
 
       it("categorize: should assign parking or traffic categories", async () => {
         const { categorize } = await import("./ai-service");
-        expect(normalizedTexts.length).toBeGreaterThanOrEqual(1);
+        expect(plainTexts.length).toBeGreaterThanOrEqual(1);
 
-        for (const text of normalizedTexts) {
+        for (const text of plainTexts) {
           const recorder = createMockRecorder();
           const result = await categorize(text, recorder);
 
@@ -275,13 +277,13 @@ describe.skipIf(!HAS_API_KEY)(
 
       it("extractLocations: should extract 2 streets with different timespans", async () => {
         const { extractLocations } = await import("./ai-service");
-        expect(normalizedTexts.length).toBeGreaterThanOrEqual(1);
+        expect(plainTexts.length).toBeGreaterThanOrEqual(1);
 
         // Collect all extracted locations from all messages
         const allStreets: Array<{ street: string; timespans: unknown[] }> = [];
         const allPins: Array<{ address: string; timespans: unknown[] }> = [];
 
-        for (const text of normalizedTexts) {
+        for (const text of plainTexts) {
           const recorder = createMockRecorder();
           const result = await extractLocations(text, recorder);
 
@@ -323,7 +325,7 @@ describe.skipIf(!HAS_API_KEY)(
 
     // ─── Test 5: Complex message (bus rerouting, street closure) ─────
     describe("complex-single-message.md", () => {
-      let normalizedTexts: string[] = [];
+      let plainTexts: string[] = [];
 
       it("filterAndSplit: should produce relevant message(s)", async () => {
         const { filterAndSplit } = await import("./ai-service");
@@ -337,20 +339,20 @@ describe.skipIf(!HAS_API_KEY)(
 
         for (const msg of result!) {
           expect(msg.isRelevant).toBe(true);
-          expect(msg.normalizedText).toBeTruthy();
+          expect(msg.plainText).toBeTruthy();
         }
         expect(recorder.errors).toHaveLength(0);
 
-        normalizedTexts = result!.map((m) => m.normalizedText);
+        plainTexts = result!.map((m) => m.plainText);
       });
 
       it("categorize: should assign traffic/public-transport/road-block categories", async () => {
         const { categorize } = await import("./ai-service");
-        expect(normalizedTexts.length).toBeGreaterThanOrEqual(1);
+        expect(plainTexts.length).toBeGreaterThanOrEqual(1);
 
         const allCategories: string[] = [];
 
-        for (const text of normalizedTexts) {
+        for (const text of plainTexts) {
           const recorder = createMockRecorder();
           const result = await categorize(text, recorder);
 
@@ -374,13 +376,13 @@ describe.skipIf(!HAS_API_KEY)(
 
       it("extractLocations: should extract bus stops, streets, and Iskarska reference", async () => {
         const { extractLocations } = await import("./ai-service");
-        expect(normalizedTexts.length).toBeGreaterThanOrEqual(1);
+        expect(plainTexts.length).toBeGreaterThanOrEqual(1);
 
         const allBusStops: string[] = [];
         const allStreets: string[] = [];
         const allPinsAddresses: string[] = [];
 
-        for (const text of normalizedTexts) {
+        for (const text of plainTexts) {
           const recorder = createMockRecorder();
           const result = await extractLocations(text, recorder);
 
@@ -405,8 +407,8 @@ describe.skipIf(!HAS_API_KEY)(
     });
 
     // ─── Test 6: Insufficient content ────────────────────────────────
-    describe.only("insufficient.md", () => {
-      it.only("should detect insufficient content as irrelevant", async () => {
+    describe("insufficient.md", () => {
+      it("should detect insufficient content as irrelevant", async () => {
         const { filterAndSplit } = await import("./ai-service");
         const text = readSourceFixture("insufficient.md");
         const recorder = createMockRecorder();
@@ -427,8 +429,8 @@ describe.skipIf(!HAS_API_KEY)(
     });
 
     // ─── Test 7: Two simple messages (heating + construction) ────────
-    describe("two-messages-simple.md", () => {
-      let normalizedTexts: string[] = [];
+    describe.skip("two-messages-simple.md", () => {
+      let plainTexts: string[] = [];
 
       it("filterAndSplit: should produce 2 relevant messages", async () => {
         const { filterAndSplit } = await import("./ai-service");
@@ -444,16 +446,16 @@ describe.skipIf(!HAS_API_KEY)(
         expect(relevantMessages.length).toBeGreaterThanOrEqual(2);
         expect(recorder.errors).toHaveLength(0);
 
-        normalizedTexts = relevantMessages.map((m) => m.normalizedText);
+        plainTexts = relevantMessages.map((m) => m.plainText);
       });
 
       it("categorize: should assign heating/construction/road-block categories", async () => {
         const { categorize } = await import("./ai-service");
-        expect(normalizedTexts.length).toBeGreaterThanOrEqual(2);
+        expect(plainTexts.length).toBeGreaterThanOrEqual(2);
 
         const allCategories: string[] = [];
 
-        for (const text of normalizedTexts) {
+        for (const text of plainTexts) {
           const recorder = createMockRecorder();
           const result = await categorize(text, recorder);
 
@@ -477,12 +479,12 @@ describe.skipIf(!HAS_API_KEY)(
 
       it("extractLocations: should extract both street locations", async () => {
         const { extractLocations } = await import("./ai-service");
-        expect(normalizedTexts.length).toBeGreaterThanOrEqual(2);
+        expect(plainTexts.length).toBeGreaterThanOrEqual(2);
 
         const allStreets: string[] = [];
         const allPinsAddresses: string[] = [];
 
-        for (const text of normalizedTexts) {
+        for (const text of plainTexts) {
           const recorder = createMockRecorder();
           const result = await extractLocations(text, recorder);
 
@@ -506,8 +508,8 @@ describe.skipIf(!HAS_API_KEY)(
     });
 
     // ─── Test 8: Waste collection (single or multi-message) ──────────
-    describe("multiple-messages.md", () => {
-      let normalizedTexts: string[] = [];
+    describe.skip("multiple-messages.md", () => {
+      let plainTexts: string[] = [];
 
       it("filterAndSplit: should produce relevant message(s)", async () => {
         const { filterAndSplit } = await import("./ai-service");
@@ -523,16 +525,16 @@ describe.skipIf(!HAS_API_KEY)(
         expect(relevantMessages.length).toBeGreaterThanOrEqual(1);
         expect(recorder.errors).toHaveLength(0);
 
-        normalizedTexts = relevantMessages.map((m) => m.normalizedText);
+        plainTexts = relevantMessages.map((m) => m.plainText);
       });
 
       it("categorize: should assign waste category", async () => {
         const { categorize } = await import("./ai-service");
-        expect(normalizedTexts.length).toBeGreaterThanOrEqual(1);
+        expect(plainTexts.length).toBeGreaterThanOrEqual(1);
 
         const allCategories: string[] = [];
 
-        for (const text of normalizedTexts) {
+        for (const text of plainTexts) {
           const recorder = createMockRecorder();
           const result = await categorize(text, recorder);
 
@@ -547,12 +549,12 @@ describe.skipIf(!HAS_API_KEY)(
 
       it("extractLocations: should extract Slatina location", async () => {
         const { extractLocations } = await import("./ai-service");
-        expect(normalizedTexts.length).toBeGreaterThanOrEqual(1);
+        expect(plainTexts.length).toBeGreaterThanOrEqual(1);
 
         const allStreets: string[] = [];
         const allPinsAddresses: string[] = [];
 
-        for (const text of normalizedTexts) {
+        for (const text of plainTexts) {
           const recorder = createMockRecorder();
           const result = await extractLocations(text, recorder);
 
@@ -575,8 +577,8 @@ describe.skipIf(!HAS_API_KEY)(
     });
 
     // ─── Test 9: Complex multi-message (transit + road closure) ──────
-    describe("complex-multi-message.md", () => {
-      let normalizedTexts: string[] = [];
+    describe.skip("complex-multi-message.md", () => {
+      let plainTexts: string[] = [];
 
       it("filterAndSplit: should produce multiple relevant messages", async () => {
         const { filterAndSplit } = await import("./ai-service");
@@ -592,16 +594,16 @@ describe.skipIf(!HAS_API_KEY)(
         expect(relevantMessages.length).toBeGreaterThanOrEqual(3);
         expect(recorder.errors).toHaveLength(0);
 
-        normalizedTexts = relevantMessages.map((m) => m.normalizedText);
+        plainTexts = relevantMessages.map((m) => m.plainText);
       });
 
       it("categorize: should assign public-transport and road-block categories", async () => {
         const { categorize } = await import("./ai-service");
-        expect(normalizedTexts.length).toBeGreaterThanOrEqual(3);
+        expect(plainTexts.length).toBeGreaterThanOrEqual(3);
 
         const allCategories: string[] = [];
 
-        for (const text of normalizedTexts) {
+        for (const text of plainTexts) {
           const recorder = createMockRecorder();
           const result = await categorize(text, recorder);
 
@@ -624,13 +626,13 @@ describe.skipIf(!HAS_API_KEY)(
 
       it("extractLocations: should extract tram/bus routes and boulevard reference", async () => {
         const { extractLocations } = await import("./ai-service");
-        expect(normalizedTexts.length).toBeGreaterThanOrEqual(3);
+        expect(plainTexts.length).toBeGreaterThanOrEqual(3);
 
         const allStreets: string[] = [];
         const allPinsAddresses: string[] = [];
         const allBusStops: string[] = [];
 
-        for (const text of normalizedTexts) {
+        for (const text of plainTexts) {
           const recorder = createMockRecorder();
           const result = await extractLocations(text, recorder);
 

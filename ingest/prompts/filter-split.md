@@ -7,7 +7,17 @@ Analyze the <input-message>. Output a JSON array containing a JSON object for ea
 </task>
 
 <app-scope>
-A civic tech platform that helps цитизенс stay informed about infrastructure disruptions. The app automatically aggregates public announcements about water shutoffs, heating maintenance, road repairs, municipal works, etc. displaying them on an interactive map and pushes notifications for regions users mark they care about.
+A civic tech platform that helps цитизенс stay informed about infrastructure disruptions. The app automatically aggregates public announcements about:
+
+- water shutoffs
+- heating maintenance
+- road repairs
+- municipal campaigns
+- street construciton works
+- cultural and sports events
+- any other type of information citizens may be interested amass
+
+The app displays them on an interactive map and pushes notifications for regions the end-user marked they care about.
 </app-scope>
 
 <json-object-structure>
@@ -17,9 +27,9 @@ A civic tech platform that helps цитизенс stay informed about infrastruc
   - is relevant to <app-scope>
   - is compliant to <single-message>
   - `isInformative`
-- `normalizedText`: piece of relevant text according to <single-message>. Blank if not `isRelevant`.
-- `markdownText`: A markdown-formatted version of the message for improved display. See <markdown-formatting>.
-- `responsibleEntity`: The name of the person or organization issuing the announcement. If not mentioned, return an empty string.
+- `plainText`: <single-message>. Blank if not `isRelevant`.
+- `markdownText`: A markdown-formatted version of the message for improved display. See <markdown-formatting>. Blank if not `isRelevant`.
+- `responsibleEntity`: The name of the person or organization issuing the announcement. If not mentioned, return an empty string. Blank if not `isRelevant`.
   - **Examples**: "Топлофикация София ЕАД"; "Столична Община, Район 'Красно село'"
 </json-object-structure>
 

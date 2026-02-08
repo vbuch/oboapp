@@ -21,7 +21,7 @@ describe("ai-response-parser", () => {
     it("should parse a valid filter & split response", () => {
       const response = JSON.stringify([
         {
-          normalizedText: "Water outage tomorrow",
+          plainText: "Water outage tomorrow",
           isOneOfMany: false,
           isInformative: true,
           isRelevant: true,
@@ -29,7 +29,7 @@ describe("ai-response-parser", () => {
           markdownText: "**Water outage** tomorrow",
         },
         {
-          normalizedText: "Irrelevant post",
+          plainText: "Irrelevant post",
           isOneOfMany: false,
           isInformative: false,
           isRelevant: false,
@@ -38,7 +38,7 @@ describe("ai-response-parser", () => {
       const result = parseFilterSplitResponse(response);
       expect(result).not.toBeNull();
       expect(result).toHaveLength(2);
-      expect(result![0].normalizedText).toBe("Water outage tomorrow");
+      expect(result![0].plainText).toBe("Water outage tomorrow");
       expect(result![0].isOneOfMany).toBe(false);
       expect(result![0].isInformative).toBe(true);
       expect(result![0].isRelevant).toBe(true);
@@ -52,11 +52,11 @@ describe("ai-response-parser", () => {
     });
 
     it("should extract JSON from markdown code blocks", () => {
-      const response = `Here is the result:\n\`\`\`json\n[{"normalizedText":"test","isOneOfMany":false,"isInformative":true,"isRelevant":true}]\n\`\`\``;
+      const response = `Here is the result:\n\`\`\`json\n[{"plainText":"test","isOneOfMany":false,"isInformative":true,"isRelevant":true}]\n\`\`\``;
       const result = parseFilterSplitResponse(response);
       expect(result).not.toBeNull();
       expect(result).toHaveLength(1);
-      expect(result![0].normalizedText).toBe("test");
+      expect(result![0].plainText).toBe("test");
     });
 
     it("should return null when no JSON is present", () => {

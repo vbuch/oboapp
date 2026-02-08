@@ -63,7 +63,7 @@ describe("processFieldsForFirestore", () => {
         cadastralProperties: [],
         cityWide: false,
         isRelevant: true,
-        normalizedText: "Ремонт на ул. Оборище",
+        plainText: "Ремонт на ул. Оборище",
       },
     };
 

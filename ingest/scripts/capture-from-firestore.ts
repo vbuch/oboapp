@@ -44,9 +44,7 @@ async function main() {
   const msgWithBusStops = recentMessages.docs.find((doc) => {
     const data = doc.data();
     return (
-      data.busStops &&
-      Array.isArray(data.busStops) &&
-      data.busStops.length > 0
+      data.busStops && Array.isArray(data.busStops) && data.busStops.length > 0
     );
   });
 
@@ -54,9 +52,7 @@ async function main() {
     const msg = msgWithBusStops.data();
     console.log(`  Found message: ${msgWithBusStops.id}`);
     console.log(`  Source: ${msg.source}`);
-    console.log(
-      `  BusStops: ${msg.busStops?.join(", ") || "none"}`,
-    );
+    console.log(`  BusStops: ${msg.busStops?.join(", ") || "none"}`);
 
     if (msg.sourceDocumentId && msg.source) {
       const sourceDoc = await adminDb
@@ -96,11 +92,9 @@ async function main() {
       `  Cadastral properties: ${msg.cadastralProperties?.length || 0}`,
     );
 
-    if (msg.normalizedText) {
+    if (msg.plainText) {
       console.log(`  Extracting locations...`);
-      const extracted = await extractLocations(
-        msg.normalizedText,
-      );
+      const extracted = await extractLocations(msg.plainText);
       writeFixture("gemini/extract-with-cadastral.json", extracted);
       console.log("  ✓ Saved extract-with-cadastral.json");
 
@@ -128,9 +122,7 @@ async function main() {
   const msgWithStreets = recentMessages.docs.find((doc) => {
     const data = doc.data();
     return (
-      data.streets &&
-      Array.isArray(data.streets) &&
-      data.streets.length > 0
+      data.streets && Array.isArray(data.streets) && data.streets.length > 0
     );
   });
 
@@ -172,11 +164,7 @@ async function main() {
   console.log("\n📍 Finding message with pins (addresses)...");
   const msgWithPins = recentMessages.docs.find((doc) => {
     const data = doc.data();
-    return (
-      data.pins &&
-      Array.isArray(data.pins) &&
-      data.pins.length > 0
-    );
+    return data.pins && Array.isArray(data.pins) && data.pins.length > 0;
   });
 
   if (msgWithPins) {
