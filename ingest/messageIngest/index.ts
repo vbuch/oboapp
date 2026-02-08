@@ -529,9 +529,14 @@ async function filterAndStoreAddresses(
   const addresses = filterOutlierCoordinates(geocodedAddresses);
 
   // Update preGeocodedMap to remove filtered outliers
-  const filteredOriginalTexts = new Set(addresses.map((a) => a.originalText));
+  // Only delete entries that were explicitly removed by the outlier filter,
+  // not entries absent due to deduplication (which happens before this step)
+  const beforeFilterTexts = new Set(
+    geocodedAddresses.map((a) => a.originalText),
+  );
+  const afterFilterTexts = new Set(addresses.map((a) => a.originalText));
   for (const [key] of preGeocodedMap) {
-    if (!filteredOriginalTexts.has(key)) {
+    if (beforeFilterTexts.has(key) && !afterFilterTexts.has(key)) {
       preGeocodedMap.delete(key);
     }
   }

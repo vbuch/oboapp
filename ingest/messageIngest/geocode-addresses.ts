@@ -4,6 +4,7 @@ import {
   geocodeCadastralPropertiesFromIdentifiers,
   geocodeBusStops,
 } from "@/lib/geocoding-router";
+import { overpassGeocodeAddresses } from "@/lib/overpass-geocoding-service";
 import {
   Address,
   ExtractedLocations,
@@ -219,7 +220,8 @@ export async function geocodeAddressesFromExtractedData(
     );
 
     if (missingEndpoints.length > 0) {
-      const fallbackGeocoded = await geocodeAddresses(missingEndpoints);
+      // Use Overpass/Nominatim for street endpoints (handles house numbers via Nominatim)
+      const fallbackGeocoded = await overpassGeocodeAddresses(missingEndpoints);
 
       fallbackGeocoded.forEach((addr) => {
         preGeocodedMap.set(addr.originalText, addr.coordinates);

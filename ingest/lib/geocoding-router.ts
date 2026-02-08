@@ -67,6 +67,14 @@ export async function getStreetGeometry(
 }
 
 /**
+ * Check if a street endpoint contains a house/building number
+ * (e.g., "ул. Оборище №111", "бл. №38", "сградата с № 65")
+ */
+function hasHouseNumber(endpoint: string): boolean {
+  return /№\s*\d+|бл\.\s*\d+|сградата/i.test(endpoint);
+}
+
+/**
  * Geocode street section intersections using Overpass
  */
 export async function geocodeIntersectionsForStreets(
@@ -74,31 +82,40 @@ export async function geocodeIntersectionsForStreets(
 ): Promise<Map<string, Coordinates>> {
   const geocodedMap = new Map<string, Coordinates>();
 
-  // Extract unique intersections
+  // Extract unique intersections, separating house-number endpoints
   const intersectionSet = new Set<string>();
   const intersections: string[] = [];
+  const houseNumberEndpoints = new Set<string>();
 
   streets.forEach((street) => {
-    const fromIntersection = `${street.street} ∩ ${street.from}`;
-    if (!intersectionSet.has(fromIntersection)) {
-      intersectionSet.add(fromIntersection);
-      intersections.push(fromIntersection);
+    // "from" endpoint
+    if (hasHouseNumber(street.from)) {
+      houseNumberEndpoints.add(street.from);
+    } else {
+      const fromIntersection = `${street.street} ∩ ${street.from}`;
+      if (!intersectionSet.has(fromIntersection)) {
+        intersectionSet.add(fromIntersection);
+        intersections.push(fromIntersection);
+      }
     }
 
-    const toIntersection = `${street.street} ∩ ${street.to}`;
-    if (!intersectionSet.has(toIntersection)) {
-      intersectionSet.add(toIntersection);
-      intersections.push(toIntersection);
+    // "to" endpoint
+    if (hasHouseNumber(street.to)) {
+      houseNumberEndpoints.add(street.to);
+    } else {
+      const toIntersection = `${street.street} ∩ ${street.to}`;
+      if (!intersectionSet.has(toIntersection)) {
+        intersectionSet.add(toIntersection);
+        intersections.push(toIntersection);
+      }
     }
   });
 
+  // Geocode cross-street intersections via Overpass
   const geocoded = await overpassGeocodeIntersections(intersections);
 
   geocoded.forEach((address) => {
-    // Store with the full intersection key (for completeness)
-    geocodedMap.set(address.formattedAddress, address.coordinates);
-
-    // ALSO store with just the cross street name (what GeoJSON service expects)
+    // Store with just the cross street name (what validation and GeoJSON service expect)
     // Extract the cross street from "ул. A ∩ ул. B" format
     const parts = address.formattedAddress.split(" ∩ ");
     if (parts.length === 2) {
@@ -106,6 +123,20 @@ export async function geocodeIntersectionsForStreets(
       geocodedMap.set(crossStreet, address.coordinates);
     }
   });
+
+  // Geocode house-number endpoints directly via Nominatim
+  if (houseNumberEndpoints.size > 0) {
+    const houseNumberAddresses = Array.from(houseNumberEndpoints);
+    logger.info("Geocoding house-number endpoints via Nominatim", {
+      count: houseNumberAddresses.length,
+    });
+    const houseNumberGeocoded = await overpassGeocodeAddresses(
+      houseNumberAddresses,
+    );
+    houseNumberGeocoded.forEach((address) => {
+      geocodedMap.set(address.originalText, address.coordinates);
+    });
+  }
 
   return geocodedMap;
 }

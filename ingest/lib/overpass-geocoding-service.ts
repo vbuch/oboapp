@@ -650,17 +650,33 @@ export async function getStreetSectionGeometry(
 }
 
 /**
+ * Normalize an address for Nominatim queries
+ * - Strips "№" symbol (Nominatim doesn't understand it)
+ * - Removes building/block prefixes
+ * - Normalizes whitespace
+ */
+function normalizeAddressForNominatim(address: string): string {
+  return address
+    .replace(/№\s*/g, "")
+    .replace(/сградата\s+(на|с)\s*/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
  * Geocode a specific address with house number using Nominatim
  */
 async function geocodeAddressWithNominatim(
   address: string,
 ): Promise<Coordinates | null> {
   try {
+    const normalizedAddress = normalizeAddressForNominatim(address);
+
     // Ensure address includes Sofia context
     const fullAddress =
-      address.includes("София") || address.includes("Sofia")
-        ? address
-        : `${address}, София, България`;
+      normalizedAddress.includes("София") || normalizedAddress.includes("Sofia")
+        ? normalizedAddress
+        : `${normalizedAddress}, София, България`;
 
     // Add bounded search to Sofia area and increase limit to filter results
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
