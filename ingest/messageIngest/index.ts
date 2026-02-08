@@ -273,8 +273,10 @@ async function processWithAIPipeline(
     const filteredMessage = filterResult[i];
     const messageIndex = i + 1;
 
-    // Prefer normalizedText if present, else fall back to original text
-    const messageText = filteredMessage.normalizedText || text;
+    // Use originalText from the split (per-message text), or normalizedText if relevant
+    // Fall back to full source text only if both are empty (backwards compatibility)
+    const messageText =
+      filteredMessage.normalizedText || filteredMessage.originalText || text;
 
     // Store incoming message
     const storedMessageId = await storeIncomingMessage(
@@ -301,10 +303,11 @@ async function processWithAIPipeline(
 
     if (!filteredMessage.isRelevant) {
       totalIrrelevant++;
-      // Pass original text if normalizedText is blank
+      // Use originalText for irrelevant messages, fall back to full text
+      const irrelevantMessageText = filteredMessage.originalText || text;
       const message = await handleIrrelevantMessage(
         storedMessageId,
-        messageText,
+        irrelevantMessageText,
         ingestErrors,
       );
       messages.push(message);
