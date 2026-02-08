@@ -12,13 +12,21 @@ export const CadastralPropertySchema = z.object({
   ),
 });
 
-export const ExtractedDataSchema = z.object({
-  responsible_entity: z.string(),
+export const ExtractedLocationsSchema = z.object({
+  withSpecificAddress: z.boolean().optional(),
+  busStops: z.array(z.string()).optional(),
+  cityWide: z.boolean().optional(),
   pins: z.array(PinSchema),
   streets: z.array(StreetSectionSchema),
   cadastralProperties: z.array(CadastralPropertySchema).optional(),
+  // Legacy fields — written by Step 1 (filter & split) now, kept optional for old documents
+  responsible_entity: z.string().optional(),
   markdown_text: z.string().optional(),
 });
 
 export type CadastralProperty = z.infer<typeof CadastralPropertySchema>;
-export type ExtractedData = z.infer<typeof ExtractedDataSchema>;
+export type ExtractedLocations = z.infer<typeof ExtractedLocationsSchema>;
+
+// Legacy aliases for backward compatibility with existing imports
+export const ExtractedDataSchema = ExtractedLocationsSchema;
+export type ExtractedData = ExtractedLocations;

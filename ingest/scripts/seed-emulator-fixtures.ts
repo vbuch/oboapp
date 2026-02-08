@@ -49,8 +49,6 @@ export interface MessageConfig {
     readonly pins?: readonly Pin[];
     readonly streets?: readonly StreetSection[];
     readonly cadastralProperties?: readonly CadastralProperty[];
-  };
-  readonly categorize?: {
     readonly busStops?: readonly string[];
   };
 }
@@ -239,10 +237,8 @@ export const MESSAGE_CONFIGS: readonly MessageConfig[] = [
     type: "line",
     street: "бул. Драган Цанков",
     text: "Променен маршрут на автобуси 94 и 280, временни спирки 1234 и 5678",
-    categorize: {
-      busStops: ["1234", "5678"],
-    },
     extractedData: {
+      busStops: ["1234", "5678"],
       streets: [
         {
           street: "бул. Драган Цанков",

@@ -43,10 +43,7 @@ export async function getMessageById(
     cadastralProperties: data.cadastralProperties,
     busStops: data.busStops,
     // Internal-only fields
-    extractedData: data.extractedData
-      ? JSON.parse(data.extractedData)
-      : undefined,
-    categorize: data.categorize ? JSON.parse(data.categorize) : undefined,
+    process: Array.isArray(data.process) ? data.process : undefined,
     ingestErrors:
       typeof data.ingestErrors === "string"
         ? JSON.parse(data.ingestErrors)

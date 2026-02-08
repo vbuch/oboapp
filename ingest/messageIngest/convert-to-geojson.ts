@@ -1,6 +1,6 @@
 import { convertToGeoJSON } from "@/lib/geojson-service";
 import {
-  ExtractedData,
+  ExtractedLocations,
   GeoJSONFeatureCollection,
   GeoJSONFeature,
   Address,
@@ -18,7 +18,7 @@ import {
  * Exported for unit testing
  */
 export function validateAllAddressesGeocoded(
-  extractedData: ExtractedData,
+  extractedData: ExtractedLocations,
   preGeocodedMap: Map<string, Coordinates>,
 ): string[] {
   const missingAddresses: string[] = [];
@@ -46,7 +46,7 @@ export function validateAllAddressesGeocoded(
  * Pure function that creates GeoJSON from extracted data and coordinates
  */
 export async function convertMessageGeocodingToGeoJson(
-  extractedData: ExtractedData | null,
+  extractedData: ExtractedLocations | null,
   preGeocodedMap: Map<string, Coordinates>,
   cadastralGeometries?: Map<string, CadastralGeometry>,
   geocodedBusStops?: Address[],
@@ -64,7 +64,7 @@ export async function convertMessageGeocodingToGeoJson(
   );
 
   // Filter out features with missing geocoding
-  const filteredData: ExtractedData = {
+  const filteredData: ExtractedLocations = {
     ...extractedData,
     pins: extractedData.pins.filter((pin) => preGeocodedMap.has(pin.address)),
     streets: extractedData.streets.filter(

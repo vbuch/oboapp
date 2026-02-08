@@ -15,9 +15,10 @@ graph TD
     A[External Sources] -->|Automated Crawlers| B[(sources Collection)]
     B -->|Ingestion Process| C{Has Precomputed GeoJSON?}
     C -->|Yes - Fast Path| D[/Boundary Validation/]
-    C -->|No - Slow Path| E[/AI Content Filtering/]
-    E -->|Relevant| F[/AI Address Extraction/]
-    F --> G[/Geocoding/]
+    C -->|No - Slow Path| E[/AI Filter & Split/]
+    E -->|Relevant| F[/AI Categorize/]
+    F --> F2[/AI Extract Locations/]
+    F2 --> G[/Geocoding/]
     G --> H[/GeoJSON Conversion/]
     H --> D
     D --> I[(messages Collection)]
@@ -44,7 +45,7 @@ Utility companies and service providers that publish data with geographic coordi
 
 Municipal announcements and HTML content require natural language processing to extract locations and timespans. These messages go through AI filtering, extraction, and geocoding.
 
-**Processing**: Source Data → Content Filtering (LLM) → Address Extraction (LLM) → Geocoding (Google + OpenStreetMap) → GeoJSON Conversion → Finalize
+**Processing**: Source Data → Filter & Split (LLM) → Categorize (LLM) → Extract Locations (LLM) → Geocoding (Google + OpenStreetMap) → GeoJSON Conversion → Finalize
 
 ## Relevance Filtering Logic
 
@@ -59,7 +60,7 @@ The relevance filter uses **server-side Firestore queries** to retrieve only mes
 
 **Extraction Strategy**:
 
-- **AI-extracted messages**: Computed from `extractedData.pins[].timespans` and `extractedData.streets[].timespans` during ingestion
+- **AI-extracted messages**: Computed from `pins[].timespans` and `streets[].timespans` (denormalized at message root) during ingestion
 - **Precomputed sources**: Copied from source document root fields (erm-zapad, toplo-bg, sofiyska-voda crawlers parse dates during crawl)
 - **Fallback**: Uses `crawledAt` when no timespans available or dates invalid (before 2025-01-01)
 - **Single date handling**: When only start OR end available, duplicates to both fields
@@ -115,7 +116,7 @@ Timespan-based filtering uses denormalized `timespanEnd` field (MAX end time acr
 
 Beyond time-based relevance, several filters operate at different pipeline stages:
 
-- **Content Relevance** (AI): Applied during message ingestion, before geocoding. Large language model analyzes text to remove announcements unrelated to infrastructure (e.g., transport schedules, events, general news). Failed messages are marked as finalized without GeoJSON.
+- **Content Relevance** (AI): Applied during the Filter & Split stage of message ingestion, before categorization and geocoding. Large language model analyzes text to remove announcements unrelated to infrastructure (e.g., transport schedules, events, general news). Irrelevant messages are marked as finalized without GeoJSON.
 
 - **Boundary Filter**: Applied twice - pre-check during source ingestion for pre-geocoded data, and post-check after geocoding for AI-extracted locations. Uses geometric intersection with defined boundary polygons to ensure geographic relevance to the target region.
 
@@ -151,3 +152,17 @@ Messages appear as red map features (points, lines, polygons). Clicking shows de
 ## Configuration
 
 `MESSAGE_RELEVANCE_DAYS` (default: 7) - Number of days messages remain visible after `timespanEnd`. Server restart required for changes.
+
+## Testing
+
+The three-stage AI pipeline (Filter & Split, Categorize, Extract Locations) is validated with integration tests that call the live Gemini API. See `ingest/lib/ai-pipeline.integration.test.ts`.
+
+These tests verify end-to-end pipeline behavior with 5 source fixtures covering:
+
+- Irrelevant message detection (job postings filtered out)
+- Simple single-message scenarios (parking restrictions)
+- Multiple locations in one message (sidewalk repairs across multiple street sections)
+- Multiple timespans (film shooting at different locations on different dates)
+- Complex messages (bus rerouting with street closures and multiple bus stop codes)
+
+To run: `cd ingest && npm run test:integration` (requires `GOOGLE_AI_API_KEY` in `.env.local`).

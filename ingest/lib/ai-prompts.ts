@@ -17,11 +17,22 @@ export function loadPrompt(filename: string): string {
 /**
  * Cached prompt templates
  */
+let filterSplitPromptCache: string | null = null;
 let categorizePromptCache: string | null = null;
-let extractionPromptCache: string | null = null;
+let extractLocationsPromptCache: string | null = null;
 
 /**
- * Gets the categorization prompt template (cached)
+ * Gets the filter & split prompt template (cached) — Step 1
+ */
+export function getFilterSplitPrompt(): string {
+  if (!filterSplitPromptCache) {
+    filterSplitPromptCache = loadPrompt("filter-split.md");
+  }
+  return filterSplitPromptCache;
+}
+
+/**
+ * Gets the categorization prompt template (cached) — Step 2
  */
 export function getCategorizePrompt(): string {
   if (!categorizePromptCache) {
@@ -31,12 +42,11 @@ export function getCategorizePrompt(): string {
 }
 
 /**
- * Gets the data extraction prompt template (cached)
- * Uses Overpass-optimized prompt for hybrid geocoding (Google for pins, Overpass for streets)
+ * Gets the location extraction prompt template (cached) — Step 3
  */
-export function getExtractionPrompt(): string {
-  if (!extractionPromptCache) {
-    extractionPromptCache = loadPrompt("data-extraction-overpass.md");
+export function getExtractLocationsPrompt(): string {
+  if (!extractLocationsPromptCache) {
+    extractLocationsPromptCache = loadPrompt("extract-locations.md");
   }
-  return extractionPromptCache;
+  return extractLocationsPromptCache;
 }

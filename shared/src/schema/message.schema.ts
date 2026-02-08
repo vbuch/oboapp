@@ -1,10 +1,7 @@
 import { z } from "../zod-openapi";
 import { AddressSchema } from "./address.schema";
 import { CategoryEnum } from "./category.schema";
-import {
-  ExtractedDataSchema,
-  CadastralPropertySchema,
-} from "./extracted-data.schema";
+import { CadastralPropertySchema } from "./extracted-data.schema";
 import { GeoJsonFeatureCollectionSchema } from "./geojson.schema";
 import { IngestErrorSchema } from "./ingest-error.schema";
 import { PinSchema } from "./pin.schema";
@@ -17,6 +14,7 @@ import { StreetSectionSchema } from "./street-section.schema";
 export const MessageSchema = z.object({
   id: z.string().optional(),
   text: z.string(),
+  normalizedText: z.string().optional(),
   addresses: z.array(AddressSchema).optional(),
   geoJson: GeoJsonFeatureCollectionSchema.optional(),
   crawledAt: z.string().optional(),
@@ -29,7 +27,6 @@ export const MessageSchema = z.object({
   timespanStart: z.string().optional(),
   timespanEnd: z.string().optional(),
   cityWide: z.boolean().optional(),
-  // Denormalized fields from extractedData/categorize for controlled public exposure
   responsibleEntity: z.string().optional(),
   pins: z.array(PinSchema).optional(),
   streets: z.array(StreetSectionSchema).optional(),
@@ -39,13 +36,17 @@ export const MessageSchema = z.object({
 
 export type Message = z.infer<typeof MessageSchema>;
 
+const ProcessStepSchema = z.object({
+  step: z.string(),
+  result: z.any(),
+});
+
 /**
  * InternalMessageSchema - extends MessageSchema with internal-only fields
  * Used by backend processing pipeline and admin features
  */
 export const InternalMessageSchema = MessageSchema.extend({
-  extractedData: ExtractedDataSchema.optional(),
-  categorize: z.any().optional(), // Stringified CategorizedMessage (stored as JSON string)
+  process: z.array(ProcessStepSchema).optional(),
   ingestErrors: z.array(IngestErrorSchema).optional(),
   sourceDocumentId: z.string().optional(),
   isRelevant: z.boolean().optional(),

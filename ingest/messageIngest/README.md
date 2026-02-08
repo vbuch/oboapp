@@ -1,6 +1,6 @@
 # Message Ingest Pipeline
 
-This directory contains the message ingest pipeline that categorizes, extracts, geocodes, and generates GeoJSON data from messages about public infrastructure disruptions in Sofia, Bulgaria.
+This directory contains the message ingest pipeline that filters, categorizes, extracts locations, geocodes, and generates GeoJSON data from messages about public infrastructure disruptions in Sofia, Bulgaria.
 
 ## Pipeline Flow
 
@@ -9,31 +9,26 @@ flowchart TD
     A[Input: Text Message] --> B{Has Precomputed GeoJSON?}
 
     B -->|Yes| C[Create Single Message]
-    C --> D[Store with Deterministic ID]
-    D --> E[Process Single Message]
+    C --> E[Process Single Message]
+    B -->|No| AI_FILTERING_AND_SPLITTING[AI Filtering and Splitting]
 
-    B -->|No| F[AI Categorization]
-    F --> G[Multiple Categorized Messages]
-    G --> H[For Each Categorized Message]
+    AI_FILTERING_AND_SPLITTING --> AI_SPLITTING[Multiple Messages]
 
-    H --> I[Generate Message ID: sourceId-index]
-    I --> J[Store Categorization Result]
-    J --> K{Is Relevant?}
+    AI_SPLITTING --> AI_FILTERING{Is relevant?}
+    AI_FILTERING -->|Yes| AI_CATEGORIZATION[AI Categorization]
+    AI_FILTERING -->|No| FINALIZE[Mark as Finalized]
 
-    K -->|No| L[Mark as Finalized]
-    L --> M[Build Basic Response]
+    AI_CATEGORIZATION --> AI_SPLIT_FILTER{Has at least one category?}
+    AI_SPLIT_FILTER -->|Yes| EXTRACT_DATA[AI Extract Locations]
+    AI_SPLIT_FILTER -->|No| FINALIZE
 
-    K -->|Yes| N[Extract Structured Data]
-    N --> O[Store Extracted Data & Markdown]
-    O --> P{Extraction Success?}
-
-    P -->|No| Q[Mark as Finalized]
-    Q --> R[Build Basic Response]
+    EXTRACT_DATA --> P{Extraction Success?}
 
     P -->|Yes| S[Geocode Addresses]
     S --> T[Filter Outlier Coordinates]
-    T --> U[Store Geocoding Results]
-    U --> V[Convert to GeoJSON]
+    T --> V[Convert to GeoJSON]
+
+    P -->|No| FINALIZE
 
     E --> V
     V --> W{Boundary Filter?}
@@ -44,35 +39,42 @@ flowchart TD
     Z -->|No| AA[Error: Outside Bounds]
     Z -->|Yes| Y
 
-    Y --> BB[Mark as Finalized]
-    BB --> CC[Build Complete Response]
-
-    M --> DD[Return All Messages]
-    R --> DD
-    CC --> DD
+    Y --> FINALIZE
 ```
 
 ## Pipeline Stages
 
-### Categorization Stage (AI-powered)
+The AI pipeline is split into three discrete steps, each with its own prompt and schema:
 
-- **AI Categorization** - Single text input → multiple categorized messages with rich metadata
-- **Categories** - Infrastructure types: water, heating, traffic, construction, etc.
-- **Geographic Scope** - City-wide vs. specific addresses, coordinates, bus stops, УПИ properties
-- **Relevance Decision** - Each categorized message marked as relevant/irrelevant
-- **Normalized Text** - Clean text for downstream processing
-- **Early Exit** - If irrelevant, finalize and skip geocoding
+### 1. Filter & Split (AI-powered)
 
-### Extraction Stage (AI-powered)
+Prompt: [`prompts/filter-split.md`](../prompts/filter-split.md)
 
-Extracts structured data and denormalizes timespans for Firestore queries:
+- **Splitting** - A single source text may describe multiple independent disruptions; this step splits them into separate messages
+- **Relevance** - Each split message is marked as relevant or irrelevant
+- **Responsible Entity** - Extracts the organization responsible for the disruption
+- **Normalized Text** - Produces clean markdown text for display and downstream processing
+- **Early Exit** - Irrelevant messages are finalized immediately and skip further processing
 
-- Parse locations, times, entities from normalized text
-- Extract ALL timespans from pins, streets, cadastral properties
-- Denormalize: `timespanStart = MIN(all starts)`, `timespanEnd = MAX(all ends)`
-- Validate against minimum date threshold
-- Fallback: `timespanStart/End = crawledAt` if no valid timespans
-- Early exit if extraction fails
+### 2. Categorize (AI-powered)
+
+Prompt: [`prompts/categorize.md`](../prompts/categorize.md)
+
+- **Pure classification** - Assigns infrastructure categories (water, heating, traffic, construction, etc.)
+- **No extraction** - This step only classifies; it does not extract locations or other structured data
+- **Early Exit** - Messages with no matching categories are finalized
+
+### 3. Extract Locations (AI-powered)
+
+Prompt: [`prompts/extract-locations.md`](../prompts/extract-locations.md)
+
+- **Pins** - Specific addresses with building numbers
+- **Streets** - Street segments with from/to intersections
+- **Cadastral Properties** - УПИ (property) identifiers
+- **Bus Stops** - Public transport stop names
+- **City-wide flag** - Whether the disruption affects the entire city
+- **Timespan denormalization** - `timespanStart = MIN(all starts)`, `timespanEnd = MAX(all ends)` across all extracted locations
+- **Early Exit** - If extraction fails, the message is finalized without geocoding
 
 ### Geocoding Stage
 
@@ -93,9 +95,13 @@ See [Geocoding System Overview](../../docs/features/geocoding-overview.md) for s
 
 ### Precomputed GeoJSON Path
 
-Sources with ready GeoJSON bypass AI categorization:
+Sources with ready GeoJSON bypass the AI pipeline:
 
 - Single message per source (1:1 relationship)
 - Timespans transfer from source to message if present
 - Validation against minimum date threshold
 - Fallback to `crawledAt` if source lacks valid timespans
+
+## Firestore Storage
+
+Each pipeline step appends an entry to the message document's `process` array, creating an audit trail. Location data (pins, streets, cadastral properties, bus stops) is stored as denormalized root-level fields on the message document.

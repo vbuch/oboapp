@@ -96,9 +96,7 @@ export async function GET(request: Request) {
             cadastralProperties: data.cadastralProperties,
             busStops: data.busStops,
             // Internal-only fields
-            extractedData: data.extractedData
-              ? JSON.parse(data.extractedData)
-              : undefined,
+            process: Array.isArray(data.process) ? data.process : undefined,
             ingestErrors: Array.isArray(data.ingestErrors)
               ? data.ingestErrors
               : undefined,

@@ -1,20 +1,20 @@
 import { describe, it, expect } from "vitest";
 import {
-  formatCategorizedMessageLogInfo,
+  formatMessageLogInfo,
   createIngestionStatistics,
   isValidMessageIndex,
   getMessageDisplayName,
 } from "./utils";
 
 describe("messageIngest utils", () => {
-  describe("formatCategorizedMessageLogInfo", () => {
+  describe("formatMessageLogInfo", () => {
     it("should format log info for relevant message", () => {
       const categorizedMessage = {
         categories: ["traffic", "infrastructure"],
         isRelevant: true,
       };
 
-      const result = formatCategorizedMessageLogInfo(
+      const result = formatMessageLogInfo(
         categorizedMessage,
         2,
         5,
@@ -35,7 +35,7 @@ describe("messageIngest utils", () => {
         isRelevant: false,
       };
 
-      const result = formatCategorizedMessageLogInfo(
+      const result = formatMessageLogInfo(
         categorizedMessage,
         1,
         1,
@@ -56,7 +56,7 @@ describe("messageIngest utils", () => {
         isRelevant: true,
       };
 
-      const result = formatCategorizedMessageLogInfo(
+      const result = formatMessageLogInfo(
         categorizedMessage,
         1,
         2,
@@ -72,7 +72,7 @@ describe("messageIngest utils", () => {
         isRelevant: true,
       };
 
-      const result = formatCategorizedMessageLogInfo(
+      const result = formatMessageLogInfo(
         categorizedMessage,
         1,
         1,

@@ -1,5 +1,7 @@
 {
-  "responsible_entity": "",
+  "withSpecificAddress": true,
+  "cityWide": false,
+  "busStops": [],
   "pins": [
     {
       "address": "бул. Витоша 1",
@@ -21,6 +23,5 @@
     }
   ],
   "streets": [],
-  "cadastralProperties": [],
-  "markdown_text": "### Спиране на водоснабдяването\n\n**Засегнати адреси:**\n\n*   **бул. Витоша 1**\n*   **ул. Граф Игнатиев 15**\n\n**Период:** **от 10:00 до 16:00 часа на 15.02.2026г.**"
+  "cadastralProperties": []
 }

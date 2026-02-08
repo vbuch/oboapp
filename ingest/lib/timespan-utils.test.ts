@@ -3,10 +3,10 @@ import {
   parseBulgarianDate,
   validateTimespanRange,
   duplicateSingleDate,
-  extractTimespanRangeFromExtractedData,
+  extractTimespanRangeFromExtractedLocations,
   extractTimespanRangeFromGeoJson,
 } from "./timespan-utils";
-import type { ExtractedData, GeoJSONFeatureCollection } from "./types";
+import type { ExtractedLocations, GeoJSONFeatureCollection } from "./types";
 
 describe("parseBulgarianDate", () => {
   it("should parse valid Bulgarian date format", () => {
@@ -124,25 +124,23 @@ describe("duplicateSingleDate", () => {
   });
 });
 
-describe("extractTimespanRangeFromExtractedData", () => {
+describe("extractTimespanRangeFromExtractedLocations", () => {
   const fallbackDate = new Date("2026-01-01T00:00:00Z");
 
   it("should return fallback when extractedData is null", () => {
-    const result = extractTimespanRangeFromExtractedData(null, fallbackDate);
+    const result = extractTimespanRangeFromExtractedLocations(null, fallbackDate);
 
     expect(result.timespanStart).toBe(fallbackDate);
     expect(result.timespanEnd).toBe(fallbackDate);
   });
 
   it("should return fallback when no timespans exist", () => {
-    const extractedData: ExtractedData = {
-      responsible_entity: "Test Entity",
+    const extractedData: ExtractedLocations = {
       pins: [],
       streets: [],
-      markdown_text: "Test",
     };
 
-    const result = extractTimespanRangeFromExtractedData(
+    const result = extractTimespanRangeFromExtractedLocations(
       extractedData,
       fallbackDate,
     );
@@ -152,8 +150,8 @@ describe("extractTimespanRangeFromExtractedData", () => {
   });
 
   it("should extract MIN start and MAX end from pins", () => {
-    const extractedData: ExtractedData = {
-      responsible_entity: "Test",
+    const extractedData: ExtractedLocations = {
+
       pins: [
         {
           address: "Address 1",
@@ -164,10 +162,10 @@ describe("extractTimespanRangeFromExtractedData", () => {
         },
       ],
       streets: [],
-      markdown_text: "",
+
     };
 
-    const result = extractTimespanRangeFromExtractedData(
+    const result = extractTimespanRangeFromExtractedLocations(
       extractedData,
       fallbackDate,
     );
@@ -185,8 +183,8 @@ describe("extractTimespanRangeFromExtractedData", () => {
   });
 
   it("should extract MIN start and MAX end from streets", () => {
-    const extractedData: ExtractedData = {
-      responsible_entity: "Test",
+    const extractedData: ExtractedLocations = {
+
       pins: [],
       streets: [
         {
@@ -196,10 +194,10 @@ describe("extractTimespanRangeFromExtractedData", () => {
           timespans: [{ start: "05.01.2026 06:00", end: "05.01.2026 10:00" }],
         },
       ],
-      markdown_text: "",
+
     };
 
-    const result = extractTimespanRangeFromExtractedData(
+    const result = extractTimespanRangeFromExtractedLocations(
       extractedData,
       fallbackDate,
     );
@@ -215,8 +213,8 @@ describe("extractTimespanRangeFromExtractedData", () => {
   });
 
   it("should extract from cadastral properties", () => {
-    const extractedData: ExtractedData = {
-      responsible_entity: "Test",
+    const extractedData: ExtractedLocations = {
+
       pins: [],
       streets: [],
       cadastralProperties: [
@@ -225,10 +223,10 @@ describe("extractTimespanRangeFromExtractedData", () => {
           timespans: [{ start: "20.01.2026 09:00", end: "20.01.2026 17:00" }],
         },
       ],
-      markdown_text: "",
+
     };
 
-    const result = extractTimespanRangeFromExtractedData(
+    const result = extractTimespanRangeFromExtractedLocations(
       extractedData,
       fallbackDate,
     );
@@ -243,8 +241,8 @@ describe("extractTimespanRangeFromExtractedData", () => {
   });
 
   it("should combine timespans from multiple sources", () => {
-    const extractedData: ExtractedData = {
-      responsible_entity: "Test",
+    const extractedData: ExtractedLocations = {
+
       pins: [
         {
           address: "Pin 1",
@@ -259,10 +257,10 @@ describe("extractTimespanRangeFromExtractedData", () => {
           timespans: [{ start: "05.01.2026 14:00", end: "15.01.2026 18:00" }],
         },
       ],
-      markdown_text: "",
+
     };
 
-    const result = extractTimespanRangeFromExtractedData(
+    const result = extractTimespanRangeFromExtractedLocations(
       extractedData,
       fallbackDate,
     );
@@ -276,8 +274,8 @@ describe("extractTimespanRangeFromExtractedData", () => {
   });
 
   it("should handle invalid date formats gracefully", () => {
-    const extractedData: ExtractedData = {
-      responsible_entity: "Test",
+    const extractedData: ExtractedLocations = {
+
       pins: [
         {
           address: "Pin 1",
@@ -288,10 +286,10 @@ describe("extractTimespanRangeFromExtractedData", () => {
         },
       ],
       streets: [],
-      markdown_text: "",
+
     };
 
-    const result = extractTimespanRangeFromExtractedData(
+    const result = extractTimespanRangeFromExtractedLocations(
       extractedData,
       fallbackDate,
     );
@@ -304,8 +302,8 @@ describe("extractTimespanRangeFromExtractedData", () => {
   });
 
   it("should return fallback when all timespans are invalid", () => {
-    const extractedData: ExtractedData = {
-      responsible_entity: "Test",
+    const extractedData: ExtractedLocations = {
+
       pins: [
         {
           address: "Pin 1",
@@ -313,10 +311,10 @@ describe("extractTimespanRangeFromExtractedData", () => {
         },
       ],
       streets: [],
-      markdown_text: "",
+
     };
 
-    const result = extractTimespanRangeFromExtractedData(
+    const result = extractTimespanRangeFromExtractedLocations(
       extractedData,
       fallbackDate,
     );

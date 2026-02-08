@@ -6,7 +6,7 @@ import { describe, it, expect, beforeAll } from "vitest";
  * These tests verify that:
  * 1. When MOCK_GEMINI_API=true, the mock service is used
  * 2. When MOCK_GEMINI_API=false or undefined, production code path is used
- * 3. The mock branch exists in both categorize() and extractStructuredData()
+ * 3. The mock branch exists in filterAndSplit(), categorize(), and extractLocations()
  */
 describe("MOCK_GEMINI_API flag - integration tests", () => {
   beforeAll(() => {
@@ -31,11 +31,31 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
       );
     });
 
+    it("should have mock check in filterAndSplit function", async () => {
+      const { readFileSync } = await import("node:fs");
+      const aiServiceSource = readFileSync("./lib/ai-service.ts", "utf-8");
+
+      const fnMatch = aiServiceSource.match(
+        /export async function filterAndSplit[\s\S]*?(?=export async function|$)/,
+      );
+      expect(fnMatch).toBeTruthy();
+
+      if (fnMatch) {
+        const fnSource = fnMatch[0];
+        expect(fnSource).toContain("if (USE_MOCK && mockService)");
+        expect(fnSource).toContain(
+          "Using Gemini mock for filter & split",
+        );
+        expect(fnSource).toContain(
+          "return mockService.filterAndSplit(text)",
+        );
+      }
+    });
+
     it("should have mock check in categorize function", async () => {
       const { readFileSync } = await import("node:fs");
       const aiServiceSource = readFileSync("./lib/ai-service.ts", "utf-8");
 
-      // Extract the categorize function
       const categorizeFnMatch = aiServiceSource.match(
         /export async function categorize[\s\S]*?(?=export async function|$)/,
       );
@@ -43,8 +63,6 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
 
       if (categorizeFnMatch) {
         const categorizeFnSource = categorizeFnMatch[0];
-
-        // Verify it contains the mock check at the start
         expect(categorizeFnSource).toContain("if (USE_MOCK && mockService)");
         expect(categorizeFnSource).toContain(
           "Using Gemini mock for categorization",
@@ -55,26 +73,23 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
       }
     });
 
-    it("should have mock check in extractStructuredData function", async () => {
+    it("should have mock check in extractLocations function", async () => {
       const { readFileSync } = await import("node:fs");
       const aiServiceSource = readFileSync("./lib/ai-service.ts", "utf-8");
 
-      // Extract the extractStructuredData function
       const extractFnMatch = aiServiceSource.match(
-        /export async function extractStructuredData[\s\S]*?(?=export async function|export const|$)/,
+        /export async function extractLocations[\s\S]*?(?=export async function|export const|$)/,
       );
       expect(extractFnMatch).toBeTruthy();
 
       if (extractFnMatch) {
         const extractFnSource = extractFnMatch[0];
-
-        // Verify it contains the mock check at the start
         expect(extractFnSource).toContain("if (USE_MOCK && mockService)");
         expect(extractFnSource).toContain(
-          "Using Gemini mock for extraction",
+          "Using Gemini mock for location extraction",
         );
         expect(extractFnSource).toContain(
-          "return mockService.extractStructuredData(text)",
+          "return mockService.extractLocations(text)",
         );
       }
     });
@@ -86,17 +101,12 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
       const aiServiceSource = readFileSync("./lib/ai-service.ts", "utf-8");
 
       // Verify strict equality check for "true"
-      // This ensures any other value (false, undefined, "1", etc.) uses production path
       expect(aiServiceSource).toContain(
         'process.env.MOCK_GEMINI_API === "true"',
       );
     });
 
     it("should verify mock service is null when flag is not true", () => {
-      // When MOCK_GEMINI_API is not "true", mockService should be null
-      // This is guaranteed by: const mockService = USE_MOCK ? new GeminiMockService() : null
-
-      // Test cases:
       const testCases = [
         { value: undefined, expected: null },
         { value: "false", expected: null },
@@ -115,29 +125,32 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
   });
 
   describe("mock branch coverage", () => {
-    it("should document that both functions have mock branches", () => {
-      // This test documents the expected behavior:
-      // - categorize() has mock check (lines 56-60 in ai-service.ts)
-      // - extractStructuredData() has mock check (lines 133-137 in ai-service.ts)
-      // Both return early from mock service when MOCK_GEMINI_API=true
-
+    it("should document that all three functions have mock branches", () => {
       const documentedBehavior = {
+        filterAndSplit: {
+          mockCheck: "if (USE_MOCK && mockService)",
+          mockReturn: "mockService.filterAndSplit(text)",
+          logMessage: "[MOCK] Using Gemini mock for filter & split",
+        },
         categorize: {
           mockCheck: "if (USE_MOCK && mockService)",
           mockReturn: "mockService.categorize(text)",
           logMessage: "[MOCK] Using Gemini mock for categorization",
         },
-        extractStructuredData: {
+        extractLocations: {
           mockCheck: "if (USE_MOCK && mockService)",
-          mockReturn: "mockService.extractStructuredData(text)",
-          logMessage: "[MOCK] Using Gemini mock for extraction",
+          mockReturn: "mockService.extractLocations(text)",
+          logMessage: "[MOCK] Using Gemini mock for location extraction",
         },
       };
 
+      expect(documentedBehavior.filterAndSplit.mockCheck).toBe(
+        "if (USE_MOCK && mockService)",
+      );
       expect(documentedBehavior.categorize.mockCheck).toBe(
         "if (USE_MOCK && mockService)",
       );
-      expect(documentedBehavior.extractStructuredData.mockCheck).toBe(
+      expect(documentedBehavior.extractLocations.mockCheck).toBe(
         "if (USE_MOCK && mockService)",
       );
     });

@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 describe("messageIngest utilities", () => {
   describe("ensureCrawledAtDate", () => {
     // Since ensureCrawledAtDate is not exported, we test it indirectly through
-    // the behavior of functions that use it (storeExtractedData, handlePrecomputedGeoJsonData)
+    // the behavior of functions that use it (storeMessage, handlePrecomputedGeoJsonData)
     // Or we can move it to a separate utils file and test it directly.
     // For now, documenting the expected behavior:
 

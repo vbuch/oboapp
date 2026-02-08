@@ -14,7 +14,7 @@ keywords:
 
 **IMPORTANT**: Using Crawler Creation skill!
 
-This skill guides you through creating a new long-flow crawler for the oboapp project. Long-flow crawlers fetch HTML content from WordPress-style websites and process them through the full AI-powered ingestion pipeline (categorization → extraction → geocoding → GeoJSON generation).
+This skill guides you through creating a new long-flow crawler for the oboapp project. Long-flow crawlers fetch HTML content from WordPress-style websites and process them through the full AI-powered ingestion pipeline (filter & split → categorize → extract locations → geocoding → GeoJSON generation).
 
 ## Phase 1: Research Existing Patterns
 
@@ -138,7 +138,7 @@ Before finalizing, verify:
    ```
 5. **Verify messages collection**: Check Firestore messages collection for processed output
    - Confirm messages were categorized correctly
-   - Verify `extractedData` contains expected structure
+   - Verify location fields (`pins`, `streets`, `cadastralProperties`, `busStops`) are populated
    - Check that `geoJson` was generated
    - Validate `markdownText` is present and formatted correctly
    - Confirm `timespanStart`/`timespanEnd` were extracted if dates exist

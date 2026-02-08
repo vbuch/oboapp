@@ -7,9 +7,8 @@ import {
   createLineGeoJson,
   generateTimespan,
   generateLineStringPoints,
-  type GeoJSONFeatureCollection,
-  type Point,
 } from "./seed-emulator-utils";
+import type { GeoJSONFeatureCollection, Point } from "./seed-emulator-utils";
 
 // SourceDocument structure matches what's stored in Firestore's sources collection
 interface SourceDocument {
@@ -58,14 +57,26 @@ function createMessageData(
     geoJson: JSON.stringify(geoJson), // Stringify for Firestore
   };
 
-  // Add extractedData if present
+  // Add location data to process array if present
   if (config.extractedData) {
-    baseData.extractedData = JSON.stringify(config.extractedData);
-  }
+    baseData.process = [
+      { step: "extractLocations", result: config.extractedData },
+    ];
+    // Denormalize location fields (all root-level fields used by the pipeline)
+    if (config.extractedData.pins) baseData.pins = config.extractedData.pins;
+    if (config.extractedData.streets)
+      baseData.streets = config.extractedData.streets;
+    if (config.extractedData.busStops)
+      baseData.busStops = config.extractedData.busStops;
+    if (config.extractedData.cadastralProperties)
+      baseData.cadastralProperties = config.extractedData.cadastralProperties;
 
-  // Add categorize if present
-  if (config.categorize) {
-    baseData.categorize = JSON.stringify(config.categorize);
+    // Handle ExtractedLocations fields that may not be in fixture (safe access with type assertion)
+    const extracted = config.extractedData as Record<string, unknown>;
+    if (typeof extracted.cityWide === "boolean")
+      baseData.cityWide = extracted.cityWide;
+    if (typeof extracted.withSpecificAddress === "boolean")
+      baseData.withSpecificAddress = extracted.withSpecificAddress;
   }
 
   return baseData;

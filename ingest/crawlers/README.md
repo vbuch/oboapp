@@ -67,7 +67,7 @@ Crawlers handle message formatting differently based on whether they provide pre
 
 - Go through the full AI extraction pipeline
 - Store HTML content converted to markdown in `message` field only
-- The AI extraction stage produces `extractedData.markdown_text` for display
+- The AI filter & split stage produces `markdownText` for display
 - Don't need to set `markdownText` in source documents
 
 ## Running Crawlers

@@ -1,7 +1,6 @@
 import {
   InternalMessage,
   Address,
-  ExtractedData,
   GeoJSONFeatureCollection,
 } from "@/lib/types";
 
@@ -13,7 +12,6 @@ export async function buildMessageResponse(
   messageId: string,
   text: string,
   addresses: Address[],
-  extractedData: ExtractedData | null,
   geoJson: GeoJSONFeatureCollection | null,
 ): Promise<InternalMessage> {
   return {
@@ -22,7 +20,5 @@ export async function buildMessageResponse(
     addresses,
     geoJson: geoJson || undefined,
     createdAt: new Date().toISOString(),
-    // Internal-only field
-    extractedData: extractedData || undefined,
   };
 }
