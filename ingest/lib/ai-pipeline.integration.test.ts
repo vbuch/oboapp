@@ -231,7 +231,7 @@ describe.skipIf(!HAS_API_KEY)(
     });
 
     // ─── Test 4: Multiple timespans (film shooting) ──────────────────
-    describe.only("single-message-mutiple-timespans.md", () => {
+    describe("single-message-mutiple-timespans.md", () => {
       let plainTexts: string[] = [];
 
       it("filterAndSplit: should produce relevant message(s)", async () => {
@@ -249,8 +249,6 @@ describe.skipIf(!HAS_API_KEY)(
           expect(msg.plainText).toBeTruthy();
         }
         expect(recorder.errors).toHaveLength(0);
-
-        console.log(result);
 
         plainTexts = result!.map((m) => m.plainText);
       });
@@ -429,7 +427,7 @@ describe.skipIf(!HAS_API_KEY)(
     });
 
     // ─── Test 7: Two simple messages (heating + construction) ────────
-    describe.skip("two-messages-simple.md", () => {
+    describe("two-messages-simple.md", () => {
       let plainTexts: string[] = [];
 
       it("filterAndSplit: should produce 2 relevant messages", async () => {
