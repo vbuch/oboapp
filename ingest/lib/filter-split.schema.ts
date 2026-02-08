@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 const FilteredMessageSchema = z.object({
-  originalText: z.string().default(""),
   normalizedText: z.string(),
+  isOneOfMany: z.boolean().default(false),
+  isInformative: z.boolean().default(false),
   isRelevant: z.boolean(),
   responsibleEntity: z.string().default(""),
   markdownText: z.string().default(""),

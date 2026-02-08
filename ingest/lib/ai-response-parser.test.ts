@@ -22,12 +22,16 @@ describe("ai-response-parser", () => {
       const response = JSON.stringify([
         {
           normalizedText: "Water outage tomorrow",
+          isOneOfMany: false,
+          isInformative: true,
           isRelevant: true,
           responsibleEntity: "Sofiyska Voda",
           markdownText: "**Water outage** tomorrow",
         },
         {
           normalizedText: "Irrelevant post",
+          isOneOfMany: false,
+          isInformative: false,
           isRelevant: false,
         },
       ]);
@@ -35,17 +39,20 @@ describe("ai-response-parser", () => {
       expect(result).not.toBeNull();
       expect(result).toHaveLength(2);
       expect(result![0].normalizedText).toBe("Water outage tomorrow");
+      expect(result![0].isOneOfMany).toBe(false);
+      expect(result![0].isInformative).toBe(true);
       expect(result![0].isRelevant).toBe(true);
       expect(result![0].responsibleEntity).toBe("Sofiyska Voda");
       expect(result![0].markdownText).toBe("**Water outage** tomorrow");
       expect(result![1].isRelevant).toBe(false);
+      expect(result![1].isInformative).toBe(false);
       // Defaults applied for omitted optional fields
       expect(result![1].responsibleEntity).toBe("");
       expect(result![1].markdownText).toBe("");
     });
 
     it("should extract JSON from markdown code blocks", () => {
-      const response = `Here is the result:\n\`\`\`json\n[{"normalizedText":"test","isRelevant":true}]\n\`\`\``;
+      const response = `Here is the result:\n\`\`\`json\n[{"normalizedText":"test","isOneOfMany":false,"isInformative":true,"isRelevant":true}]\n\`\`\``;
       const result = parseFilterSplitResponse(response);
       expect(result).not.toBeNull();
       expect(result).toHaveLength(1);
@@ -68,7 +75,7 @@ describe("ai-response-parser", () => {
 
     it("should return null when schema validation fails", () => {
       const recorder = createMockRecorder();
-      // Missing required field normalizedText
+      // Missing required fields
       const response = JSON.stringify([{ isRelevant: true }]);
       const result = parseFilterSplitResponse(response, recorder);
       expect(result).toBeNull();

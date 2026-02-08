@@ -275,8 +275,7 @@ async function processWithAIPipeline(
 
     // Use originalText from the split (per-message text), or normalizedText if relevant
     // Fall back to full source text only if both are empty (backwards compatibility)
-    const messageText =
-      filteredMessage.normalizedText || filteredMessage.originalText || text;
+    const messageText = filteredMessage.normalizedText || text;
 
     // Store incoming message
     const storedMessageId = await storeIncomingMessage(
@@ -303,8 +302,8 @@ async function processWithAIPipeline(
 
     if (!filteredMessage.isRelevant) {
       totalIrrelevant++;
-      // Use originalText for irrelevant messages, fall back to full text
-      const irrelevantMessageText = filteredMessage.originalText || text;
+      // Use normalizedText for irrelevant messages, fall back to full text
+      const irrelevantMessageText = filteredMessage.normalizedText || text;
       const message = await handleIrrelevantMessage(
         storedMessageId,
         irrelevantMessageText,
@@ -390,6 +389,8 @@ function logFilteredMessageInfo(
 ): void {
   logger.info(`Processing message ${messageIndex}/${totalMessages}`, {
     isRelevant: filteredMessage.isRelevant,
+    isInformative: filteredMessage.isInformative,
+    isOneOfMany: filteredMessage.isOneOfMany,
     messageId: messageId || "auto-generated",
     responsibleEntity: filteredMessage.responsibleEntity || "",
   });
@@ -407,6 +408,8 @@ async function storeFilteredMessage(
     isRelevant: filteredMessage.isRelevant,
     markdownText: filteredMessage.markdownText,
     responsibleEntity: filteredMessage.responsibleEntity,
+    isOneOfMany: filteredMessage.isOneOfMany,
+    isInformative: filteredMessage.isInformative,
     process: [{ step: "filterAndSplit", result: filteredMessage }],
   });
 }

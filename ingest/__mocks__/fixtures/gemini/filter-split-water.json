@@ -1,7 +1,8 @@
 [
   {
-    "originalText": "Спиране на водоснабдяването на бул. Витоша 1.",
     "normalizedText": "Спиране на водоснабдяването на бул. Витоша 1.",
+    "isOneOfMany": false,
+    "isInformative": true,
     "isRelevant": true,
     "responsibleEntity": "",
     "markdownText": "### Спиране на водоснабдяването\n\n**Засегнат адрес:** бул. Витоша 1"

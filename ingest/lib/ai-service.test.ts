@@ -23,6 +23,8 @@ describe("AI service schema validation", () => {
       const mockResponse = [
         {
           normalizedText: "Спиране на водоснабдяването.",
+          isOneOfMany: false,
+          isInformative: true,
           isRelevant: true,
           responsibleEntity: "Софийска вода",
           markdownText: "**Спиране на водоснабдяването.**",
@@ -37,6 +39,8 @@ describe("AI service schema validation", () => {
           "Спиране на водоснабдяването.",
         );
         expect(result.data[0].isRelevant).toBe(true);
+        expect(result.data[0].isInformative).toBe(true);
+        expect(result.data[0].isOneOfMany).toBe(false);
       }
     });
 
@@ -45,7 +49,12 @@ describe("AI service schema validation", () => {
         await import("./filter-split.schema");
 
       const result = FilterSplitResponseSchema.safeParse([
-        { normalizedText: "Test", isRelevant: false },
+        {
+          normalizedText: "Test",
+          isOneOfMany: false,
+          isInformative: false,
+          isRelevant: false,
+        },
       ]);
       expect(result.success).toBe(true);
       if (result.success) {
