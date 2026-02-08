@@ -22,9 +22,9 @@ The app is not interested in:
 - `originalText`: the raw text for this specific split message. **ALWAYS populate this field**, regardless of relevance. This is the piece of the input that corresponds to this split message.
 - `normalizedText`: piece of relevant text according to <single-message>. Blank if not `isRelevant`.
 - `isRelevant`: boolean. If the message is relevant to <app-scope>.
-- `responsible_entity`: The name of the person or organization issuing the announcement. If not mentioned, return an empty string.
+- `responsibleEntity`: The name of the person or organization issuing the announcement. If not mentioned, return an empty string.
   - **Examples**: "Топлофикация София ЕАД", "Столична Община, Район 'Красно село'"
-- `markdown_text`: A markdown-formatted version of the message for improved display. See <markdown-formatting>.
+- `markdownText`: A markdown-formatted version of the message for improved display. See <markdown-formatting>.
 </json-object-structure>
 
 <markdown-formatting>

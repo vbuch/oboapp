@@ -169,8 +169,8 @@ The pipeline processes messages about public infrastructure disruptions in Sofia
 
 1. **Filter & Split** (`filterAndSplit()` in `ingest/lib/ai-service.ts` + `ingest/prompts/filter-split.md`)
    - Splits a source notification into individual messages
-   - Assesses relevance, normalizes text, extracts responsible_entity and markdown_text
-   - Schema: array of `{ normalizedText, isRelevant, responsible_entity, markdown_text }`
+   - Assesses relevance, normalizes text, extracts responsibleEntity and markdownText
+   - Schema: array of `{ normalizedText, isRelevant, responsibleEntity, markdownText }`
    - Irrelevant messages are finalized immediately without further processing
 
 2. **Categorize** (`categorize()` in `ingest/lib/ai-service.ts` + `ingest/prompts/categorize.md`)

@@ -268,7 +268,7 @@ describe("processFieldsForFirestore", () => {
     it("should stringify extractedData object", () => {
       const input = {
         extractedData: {
-          responsible_entity: "Sofia Water",
+          responsibleEntity: "Sofia Water",
           pins: [{ address: "Test St", timespans: [] }],
         },
       };

@@ -116,9 +116,7 @@ describe("GET /api/messages - Query Parameter Validation", () => {
   });
 
   it("should reject invalid zoom values (too low) with 400", async () => {
-    const mockRequest = new Request(
-      "http://localhost/api/messages?zoom=0",
-    );
+    const mockRequest = new Request("http://localhost/api/messages?zoom=0");
     const response = await GET(mockRequest);
     const data = await response.json();
 
@@ -127,9 +125,7 @@ describe("GET /api/messages - Query Parameter Validation", () => {
   });
 
   it("should reject invalid zoom values (too high) with 400", async () => {
-    const mockRequest = new Request(
-      "http://localhost/api/messages?zoom=23",
-    );
+    const mockRequest = new Request("http://localhost/api/messages?zoom=23");
     const response = await GET(mockRequest);
     const data = await response.json();
 
@@ -232,7 +228,7 @@ describe("GET /api/messages - Date Filtering", () => {
         data: () => ({
           text: "Old disruption",
           extractedData: JSON.stringify({
-            responsible_entity: "Test",
+            responsibleEntity: "Test",
             pins: [
               {
                 address: "ул. Тест 1",
@@ -253,7 +249,7 @@ describe("GET /api/messages - Date Filtering", () => {
         data: () => ({
           text: "Current disruption",
           extractedData: JSON.stringify({
-            responsible_entity: "Test",
+            responsibleEntity: "Test",
             pins: [
               {
                 address: "ул. Тест 2",
@@ -338,7 +334,7 @@ describe("GET /api/messages - Date Filtering", () => {
         data: () => ({
           text: "Mixed timespans",
           extractedData: JSON.stringify({
-            responsible_entity: "Test",
+            responsibleEntity: "Test",
             pins: [
               {
                 address: "ул. Тест 1",

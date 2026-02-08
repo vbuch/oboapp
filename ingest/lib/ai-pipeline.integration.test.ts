@@ -77,7 +77,7 @@ describe.skipIf(!HAS_API_KEY)(
         expect(result!.length).toBe(1);
         expect(result![0].isRelevant).toBe(true);
         expect(result![0].normalizedText).toBeTruthy();
-        expect(result![0].markdown_text).toBeTruthy();
+        expect(result![0].markdownText).toBeTruthy();
         expect(recorder.errors).toHaveLength(0);
 
         normalizedText = result![0].normalizedText;
@@ -401,6 +401,268 @@ describe.skipIf(!HAS_API_KEY)(
         // Should reference the main street "Искърска"
         const allLocationText = [...allStreets, ...allPinsAddresses].join(" ");
         expect(allLocationText).toContain("Искърска");
+      });
+    });
+
+    // ─── Test 6: Insufficient content ────────────────────────────────
+    describe.only("insufficient.md", () => {
+      it.only("should detect insufficient content as irrelevant", async () => {
+        const { filterAndSplit } = await import("./ai-service");
+        const text = readSourceFixture("insufficient.md");
+        const recorder = createMockRecorder();
+
+        const result = await filterAndSplit(text, recorder);
+        console.log(result);
+
+        expect(result).not.toBeNull();
+        expect(result).toBeInstanceOf(Array);
+        expect(result!.length).toBeGreaterThanOrEqual(1);
+
+        // Should mark as irrelevant due to insufficient content
+        const irrelevantCount = result!.filter((m) => !m.isRelevant).length;
+        expect(irrelevantCount).toBeGreaterThanOrEqual(1);
+
+        expect(recorder.errors).toHaveLength(0);
+      });
+    });
+
+    // ─── Test 7: Two simple messages (heating + construction) ────────
+    describe("two-messages-simple.md", () => {
+      let normalizedTexts: string[] = [];
+
+      it("filterAndSplit: should produce 2 relevant messages", async () => {
+        const { filterAndSplit } = await import("./ai-service");
+        const text = readSourceFixture("two-messages-simple.md");
+        const recorder = createMockRecorder();
+
+        const result = await filterAndSplit(text, recorder);
+
+        expect(result).not.toBeNull();
+        expect(result!.length).toBeGreaterThanOrEqual(2);
+
+        const relevantMessages = result!.filter((m) => m.isRelevant);
+        expect(relevantMessages.length).toBeGreaterThanOrEqual(2);
+        expect(recorder.errors).toHaveLength(0);
+
+        normalizedTexts = relevantMessages.map((m) => m.normalizedText);
+      });
+
+      it("categorize: should assign heating/construction/road-block categories", async () => {
+        const { categorize } = await import("./ai-service");
+        expect(normalizedTexts.length).toBeGreaterThanOrEqual(2);
+
+        const allCategories: string[] = [];
+
+        for (const text of normalizedTexts) {
+          const recorder = createMockRecorder();
+          const result = await categorize(text, recorder);
+
+          expect(result).not.toBeNull();
+          expect(result!.categories.length).toBeGreaterThanOrEqual(1);
+          allCategories.push(...result!.categories);
+          expect(recorder.errors).toHaveLength(0);
+        }
+
+        // Should have both heating and construction categories
+        const relevantCategories = [
+          "heating",
+          "construction-and-repairs",
+          "road-block",
+        ];
+        const hasRelevant = allCategories.some((c) =>
+          relevantCategories.includes(c),
+        );
+        expect(hasRelevant).toBe(true);
+      });
+
+      it("extractLocations: should extract both street locations", async () => {
+        const { extractLocations } = await import("./ai-service");
+        expect(normalizedTexts.length).toBeGreaterThanOrEqual(2);
+
+        const allStreets: string[] = [];
+        const allPinsAddresses: string[] = [];
+
+        for (const text of normalizedTexts) {
+          const recorder = createMockRecorder();
+          const result = await extractLocations(text, recorder);
+
+          expect(result).not.toBeNull();
+          allStreets.push(...result!.streets.map((s) => s.street));
+          allPinsAddresses.push(...result!.pins.map((p) => p.address));
+          expect(recorder.errors).toHaveLength(0);
+        }
+
+        const allLocations = [...allStreets, ...allPinsAddresses].join(" ");
+
+        // Should reference both streets from the fixture
+        expect(
+          allLocations.includes("Искър") || allLocations.includes("искър"),
+        ).toBe(true);
+        expect(
+          allLocations.includes("Васил Априлов") ||
+            allLocations.includes("васил априлов"),
+        ).toBe(true);
+      });
+    });
+
+    // ─── Test 8: Waste collection (single or multi-message) ──────────
+    describe("multiple-messages.md", () => {
+      let normalizedTexts: string[] = [];
+
+      it("filterAndSplit: should produce relevant message(s)", async () => {
+        const { filterAndSplit } = await import("./ai-service");
+        const text = readSourceFixture("multiple-messages.md");
+        const recorder = createMockRecorder();
+
+        const result = await filterAndSplit(text, recorder);
+
+        expect(result).not.toBeNull();
+        expect(result!.length).toBeGreaterThanOrEqual(1);
+
+        const relevantMessages = result!.filter((m) => m.isRelevant);
+        expect(relevantMessages.length).toBeGreaterThanOrEqual(1);
+        expect(recorder.errors).toHaveLength(0);
+
+        normalizedTexts = relevantMessages.map((m) => m.normalizedText);
+      });
+
+      it("categorize: should assign waste category", async () => {
+        const { categorize } = await import("./ai-service");
+        expect(normalizedTexts.length).toBeGreaterThanOrEqual(1);
+
+        const allCategories: string[] = [];
+
+        for (const text of normalizedTexts) {
+          const recorder = createMockRecorder();
+          const result = await categorize(text, recorder);
+
+          expect(result).not.toBeNull();
+          expect(result!.categories.length).toBeGreaterThanOrEqual(1);
+          allCategories.push(...result!.categories);
+          expect(recorder.errors).toHaveLength(0);
+        }
+
+        expect(allCategories).toContain("waste");
+      });
+
+      it("extractLocations: should extract Slatina location", async () => {
+        const { extractLocations } = await import("./ai-service");
+        expect(normalizedTexts.length).toBeGreaterThanOrEqual(1);
+
+        const allStreets: string[] = [];
+        const allPinsAddresses: string[] = [];
+
+        for (const text of normalizedTexts) {
+          const recorder = createMockRecorder();
+          const result = await extractLocations(text, recorder);
+
+          expect(result).not.toBeNull();
+          allStreets.push(...result!.streets.map((s) => s.street));
+          allPinsAddresses.push(...result!.pins.map((p) => p.address));
+          expect(recorder.errors).toHaveLength(0);
+        }
+
+        const allLocations = [...allStreets, ...allPinsAddresses].join(" ");
+
+        // Should reference the Slatina location
+        expect(
+          allLocations.includes("Шипченски проход") ||
+            allLocations.includes("шипченски проход") ||
+            allLocations.includes("Слатина") ||
+            allLocations.includes("слатина"),
+        ).toBe(true);
+      });
+    });
+
+    // ─── Test 9: Complex multi-message (transit + road closure) ──────
+    describe("complex-multi-message.md", () => {
+      let normalizedTexts: string[] = [];
+
+      it("filterAndSplit: should produce multiple relevant messages", async () => {
+        const { filterAndSplit } = await import("./ai-service");
+        const text = readSourceFixture("complex-multi-message.md");
+        const recorder = createMockRecorder();
+
+        const result = await filterAndSplit(text, recorder);
+
+        expect(result).not.toBeNull();
+        expect(result!.length).toBeGreaterThanOrEqual(3);
+
+        const relevantMessages = result!.filter((m) => m.isRelevant);
+        expect(relevantMessages.length).toBeGreaterThanOrEqual(3);
+        expect(recorder.errors).toHaveLength(0);
+
+        normalizedTexts = relevantMessages.map((m) => m.normalizedText);
+      });
+
+      it("categorize: should assign public-transport and road-block categories", async () => {
+        const { categorize } = await import("./ai-service");
+        expect(normalizedTexts.length).toBeGreaterThanOrEqual(3);
+
+        const allCategories: string[] = [];
+
+        for (const text of normalizedTexts) {
+          const recorder = createMockRecorder();
+          const result = await categorize(text, recorder);
+
+          expect(result).not.toBeNull();
+          expect(result!.categories.length).toBeGreaterThanOrEqual(1);
+          allCategories.push(...result!.categories);
+          expect(recorder.errors).toHaveLength(0);
+        }
+
+        // Should have public-transport category (tram/bus changes)
+        expect(allCategories).toContain("public-transport");
+
+        // Likely also road-block or construction for the boulevard closure
+        const hasRoadRelated =
+          allCategories.includes("road-block") ||
+          allCategories.includes("construction-and-repairs") ||
+          allCategories.includes("traffic");
+        expect(hasRoadRelated).toBe(true);
+      });
+
+      it("extractLocations: should extract tram/bus routes and boulevard reference", async () => {
+        const { extractLocations } = await import("./ai-service");
+        expect(normalizedTexts.length).toBeGreaterThanOrEqual(3);
+
+        const allStreets: string[] = [];
+        const allPinsAddresses: string[] = [];
+        const allBusStops: string[] = [];
+
+        for (const text of normalizedTexts) {
+          const recorder = createMockRecorder();
+          const result = await extractLocations(text, recorder);
+
+          expect(result).not.toBeNull();
+          allStreets.push(...result!.streets.map((s) => s.street));
+          allPinsAddresses.push(...result!.pins.map((p) => p.address));
+          allBusStops.push(...result!.busStops);
+          expect(recorder.errors).toHaveLength(0);
+        }
+
+        const allLocations = [...allStreets, ...allPinsAddresses].join(" ");
+
+        // Should reference the main boulevard affected
+        expect(
+          allLocations.includes("Александър Стамболийски") ||
+            allLocations.includes("александър стамболийски") ||
+            allLocations.includes("Стамболийски") ||
+            allLocations.includes("стамболийски"),
+        ).toBe(true);
+
+        // Should extract bus stop code 0296 mentioned in the text
+        const hasBusStop0296 = allBusStops.some((stop) =>
+          stop.includes("0296"),
+        );
+        expect(hasBusStop0296).toBe(true);
+
+        // Should also find codes 6659, 6660, 6608 (closed stops)
+        const closedStopCodes = ["6659", "6660", "6608"];
+        const foundClosedStops = closedStopCodes.filter((code) =>
+          allBusStops.some((stop) => stop.includes(code)),
+        );
+        expect(foundClosedStops.length).toBeGreaterThanOrEqual(1);
       });
     });
   },

@@ -4,8 +4,8 @@ const FilteredMessageSchema = z.object({
   originalText: z.string().default(""),
   normalizedText: z.string(),
   isRelevant: z.boolean(),
-  responsible_entity: z.string().default(""),
-  markdown_text: z.string().default(""),
+  responsibleEntity: z.string().default(""),
+  markdownText: z.string().default(""),
 });
 
 export const FilterSplitResponseSchema = z.array(FilteredMessageSchema);

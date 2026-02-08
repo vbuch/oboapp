@@ -28,7 +28,7 @@ const mockService = USE_MOCK ? new GeminiMockService() : null;
 /**
  * Step 1: Filter & Split
  * Splits a notification into individual messages, assesses relevance,
- * normalizes text, and extracts metadata (responsible_entity, markdown_text).
+ * normalizes text, and extracts metadata (responsibleEntity, markdownText).
  */
 export async function filterAndSplit(
   text: string,

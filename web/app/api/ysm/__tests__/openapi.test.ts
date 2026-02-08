@@ -36,7 +36,7 @@ describe("YSM OpenAPI", () => {
               },
             ],
             extractedData: {
-              responsible_entity: "Test",
+              responsibleEntity: "Test",
               pins: [
                 {
                   address: "ул. Тест 1",
@@ -46,7 +46,7 @@ describe("YSM OpenAPI", () => {
                 },
               ],
               streets: [],
-              markdown_text: "Test",
+              markdownText: "Test",
             },
             geoJson: {
               type: "FeatureCollection",

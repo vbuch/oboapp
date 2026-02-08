@@ -391,7 +391,7 @@ function logFilteredMessageInfo(
   logger.info(`Processing message ${messageIndex}/${totalMessages}`, {
     isRelevant: filteredMessage.isRelevant,
     messageId: messageId || "auto-generated",
-    responsibleEntity: filteredMessage.responsible_entity || "",
+    responsibleEntity: filteredMessage.responsibleEntity || "",
   });
 }
 
@@ -405,8 +405,8 @@ async function storeFilteredMessage(
   await updateMessage(messageId, {
     normalizedText: filteredMessage.normalizedText,
     isRelevant: filteredMessage.isRelevant,
-    markdownText: filteredMessage.markdown_text,
-    responsibleEntity: filteredMessage.responsible_entity,
+    markdownText: filteredMessage.markdownText,
+    responsibleEntity: filteredMessage.responsibleEntity,
     process: [{ step: "filterAndSplit", result: filteredMessage }],
   });
 }

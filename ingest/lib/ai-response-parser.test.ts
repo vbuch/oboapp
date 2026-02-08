@@ -23,8 +23,8 @@ describe("ai-response-parser", () => {
         {
           normalizedText: "Water outage tomorrow",
           isRelevant: true,
-          responsible_entity: "Sofiyska Voda",
-          markdown_text: "**Water outage** tomorrow",
+          responsibleEntity: "Sofiyska Voda",
+          markdownText: "**Water outage** tomorrow",
         },
         {
           normalizedText: "Irrelevant post",
@@ -36,12 +36,12 @@ describe("ai-response-parser", () => {
       expect(result).toHaveLength(2);
       expect(result![0].normalizedText).toBe("Water outage tomorrow");
       expect(result![0].isRelevant).toBe(true);
-      expect(result![0].responsible_entity).toBe("Sofiyska Voda");
-      expect(result![0].markdown_text).toBe("**Water outage** tomorrow");
+      expect(result![0].responsibleEntity).toBe("Sofiyska Voda");
+      expect(result![0].markdownText).toBe("**Water outage** tomorrow");
       expect(result![1].isRelevant).toBe(false);
       // Defaults applied for omitted optional fields
-      expect(result![1].responsible_entity).toBe("");
-      expect(result![1].markdown_text).toBe("");
+      expect(result![1].responsibleEntity).toBe("");
+      expect(result![1].markdownText).toBe("");
     });
 
     it("should extract JSON from markdown code blocks", () => {

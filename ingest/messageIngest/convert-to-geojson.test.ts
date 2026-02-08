@@ -15,7 +15,6 @@ vi.mock("@/lib/firebase-admin", () => ({
 describe(validateAllAddressesGeocoded, () => {
   it("should return empty array when all addresses are geocoded", () => {
     const extractedData: ExtractedData = {
-      responsible_entity: "Test Entity",
       pins: [
         {
           address: "Address 1",
@@ -49,7 +48,6 @@ describe(validateAllAddressesGeocoded, () => {
 
   it("should return missing pin addresses", () => {
     const extractedData: ExtractedData = {
-      responsible_entity: "Test Entity",
       pins: [
         {
           address: "Address 1",
@@ -71,7 +69,6 @@ describe(validateAllAddressesGeocoded, () => {
 
   it("should return missing street endpoints", () => {
     const extractedData: ExtractedData = {
-      responsible_entity: "Test Entity",
       pins: [],
       streets: [
         {
@@ -91,7 +88,6 @@ describe(validateAllAddressesGeocoded, () => {
 
   it("should return missing from endpoint with street name", () => {
     const extractedData: ExtractedData = {
-      responsible_entity: "Test Entity",
       pins: [],
       streets: [
         {
@@ -111,7 +107,6 @@ describe(validateAllAddressesGeocoded, () => {
 
   it("should return all missing addresses from both pins and streets", () => {
     const extractedData: ExtractedData = {
-      responsible_entity: "Test Entity",
       pins: [
         {
           address: "Address 1",
@@ -152,7 +147,6 @@ describe(validateAllAddressesGeocoded, () => {
 
   it("should handle empty pins and streets", () => {
     const extractedData: ExtractedData = {
-      responsible_entity: "Test Entity",
       pins: [],
       streets: [],
     };
@@ -165,7 +159,6 @@ describe(validateAllAddressesGeocoded, () => {
 
   it("should handle empty geocoded map", () => {
     const extractedData: ExtractedData = {
-      responsible_entity: "Test Entity",
       pins: [
         {
           address: "Address 1",
@@ -200,12 +193,10 @@ describe("convertMessageGeocodingToGeoJson", () => {
 
   it("should succeed with partial geocoding if at least one feature is available", async () => {
     const { convertToGeoJSON } = await import("@/lib/geojson-service");
-    const { validateAndFixGeoJSON } = await import(
-      "../crawlers/shared/geojson-validation"
-    );
+    const { validateAndFixGeoJSON } =
+      await import("../crawlers/shared/geojson-validation");
 
     const extractedData: ExtractedData = {
-      responsible_entity: "Test",
       pins: [
         { address: "Address 1", timespans: [] },
         { address: "Address 2", timespans: [] }, // Missing geocoding
@@ -214,7 +205,6 @@ describe("convertMessageGeocodingToGeoJson", () => {
         { street: "Main St", from: "A", to: "B", timespans: [] },
         { street: "Side St", from: "C", to: "D", timespans: [] }, // Missing D
       ],
-      markdown_text: "Test",
     };
 
     const geocodedMap = new Map([
@@ -240,7 +230,7 @@ describe("convertMessageGeocodingToGeoJson", () => {
 
     const result = await convertMessageGeocodingToGeoJson(
       extractedData,
-      geocodedMap
+      geocodedMap,
     );
 
     expect(result).toEqual(mockGeoJson);
@@ -250,36 +240,31 @@ describe("convertMessageGeocodingToGeoJson", () => {
         pins: [{ address: "Address 1", timespans: [] }],
         streets: [{ street: "Main St", from: "A", to: "B", timespans: [] }],
       }),
-      geocodedMap
+      geocodedMap,
     );
   });
 
   it("should throw error if no features can be geocoded", async () => {
     const extractedData: ExtractedData = {
-      responsible_entity: "Test",
       pins: [{ address: "Address 1", timespans: [] }],
       streets: [{ street: "Main St", from: "A", to: "B", timespans: [] }],
-      markdown_text: "Test",
     };
 
     const geocodedMap = new Map(); // Empty - nothing geocoded
 
     await expect(
-      convertMessageGeocodingToGeoJson(extractedData, geocodedMap)
+      convertMessageGeocodingToGeoJson(extractedData, geocodedMap),
     ).rejects.toThrow("Failed to geocode all addresses");
   });
 
   it("should handle all pins geocoded but streets missing endpoints", async () => {
     const { convertToGeoJSON } = await import("@/lib/geojson-service");
-    const { validateAndFixGeoJSON } = await import(
-      "../crawlers/shared/geojson-validation"
-    );
+    const { validateAndFixGeoJSON } =
+      await import("../crawlers/shared/geojson-validation");
 
     const extractedData: ExtractedData = {
-      responsible_entity: "Test",
       pins: [{ address: "Address 1", timespans: [] }],
       streets: [{ street: "Main St", from: "A", to: "B", timespans: [] }],
-      markdown_text: "Test",
     };
 
     const geocodedMap = new Map([
@@ -304,7 +289,7 @@ describe("convertMessageGeocodingToGeoJson", () => {
 
     const result = await convertMessageGeocodingToGeoJson(
       extractedData,
-      geocodedMap
+      geocodedMap,
     );
 
     expect(result).toEqual(mockGeoJson);
@@ -314,7 +299,7 @@ describe("convertMessageGeocodingToGeoJson", () => {
         pins: [{ address: "Address 1", timespans: [] }],
         streets: [],
       }),
-      geocodedMap
+      geocodedMap,
     );
   });
 });

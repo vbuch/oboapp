@@ -17,16 +17,15 @@ describe("AI service schema validation", () => {
 
   describe("FilterSplitResponseSchema", () => {
     it("should validate valid filter & split response", async () => {
-      const { FilterSplitResponseSchema } = await import(
-        "./filter-split.schema"
-      );
+      const { FilterSplitResponseSchema } =
+        await import("./filter-split.schema");
 
       const mockResponse = [
         {
           normalizedText: "Спиране на водоснабдяването.",
           isRelevant: true,
-          responsible_entity: "Софийска вода",
-          markdown_text: "**Спиране на водоснабдяването.**",
+          responsibleEntity: "Софийска вода",
+          markdownText: "**Спиране на водоснабдяването.**",
         },
       ];
 
@@ -42,26 +41,24 @@ describe("AI service schema validation", () => {
     });
 
     it("should default optional fields", async () => {
-      const { FilterSplitResponseSchema } = await import(
-        "./filter-split.schema"
-      );
+      const { FilterSplitResponseSchema } =
+        await import("./filter-split.schema");
 
       const result = FilterSplitResponseSchema.safeParse([
         { normalizedText: "Test", isRelevant: false },
       ]);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data[0].responsible_entity).toBe("");
-        expect(result.data[0].markdown_text).toBe("");
+        expect(result.data[0].responsibleEntity).toBe("");
+        expect(result.data[0].markdownText).toBe("");
       }
     });
   });
 
   describe("CategorizationResponseSchema", () => {
     it("should validate valid categorization response", async () => {
-      const { CategorizationResponseSchema } = await import(
-        "./categorize.schema"
-      );
+      const { CategorizationResponseSchema } =
+        await import("./categorize.schema");
 
       const result = CategorizationResponseSchema.safeParse({
         categories: ["water", "construction-and-repairs"],
@@ -74,9 +71,8 @@ describe("AI service schema validation", () => {
     });
 
     it("should reject invalid categories", async () => {
-      const { CategorizationResponseSchema } = await import(
-        "./categorize.schema"
-      );
+      const { CategorizationResponseSchema } =
+        await import("./categorize.schema");
 
       const result = CategorizationResponseSchema.safeParse({
         categories: ["invalid-category"],
@@ -85,9 +81,8 @@ describe("AI service schema validation", () => {
     });
 
     it("should validate all predefined categories", async () => {
-      const { CategorizationResponseSchema } = await import(
-        "./categorize.schema"
-      );
+      const { CategorizationResponseSchema } =
+        await import("./categorize.schema");
 
       const allCategories = [
         "air-quality",
@@ -121,9 +116,8 @@ describe("AI service schema validation", () => {
 
   describe("ExtractedLocationsSchema", () => {
     it("should validate valid extraction response", async () => {
-      const { ExtractedLocationsSchema } = await import(
-        "./extract-locations.schema"
-      );
+      const { ExtractedLocationsSchema } =
+        await import("./extract-locations.schema");
 
       const mockResponse = {
         withSpecificAddress: true,
@@ -149,9 +143,8 @@ describe("AI service schema validation", () => {
     });
 
     it("should default array fields", async () => {
-      const { ExtractedLocationsSchema } = await import(
-        "./extract-locations.schema"
-      );
+      const { ExtractedLocationsSchema } =
+        await import("./extract-locations.schema");
 
       const result = ExtractedLocationsSchema.safeParse({
         withSpecificAddress: false,
