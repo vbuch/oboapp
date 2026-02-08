@@ -303,3 +303,4 @@ flowchart LR
 - **"FIREBASE_SERVICE_ACCOUNT_KEY not found":** You used a static import for firebase-admin. Switch to dynamic.
 - **"Invalid GeoJSON":** Check coordinate order or missing `type`. Use `validateAndFixGeoJSON`.
 - **Duplicate Records:** Ensure your document ID generation is deterministic and stable.
+- **Tests fail in CI/CD but pass locally:** Shared package changes require rebuild. Run `npm run build` in `shared/` directory or `npm install` at repository root (triggers postinstall hook). Common symptom: snapshot tests showing schema field mismatches.

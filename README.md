@@ -8,6 +8,11 @@ A civic tech platform that helps residents of Sofia stay informed about infrastr
 
 The shared package builds automatically via postinstall hook. All workspace dependencies are hoisted to the root.
 
+**CRITICAL:** When modifying shared package schemas, rebuild is required before running code in web/ingest:
+
+- Run `npm run build` in `shared/` directory, OR
+- Run `npm install` at repository root (triggers postinstall hook)
+
 ## Project Structure
 
 This monorepo contains three packages:
