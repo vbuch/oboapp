@@ -7,7 +7,7 @@ Converts specific street addresses with building numbers into GPS coordinates fo
 ## When Used
 
 - **Pin locations** with specific building numbers extracted by AI
-- **Primary geocoding path** for addresses in `extractedData.pins[]`
+- **Primary geocoding path** for addresses in `pins[]`
 - **Sofia locality restriction** applied to all requests
 
 **Example**: "Аварийни дейности на ул. Иван Вазов 15" → Google geocodes "ул. Иван Вазов 15, София" → Point at (42.6977, 23.3219)
