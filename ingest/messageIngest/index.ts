@@ -273,9 +273,12 @@ async function processWithAIPipeline(
     const filteredMessage = filterResult[i];
     const messageIndex = i + 1;
 
+    // Prefer normalizedText if present, else fall back to original text
+    const messageText = filteredMessage.normalizedText || text;
+
     // Store incoming message
     const storedMessageId = await storeIncomingMessage(
-      filteredMessage.normalizedText || text,
+      messageText,
       userId,
       userEmail,
       source,
@@ -298,9 +301,10 @@ async function processWithAIPipeline(
 
     if (!filteredMessage.isRelevant) {
       totalIrrelevant++;
+      // Pass original text if normalizedText is blank
       const message = await handleIrrelevantMessage(
         storedMessageId,
-        filteredMessage.normalizedText,
+        messageText,
         ingestErrors,
       );
       messages.push(message);
@@ -326,9 +330,10 @@ async function processWithAIPipeline(
           finalizedAt: new Date(),
           ...buildIngestErrorsField(ingestErrors),
         });
+        // Use messageText for human-readable fallback
         const message = await buildFinalMessageResponse(
           storedMessageId,
-          filteredMessage.normalizedText,
+          messageText,
           [],
           null,
         );
@@ -413,7 +418,10 @@ async function storeCategorization(
   const { FieldValue } = await import("firebase-admin/firestore");
   await updateMessage(messageId, {
     categories: categorizationResult.categories,
-    process: FieldValue.arrayUnion({ step: "categorize", result: categorizationResult }),
+    process: FieldValue.arrayUnion({
+      step: "categorize",
+      result: categorizationResult,
+    }),
   });
 }
 
@@ -436,10 +444,8 @@ async function storeExtractedLocations(
   const cityWide = extractedLocations?.cityWide || false;
 
   // Extract timespans from extracted locations (pins/streets)
-  const { timespanStart, timespanEnd } = extractTimespanRangeFromExtractedLocations(
-    extractedLocations,
-    crawledAt,
-  );
+  const { timespanStart, timespanEnd } =
+    extractTimespanRangeFromExtractedLocations(extractedLocations, crawledAt);
 
   // Validate and fallback to crawledAt if invalid
   const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
@@ -453,7 +459,10 @@ async function storeExtractedLocations(
     cityWide,
     timespanStart: validated.timespanStart,
     timespanEnd: validated.timespanEnd,
-    process: FieldValue.arrayUnion({ step: "extractLocations", result: extractedLocations }),
+    process: FieldValue.arrayUnion({
+      step: "extractLocations",
+      result: extractedLocations,
+    }),
   });
 }
 

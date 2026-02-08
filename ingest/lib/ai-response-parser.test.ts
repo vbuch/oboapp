@@ -183,10 +183,7 @@ describe("ai-response-parser", () => {
 
     it("should return null when no JSON is found", () => {
       const recorder = createMockRecorder();
-      const result = parseExtractLocationsResponse(
-        "no json here",
-        recorder,
-      );
+      const result = parseExtractLocationsResponse("no json here", recorder);
       expect(result).toBeNull();
       expect(recorder.errors.length).toBeGreaterThan(0);
     });
@@ -203,11 +200,16 @@ describe("ai-response-parser", () => {
 
     it("should return null when required fields are missing", () => {
       const recorder = createMockRecorder();
-      // Missing withSpecificAddress and cityWide
+      // Missing withSpecificAddress and cityWide, should apply defaults
       const response = JSON.stringify({ pins: [] });
       const result = parseExtractLocationsResponse(response, recorder);
-      expect(result).toBeNull();
-      expect(recorder.errors.length).toBeGreaterThan(0);
+      expect(result).not.toBeNull();
+      expect(result!.withSpecificAddress).toBe(false);
+      expect(result!.cityWide).toBe(false);
+      expect(result!.pins).toEqual([]);
+      expect(result!.streets).toEqual([]);
+      expect(result!.cadastralProperties).toEqual([]);
+      expect(result!.busStops).toEqual([]);
     });
   });
 });

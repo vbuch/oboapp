@@ -51,7 +51,10 @@ export function parseFilterSplitResponse(
     recorder.error(
       `Failed to parse filter & split response: ${formatIngestErrorText(parseError)}`,
     );
-    const summary = truncateIngestPayload(responseText, MAX_INGEST_ERROR_LENGTH);
+    const summary = truncateIngestPayload(
+      responseText,
+      MAX_INGEST_ERROR_LENGTH,
+    );
     recorder.error(
       `Full AI response (${summary.originalLength} chars): ${summary.summary}`,
     );
@@ -81,7 +84,10 @@ export function parseCategorizeResponse(
     recorder.error(
       `Failed to parse categorize response: ${formatIngestErrorText(parseError)}`,
     );
-    const summary = truncateIngestPayload(responseText, MAX_INGEST_ERROR_LENGTH);
+    const summary = truncateIngestPayload(
+      responseText,
+      MAX_INGEST_ERROR_LENGTH,
+    );
     recorder.error(
       `Full AI response (${summary.originalLength} chars): ${summary.summary}`,
     );
@@ -104,17 +110,93 @@ export function parseExtractLocationsResponse(
     return null;
   }
 
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(jsonStr);
-    return ExtractedLocationsSchema.parse(parsed);
+    parsed = JSON.parse(jsonStr);
   } catch (parseError) {
     recorder.error(
       `Failed to parse extract locations response: ${formatIngestErrorText(parseError)}`,
     );
-    const summary = truncateIngestPayload(responseText, MAX_INGEST_ERROR_LENGTH);
+    const summary = truncateIngestPayload(
+      responseText,
+      MAX_INGEST_ERROR_LENGTH,
+    );
     recorder.error(
       `Full AI response (${summary.originalLength} chars): ${summary.summary}`,
     );
     return null;
   }
+
+  // Try full schema parse first
+  const result = ExtractedLocationsSchema.safeParse(parsed);
+  if (result.success) {
+    return result.data;
+  }
+
+  // If root is not an object, cannot recover
+  if (!parsed || typeof parsed !== "object") {
+    recorder.error("Extract locations response is not an object");
+    return null;
+  }
+
+  // Attempt to filter/validate arrays individually
+  // Use correct item schema for each array
+  const arrays = [
+    {
+      key: "pins",
+      itemSchema: ExtractedLocationsSchema.shape.pins.removeDefault().element,
+    },
+    {
+      key: "streets",
+      itemSchema:
+        ExtractedLocationsSchema.shape.streets.removeDefault().element,
+    },
+    {
+      key: "cadastralProperties",
+      itemSchema:
+        ExtractedLocationsSchema.shape.cadastralProperties.removeDefault()
+          .element,
+    },
+    {
+      key: "busStops",
+      itemSchema:
+        ExtractedLocationsSchema.shape.busStops.removeDefault().element,
+    },
+  ];
+
+  // Use Record<string, unknown> for filtered
+  const filtered: Record<string, unknown> = { ...parsed };
+  for (const { key, itemSchema } of arrays) {
+    if (Array.isArray((parsed as Record<string, unknown>)[key])) {
+      filtered[key] = (
+        (parsed as Record<string, unknown>)[key] as unknown[]
+      ).filter((item, idx) => {
+        const itemResult = itemSchema.safeParse(item);
+        if (!itemResult.success) {
+          recorder.error(
+            `Invalid ${key} item at index ${idx}: ${formatIngestErrorText(itemResult.error)}`,
+          );
+          return false;
+        }
+        return true;
+      });
+    }
+  }
+
+  // Try parsing again with filtered arrays
+  const filteredResult = ExtractedLocationsSchema.safeParse(filtered);
+  if (filteredResult.success) {
+    recorder.error(
+      "Partial extract locations result: some items were filtered due to schema errors",
+    );
+    return filteredResult.data;
+  }
+  recorder.error(
+    `Failed to parse extract locations response after filtering: ${formatIngestErrorText(filteredResult.error)}`,
+  );
+  const summary = truncateIngestPayload(responseText, MAX_INGEST_ERROR_LENGTH);
+  recorder.error(
+    `Full AI response (${summary.originalLength} chars): ${summary.summary}`,
+  );
+  return null;
 }

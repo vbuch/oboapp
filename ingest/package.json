@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:integration": "vitest run --testPathPattern integration",
+    "test": "vitest --exclude=**/*.integration.test.ts",
+    "test:run": "vitest run --exclude=**/*.integration.test.ts",
+    "test:integration": "vitest run --no-exclude lib/ai-pipeline.integration.test.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "crawl": "tsx crawl",
