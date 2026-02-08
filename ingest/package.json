@@ -5,12 +5,12 @@
   "scripts": {
     "test": "vitest",
     "test:run": "vitest run",
+    "test:integration": "vitest run --testPathPattern integration",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "crawl": "tsx crawl",
     "ingest": "tsx ingest",
     "notify": "tsx notify",
-
     "sources:clean": "tsx sources-clean",
     "gtfs-stops": "tsx ingest gtfs-stops",
     "pipeline:emergent": "tsx pipeline --emergent",

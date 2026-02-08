@@ -152,3 +152,17 @@ Messages appear as red map features (points, lines, polygons). Clicking shows de
 ## Configuration
 
 `MESSAGE_RELEVANCE_DAYS` (default: 7) - Number of days messages remain visible after `timespanEnd`. Server restart required for changes.
+
+## Testing
+
+The three-stage AI pipeline (Filter & Split, Categorize, Extract Locations) is validated with integration tests that call the live Gemini API. See `ingest/lib/ai-pipeline.integration.test.ts`.
+
+These tests verify end-to-end pipeline behavior with 5 source fixtures covering:
+
+- Irrelevant message detection (job postings filtered out)
+- Simple single-message scenarios (parking restrictions)
+- Multiple locations in one message (sidewalk repairs across multiple street sections)
+- Multiple timespans (film shooting at different locations on different dates)
+- Complex messages (bus rerouting with street closures and multiple bus stop codes)
+
+To run: `cd ingest && npm run test:integration` (requires `GOOGLE_AI_API_KEY` in `.env.local`).

@@ -27,8 +27,8 @@ If you identify a recurring pattern or developer preference:
 **Every implementation plan must end with:**
 
 1. **DRY Extraction:** Identify and extract duplicate patterns.
-2. **Unit Tests:** Write Vitest tests for all functional units (parsers, transformers).
-3. **Validation:** Run `npm run test:run` and fix failures.
+2. **Unit Tests:** Write Vitest tests for all functional units (parsers, transformers). For AI pipeline changes, update integration tests in `ingest/lib/ai-pipeline.integration.test.ts`.
+3. **Validation:** Run `npm run test:run` and fix failures. For AI changes, also run `npm run test:integration` if API credentials are configured.
 4. **Documentation:** Update `README.md` and `AGENTS.md` as needed.
 
 ---
