@@ -71,8 +71,12 @@ export async function GET(request: Request) {
             id: doc.id,
             text: data.text,
             markdownText: data.markdownText,
-            addresses: data.addresses ? JSON.parse(data.addresses) : [],
-            geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
+            addresses: data.addresses
+              ? safeJsonParse(data.addresses, [], "addresses")
+              : [],
+            geoJson: data.geoJson
+              ? safeJsonParse(data.geoJson, undefined, "geoJson")
+              : undefined,
             crawledAt: data.crawledAt
               ? convertTimestamp(data.crawledAt)
               : undefined,
