@@ -305,9 +305,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
           "markdownText": {
             "type": "string",
           },
-          "normalizedText": {
-            "type": "string",
-          },
           "pins": {
             "items": {
               "properties": {
@@ -355,6 +352,9 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
               "type": "object",
             },
             "type": "array",
+          },
+          "plainText": {
+            "type": "string",
           },
           "responsibleEntity": {
             "type": "string",
@@ -744,9 +744,6 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 "markdownText": {
                   "type": "string",
                 },
-                "normalizedText": {
-                  "type": "string",
-                },
                 "pins": {
                   "items": {
                     "properties": {
@@ -794,6 +791,9 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                     "type": "object",
                   },
                   "type": "array",
+                },
+                "plainText": {
+                  "type": "string",
                 },
                 "responsibleEntity": {
                   "type": "string",
