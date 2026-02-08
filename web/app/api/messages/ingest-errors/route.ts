@@ -97,9 +97,10 @@ export async function GET(request: Request) {
             busStops: data.busStops,
             // Internal-only fields
             process: Array.isArray(data.process) ? data.process : undefined,
-            ingestErrors: Array.isArray(data.ingestErrors)
-              ? data.ingestErrors
-              : undefined,
+            ingestErrors:
+              typeof data.ingestErrors === "string"
+                ? JSON.parse(data.ingestErrors)
+                : data.ingestErrors,
           });
         }
       });
