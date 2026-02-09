@@ -36,12 +36,24 @@ export const MessageSchema = z.object({
 
 export type Message = z.infer<typeof MessageSchema>;
 
-const ProcessStepSchema = z.object({
+// Seed script pattern: stores full result data
+const ProcessStepWithResultSchema = z.object({
   step: z.string(),
-  result: z.any().optional(),
-  timestamp: z.string().optional(),
-  summary: z.any().optional(),
+  result: z.any(),
 });
+
+// Audit pattern: stores minimal metadata for process tracking
+const ProcessStepWithAuditSchema = z.object({
+  step: z.string(),
+  timestamp: z.string(),
+  summary: z.any(),
+});
+
+// Union type for both patterns
+const ProcessStepSchema = z.union([
+  ProcessStepWithResultSchema,
+  ProcessStepWithAuditSchema,
+]);
 
 /**
  * InternalMessageSchema - extends MessageSchema with internal-only fields
