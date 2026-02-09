@@ -104,31 +104,31 @@ export async function geocodeIntersectionsForStreets(
   const houseNumberEndpoints = new Map<string, string>(); // endpoint -> street name
 
   streets.forEach((street) => {
-    // "from" endpoint - skip if already geocoded
-    if (preGeocodedMap?.has(street.from)) {
-      // Already geocoded, skip
-    } else if (hasHouseNumber(street.from)) {
-      // Track street context for house-number endpoints to avoid ambiguous queries
-      houseNumberEndpoints.set(street.from, street.street);
-    } else {
-      const fromIntersection = `${street.street} ∩ ${street.from}`;
-      if (!intersectionSet.has(fromIntersection)) {
-        intersectionSet.add(fromIntersection);
-        intersections.push(fromIntersection);
+    // "from" endpoint - only process if not already geocoded
+    if (!preGeocodedMap?.has(street.from)) {
+      if (hasHouseNumber(street.from)) {
+        // Track street context for house-number endpoints to avoid ambiguous queries
+        houseNumberEndpoints.set(street.from, street.street);
+      } else {
+        const fromIntersection = `${street.street} ∩ ${street.from}`;
+        if (!intersectionSet.has(fromIntersection)) {
+          intersectionSet.add(fromIntersection);
+          intersections.push(fromIntersection);
+        }
       }
     }
 
-    // "to" endpoint - skip if already geocoded
-    if (preGeocodedMap?.has(street.to)) {
-      // Already geocoded, skip
-    } else if (hasHouseNumber(street.to)) {
-      // Track street context for house-number endpoints to avoid ambiguous queries
-      houseNumberEndpoints.set(street.to, street.street);
-    } else {
-      const toIntersection = `${street.street} ∩ ${street.to}`;
-      if (!intersectionSet.has(toIntersection)) {
-        intersectionSet.add(toIntersection);
-        intersections.push(toIntersection);
+    // "to" endpoint - only process if not already geocoded
+    if (!preGeocodedMap?.has(street.to)) {
+      if (hasHouseNumber(street.to)) {
+        // Track street context for house-number endpoints to avoid ambiguous queries
+        houseNumberEndpoints.set(street.to, street.street);
+      } else {
+        const toIntersection = `${street.street} ∩ ${street.to}`;
+        if (!intersectionSet.has(toIntersection)) {
+          intersectionSet.add(toIntersection);
+          intersections.push(toIntersection);
+        }
       }
     }
   });
