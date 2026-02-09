@@ -27,6 +27,7 @@ describe("YSM OpenAPI", () => {
           {
             id: "msg-1",
             text: "Test message",
+            markdownText: "Test",
             addresses: [
               {
                 originalText: "ул. Тест 1",
@@ -35,19 +36,16 @@ describe("YSM OpenAPI", () => {
                 geoJson: { type: "Point", coordinates: [23.3, 42.7] },
               },
             ],
-            extractedData: {
-              responsibleEntity: "Test",
-              pins: [
-                {
-                  address: "ул. Тест 1",
-                  timespans: [
-                    { start: "01.01.2025 08:00", end: "01.01.2025 18:00" },
-                  ],
-                },
-              ],
-              streets: [],
-              markdownText: "Test",
-            },
+            responsibleEntity: "Test",
+            pins: [
+              {
+                address: "ул. Тест 1",
+                timespans: [
+                  { start: "01.01.2025 08:00", end: "01.01.2025 18:00" },
+                ],
+              },
+            ],
+            streets: [],
             geoJson: {
               type: "FeatureCollection",
               features: [
