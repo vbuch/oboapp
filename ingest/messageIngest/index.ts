@@ -317,7 +317,25 @@ async function processWithAIPipeline(
 
     totalRelevant++;
 
-    // Step 2: Categorize
+    // Guard: If AI says relevant but returns empty plainText, treat as error
+    // This prevents downstream issues where categorize(), extractLocations(),
+    // and processSingleMessage() would receive empty strings while the stored
+    // message uses the fallback (messageText = filteredMessage.plainText || text).
+    // Empty plainText with isRelevant=true is an AI inconsistency that should be flagged.
+    if (!filteredMessage.plainText || filteredMessage.plainText.trim() === "") {
+      ingestErrors.error(
+        "Filter returned isRelevant=true but empty plainText (AI inconsistency)",
+      );
+      const message = await finalizeFailedMessage(
+        storedMessageId,
+        messageText,
+        ingestErrors,
+      );
+      messages.push(message);
+      continue;
+    }
+
+    // Step 2: Categorize (using plainText which is now guaranteed non-empty)
     const categorizationResult = await categorize(
       filteredMessage.plainText,
       ingestErrors,
