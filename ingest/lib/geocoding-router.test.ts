@@ -1,4 +1,23 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// Mock Firebase-dependent imports to avoid initialization errors
+vi.mock("./gtfs-geocoding-service", () => ({
+  geocodeBusStops: vi.fn(),
+}));
+
+vi.mock("./geocoding-service", () => ({
+  geocodeAddresses: vi.fn(),
+}));
+
+vi.mock("./overpass-geocoding-service", () => ({
+  overpassGeocodeAddresses: vi.fn(),
+  overpassGeocodeIntersections: vi.fn(),
+}));
+
+vi.mock("./cadastre-geocoding-service", () => ({
+  geocodeCadastralProperties: vi.fn(),
+}));
+
 import { hasHouseNumber } from "./geocoding-router";
 
 describe("hasHouseNumber", () => {
