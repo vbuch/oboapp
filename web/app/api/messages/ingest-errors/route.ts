@@ -125,7 +125,7 @@ export async function GET(request: Request) {
               : typeof data.ingestErrors === "string"
                 ? safeJsonParse<IngestError[]>(
                     data.ingestErrors,
-                    [],
+                    undefined,
                     "ingestErrors",
                     jsonValidators.array,
                   )
