@@ -1,8 +1,8 @@
 [
   {
-    "plainText": "Irrelevant content that does not match any infrastructure disruption patterns.",
+    "plainText": "",
     "isOneOfMany": false,
-    "isInformative": false,
+"isInformative": false,
     "isRelevant": false,
     "responsibleEntity": "",
     "markdownText": ""
