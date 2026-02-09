@@ -38,7 +38,9 @@ export type Message = z.infer<typeof MessageSchema>;
 
 const ProcessStepSchema = z.object({
   step: z.string(),
-  result: z.any(),
+  result: z.any().optional(),
+  timestamp: z.string().optional(),
+  summary: z.any().optional(),
 });
 
 /**
