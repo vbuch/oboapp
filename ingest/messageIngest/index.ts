@@ -161,9 +161,7 @@ async function processSingleMessage(
   if (extractedLocations) {
     const geocodingResult = await performGeocodingWithErrorHandling(
       messageId,
-      text,
       extractedLocations,
-      addresses,
       ingestErrors,
     );
 
@@ -619,11 +617,12 @@ async function performGeocoding(extractedLocations: ExtractedLocations) {
  */
 async function performGeocodingWithErrorHandling(
   messageId: string,
-  text: string,
   extractedLocations: ExtractedLocations,
-  addresses: Address[],
   ingestErrors: IngestErrorCollector,
-): Promise<{ addresses: Address[]; geoJson: GeoJSONFeatureCollection | null } | null> {
+): Promise<{
+  addresses: Address[];
+  geoJson: GeoJSONFeatureCollection | null;
+} | null> {
   try {
     const geocodingResult = await performGeocoding(extractedLocations);
     const filteredAddresses = await filterAndStoreAddresses(
@@ -650,8 +649,7 @@ async function performGeocodingWithErrorHandling(
 
     return { addresses: filteredAddresses, geoJson };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     ingestErrors.exception(`Ingestion exception: ${errorMessage}`);
     await finalizeMessageWithoutGeoJson(messageId, ingestErrors);
     return null;
@@ -745,11 +743,7 @@ async function handlePrecomputedGeoJsonData(
   }
 
   const { validateAndFallback } = await import("@/lib/timespan-utils");
-  const validated = validateAndFallback(
-    timespanStart,
-    timespanEnd,
-    crawledAt,
-  );
+  const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
 
   await updateMessage(messageId, {
     markdownText,

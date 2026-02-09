@@ -46,10 +46,12 @@ export interface MessageConfig {
   readonly street: string;
   readonly text: string;
   readonly extractedData?: {
+    readonly withSpecificAddress?: boolean;
+    readonly busStops?: readonly string[];
+    readonly cityWide?: boolean;
     readonly pins?: readonly Pin[];
     readonly streets?: readonly StreetSection[];
     readonly cadastralProperties?: readonly CadastralProperty[];
-    readonly busStops?: readonly string[];
   };
 }
 

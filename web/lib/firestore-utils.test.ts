@@ -220,28 +220,28 @@ describe("safeJsonParse", () => {
   });
 
   describe("non-string input handling (already-deserialized values)", () => {
-    it("should return null as-is when no validator provided", () => {
+    it("should return null as-is", () => {
       const result = safeJsonParse<{ key: string } | null>(null);
 
       expect(result).toBe(null);
       expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it("should return undefined as-is when no validator provided", () => {
+    it("should return undefined as-is", () => {
       const result = safeJsonParse<{ key: string } | undefined>(undefined);
 
       expect(result).toBe(undefined);
       expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it("should return number as-is when no validator provided", () => {
+    it("should return number as-is", () => {
       const result = safeJsonParse<number>(42);
 
       expect(result).toBe(42);
       expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it("should return object as-is when no validator provided", () => {
+    it("should return object as-is", () => {
       const input = { name: "test" };
       const result = safeJsonParse<{ name: string }>(input);
 
@@ -249,7 +249,7 @@ describe("safeJsonParse", () => {
       expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it("should return array as-is when no validator provided", () => {
+    it("should return array as-is", () => {
       const input = [1, 2, 3];
       const result = safeJsonParse<number[]>(input);
 
@@ -257,7 +257,7 @@ describe("safeJsonParse", () => {
       expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it("should return boolean as-is when no validator provided", () => {
+    it("should return boolean as-is", () => {
       const result = safeJsonParse<boolean>(true);
 
       expect(result).toBe(true);

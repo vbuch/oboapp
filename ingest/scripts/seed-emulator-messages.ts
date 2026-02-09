@@ -70,13 +70,10 @@ function createMessageData(
       baseData.busStops = config.extractedData.busStops;
     if (config.extractedData.cadastralProperties)
       baseData.cadastralProperties = config.extractedData.cadastralProperties;
-
-    // Handle ExtractedLocations fields that may not be in fixture (safe access with type assertion)
-    const extracted = config.extractedData as Record<string, unknown>;
-    if (typeof extracted.cityWide === "boolean")
-      baseData.cityWide = extracted.cityWide;
-    if (typeof extracted.withSpecificAddress === "boolean")
-      baseData.withSpecificAddress = extracted.withSpecificAddress;
+    if (typeof config.extractedData.cityWide === "boolean")
+      baseData.cityWide = config.extractedData.cityWide;
+    if (typeof config.extractedData.withSpecificAddress === "boolean")
+      baseData.withSpecificAddress = config.extractedData.withSpecificAddress;
   }
 
   return baseData;
