@@ -51,29 +51,50 @@ export function convertTimestamp(timestamp: unknown): string {
 }
 
 /**
- * Type guard function for validating parsed JSON values
+ * Runtime shape validator: returns true if the value passes the check.
+ * The return type of safeJsonParse is determined by its generic parameter T,
+ * not by the validator — the validator is a runtime guard only.
  */
-export type JsonValidator<T> = (value: unknown) => value is T;
+export type JsonValidator = (value: unknown) => boolean;
 
 /**
- * Built-in validators for common JSON types
- * Note: These perform runtime shape checking. The type predicates are
- * necessarily broad (unknown[] vs specific types) but provide runtime safety.
+ * Built-in validators for common JSON shapes.
+ * These perform shallow runtime checks only — they verify the outer container
+ * type (array vs object) but do NOT validate element/property types.
+ *
+ * For element-level validation, use `arrayOf()` or write a custom validator.
  */
 export const jsonValidators = {
-  /** Validates that value is an array */
-  array: <T extends unknown[]>(value: unknown): value is T =>
-    Array.isArray(value),
+  /** Validates that value is an array (does NOT validate element types) */
+  array: (value: unknown): value is unknown[] => Array.isArray(value),
 
-  /** Validates that value is a non-null object (excludes arrays) */
-  object: <T extends Record<string, unknown>>(value: unknown): value is T =>
+  /** Validates that value is a non-null object, excludes arrays (does NOT validate properties) */
+  object: (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value),
 
   /** Validates that value is a non-null object or array */
-  objectOrArray: <T extends Record<string, unknown> | unknown[]>(
+  objectOrArray: (
     value: unknown,
-  ): value is T => typeof value === "object" && value !== null,
+  ): value is Record<string, unknown> | unknown[] =>
+    typeof value === "object" && value !== null,
 } as const;
+
+/**
+ * Creates a validator that checks each element of an array against an item validator.
+ * Use when you need runtime validation of array element shapes.
+ *
+ * @example
+ * ```typescript
+ * const isAddress = (v: unknown): v is Address =>
+ *   typeof v === "object" && v !== null && "street" in v;
+ *
+ * safeJsonParse<Address[]>(data, [], "addresses", arrayOf(isAddress));
+ * ```
+ */
+export function arrayOf(itemValidator: JsonValidator): JsonValidator {
+  return (value: unknown): boolean =>
+    Array.isArray(value) && value.every(itemValidator);
+}
 
 /**
  * Safely parse JSON string with fallback to default value
@@ -87,7 +108,8 @@ export const jsonValidators = {
  * **Type Safety:**
  * ⚠️ Without a validator, type T is not guaranteed at runtime. JSON.parse can return any value
  * (e.g., parsing "null" returns null, parsing '"string"' returns string, not T).
- * For type-safe results, always provide a validator from jsonValidators or implement a custom one.
+ * Built-in jsonValidators perform shallow shape checks only (array vs object).
+ * For element-level validation, use `arrayOf()` or write a custom validator.
  *
  * @param value - Value to parse (string, or already-deserialized object/array)
  * @param fallback - Value to return if parsing/validation fails (default: undefined)
@@ -101,7 +123,7 @@ export function safeJsonParse<T>(
   value: unknown,
   fallback: T,
   context?: string,
-  validator?: JsonValidator<T>,
+  validator?: JsonValidator,
 ): T;
 
 // Overload 2: With undefined or no fallback - requires explicit generic, returns T | undefined
@@ -109,7 +131,7 @@ export function safeJsonParse<T>(
   value: unknown,
   fallback?: undefined,
   context?: string,
-  validator?: JsonValidator<T>,
+  validator?: JsonValidator,
 ): T | undefined;
 
 // Implementation (signature must be compatible with both overloads)
@@ -117,7 +139,7 @@ export function safeJsonParse<T>(
   value: unknown,
   fallback?: T,
   context?: string,
-  validator?: JsonValidator<T>,
+  validator?: JsonValidator,
 ): T | undefined {
   // Handle non-string inputs (already deserialized, e.g., from Firestore)
   if (typeof value !== "string") {

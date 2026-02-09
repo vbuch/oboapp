@@ -67,6 +67,27 @@ export async function getStreetGeometry(
 }
 
 /**
+ * Build a Nominatim query for a house-number endpoint.
+ *
+ * If the endpoint already contains the street name (e.g. "ул. Оборище №111"),
+ * the street name is NOT prefixed again to avoid duplicated queries like
+ * "ул. Оборище ул. Оборище №111".
+ */
+export function buildHouseNumberQuery(
+  streetName: string,
+  endpoint: string,
+): string {
+  const trimmedStreet = streetName.trim();
+  const trimmedEndpoint = endpoint.trim();
+
+  if (trimmedEndpoint.toLowerCase().includes(trimmedStreet.toLowerCase())) {
+    return trimmedEndpoint;
+  }
+
+  return `${trimmedStreet} ${trimmedEndpoint}`;
+}
+
+/**
  * Check if a street endpoint contains a house/building number.
  *
  * Detects patterns like:
@@ -154,7 +175,7 @@ export async function geocodeIntersectionsForStreets(
     const queryToEndpoint = new Map<string, string>();
     const endpointQueries = Array.from(houseNumberEndpoints.entries()).map(
       ([endpoint, streetName]) => {
-        const query = `${streetName} ${endpoint}`;
+        const query = buildHouseNumberQuery(streetName, endpoint);
         queryToEndpoint.set(query, endpoint);
         return query;
       },

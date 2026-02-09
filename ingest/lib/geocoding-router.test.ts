@@ -18,7 +18,55 @@ vi.mock("./cadastre-geocoding-service", () => ({
   geocodeCadastralProperties: vi.fn(),
 }));
 
-import { hasHouseNumber } from "./geocoding-router";
+import { hasHouseNumber, buildHouseNumberQuery } from "./geocoding-router";
+
+describe("buildHouseNumberQuery", () => {
+  it("prefixes street name when endpoint is just a number", () => {
+    expect(buildHouseNumberQuery("ул. Оборище", "111")).toBe("ул. Оборище 111");
+  });
+
+  it("prefixes street name when endpoint is №-style number", () => {
+    expect(buildHouseNumberQuery("ул. Оборище", "№111")).toBe(
+      "ул. Оборище №111",
+    );
+  });
+
+  it("does NOT prefix when endpoint already contains the street name", () => {
+    expect(buildHouseNumberQuery("ул. Оборище", "ул. Оборище №111")).toBe(
+      "ул. Оборище №111",
+    );
+  });
+
+  it("does NOT prefix when endpoint contains the street name with extra context", () => {
+    expect(
+      buildHouseNumberQuery("ул. Оборище", "сградата на ул. Оборище №111"),
+    ).toBe("сградата на ул. Оборище №111");
+  });
+
+  it("handles case-insensitive matching", () => {
+    expect(buildHouseNumberQuery("Ул. Оборище", "ул. оборище №111")).toBe(
+      "ул. оборище №111",
+    );
+  });
+
+  it("trims whitespace from both inputs", () => {
+    expect(buildHouseNumberQuery("  ул. Оборище  ", "  №111  ")).toBe(
+      "ул. Оборище №111",
+    );
+  });
+
+  it("prefixes when endpoint has a different street name", () => {
+    expect(buildHouseNumberQuery("ул. Оборище", "ул. Граф Игнатиев №5")).toBe(
+      "ул. Оборище ул. Граф Игнатиев №5",
+    );
+  });
+
+  it("prefixes for бл.-style endpoint", () => {
+    expect(buildHouseNumberQuery("ул. Витоша", "бл. 38")).toBe(
+      "ул. Витоша бл. 38",
+    );
+  });
+});
 
 describe("hasHouseNumber", () => {
   describe("should detect house numbers with №", () => {
@@ -164,13 +212,10 @@ describe("hasHouseNumber", () => {
 
 describe("geocodeIntersectionsForStreets", () => {
   it("should skip endpoints already in preGeocodedMap", async () => {
-    const { geocodeIntersectionsForStreets } = await import(
-      "./geocoding-router"
-    );
-    const {
-      overpassGeocodeIntersections,
-      overpassGeocodeAddresses,
-    } = await import("./overpass-geocoding-service");
+    const { geocodeIntersectionsForStreets } =
+      await import("./geocoding-router");
+    const { overpassGeocodeIntersections, overpassGeocodeAddresses } =
+      await import("./overpass-geocoding-service");
 
     // Mock the geocoding services to track calls
     const mockOverpassGeocodeIntersections = vi.mocked(
@@ -188,9 +233,7 @@ describe("geocodeIntersectionsForStreets", () => {
     ]);
     mockOverpassGeocodeAddresses.mockResolvedValue([]);
 
-    const preGeocodedMap = new Map([
-      ["Cross A", { lat: 42.0, lng: 23.0 }],
-    ]);
+    const preGeocodedMap = new Map([["Cross A", { lat: 42.0, lng: 23.0 }]]);
 
     const streets = [
       {
@@ -201,7 +244,10 @@ describe("geocodeIntersectionsForStreets", () => {
       },
     ];
 
-    const result = await geocodeIntersectionsForStreets(streets, preGeocodedMap);
+    const result = await geocodeIntersectionsForStreets(
+      streets,
+      preGeocodedMap,
+    );
 
     // Should only call with Cross B intersection, not Cross A
     expect(mockOverpassGeocodeIntersections).toHaveBeenCalledWith([
@@ -215,13 +261,10 @@ describe("geocodeIntersectionsForStreets", () => {
   });
 
   it("should work without preGeocodedMap (backward compatibility)", async () => {
-    const { geocodeIntersectionsForStreets } = await import(
-      "./geocoding-router"
-    );
-    const {
-      overpassGeocodeIntersections,
-      overpassGeocodeAddresses,
-    } = await import("./overpass-geocoding-service");
+    const { geocodeIntersectionsForStreets } =
+      await import("./geocoding-router");
+    const { overpassGeocodeIntersections, overpassGeocodeAddresses } =
+      await import("./overpass-geocoding-service");
 
     const mockOverpassGeocodeIntersections = vi.mocked(
       overpassGeocodeIntersections,

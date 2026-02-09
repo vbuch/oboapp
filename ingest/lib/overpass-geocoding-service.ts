@@ -175,7 +175,10 @@ async function getStreetGeometryFromOverpass(
             throw error;
           }
 
-          logger.info("Server error from Overpass instance", { hostname: new URL(instance).hostname, errorMsg });
+          logger.info("Server error from Overpass instance", {
+            hostname: new URL(instance).hostname,
+            errorMsg,
+          });
           lastError = error;
           clearTimeout(timeoutId);
           continue;
@@ -185,7 +188,9 @@ async function getStreetGeometryFromOverpass(
         const text = await response.text();
         try {
           responseData = JSON.parse(text);
-          logger.info("Response from Overpass instance", { hostname: new URL(instance).hostname });
+          logger.info("Response from Overpass instance", {
+            hostname: new URL(instance).hostname,
+          });
         } catch (parseError) {
           // Failed to parse JSON - might be XML error with HTTP 200
           const errorMsg = parseOverpassError(text);
@@ -211,9 +216,14 @@ async function getStreetGeometryFromOverpass(
 
         // Server-side error or timeout - try next instance
         if (err.name === "AbortError") {
-          logger.info("Timeout with Overpass instance", { hostname: new URL(instance).hostname });
+          logger.info("Timeout with Overpass instance", {
+            hostname: new URL(instance).hostname,
+          });
         } else {
-          logger.info("Failed with Overpass instance", { hostname: new URL(instance).hostname, error: err.message });
+          logger.info("Failed with Overpass instance", {
+            hostname: new URL(instance).hostname,
+            error: err.message,
+          });
         }
         lastError = err;
         continue; // Try next instance
@@ -272,7 +282,11 @@ async function getStreetGeometryFromOverpass(
       return null;
     }
 
-    logger.info("Found way segments", { segments: lineStrings.length, totalPoints, streetName });
+    logger.info("Found way segments", {
+      segments: lineStrings.length,
+      totalPoints,
+      streetName,
+    });
 
     const multiLineString: Feature<MultiLineString> = {
       type: "Feature",
@@ -285,7 +299,10 @@ async function getStreetGeometryFromOverpass(
 
     return multiLineString;
   } catch (error) {
-    logger.error("Error fetching from Overpass", { streetName, error: error instanceof Error ? error.message : String(error) });
+    logger.error("Error fetching from Overpass", {
+      streetName,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -302,11 +319,16 @@ function findGeometricIntersection(
     const intersections = turf.lineIntersect(street1, street2);
 
     if (intersections.features.length > 0) {
-      logger.info("Found exact intersections", { count: intersections.features.length });
+      logger.info("Found exact intersections", {
+        count: intersections.features.length,
+      });
 
       if (intersections.features.length === 1) {
         const point = intersections.features[0].geometry.coordinates;
-        logger.info("Intersection found", { lat: point[1].toFixed(6), lng: point[0].toFixed(6) });
+        logger.info("Intersection found", {
+          lat: point[1].toFixed(6),
+          lng: point[0].toFixed(6),
+        });
         return { lng: point[0], lat: point[1] };
       }
 
@@ -332,7 +354,11 @@ function findGeometricIntersection(
       intersectionsWithDistance.sort((a, b) => a.distance - b.distance);
 
       const best = intersectionsWithDistance[0];
-      logger.info("Using closest intersection to Sofia center", { lat: best.lat.toFixed(6), lng: best.lng.toFixed(6), distanceMeters: best.distance.toFixed(0) });
+      logger.info("Using closest intersection to Sofia center", {
+        lat: best.lat.toFixed(6),
+        lng: best.lng.toFixed(6),
+        distanceMeters: best.distance.toFixed(0),
+      });
 
       return { lng: best.lng, lat: best.lat };
     }
@@ -391,14 +417,22 @@ function findGeometricIntersection(
 
     if (bestPoint && minDistance < 200) {
       // 200m threshold
-      logger.info("Found nearest point", { lat: bestPoint.lat.toFixed(6), lng: bestPoint.lng.toFixed(6), gapMeters: minDistance.toFixed(1) });
+      logger.info("Found nearest point", {
+        lat: bestPoint.lat.toFixed(6),
+        lng: bestPoint.lng.toFixed(6),
+        gapMeters: minDistance.toFixed(1),
+      });
       return bestPoint;
     }
 
-    logger.warn("Streets too far apart, no valid intersection", { distanceMeters: minDistance.toFixed(1) });
+    logger.warn("Streets too far apart, no valid intersection", {
+      distanceMeters: minDistance.toFixed(1),
+    });
     return null;
   } catch (error) {
-    logger.error("Error finding intersection", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("Error finding intersection", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -458,7 +492,10 @@ export async function overpassGeocodeIntersections(
         logger.error("Could not find intersection");
       }
     } catch (error) {
-      logger.error("Error processing intersection", { intersection, error: error instanceof Error ? error.message : String(error) });
+      logger.error("Error processing intersection", {
+        intersection,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     // Rate limiting between requests
@@ -490,7 +527,11 @@ export async function getStreetSectionGeometry(
   }
 
   try {
-    logger.info("Finding street section", { streetName, from: { lat: startCoords.lat, lng: startCoords.lng }, to: { lat: endCoords.lat, lng: endCoords.lng } });
+    logger.info("Finding street section", {
+      streetName,
+      from: { lat: startCoords.lat, lng: startCoords.lng },
+      to: { lat: endCoords.lat, lng: endCoords.lng },
+    });
 
     // Get full street geometry
     const streetGeometry = await getStreetGeometryFromOverpass(streetName);
@@ -595,7 +636,9 @@ export async function getStreetSectionGeometry(
       }
 
       if (nearestSegmentIdx === -1 || nearestDist > 50) {
-        logger.info("Cannot connect segments", { minDistanceMeters: nearestDist });
+        logger.info("Cannot connect segments", {
+          minDistanceMeters: nearestDist,
+        });
         break;
       }
 
@@ -637,14 +680,19 @@ export async function getStreetSectionGeometry(
     }
 
     if (connectedPath.length >= 2) {
-      logger.info("Connected segments into path", { segments: usedSegments.size, points: connectedPath.length });
+      logger.info("Connected segments into path", {
+        segments: usedSegments.size,
+        points: connectedPath.length,
+      });
       return connectedPath;
     }
 
     logger.info("Could not extract street section");
     return null;
   } catch (error) {
-    logger.error("Error getting street section geometry", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("Error getting street section geometry", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -652,12 +700,13 @@ export async function getStreetSectionGeometry(
 /**
  * Normalize an address for Nominatim queries
  * - Strips "№" symbol (Nominatim doesn't understand it)
- * - Removes building/block prefixes
+ * - Removes building/block prefixes (бл., блок, сградата на/с)
  * - Normalizes whitespace
  */
 function normalizeAddressForNominatim(address: string): string {
   return address
     .replace(/№\s*/g, "")
+    .replace(/\bбл(?:ок)?\.?\s*/gi, "")
     .replace(/сградата\s+(на|с)\s*/gi, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -708,10 +757,18 @@ async function geocodeAddressWithNominatim(
 
         // Validate coordinates are within Sofia
         if (isWithinSofia(coords.lat, coords.lng)) {
-          logger.info("Nominatim geocoded address", { address, lat: coords.lat, lng: coords.lng });
+          logger.info("Nominatim geocoded address", {
+            address,
+            lat: coords.lat,
+            lng: coords.lng,
+          });
           return coords;
         }
-        logger.warn("Nominatim result outside Sofia", { address, lat: coords.lat, lng: coords.lng });
+        logger.warn("Nominatim result outside Sofia", {
+          address,
+          lat: coords.lat,
+          lng: coords.lng,
+        });
       }
 
       logger.warn("All Nominatim results outside Sofia", { address });
@@ -721,7 +778,10 @@ async function geocodeAddressWithNominatim(
     logger.warn("Nominatim found no results", { address });
     return null;
   } catch (error) {
-    logger.error("Error geocoding with Nominatim", { address, error: error instanceof Error ? error.message : String(error) });
+    logger.error("Error geocoding with Nominatim", {
+      address,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -782,7 +842,10 @@ export async function overpassGeocodeAddresses(
         logger.warn("Failed to geocode address", { address });
       }
     } catch (error) {
-      logger.error("Error geocoding address", { address, error: error instanceof Error ? error.message : String(error) });
+      logger.error("Error geocoding address", {
+        address,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     // Rate limiting

@@ -3,6 +3,7 @@ import {
   convertTimestamp,
   safeJsonParse,
   jsonValidators,
+  arrayOf,
 } from "./firestore-utils";
 
 describe("convertTimestamp", () => {
@@ -587,5 +588,118 @@ describe("safeJsonParse", () => {
       expect(result).toBe("string");
       expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("arrayOf", () => {
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("should accept an array where all elements pass the item validator", () => {
+    const isNumber = (v: unknown): boolean => typeof v === "number";
+    const result = safeJsonParse<number[]>(
+      "[1, 2, 3]",
+      [],
+      "numbers",
+      arrayOf(isNumber),
+    );
+
+    expect(result).toEqual([1, 2, 3]);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
+  it("should reject an array where some elements fail the item validator", () => {
+    const isNumber = (v: unknown): boolean => typeof v === "number";
+    const result = safeJsonParse<number[]>(
+      '[1, "two", 3]',
+      [],
+      "numbers",
+      arrayOf(isNumber),
+    );
+
+    expect(result).toEqual([]);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("JSON validation failed (numbers)"),
+    );
+  });
+
+  it("should reject non-array values", () => {
+    const isNumber = (v: unknown): boolean => typeof v === "number";
+    const result = safeJsonParse<number[]>(
+      '{"not": "array"}',
+      [],
+      "numbers",
+      arrayOf(isNumber),
+    );
+
+    expect(result).toEqual([]);
+    expect(consoleWarnSpy).toHaveBeenCalled();
+  });
+
+  it("should accept empty arrays", () => {
+    const isNumber = (v: unknown): boolean => typeof v === "number";
+    const result = safeJsonParse<number[]>(
+      "[]",
+      [999],
+      "numbers",
+      arrayOf(isNumber),
+    );
+
+    expect(result).toEqual([]);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
+  it("should work with object element validators", () => {
+    type Item = { id: number; name: string };
+    const isItem = (v: unknown): boolean =>
+      typeof v === "object" &&
+      v !== null &&
+      "id" in v &&
+      "name" in v &&
+      typeof (v as Item).id === "number" &&
+      typeof (v as Item).name === "string";
+
+    const validJson = '[{"id": 1, "name": "A"}, {"id": 2, "name": "B"}]';
+    const invalidJson = '[{"id": 1, "name": "A"}, {"id": "bad"}]';
+
+    const validResult = safeJsonParse<Item[]>(
+      validJson,
+      [],
+      "items",
+      arrayOf(isItem),
+    );
+    const invalidResult = safeJsonParse<Item[]>(
+      invalidJson,
+      [],
+      "items",
+      arrayOf(isItem),
+    );
+
+    expect(validResult).toEqual([
+      { id: 1, name: "A" },
+      { id: 2, name: "B" },
+    ]);
+    expect(invalidResult).toEqual([]);
+  });
+
+  it("should work with already-deserialized arrays", () => {
+    const isString = (v: unknown): boolean => typeof v === "string";
+    const input = ["a", "b", "c"];
+    const result = safeJsonParse<string[]>(
+      input,
+      [],
+      "strings",
+      arrayOf(isString),
+    );
+
+    expect(result).toBe(input);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
   });
 });
