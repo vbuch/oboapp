@@ -115,10 +115,12 @@ export async function GET(request: Request) {
               : undefined,
             cityWide: data.cityWide || false,
             responsibleEntity: data.responsibleEntity,
-            pins: data.pins,
-            streets: data.streets,
-            cadastralProperties: data.cadastralProperties,
-            busStops: data.busStops,
+            pins: Array.isArray(data.pins) ? data.pins : undefined,
+            streets: Array.isArray(data.streets) ? data.streets : undefined,
+            cadastralProperties: Array.isArray(data.cadastralProperties)
+              ? data.cadastralProperties
+              : undefined,
+            busStops: Array.isArray(data.busStops) ? data.busStops : undefined,
             // Internal-only fields
             process: Array.isArray(data.process) ? data.process : undefined,
             ingestErrors: Array.isArray(data.ingestErrors)

@@ -603,7 +603,7 @@ describe("arrayOf", () => {
   });
 
   it("should accept an array where all elements pass the item validator", () => {
-    const isNumber = (v: unknown): boolean => typeof v === "number";
+    const isNumber = (v: unknown): v is number => typeof v === "number";
     const result = safeJsonParse<number[]>(
       "[1, 2, 3]",
       [],
@@ -616,7 +616,7 @@ describe("arrayOf", () => {
   });
 
   it("should reject an array where some elements fail the item validator", () => {
-    const isNumber = (v: unknown): boolean => typeof v === "number";
+    const isNumber = (v: unknown): v is number => typeof v === "number";
     const result = safeJsonParse<number[]>(
       '[1, "two", 3]',
       [],
@@ -631,7 +631,7 @@ describe("arrayOf", () => {
   });
 
   it("should reject non-array values", () => {
-    const isNumber = (v: unknown): boolean => typeof v === "number";
+    const isNumber = (v: unknown): v is number => typeof v === "number";
     const result = safeJsonParse<number[]>(
       '{"not": "array"}',
       [],
@@ -644,7 +644,7 @@ describe("arrayOf", () => {
   });
 
   it("should accept empty arrays", () => {
-    const isNumber = (v: unknown): boolean => typeof v === "number";
+    const isNumber = (v: unknown): v is number => typeof v === "number";
     const result = safeJsonParse<number[]>(
       "[]",
       [999],
@@ -658,7 +658,7 @@ describe("arrayOf", () => {
 
   it("should work with object element validators", () => {
     type Item = { id: number; name: string };
-    const isItem = (v: unknown): boolean =>
+    const isItem = (v: unknown): v is Item =>
       typeof v === "object" &&
       v !== null &&
       "id" in v &&
@@ -690,7 +690,7 @@ describe("arrayOf", () => {
   });
 
   it("should work with already-deserialized arrays", () => {
-    const isString = (v: unknown): boolean => typeof v === "string";
+    const isString = (v: unknown): v is string => typeof v === "string";
     const input = ["a", "b", "c"];
     const result = safeJsonParse<string[]>(
       input,

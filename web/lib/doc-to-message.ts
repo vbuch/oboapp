@@ -3,7 +3,23 @@ import {
   convertTimestamp,
   safeJsonParse,
   jsonValidators,
+  arrayOf,
 } from "@/lib/firestore-utils";
+
+/**
+ * Runtime validator for Address shape
+ * Validates that an object has all required Address properties
+ */
+function isAddress(value: unknown): value is Address {
+  if (typeof value !== "object" || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.originalText === "string" &&
+    typeof obj.formattedAddress === "string" &&
+    typeof obj.coordinates === "object" &&
+    obj.coordinates !== null
+  );
+}
 
 /**
  * Convert Firestore document to public Message object
@@ -25,7 +41,7 @@ export function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
           data.addresses,
           [],
           "addresses",
-          jsonValidators.array,
+          arrayOf(isAddress),
         )
       : [],
     geoJson: data.geoJson

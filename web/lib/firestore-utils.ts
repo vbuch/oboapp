@@ -51,11 +51,17 @@ export function convertTimestamp(timestamp: unknown): string {
 }
 
 /**
- * Runtime shape validator: returns true if the value passes the check.
- * The return type of safeJsonParse is determined by its generic parameter T,
- * not by the validator — the validator is a runtime guard only.
+ * Runtime shape validator with type predicate for compile-time type safety.
+ * Generic parameter T ensures the validator actually validates the type being claimed.
  */
-export type JsonValidator = (value: unknown) => boolean;
+export type JsonValidator<T> = (value: unknown) => value is T;
+
+/**
+ * Shape validator function - accepts any validator that returns boolean.
+ * This is used internally to allow shallow validators (array/object checks)
+ * while still supporting strict type predicates for custom validators.
+ */
+type ShapeValidator = (value: unknown) => boolean;
 
 /**
  * Built-in validators for common JSON shapes.
@@ -91,8 +97,8 @@ export const jsonValidators = {
  * safeJsonParse<Address[]>(data, [], "addresses", arrayOf(isAddress));
  * ```
  */
-export function arrayOf(itemValidator: JsonValidator): JsonValidator {
-  return (value: unknown): boolean =>
+export function arrayOf<T>(itemValidator: JsonValidator<T>): JsonValidator<T[]> {
+  return (value: unknown): value is T[] =>
     Array.isArray(value) && value.every(itemValidator);
 }
 
@@ -123,7 +129,7 @@ export function safeJsonParse<T>(
   value: unknown,
   fallback: T,
   context?: string,
-  validator?: JsonValidator,
+  validator?: ShapeValidator,
 ): T;
 
 // Overload 2: With undefined or no fallback - requires explicit generic, returns T | undefined
@@ -131,7 +137,7 @@ export function safeJsonParse<T>(
   value: unknown,
   fallback?: undefined,
   context?: string,
-  validator?: JsonValidator,
+  validator?: ShapeValidator,
 ): T | undefined;
 
 // Implementation (signature must be compatible with both overloads)
@@ -139,7 +145,7 @@ export function safeJsonParse<T>(
   value: unknown,
   fallback?: T,
   context?: string,
-  validator?: JsonValidator,
+  validator?: ShapeValidator,
 ): T | undefined {
   // Handle non-string inputs (already deserialized, e.g., from Firestore)
   if (typeof value !== "string") {
