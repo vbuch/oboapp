@@ -105,6 +105,7 @@ export async function geocodeIntersectionsForStreets(
 
   streets.forEach((street) => {
     // "from" endpoint - only process if not already geocoded
+    // Skip endpoints already in preGeocodedMap to avoid redundant Overpass/Nominatim API calls
     if (!preGeocodedMap?.has(street.from)) {
       if (hasHouseNumber(street.from)) {
         // Track street context for house-number endpoints to avoid ambiguous queries
@@ -119,6 +120,7 @@ export async function geocodeIntersectionsForStreets(
     }
 
     // "to" endpoint - only process if not already geocoded
+    // Skip endpoints already in preGeocodedMap to avoid redundant Overpass/Nominatim API calls
     if (!preGeocodedMap?.has(street.to)) {
       if (hasHouseNumber(street.to)) {
         // Track street context for house-number endpoints to avoid ambiguous queries
