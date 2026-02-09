@@ -101,10 +101,11 @@ export async function GET(request: Request) {
             busStops: data.busStops,
             // Internal-only fields
             process: Array.isArray(data.process) ? data.process : undefined,
-            ingestErrors:
-              typeof data.ingestErrors === "string"
+            ingestErrors: Array.isArray(data.ingestErrors)
+              ? data.ingestErrors
+              : typeof data.ingestErrors === "string"
                 ? safeJsonParse(data.ingestErrors, [], "ingestErrors")
-                : data.ingestErrors,
+                : undefined,
           });
         }
       });
