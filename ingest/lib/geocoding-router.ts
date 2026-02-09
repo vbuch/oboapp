@@ -89,9 +89,12 @@ export function hasHouseNumber(endpoint: string): boolean {
 
 /**
  * Geocode street section intersections using Overpass
+ * @param streets - Street sections to geocode
+ * @param preGeocodedMap - Optional map of already geocoded endpoints to skip
  */
 export async function geocodeIntersectionsForStreets(
   streets: StreetSection[],
+  preGeocodedMap?: Map<string, Coordinates>,
 ): Promise<Map<string, Coordinates>> {
   const geocodedMap = new Map<string, Coordinates>();
 
@@ -101,27 +104,33 @@ export async function geocodeIntersectionsForStreets(
   const houseNumberEndpoints = new Map<string, string>(); // endpoint -> street name
 
   streets.forEach((street) => {
-    // "from" endpoint
-    if (hasHouseNumber(street.from)) {
-      // Track street context for house-number endpoints to avoid ambiguous queries
-      houseNumberEndpoints.set(street.from, street.street);
-    } else {
-      const fromIntersection = `${street.street} ∩ ${street.from}`;
-      if (!intersectionSet.has(fromIntersection)) {
-        intersectionSet.add(fromIntersection);
-        intersections.push(fromIntersection);
+    // "from" endpoint - only process if not already geocoded
+    // Skip endpoints already in preGeocodedMap to avoid redundant Overpass/Nominatim API calls
+    if (!preGeocodedMap?.has(street.from)) {
+      if (hasHouseNumber(street.from)) {
+        // Track street context for house-number endpoints to avoid ambiguous queries
+        houseNumberEndpoints.set(street.from, street.street);
+      } else {
+        const fromIntersection = `${street.street} ∩ ${street.from}`;
+        if (!intersectionSet.has(fromIntersection)) {
+          intersectionSet.add(fromIntersection);
+          intersections.push(fromIntersection);
+        }
       }
     }
 
-    // "to" endpoint
-    if (hasHouseNumber(street.to)) {
-      // Track street context for house-number endpoints to avoid ambiguous queries
-      houseNumberEndpoints.set(street.to, street.street);
-    } else {
-      const toIntersection = `${street.street} ∩ ${street.to}`;
-      if (!intersectionSet.has(toIntersection)) {
-        intersectionSet.add(toIntersection);
-        intersections.push(toIntersection);
+    // "to" endpoint - only process if not already geocoded
+    // Skip endpoints already in preGeocodedMap to avoid redundant Overpass/Nominatim API calls
+    if (!preGeocodedMap?.has(street.to)) {
+      if (hasHouseNumber(street.to)) {
+        // Track street context for house-number endpoints to avoid ambiguous queries
+        houseNumberEndpoints.set(street.to, street.street);
+      } else {
+        const toIntersection = `${street.street} ∩ ${street.to}`;
+        if (!intersectionSet.has(toIntersection)) {
+          intersectionSet.add(toIntersection);
+          intersections.push(toIntersection);
+        }
       }
     }
   });
