@@ -79,11 +79,21 @@ export const jsonValidators = {
  * Safely parse JSON string with fallback to default value
  * Logs parse failures to help track data quality issues
  *
- * @param value - Value to parse (must be a string)
- * @param fallback - Value to return if parsing fails (default: undefined)
+ * **For non-string inputs:**
+ * If the input is already an object/array (e.g., from Firestore), the function treats it
+ * as already-deserialized. If a validator is provided, the value is validated; otherwise,
+ * it's returned as-is without warnings.
+ *
+ * **Type Safety:**
+ * ⚠️ Without a validator, type T is not guaranteed at runtime. JSON.parse can return any value
+ * (e.g., parsing "null" returns null, parsing '"string"' returns string, not T).
+ * For type-safe results, always provide a validator from jsonValidators or implement a custom one.
+ *
+ * @param value - Value to parse (string, or already-deserialized object/array)
+ * @param fallback - Value to return if parsing/validation fails (default: undefined)
  * @param context - Optional context for logging (e.g., field name)
- * @param validator - Optional type guard to validate parsed value
- * @returns Parsed JSON or fallback value
+ * @param validator - Optional type guard to validate parsed value (RECOMMENDED for type safety)
+ * @returns Parsed/validated value or fallback
  */
 
 // Overload 1: With concrete fallback value - returns T (inferred from fallback)
@@ -109,15 +119,24 @@ export function safeJsonParse<T>(
   context?: string,
   validator?: JsonValidator<T>,
 ): T | undefined {
-  // Type guard: ensure value is a string
+  // Handle non-string inputs (already deserialized, e.g., from Firestore)
   if (typeof value !== "string") {
-    const contextMsg = context ? ` (${context})` : "";
-    console.warn(
-      `Expected string for JSON parsing${contextMsg}, got ${typeof value}`,
-    );
-    return fallback;
+    // If validator provided, validate the already-deserialized value
+    if (validator) {
+      if (!validator(value)) {
+        const contextMsg = context ? ` (${context})` : "";
+        console.warn(
+          `Validation failed for non-string value${contextMsg}: value does not match expected type`,
+        );
+        return fallback;
+      }
+    }
+
+    // No validator or validation passed - treat as already-parsed
+    return value as T;
   }
 
+  // String input - attempt to parse
   try {
     const parsed = JSON.parse(value);
 

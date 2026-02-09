@@ -223,100 +223,142 @@ describe("safeJsonParse", () => {
     });
   });
 
-  describe("non-string input handling", () => {
-    it("should return undefined fallback for null input when no fallback provided", () => {
-      const result = safeJsonParse<{ key: string }>(null);
+  describe("non-string input handling (already-deserialized values)", () => {
+    it("should return null as-is when no validator provided", () => {
+      const result = safeJsonParse<{ key: string } | null>(null);
 
-      expect(result).toBeUndefined();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Expected string for JSON parsing, got object"),
-      );
+      expect(result).toBe(null);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it("should return provided fallback for null input", () => {
-      const fallback = { default: "value" };
-      const result = safeJsonParse(null, fallback);
+    it("should return undefined as-is when no validator provided", () => {
+      const result = safeJsonParse<{ key: string } | undefined>(undefined);
 
-      expect(result).toEqual({ default: "value" });
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Expected string for JSON parsing, got object"),
-      );
+      expect(result).toBe(undefined);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it("should return fallback for undefined input", () => {
-      const fallback = { empty: true };
-      const result = safeJsonParse(undefined, fallback);
+    it("should return number as-is when no validator provided", () => {
+      const result = safeJsonParse<number>(42);
 
-      expect(result).toEqual({ empty: true });
+      expect(result).toBe(42);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should return object as-is when no validator provided", () => {
+      const input = { name: "test" };
+      const result = safeJsonParse<{ name: string }>(input);
+
+      expect(result).toBe(input);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should return array as-is when no validator provided", () => {
+      const input = [1, 2, 3];
+      const result = safeJsonParse<number[]>(input);
+
+      expect(result).toBe(input);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should return boolean as-is when no validator provided", () => {
+      const result = safeJsonParse<boolean>(true);
+
+      expect(result).toBe(true);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should validate non-string array and accept valid arrays", () => {
+      const input = ["a", "b", "c"];
+      const result = safeJsonParse<string[]>(
+        input,
+        [],
+        "alreadyArray",
+        jsonValidators.array,
+      );
+
+      expect(result).toBe(input);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should validate non-string array and reject null with fallback", () => {
+      const fallback: string[] = [];
+      const result = safeJsonParse<string[]>(
+        null,
+        fallback,
+        "nullInput",
+        jsonValidators.array,
+      );
+
+      expect(result).toBe(fallback);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          "Expected string for JSON parsing, got undefined",
+          "Validation failed for non-string value (nullInput): value does not match expected type",
         ),
       );
     });
 
-    it("should return fallback for number input", () => {
-      const fallback = { type: "number" };
-      const result = safeJsonParse(42, fallback);
-
-      expect(result).toEqual({ type: "number" });
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Expected string for JSON parsing, got number"),
+    it("should validate non-string object and accept valid objects", () => {
+      const input = { key: "value" };
+      const result = safeJsonParse<Record<string, unknown>>(
+        input,
+        {},
+        "alreadyObject",
+        jsonValidators.object,
       );
+
+      expect(result).toBe(input);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it("should return fallback for object input", () => {
-      const fallback = { type: "object" };
-      const result = safeJsonParse({ name: "test" }, fallback);
-
-      expect(result).toEqual({ type: "object" });
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Expected string for JSON parsing, got object"),
+    it("should validate non-string object and reject arrays with fallback", () => {
+      const input = [1, 2, 3];
+      const fallback = { default: true };
+      const result = safeJsonParse<Record<string, unknown>>(
+        input,
+        fallback,
+        "arrayNotObject",
+        jsonValidators.object,
       );
-    });
 
-    it("should return fallback for array input", () => {
-      const fallback = { type: "array" };
-      const result = safeJsonParse([1, 2, 3], fallback);
-
-      expect(result).toEqual({ type: "array" });
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Expected string for JSON parsing, got object"),
-      );
-    });
-
-    it("should return fallback for boolean input", () => {
-      const fallback = { type: "boolean" };
-      const result = safeJsonParse(true, fallback);
-
-      expect(result).toEqual({ type: "boolean" });
+      expect(result).toBe(fallback);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          "Expected string for JSON parsing, got boolean",
+          "Validation failed for non-string value (arrayNotObject): value does not match expected type",
         ),
       );
     });
 
-    it("should include context in log for non-string input", () => {
+    it("should include context in validation failure log", () => {
       const fallback = { error: true };
-      const context = "configField";
-      const result = safeJsonParse(123, fallback, context);
+      const context = "firestoreField";
+      const result = safeJsonParse(
+        123,
+        fallback,
+        context,
+        jsonValidators.object,
+      );
 
-      expect(result).toEqual({ error: true });
+      expect(result).toBe(fallback);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          "Expected string for JSON parsing (configField), got number",
+          "Validation failed for non-string value (firestoreField): value does not match expected type",
         ),
       );
     });
 
-    it("should log without context for non-string input when none provided", () => {
+    it("should work without context in validation failure log", () => {
       const fallback = null;
-      const result = safeJsonParse(false, fallback);
+      const result = safeJsonParse(
+        false,
+        fallback,
+        undefined,
+        jsonValidators.array,
+      );
 
       expect(result).toBe(null);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Expected string for JSON parsing, got boolean",
+        "Validation failed for non-string value: value does not match expected type",
       );
     });
   });
