@@ -54,20 +54,20 @@ describe("hasHouseNumber", () => {
   });
 
   describe("should detect building references with 'сградата'", () => {
-    it("detects сградата", () => {
+    it("detects сградата with number", () => {
       expect(hasHouseNumber("сградата с № 65")).toBe(true);
     });
 
-    it("detects СГРАДАТА (case insensitive)", () => {
-      expect(hasHouseNumber("СГРАДАТА")).toBe(true);
+    it("rejects СГРАДАТА without number", () => {
+      expect(hasHouseNumber("СГРАДАТА")).toBe(false);
     });
 
-    it("detects сГрАдАтА (mixed case)", () => {
-      expect(hasHouseNumber("сГрАдАтА")).toBe(true);
+    it("rejects сГрАдАтА without number", () => {
+      expect(hasHouseNumber("сГрАдАтА")).toBe(false);
     });
 
-    it("detects сградата alone", () => {
-      expect(hasHouseNumber("сградата")).toBe(true);
+    it("rejects сградата alone", () => {
+      expect(hasHouseNumber("сградата")).toBe(false);
     });
   });
 
@@ -108,6 +108,42 @@ describe("hasHouseNumber", () => {
 
     it("rejects сграда (typo - missing 'та')", () => {
       expect(hasHouseNumber("сграда")).toBe(false);
+    });
+  });
+
+  describe("should detect standalone numbers", () => {
+    it("detects plain number", () => {
+      expect(hasHouseNumber("14")).toBe(true);
+    });
+
+    it("detects number with Cyrillic letter suffix", () => {
+      expect(hasHouseNumber("25Б")).toBe(true);
+    });
+
+    it("detects number with lowercase letter suffix", () => {
+      expect(hasHouseNumber("3а")).toBe(true);
+    });
+
+    it("rejects number with Latin letter (not standalone address)", () => {
+      expect(hasHouseNumber("14A")).toBe(false);
+    });
+  });
+
+  describe("should detect 'номер' pattern", () => {
+    it("detects номер with number", () => {
+      expect(hasHouseNumber("номер 3")).toBe(true);
+    });
+
+    it("detects номер with larger number", () => {
+      expect(hasHouseNumber("номер 15")).toBe(true);
+    });
+
+    it("detects НОМЕР (case insensitive)", () => {
+      expect(hasHouseNumber("НОМЕР 7")).toBe(true);
+    });
+
+    it("rejects номер without number", () => {
+      expect(hasHouseNumber("номер")).toBe(false);
     });
   });
 

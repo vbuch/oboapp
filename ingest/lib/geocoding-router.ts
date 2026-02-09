@@ -67,11 +67,24 @@ export async function getStreetGeometry(
 }
 
 /**
- * Check if a street endpoint contains a house/building number
- * (e.g., "ул. Оборище №111", "бл. №38", "сградата с № 65")
+ * Check if a street endpoint contains a house/building number.
+ *
+ * Detects patterns like:
+ * - № symbol + number: "№111", "№ 38", "с № 65"
+ * - Block + number: "бл. 38", "бл.5"
+ * - Word "номер" + number: "номер 3", "номер 15"
+ * - Standalone number: "14", "25Б" (endpoint is just digits + optional letter)
  */
 export function hasHouseNumber(endpoint: string): boolean {
-  return /№\s*\d+|бл\.\s*\d+|сградата/i.test(endpoint);
+  const trimmed = endpoint.trim();
+
+  // Check if endpoint is standalone number with optional Cyrillic letter suffix
+  if (/^\d+[А-Яа-я]?$/i.test(trimmed)) {
+    return true;
+  }
+
+  // Check for explicit number markers
+  return /№\s*\d+|бл\.\s*\d+|номер\s+\d+/i.test(endpoint);
 }
 
 /**
