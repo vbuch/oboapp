@@ -1,4 +1,4 @@
-import type { Message } from "@/lib/types";
+import type { Message, GeoJSONFeatureCollection, Address } from "@/lib/types";
 import { convertTimestamp, safeJsonParse } from "@/lib/firestore-utils";
 
 /**
@@ -16,10 +16,14 @@ export function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
     id: doc.id,
     text: data.text,
     addresses: data.addresses
-      ? safeJsonParse(data.addresses, [], "addresses")
+      ? safeJsonParse<Address[]>(data.addresses, [], "addresses")
       : [],
     geoJson: data.geoJson
-      ? safeJsonParse(data.geoJson, undefined, "geoJson")
+      ? safeJsonParse<GeoJSONFeatureCollection>(
+          data.geoJson,
+          undefined,
+          "geoJson",
+        )
       : undefined,
     crawledAt: data.crawledAt ? convertTimestamp(data.crawledAt) : undefined,
     createdAt: convertTimestamp(data.createdAt),

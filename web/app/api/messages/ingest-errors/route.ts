@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { InternalMessage } from "@/lib/types";
+import {
+  InternalMessage,
+  GeoJSONFeatureCollection,
+  Address,
+  IngestError,
+} from "@/lib/types";
 import { convertTimestamp, safeJsonParse } from "@/lib/firestore-utils";
 import admin from "firebase-admin";
 
@@ -72,10 +77,14 @@ export async function GET(request: Request) {
             text: data.text,
             markdownText: data.markdownText,
             addresses: data.addresses
-              ? safeJsonParse(data.addresses, [], "addresses")
+              ? safeJsonParse<Address[]>(data.addresses, [], "addresses")
               : [],
             geoJson: data.geoJson
-              ? safeJsonParse(data.geoJson, undefined, "geoJson")
+              ? safeJsonParse<GeoJSONFeatureCollection>(
+                  data.geoJson,
+                  undefined,
+                  "geoJson",
+                )
               : undefined,
             crawledAt: data.crawledAt
               ? convertTimestamp(data.crawledAt)
@@ -104,7 +113,11 @@ export async function GET(request: Request) {
             ingestErrors: Array.isArray(data.ingestErrors)
               ? data.ingestErrors
               : typeof data.ingestErrors === "string"
-                ? safeJsonParse(data.ingestErrors, [], "ingestErrors")
+                ? safeJsonParse<IngestError[]>(
+                    data.ingestErrors,
+                    [],
+                    "ingestErrors",
+                  )
                 : undefined,
           });
         }

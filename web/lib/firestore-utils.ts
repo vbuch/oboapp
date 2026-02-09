@@ -54,16 +54,41 @@ export function convertTimestamp(timestamp: unknown): string {
  * Safely parse JSON string with fallback to default value
  * Logs parse failures to help track data quality issues
  *
- * @param value - String to parse
+ * @param value - Value to parse (must be a string)
  * @param fallback - Value to return if parsing fails (default: undefined)
  * @param context - Optional context for logging (e.g., field name)
  * @returns Parsed JSON or fallback value
  */
-export function safeJsonParse<T = unknown>(
-  value: string,
+
+// Overload 1: With concrete fallback value - returns T (inferred from fallback)
+export function safeJsonParse<T>(
+  value: unknown,
+  fallback: T,
+  context?: string,
+): T;
+
+// Overload 2: With undefined or no fallback - requires explicit generic, returns T | undefined
+export function safeJsonParse<T>(
+  value: unknown,
+  fallback?: undefined,
+  context?: string,
+): T | undefined;
+
+// Implementation (signature must be compatible with both overloads)
+export function safeJsonParse<T>(
+  value: unknown,
   fallback?: T,
   context?: string,
 ): T | undefined {
+  // Type guard: ensure value is a string
+  if (typeof value !== "string") {
+    const contextMsg = context ? ` (${context})` : "";
+    console.warn(
+      `Expected string for JSON parsing${contextMsg}, got ${typeof value}`,
+    );
+    return fallback;
+  }
+
   try {
     return JSON.parse(value) as T;
   } catch (error) {

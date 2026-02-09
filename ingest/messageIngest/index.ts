@@ -273,8 +273,8 @@ async function processWithAIPipeline(
     const filteredMessage = filterResult[i];
     const messageIndex = i + 1;
 
-    // Use originalText from the split (per-message text), or plainText if relevant
-    // Fall back to full source text only if both are empty (backwards compatibility)
+    // Use plainText from the split (per-message text)
+    // Fall back to full source text only if empty (backwards compatibility)
     const messageText = filteredMessage.plainText || text;
 
     // Store incoming message
@@ -350,6 +350,23 @@ async function processWithAIPipeline(
       filteredMessage.plainText,
       ingestErrors,
     );
+
+    // If extraction failed, finalize without GeoJSON
+    if (!extractedLocations) {
+      logger.info("Location extraction failed, finalizing without GeoJSON");
+      await updateMessage(storedMessageId, {
+        finalizedAt: new Date(),
+        ...buildIngestErrorsField(ingestErrors),
+      });
+      const message = await buildFinalMessageResponse(
+        storedMessageId,
+        messageText,
+        [],
+        null,
+      );
+      messages.push(message);
+      continue;
+    }
 
     const crawledAt = ensureCrawledAtDate(options.crawledAt);
     await storeExtractedLocations(

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { Message } from "@/lib/types";
+import { Message, GeoJSONFeatureCollection, Address } from "@/lib/types";
 import { convertTimestamp, safeJsonParse } from "@/lib/firestore-utils";
 
 const DEFAULT_RELEVANCE_DAYS = 7;
@@ -47,10 +47,14 @@ export async function GET(request: Request) {
         text: data.text,
         markdownText: data.markdownText,
         addresses: data.addresses
-          ? safeJsonParse(data.addresses, [], "addresses")
+          ? safeJsonParse<Address[]>(data.addresses, [], "addresses")
           : [],
         geoJson: data.geoJson
-          ? safeJsonParse(data.geoJson, undefined, "geoJson")
+          ? safeJsonParse<GeoJSONFeatureCollection>(
+              data.geoJson,
+              undefined,
+              "geoJson",
+            )
           : undefined,
         createdAt: convertTimestamp(data.createdAt),
         crawledAt: data.crawledAt
