@@ -1,25 +1,5 @@
 import type { Message, GeoJSONFeatureCollection, Address } from "@/lib/types";
-import {
-  convertTimestamp,
-  safeJsonParse,
-  jsonValidators,
-  arrayOf,
-} from "@/lib/firestore-utils";
-
-/**
- * Runtime validator for Address shape
- * Validates that an object has all required Address properties
- */
-function isAddress(value: unknown): value is Address {
-  if (typeof value !== "object" || value === null) return false;
-  const obj = value as Record<string, unknown>;
-  return (
-    typeof obj.originalText === "string" &&
-    typeof obj.formattedAddress === "string" &&
-    typeof obj.coordinates === "object" &&
-    obj.coordinates !== null
-  );
-}
+import { convertTimestamp, safeJsonParse } from "@/lib/firestore-utils";
 
 /**
  * Convert Firestore document to public Message object
@@ -37,19 +17,13 @@ export function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
     text: data.text,
     plainText: data.plainText,
     addresses: data.addresses
-      ? safeJsonParse<Address[]>(
-          data.addresses,
-          [],
-          "addresses",
-          arrayOf(isAddress),
-        )
+      ? safeJsonParse<Address[]>(data.addresses, [], "addresses")
       : [],
     geoJson: data.geoJson
       ? safeJsonParse<GeoJSONFeatureCollection>(
           data.geoJson,
           undefined,
           "geoJson",
-          jsonValidators.object,
         )
       : undefined,
     crawledAt: data.crawledAt ? convertTimestamp(data.crawledAt) : undefined,
