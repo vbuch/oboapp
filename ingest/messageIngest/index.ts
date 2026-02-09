@@ -432,6 +432,64 @@ function logFilteredMessageInfo(
 }
 
 /**
+ * Create minimal audit record for filter & split step
+ */
+function createFilterSplitAudit(filteredMessage: FilteredMessage) {
+  return {
+    step: "filterAndSplit",
+    timestamp: new Date().toISOString(),
+    summary: {
+      isRelevant: filteredMessage.isRelevant,
+      isOneOfMany: filteredMessage.isOneOfMany,
+      responsibleEntity: filteredMessage.responsibleEntity || "(none)",
+      textLength: filteredMessage.plainText.length,
+    },
+  };
+}
+
+/**
+ * Create minimal audit record for categorization step
+ */
+function createCategorizationAudit(categories: string[]) {
+  return {
+    step: "categorize",
+    timestamp: new Date().toISOString(),
+    summary: {
+      categoriesCount: categories.length,
+      categories: categories,
+    },
+  };
+}
+
+/**
+ * Create minimal audit record for location extraction step
+ */
+function createLocationExtractionAudit(
+  extractedLocations: ExtractedLocations | null,
+) {
+  if (!extractedLocations) {
+    return {
+      step: "extractLocations",
+      timestamp: new Date().toISOString(),
+      summary: { success: false },
+    };
+  }
+
+  return {
+    step: "extractLocations",
+    timestamp: new Date().toISOString(),
+    summary: {
+      success: true,
+      pinsCount: extractedLocations.pins?.length || 0,
+      streetsCount: extractedLocations.streets?.length || 0,
+      cadastralCount: extractedLocations.cadastralProperties?.length || 0,
+      busStopsCount: extractedLocations.busStops?.length || 0,
+      cityWide: extractedLocations.cityWide || false,
+    },
+  };
+}
+
+/**
  * Store filter & split result (Step 1)
  */
 async function storeFilteredMessage(
@@ -445,7 +503,7 @@ async function storeFilteredMessage(
     responsibleEntity: filteredMessage.responsibleEntity,
     isOneOfMany: filteredMessage.isOneOfMany,
     isInformative: filteredMessage.isInformative,
-    process: [{ step: "filterAndSplit", result: filteredMessage }],
+    process: [createFilterSplitAudit(filteredMessage)],
   });
 }
 
@@ -459,10 +517,9 @@ async function storeCategorization(
   const { FieldValue } = await import("firebase-admin/firestore");
   await updateMessage(messageId, {
     categories: categorizationResult.categories,
-    process: FieldValue.arrayUnion({
-      step: "categorize",
-      result: categorizationResult,
-    }),
+    process: FieldValue.arrayUnion(
+      createCategorizationAudit(categorizationResult.categories),
+    ),
   });
 }
 
@@ -500,10 +557,9 @@ async function storeExtractedLocations(
     cityWide,
     timespanStart: validated.timespanStart,
     timespanEnd: validated.timespanEnd,
-    process: FieldValue.arrayUnion({
-      step: "extractLocations",
-      result: extractedLocations,
-    }),
+    process: FieldValue.arrayUnion(
+      createLocationExtractionAudit(extractedLocations),
+    ),
   });
 }
 
