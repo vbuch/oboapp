@@ -121,6 +121,11 @@ export function safeJsonParse<T>(
 ): T | undefined {
   // Handle non-string inputs (already deserialized, e.g., from Firestore)
   if (typeof value !== "string") {
+    // Return fallback for null/undefined to honor overload contract
+    if (value === null || value === undefined) {
+      return fallback;
+    }
+
     // If validator provided, validate the already-deserialized value
     if (validator) {
       if (!validator(value)) {
