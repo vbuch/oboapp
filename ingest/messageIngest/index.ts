@@ -136,12 +136,17 @@ async function processSingleMessage(
   extractedLocations: ExtractedLocations | null,
   ingestErrors: IngestErrorCollector,
 ): Promise<InternalMessage> {
+  const crawledAt = ensureCrawledAtDate(options.crawledAt);
+
+  // Early exit: No extracted locations and no precomputed GeoJSON
+  if (!precomputedGeoJson && !extractedLocations) {
+    return await finalizeFailedMessage(messageId, text, ingestErrors);
+  }
+
   let addresses: Address[] = [];
   let geoJson: GeoJSONFeatureCollection | null = precomputedGeoJson;
 
-  // Calculate crawledAt once for use in both branches
-  const crawledAt = ensureCrawledAtDate(options.crawledAt);
-
+  // Handle precomputed GeoJSON path
   if (precomputedGeoJson) {
     await handlePrecomputedGeoJsonData(
       messageId,
@@ -150,38 +155,25 @@ async function processSingleMessage(
       options.timespanEnd,
       crawledAt,
     );
-  } else if (extractedLocations) {
-    try {
-      const geocodingResult = await performGeocoding(extractedLocations);
-      addresses = await filterAndStoreAddresses(
-        messageId,
-        geocodingResult.addresses,
-        geocodingResult.preGeocodedMap,
-      );
+  }
 
-      // Identify geocoded bus stops for GeoJSON feature creation
-      const geocodedBusStops =
-        extractedLocations.busStops && extractedLocations.busStops.length > 0
-          ? addresses.filter((addr) => addr.originalText.startsWith("Спирка "))
-          : undefined;
+  // Handle extracted locations path (geocoding required)
+  if (extractedLocations) {
+    const geocodingResult = await performGeocodingWithErrorHandling(
+      messageId,
+      text,
+      extractedLocations,
+      addresses,
+      ingestErrors,
+    );
 
-      geoJson = await convertToGeoJson(
-        extractedLocations,
-        geocodingResult.preGeocodedMap,
-        geocodingResult.cadastralGeometries,
-        geocodedBusStops,
-        ingestErrors,
-      );
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      ingestErrors.exception(`Ingestion exception: ${errorMessage}`);
-      await finalizeMessageWithoutGeoJson(messageId, ingestErrors);
+    // Early exit: Geocoding failed
+    if (!geocodingResult) {
       return await buildFinalMessageResponse(messageId, text, addresses, null);
     }
-  } else {
-    // No extracted locations and no precomputed GeoJSON
-    return await finalizeFailedMessage(messageId, text, ingestErrors);
+
+    addresses = geocodingResult.addresses;
+    geoJson = geocodingResult.geoJson;
   }
 
   geoJson = await applyBoundaryFilteringIfNeeded(
@@ -341,26 +333,40 @@ async function processWithAIPipeline(
       ingestErrors,
     );
 
-    if (categorizationResult) {
-      await storeCategorization(storedMessageId, categorizationResult);
+    // Early exit: Categorization failed (API error or parse failure)
+    if (!categorizationResult) {
+      ingestErrors.error(
+        "Categorization failed (API error or parse failure), finalizing without extraction",
+      );
+      logger.error("Categorization failed, skipping location extraction", {
+        messageId: storedMessageId,
+      });
+      const message = await finalizeFailedMessage(
+        storedMessageId,
+        messageText,
+        ingestErrors,
+      );
+      messages.push(message);
+      continue;
+    }
 
-      // Zero categories -> finalize immediately
-      if (categorizationResult.categories.length === 0) {
-        logger.info("Message has zero categories, finalizing");
-        await updateMessage(storedMessageId, {
-          finalizedAt: new Date(),
-          ...buildIngestErrorsField(ingestErrors),
-        });
-        // Use messageText for human-readable fallback
-        const message = await buildFinalMessageResponse(
-          storedMessageId,
-          messageText,
-          [],
-          null,
-        );
-        messages.push(message);
-        continue;
-      }
+    await storeCategorization(storedMessageId, categorizationResult);
+
+    // Early exit: Zero categories -> finalize immediately
+    if (categorizationResult.categories.length === 0) {
+      logger.info("Message has zero categories, finalizing");
+      await updateMessage(storedMessageId, {
+        finalizedAt: new Date(),
+        ...buildIngestErrorsField(ingestErrors),
+      });
+      const message = await buildFinalMessageResponse(
+        storedMessageId,
+        messageText,
+        [],
+        null,
+      );
+      messages.push(message);
+      continue;
     }
 
     // Step 3: Extract Locations
@@ -609,6 +615,50 @@ async function performGeocoding(extractedLocations: ExtractedLocations) {
 }
 
 /**
+ * Perform geocoding with error handling for the main pipeline
+ */
+async function performGeocodingWithErrorHandling(
+  messageId: string,
+  text: string,
+  extractedLocations: ExtractedLocations,
+  addresses: Address[],
+  ingestErrors: IngestErrorCollector,
+): Promise<{ addresses: Address[]; geoJson: GeoJSONFeatureCollection | null } | null> {
+  try {
+    const geocodingResult = await performGeocoding(extractedLocations);
+    const filteredAddresses = await filterAndStoreAddresses(
+      messageId,
+      geocodingResult.addresses,
+      geocodingResult.preGeocodedMap,
+    );
+
+    // Identify geocoded bus stops for GeoJSON feature creation
+    const geocodedBusStops =
+      extractedLocations.busStops && extractedLocations.busStops.length > 0
+        ? filteredAddresses.filter((addr) =>
+            addr.originalText.startsWith("Спирка "),
+          )
+        : undefined;
+
+    const geoJson = await convertToGeoJson(
+      extractedLocations,
+      geocodingResult.preGeocodedMap,
+      geocodingResult.cadastralGeometries,
+      geocodedBusStops,
+      ingestErrors,
+    );
+
+    return { addresses: filteredAddresses, geoJson };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : String(error);
+    ingestErrors.exception(`Ingestion exception: ${errorMessage}`);
+    await finalizeMessageWithoutGeoJson(messageId, ingestErrors);
+    return null;
+  }
+}
+
+/**
  * Filter outliers and store valid addresses
  */
 async function filterAndStoreAddresses(
@@ -690,25 +740,26 @@ async function handlePrecomputedGeoJsonData(
   timespanEnd: Date | undefined,
   crawledAt: Date,
 ): Promise<void> {
-  const { validateAndFallback } = await import("@/lib/timespan-utils");
-
-  if (markdownText) {
-    const validated = validateAndFallback(
-      timespanStart,
-      timespanEnd,
-      crawledAt,
-    );
-
-    await updateMessage(messageId, {
-      markdownText,
-      responsibleEntity: "",
-      pins: [],
-      streets: [],
-      cadastralProperties: [],
-      timespanStart: validated.timespanStart,
-      timespanEnd: validated.timespanEnd,
-    });
+  if (!markdownText) {
+    return;
   }
+
+  const { validateAndFallback } = await import("@/lib/timespan-utils");
+  const validated = validateAndFallback(
+    timespanStart,
+    timespanEnd,
+    crawledAt,
+  );
+
+  await updateMessage(messageId, {
+    markdownText,
+    responsibleEntity: "",
+    pins: [],
+    streets: [],
+    cadastralProperties: [],
+    timespanStart: validated.timespanStart,
+    timespanEnd: validated.timespanEnd,
+  });
 }
 
 /**
@@ -744,15 +795,16 @@ async function finalizeMessageWithResults(
   geoJson: GeoJSONFeatureCollection | null,
   ingestErrors: IngestErrorCollector,
 ): Promise<void> {
-  if (geoJson) {
-    await updateMessage(messageId, {
-      geoJson,
-      finalizedAt: new Date(),
-      ...buildIngestErrorsField(ingestErrors),
-    });
-  } else {
+  if (!geoJson) {
     await finalizeMessageWithoutGeoJson(messageId, ingestErrors);
+    return;
   }
+
+  await updateMessage(messageId, {
+    geoJson,
+    finalizedAt: new Date(),
+    ...buildIngestErrorsField(ingestErrors),
+  });
 }
 
 async function finalizeMessageWithoutGeoJson(
