@@ -53,7 +53,7 @@ Prompt: [`prompts/filter-split.md`](../prompts/filter-split.md)
 - **Splitting** - A single source text may describe multiple independent disruptions; this step splits them into separate messages
 - **Relevance** - Each split message is marked as relevant or irrelevant
 - **Responsible Entity** - Extracts the organization responsible for the disruption
-- **Normalized Text** - Produces clean markdown text for display and downstream processing
+- **Text Normalization** - Produces `plainText` (normalized plain text) and `markdownText` (formatted markdown for display)
 - **Early Exit** - Irrelevant messages are finalized immediately and skip further processing
 
 ### 2. Categorize (AI-powered)
