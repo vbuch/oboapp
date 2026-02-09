@@ -700,16 +700,10 @@ export async function getStreetSectionGeometry(
 /**
  * Normalize an address for Nominatim queries
  * - Strips "№" symbol (Nominatim doesn't understand it)
- * - Removes building/block prefixes (бл., блок, сградата на/с)
  * - Normalizes whitespace
  */
 function normalizeAddressForNominatim(address: string): string {
-  return address
-    .replace(/№\s*/g, "")
-    .replace(/\bбл(?:ок)?\.?\s*/gi, "")
-    .replace(/сградата\s+(на|с)\s*/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return address.replace(/№\s*/g, "").replace(/\s+/g, " ").trim();
 }
 
 /**
