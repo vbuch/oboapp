@@ -129,8 +129,13 @@ export async function geocodeIntersectionsForStreets(
   // Geocode house-number endpoints directly via Nominatim
   if (houseNumberEndpoints.size > 0) {
     // Build specific queries with street context to avoid ambiguous results
+    const queryToEndpoint = new Map<string, string>();
     const endpointQueries = Array.from(houseNumberEndpoints.entries()).map(
-      ([endpoint, streetName]) => `${streetName} ${endpoint}`,
+      ([endpoint, streetName]) => {
+        const query = `${streetName} ${endpoint}`;
+        queryToEndpoint.set(query, endpoint);
+        return query;
+      },
     );
 
     logger.info("Geocoding house-number endpoints via Nominatim", {
@@ -139,11 +144,12 @@ export async function geocodeIntersectionsForStreets(
 
     const houseNumberGeocoded = await overpassGeocodeAddresses(endpointQueries);
 
-    // Store results under original endpoint keys (street.from/street.to)
-    const endpointKeys = Array.from(houseNumberEndpoints.keys());
-    houseNumberGeocoded.forEach((address, index) => {
-      const originalEndpoint = endpointKeys[index];
-      geocodedMap.set(originalEndpoint, address.coordinates);
+    // Match results by originalText to handle skipped failures
+    houseNumberGeocoded.forEach((address) => {
+      const originalEndpoint = queryToEndpoint.get(address.originalText);
+      if (originalEndpoint) {
+        geocodedMap.set(originalEndpoint, address.coordinates);
+      }
     });
   }
 
