@@ -89,9 +89,12 @@ export function hasHouseNumber(endpoint: string): boolean {
 
 /**
  * Geocode street section intersections using Overpass
+ * @param streets - Street sections to geocode
+ * @param preGeocodedMap - Optional map of already geocoded endpoints to skip
  */
 export async function geocodeIntersectionsForStreets(
   streets: StreetSection[],
+  preGeocodedMap?: Map<string, Coordinates>,
 ): Promise<Map<string, Coordinates>> {
   const geocodedMap = new Map<string, Coordinates>();
 
@@ -101,8 +104,10 @@ export async function geocodeIntersectionsForStreets(
   const houseNumberEndpoints = new Map<string, string>(); // endpoint -> street name
 
   streets.forEach((street) => {
-    // "from" endpoint
-    if (hasHouseNumber(street.from)) {
+    // "from" endpoint - skip if already geocoded
+    if (preGeocodedMap?.has(street.from)) {
+      // Already geocoded, skip
+    } else if (hasHouseNumber(street.from)) {
       // Track street context for house-number endpoints to avoid ambiguous queries
       houseNumberEndpoints.set(street.from, street.street);
     } else {
@@ -113,8 +118,10 @@ export async function geocodeIntersectionsForStreets(
       }
     }
 
-    // "to" endpoint
-    if (hasHouseNumber(street.to)) {
+    // "to" endpoint - skip if already geocoded
+    if (preGeocodedMap?.has(street.to)) {
+      // Already geocoded, skip
+    } else if (hasHouseNumber(street.to)) {
       // Track street context for house-number endpoints to avoid ambiguous queries
       houseNumberEndpoints.set(street.to, street.street);
     } else {

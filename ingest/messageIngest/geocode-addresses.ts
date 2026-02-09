@@ -194,6 +194,7 @@ export async function geocodeAddressesFromExtractedData(
     if (streetsNeedingGeocoding.length > 0) {
       const streetGeocodedMap = await geocodeIntersectionsForStreets(
         streetsNeedingGeocoding,
+        preGeocodedMap, // Pass the map to skip already geocoded endpoints
       );
 
       // Merge into preGeocodedMap and create Address objects

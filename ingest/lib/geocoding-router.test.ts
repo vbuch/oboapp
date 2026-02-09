@@ -161,3 +161,100 @@ describe("hasHouseNumber", () => {
     });
   });
 });
+
+describe("geocodeIntersectionsForStreets", () => {
+  it("should skip endpoints already in preGeocodedMap", async () => {
+    const { geocodeIntersectionsForStreets } = await import(
+      "./geocoding-router"
+    );
+    const {
+      overpassGeocodeIntersections,
+      overpassGeocodeAddresses,
+    } = await import("./overpass-geocoding-service");
+
+    // Mock the geocoding services to track calls
+    const mockOverpassGeocodeIntersections = vi.mocked(
+      overpassGeocodeIntersections,
+    );
+    const mockOverpassGeocodeAddresses = vi.mocked(overpassGeocodeAddresses);
+
+    mockOverpassGeocodeIntersections.mockResolvedValue([
+      {
+        originalText: "ул. Main ∩ ул. Cross B",
+        formattedAddress: "ул. Main ∩ ул. Cross B",
+        coordinates: { lat: 42.7, lng: 23.3 },
+        geoJson: { type: "Point", coordinates: [23.3, 42.7] },
+      },
+    ]);
+    mockOverpassGeocodeAddresses.mockResolvedValue([]);
+
+    const preGeocodedMap = new Map([
+      ["Cross A", { lat: 42.0, lng: 23.0 }],
+    ]);
+
+    const streets = [
+      {
+        street: "ул. Main",
+        from: "Cross A", // Already in preGeocodedMap, should be skipped
+        to: "Cross B", // Not in map, should be geocoded
+        timespans: [{ start: "2024-01-01", end: "2024-01-02" }],
+      },
+    ];
+
+    await geocodeIntersectionsForStreets(streets, preGeocodedMap);
+
+    // Should only call with Cross B intersection, not Cross A
+    expect(mockOverpassGeocodeIntersections).toHaveBeenCalledWith([
+      "ул. Main ∩ Cross B",
+    ]);
+  });
+
+  it("should work without preGeocodedMap (backward compatibility)", async () => {
+    const { geocodeIntersectionsForStreets } = await import(
+      "./geocoding-router"
+    );
+    const {
+      overpassGeocodeIntersections,
+      overpassGeocodeAddresses,
+    } = await import("./overpass-geocoding-service");
+
+    const mockOverpassGeocodeIntersections = vi.mocked(
+      overpassGeocodeIntersections,
+    );
+    const mockOverpassGeocodeAddresses = vi.mocked(overpassGeocodeAddresses);
+
+    mockOverpassGeocodeIntersections.mockResolvedValue([
+      {
+        originalText: "ул. Main ∩ ул. Cross A",
+        formattedAddress: "ул. Main ∩ ул. Cross A",
+        coordinates: { lat: 42.0, lng: 23.0 },
+        geoJson: { type: "Point", coordinates: [23.0, 42.0] },
+      },
+      {
+        originalText: "ул. Main ∩ ул. Cross B",
+        formattedAddress: "ул. Main ∩ ул. Cross B",
+        coordinates: { lat: 42.7, lng: 23.3 },
+        geoJson: { type: "Point", coordinates: [23.3, 42.7] },
+      },
+    ]);
+    mockOverpassGeocodeAddresses.mockResolvedValue([]);
+
+    const streets = [
+      {
+        street: "ул. Main",
+        from: "Cross A",
+        to: "Cross B",
+        timespans: [{ start: "2024-01-01", end: "2024-01-02" }],
+      },
+    ];
+
+    // Call without preGeocodedMap
+    await geocodeIntersectionsForStreets(streets);
+
+    // Should call with both intersections
+    expect(mockOverpassGeocodeIntersections).toHaveBeenCalledWith([
+      "ул. Main ∩ Cross A",
+      "ул. Main ∩ Cross B",
+    ]);
+  });
+});
