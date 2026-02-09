@@ -253,7 +253,9 @@ async function processWithAIPipeline(
   sourceDocumentId: string | undefined,
   options: MessageIngestOptions,
 ): Promise<MessageIngestResult> {
-  const { filterAndSplit } = await import("../lib/ai-service");
+  // Import all AI service functions once before the loop
+  const { filterAndSplit, categorize, extractLocations } =
+    await import("../lib/ai-service");
 
   // Step 1: Filter & Split
   const filterResult = await filterAndSplit(text);
@@ -316,7 +318,6 @@ async function processWithAIPipeline(
     totalRelevant++;
 
     // Step 2: Categorize
-    const { categorize } = await import("../lib/ai-service");
     const categorizationResult = await categorize(
       filteredMessage.plainText,
       ingestErrors,
@@ -345,7 +346,6 @@ async function processWithAIPipeline(
     }
 
     // Step 3: Extract Locations
-    const { extractLocations } = await import("../lib/ai-service");
     const extractedLocations = await extractLocations(
       filteredMessage.plainText,
       ingestErrors,
