@@ -20,16 +20,6 @@ import {
 const MAX_INGEST_ERROR_LENGTH = 1000;
 
 /**
- * Extracts a JSON string from AI response text.
- * Handles both clean JSON and JSON wrapped in markdown code blocks.
- */
-function extractJson(responseText: string): string | null {
-  // Try matching a JSON array or object (greedy)
-  const jsonMatch = responseText.match(/[\[{][\s\S]*[\]}]/);
-  return jsonMatch ? jsonMatch[0] : null;
-}
-
-/**
  * Parses and validates filter & split response from AI (Step 1)
  */
 export function parseFilterSplitResponse(
@@ -38,14 +28,8 @@ export function parseFilterSplitResponse(
 ): FilterSplitResult | null {
   const recorder = getIngestErrorRecorder(ingestErrors);
 
-  const jsonStr = extractJson(responseText);
-  if (!jsonStr) {
-    recorder.error("No JSON found in filter & split AI response");
-    return null;
-  }
-
   try {
-    const parsed = JSON.parse(jsonStr);
+    const parsed = JSON.parse(responseText);
     return FilterSplitResponseSchema.parse(parsed);
   } catch (parseError) {
     recorder.error(
@@ -71,14 +55,8 @@ export function parseCategorizeResponse(
 ): CategorizationResult | null {
   const recorder = getIngestErrorRecorder(ingestErrors);
 
-  const jsonStr = extractJson(responseText);
-  if (!jsonStr) {
-    recorder.error("No JSON found in categorize AI response");
-    return null;
-  }
-
   try {
-    const parsed = JSON.parse(jsonStr);
+    const parsed = JSON.parse(responseText);
     return CategorizationResponseSchema.parse(parsed);
   } catch (parseError) {
     recorder.error(
@@ -104,15 +82,9 @@ export function parseExtractLocationsResponse(
 ): ExtractedLocations | null {
   const recorder = getIngestErrorRecorder(ingestErrors);
 
-  const jsonStr = extractJson(responseText);
-  if (!jsonStr) {
-    recorder.error("No JSON found in extract locations AI response");
-    return null;
-  }
-
   let parsed: unknown;
   try {
-    parsed = JSON.parse(jsonStr);
+    parsed = JSON.parse(responseText);
   } catch (parseError) {
     recorder.error(
       `Failed to parse extract locations response: ${formatIngestErrorText(parseError)}`,

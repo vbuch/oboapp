@@ -51,21 +51,6 @@ describe("ai-response-parser", () => {
       expect(result![1].markdownText).toBe("");
     });
 
-    it("should extract JSON from markdown code blocks", () => {
-      const response = `Here is the result:\n\`\`\`json\n[{"plainText":"test","isOneOfMany":false,"isInformative":true,"isRelevant":true}]\n\`\`\``;
-      const result = parseFilterSplitResponse(response);
-      expect(result).not.toBeNull();
-      expect(result).toHaveLength(1);
-      expect(result![0].plainText).toBe("test");
-    });
-
-    it("should return null when no JSON is present", () => {
-      const recorder = createMockRecorder();
-      const result = parseFilterSplitResponse("no json here", recorder);
-      expect(result).toBeNull();
-      expect(recorder.errors.length).toBeGreaterThan(0);
-    });
-
     it("should return null for invalid JSON", () => {
       const recorder = createMockRecorder();
       const result = parseFilterSplitResponse("{ broken json }", recorder);
