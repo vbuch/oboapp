@@ -70,7 +70,7 @@ export async function getStreetGeometry(
  * Check if a street endpoint contains a house/building number
  * (e.g., "ул. Оборище №111", "бл. №38", "сградата с № 65")
  */
-function hasHouseNumber(endpoint: string): boolean {
+export function hasHouseNumber(endpoint: string): boolean {
   return /№\s*\d+|бл\.\s*\d+|сградата/i.test(endpoint);
 }
 
@@ -85,12 +85,13 @@ export async function geocodeIntersectionsForStreets(
   // Extract unique intersections, separating house-number endpoints
   const intersectionSet = new Set<string>();
   const intersections: string[] = [];
-  const houseNumberEndpoints = new Set<string>();
+  const houseNumberEndpoints = new Map<string, string>(); // endpoint -> street name
 
   streets.forEach((street) => {
     // "from" endpoint
     if (hasHouseNumber(street.from)) {
-      houseNumberEndpoints.add(street.from);
+      // Track street context for house-number endpoints to avoid ambiguous queries
+      houseNumberEndpoints.set(street.from, street.street);
     } else {
       const fromIntersection = `${street.street} ∩ ${street.from}`;
       if (!intersectionSet.has(fromIntersection)) {
@@ -101,7 +102,8 @@ export async function geocodeIntersectionsForStreets(
 
     // "to" endpoint
     if (hasHouseNumber(street.to)) {
-      houseNumberEndpoints.add(street.to);
+      // Track street context for house-number endpoints to avoid ambiguous queries
+      houseNumberEndpoints.set(street.to, street.street);
     } else {
       const toIntersection = `${street.street} ∩ ${street.to}`;
       if (!intersectionSet.has(toIntersection)) {
@@ -126,15 +128,22 @@ export async function geocodeIntersectionsForStreets(
 
   // Geocode house-number endpoints directly via Nominatim
   if (houseNumberEndpoints.size > 0) {
-    const houseNumberAddresses = Array.from(houseNumberEndpoints);
-    logger.info("Geocoding house-number endpoints via Nominatim", {
-      count: houseNumberAddresses.length,
-    });
-    const houseNumberGeocoded = await overpassGeocodeAddresses(
-      houseNumberAddresses,
+    // Build specific queries with street context to avoid ambiguous results
+    const endpointQueries = Array.from(houseNumberEndpoints.entries()).map(
+      ([endpoint, streetName]) => `${streetName} ${endpoint}`,
     );
-    houseNumberGeocoded.forEach((address) => {
-      geocodedMap.set(address.originalText, address.coordinates);
+
+    logger.info("Geocoding house-number endpoints via Nominatim", {
+      count: endpointQueries.length,
+    });
+
+    const houseNumberGeocoded = await overpassGeocodeAddresses(endpointQueries);
+
+    // Store results under original endpoint keys (street.from/street.to)
+    const endpointKeys = Array.from(houseNumberEndpoints.keys());
+    houseNumberGeocoded.forEach((address, index) => {
+      const originalEndpoint = endpointKeys[index];
+      geocodedMap.set(originalEndpoint, address.coordinates);
     });
   }
 

@@ -18,7 +18,7 @@ const NATIVE_ARRAY_FIELDS = new Set([
  * Process fields for Firestore storage
  * - Converts Date objects to Firestore server timestamps (except timespanStart/timespanEnd)
  * - Preserves timespanStart/timespanEnd as Date for server-side filtering
- * - Stringifies complex objects (geoJson, addresses)
+ * - Stringifies non-native objects (e.g., geoJson, addresses, or any other object fields)
  * - Keeps categories as native array for Firestore indexes
  *   (array-contains queries require native arrays, not stringified JSON)
  * - Keeps denormalized fields (pins, streets, cadastralProperties, busStops, process, responsibleEntity) as native types

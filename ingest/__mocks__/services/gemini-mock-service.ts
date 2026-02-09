@@ -25,20 +25,20 @@ export class GeminiMockService {
     try {
       this.filterSplitFixtures = {
         water: JSON.parse(
-          readFileSync(
-            join(fixtureDir, "filter-split-water.json"),
-            "utf-8",
-          ),
+          readFileSync(join(fixtureDir, "filter-split-water.json"), "utf-8"),
         ),
         traffic: JSON.parse(
-          readFileSync(
-            join(fixtureDir, "filter-split-traffic.json"),
-            "utf-8",
-          ),
+          readFileSync(join(fixtureDir, "filter-split-traffic.json"), "utf-8"),
         ),
         construction: JSON.parse(
           readFileSync(
             join(fixtureDir, "filter-split-construction.json"),
+            "utf-8",
+          ),
+        ),
+        irrelevant: JSON.parse(
+          readFileSync(
+            join(fixtureDir, "filter-split-irrelevant.json"),
             "utf-8",
           ),
         ),
@@ -98,7 +98,7 @@ export class GeminiMockService {
     ) {
       return "construction";
     }
-    return "water"; // default fallback
+    return "irrelevant"; // default fallback for unmatched patterns
   }
 
   async filterAndSplit(text: string): Promise<FilterSplitResult | null> {
@@ -116,12 +116,22 @@ export class GeminiMockService {
     }
 
     const pattern = this.matchPattern(text);
+    // Irrelevant messages skip categorization stage
+    if (pattern === "irrelevant") {
+      return null;
+    }
     return this.categorizeFixtures[pattern] ?? null;
   }
 
   async extractLocations(text: string): Promise<ExtractedLocations | null> {
     if (this.customFixturePath) {
       return JSON.parse(readFileSync(this.customFixturePath, "utf-8"));
+    }
+
+    const pattern = this.matchPattern(text);
+    // Irrelevant messages skip extraction stage
+    if (pattern === "irrelevant") {
+      return null;
     }
 
     const lowerText = text.toLowerCase();
