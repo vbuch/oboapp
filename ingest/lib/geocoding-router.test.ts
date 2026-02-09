@@ -230,14 +230,14 @@ describe("geocodeIntersectionsForStreets", () => {
 
     mockOverpassGeocodeIntersections.mockResolvedValue([
       {
-        originalText: "ул. Main ∩ ул. Cross A",
-        formattedAddress: "ул. Main ∩ ул. Cross A",
+        originalText: "ул. Main ∩ Cross A",
+        formattedAddress: "ул. Main ∩ Cross A",
         coordinates: { lat: 42.0, lng: 23.0 },
         geoJson: { type: "Point", coordinates: [23.0, 42.0] },
       },
       {
-        originalText: "ул. Main ∩ ул. Cross B",
-        formattedAddress: "ул. Main ∩ ул. Cross B",
+        originalText: "ул. Main ∩ Cross B",
+        formattedAddress: "ул. Main ∩ Cross B",
         coordinates: { lat: 42.7, lng: 23.3 },
         geoJson: { type: "Point", coordinates: [23.3, 42.7] },
       },
@@ -254,12 +254,19 @@ describe("geocodeIntersectionsForStreets", () => {
     ];
 
     // Call without preGeocodedMap
-    await geocodeIntersectionsForStreets(streets);
+    const result = await geocodeIntersectionsForStreets(streets);
 
     // Should call with both intersections
     expect(mockOverpassGeocodeIntersections).toHaveBeenCalledWith([
       "ул. Main ∩ Cross A",
       "ул. Main ∩ Cross B",
     ]);
+
+    // Result should contain both geocoded endpoints
+    expect(result.has("Cross A")).toBe(true);
+    expect(result.has("Cross B")).toBe(true);
+    expect(result.size).toBe(2);
+    expect(result.get("Cross A")).toEqual({ lat: 42.0, lng: 23.0 });
+    expect(result.get("Cross B")).toEqual({ lat: 42.7, lng: 23.3 });
   });
 });
