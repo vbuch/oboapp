@@ -180,8 +180,8 @@ describe("geocodeIntersectionsForStreets", () => {
 
     mockOverpassGeocodeIntersections.mockResolvedValue([
       {
-        originalText: "ул. Main ∩ ул. Cross B",
-        formattedAddress: "ул. Main ∩ ул. Cross B",
+        originalText: "ул. Main ∩ Cross B",
+        formattedAddress: "ул. Main ∩ Cross B",
         coordinates: { lat: 42.7, lng: 23.3 },
         geoJson: { type: "Point", coordinates: [23.3, 42.7] },
       },
@@ -201,12 +201,17 @@ describe("geocodeIntersectionsForStreets", () => {
       },
     ];
 
-    await geocodeIntersectionsForStreets(streets, preGeocodedMap);
+    const result = await geocodeIntersectionsForStreets(streets, preGeocodedMap);
 
     // Should only call with Cross B intersection, not Cross A
     expect(mockOverpassGeocodeIntersections).toHaveBeenCalledWith([
       "ул. Main ∩ Cross B",
     ]);
+
+    // Result should only contain newly geocoded endpoint (Cross B), not pre-geocoded (Cross A)
+    expect(result.has("Cross B")).toBe(true);
+    expect(result.has("Cross A")).toBe(false);
+    expect(result.size).toBe(1);
   });
 
   it("should work without preGeocodedMap (backward compatibility)", async () => {
