@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { convertTimestamp, safeJsonParse } from "./firestore-utils";
+import {
+  convertTimestamp,
+  safeJsonParse,
+  jsonValidators,
+} from "./firestore-utils";
 
 describe("convertTimestamp", () => {
   beforeEach(() => {
@@ -365,6 +369,180 @@ describe("safeJsonParse", () => {
           },
         },
       });
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("validation", () => {
+    it("should validate array types and reject null", () => {
+      const jsonString = "null";
+      const fallback: string[] = [];
+      const result = safeJsonParse<string[]>(
+        jsonString,
+        fallback,
+        "testArray",
+        jsonValidators.array,
+      );
+
+      expect(result).toEqual([]);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "JSON validation failed (testArray): parsed value does not match expected type",
+        ),
+      );
+    });
+
+    it("should validate array types and accept valid arrays", () => {
+      const jsonString = '["a", "b", "c"]';
+      const result = safeJsonParse<string[]>(
+        jsonString,
+        [],
+        "testArray",
+        jsonValidators.array,
+      );
+
+      expect(result).toEqual(["a", "b", "c"]);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should validate object types and reject null", () => {
+      const jsonString = "null";
+      const result = safeJsonParse<Record<string, unknown>>(
+        jsonString,
+        undefined,
+        "testObject",
+        jsonValidators.object,
+      );
+
+      expect(result).toBeUndefined();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "JSON validation failed (testObject): parsed value does not match expected type",
+        ),
+      );
+    });
+
+    it("should validate object types and reject arrays", () => {
+      const jsonString = '[{"name": "test"}]';
+      const fallback = { default: true };
+      const result = safeJsonParse<Record<string, unknown>>(
+        jsonString,
+        fallback,
+        "testObject",
+        jsonValidators.object,
+      );
+
+      expect(result).toEqual({ default: true });
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "JSON validation failed (testObject): parsed value does not match expected type",
+        ),
+      );
+    });
+
+    it("should validate object types and accept valid objects", () => {
+      const jsonString = '{"key": "value"}';
+      const result = safeJsonParse<Record<string, unknown>>(
+        jsonString,
+        undefined,
+        "testObject",
+        jsonValidators.object,
+      );
+
+      expect(result).toEqual({ key: "value" });
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should validate objectOrArray and accept both", () => {
+      const objString = '{"key": "value"}';
+      const arrString = "[1, 2, 3]";
+
+      const objResult = safeJsonParse(
+        objString,
+        undefined,
+        "test",
+        jsonValidators.objectOrArray,
+      );
+      const arrResult = safeJsonParse(
+        arrString,
+        undefined,
+        "test",
+        jsonValidators.objectOrArray,
+      );
+
+      expect(objResult).toEqual({ key: "value" });
+      expect(arrResult).toEqual([1, 2, 3]);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should validate objectOrArray and reject primitives", () => {
+      const primitiveString = '"string"';
+      const result = safeJsonParse(
+        primitiveString,
+        { fallback: true },
+        "test",
+        jsonValidators.objectOrArray,
+      );
+
+      expect(result).toEqual({ fallback: true });
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "JSON validation failed (test): parsed value does not match expected type",
+        ),
+      );
+    });
+
+    it("should work with custom validators", () => {
+      type User = { id: number; name: string };
+      const isUser = (value: unknown): value is User =>
+        typeof value === "object" &&
+        value !== null &&
+        "id" in value &&
+        "name" in value &&
+        typeof (value as { id: unknown }).id === "number" &&
+        typeof (value as { name: unknown }).name === "string";
+
+      const validJson = '{"id": 1, "name": "Alice"}';
+      const invalidJson = '{"id": "not-a-number", "name": "Bob"}';
+
+      const validResult = safeJsonParse<User>(
+        validJson,
+        { id: 0, name: "Unknown" },
+        "user",
+        isUser,
+      );
+      const invalidResult = safeJsonParse<User>(
+        invalidJson,
+        { id: 0, name: "Unknown" },
+        "user",
+        isUser,
+      );
+
+      expect(validResult).toEqual({ id: 1, name: "Alice" });
+      expect(invalidResult).toEqual({ id: 0, name: "Unknown" });
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "JSON validation failed (user): parsed value does not match expected type",
+        ),
+      );
+    });
+
+    it("should work without validator (backward compatibility)", () => {
+      const jsonString = "null";
+      const result = safeJsonParse<string[]>(jsonString, []);
+
+      // Without validator, null is accepted (backward compatible behavior)
+      expect(result).toBe(null);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should not validate when validator not provided", () => {
+      const jsonString = '"string"';
+      const result = safeJsonParse<string[]>(jsonString);
+
+      // Without validator, type mismatch is not caught
+      expect(result).toBe("string");
       expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
   });

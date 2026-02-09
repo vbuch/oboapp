@@ -6,7 +6,11 @@ import {
   Address,
   IngestError,
 } from "@/lib/types";
-import { convertTimestamp, safeJsonParse } from "@/lib/firestore-utils";
+import {
+  convertTimestamp,
+  safeJsonParse,
+  jsonValidators,
+} from "@/lib/firestore-utils";
 import admin from "firebase-admin";
 
 const PAGE_SIZE = 12;
@@ -77,13 +81,19 @@ export async function GET(request: Request) {
             text: data.text,
             markdownText: data.markdownText,
             addresses: data.addresses
-              ? safeJsonParse<Address[]>(data.addresses, [], "addresses")
+              ? safeJsonParse<Address[]>(
+                  data.addresses,
+                  [],
+                  "addresses",
+                  jsonValidators.array,
+                )
               : [],
             geoJson: data.geoJson
               ? safeJsonParse<GeoJSONFeatureCollection>(
                   data.geoJson,
                   undefined,
                   "geoJson",
+                  jsonValidators.object,
                 )
               : undefined,
             crawledAt: data.crawledAt
@@ -117,6 +127,7 @@ export async function GET(request: Request) {
                     data.ingestErrors,
                     [],
                     "ingestErrors",
+                    jsonValidators.array,
                   )
                 : undefined,
           });
