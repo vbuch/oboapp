@@ -16,8 +16,7 @@ async function main() {
 
   // Dynamic imports to ensure dotenv loads first
   const { adminDb } = await import("@/lib/firebase-admin");
-  const { filterAndSplit, categorize, extractLocations } =
-    await import("@/lib/ai-service");
+  const { filterAndSplit, extractLocations } = await import("@/lib/ai-service");
   const { geocodeAddress } = await import("@/lib/geocoding-service");
   const { overpassGeocodeAddresses } =
     await import("@/lib/overpass-geocoding-service");
