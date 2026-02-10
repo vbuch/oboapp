@@ -5,6 +5,12 @@
  * @returns {string} Shell command to run eslint
  */
 function createLintTask(dir, filenames) {
+  // Validate directory to prevent injection
+  const validDirs = ['web', 'ingest', 'shared'];
+  if (!validDirs.includes(dir)) {
+    throw new Error(`Invalid directory: ${dir}`);
+  }
+  
   const files = filenames
     .map(f => {
       const match = f.match(new RegExp(`${dir}/(.+)$`));
@@ -16,6 +22,7 @@ function createLintTask(dir, filenames) {
   
   // Escape filenames for shell using single quotes
   // Replace any single quotes in the filename with '\''
+  // This is the standard POSIX shell escaping method that handles all special characters
   const escapedFiles = files
     .map(f => `'${f.replace(/'/g, "'\\''")}'`)
     .join(' ');
