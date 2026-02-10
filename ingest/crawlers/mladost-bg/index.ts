@@ -18,6 +18,7 @@ dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
 const INDEX_URL = "https://mladost.bg/gradska-i-okolna-sreda/planovi-remonti";
 const SOURCE_TYPE = "mladost-bg";
+const TARGET = "bg.sofia";
 const DELAY_BETWEEN_REQUESTS = 2000; // 2 seconds
 
 /**
@@ -33,6 +34,7 @@ const processPost = (
     postLink,
     adminDb,
     SOURCE_TYPE,
+    TARGET,
     DELAY_BETWEEN_REQUESTS,
     extractPostDetails,
     parseBulgarianMonthDate, // Custom date parser for "DD Month YYYY" format

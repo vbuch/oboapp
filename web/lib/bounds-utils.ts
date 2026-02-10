@@ -5,13 +5,26 @@
 import * as turf from "@turf/turf";
 import type { GeoJSONFeature } from "@/lib/types";
 
-// Sofia bounding box (matches ingest/lib/geocoding-utils.ts)
-export const SOFIA_BOUNDS = {
-  south: 42.605,
-  west: 23.188,
-  north: 42.83,
-  east: 23.528,
+// Bounds registry - supports multiple targets
+export const BOUNDS: Record<string, {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+}> = {
+  "bg.sofia": {
+    south: 42.605,
+    west: 23.188,
+    north: 42.83,
+    east: 23.528,
+  },
 };
+
+/**
+ * Legacy export for backward compatibility
+ * @deprecated Use BOUNDS["bg.sofia"] instead
+ */
+export const SOFIA_BOUNDS = BOUNDS["bg.sofia"];
 
 export interface ViewportBounds {
   north: number;

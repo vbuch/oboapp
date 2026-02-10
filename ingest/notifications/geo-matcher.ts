@@ -4,33 +4,36 @@ import * as turf from "@turf/turf";
 import type { Message, Interest, GeoJSONFeatureCollection } from "@/lib/types";
 import { logger } from "@/lib/logger";
 
-// Cache Sofia GeoJSON
-let sofiaGeoJson: GeoJSONFeatureCollection | null = null;
+// Cache GeoJSON files by target
+const geoJsonCache = new Map<string, GeoJSONFeatureCollection>();
 
 /**
- * Load Sofia administrative boundary GeoJSON (cached)
+ * Load target GeoJSON file (cached)
+ * Files should be named {target}.geojson (e.g., bg.sofia.geojson)
  */
-function loadSofiaGeoJson(): GeoJSONFeatureCollection {
-  if (!sofiaGeoJson) {
-    const sofiaPath = resolve(process.cwd(), "sofia.geojson");
-    const content = readFileSync(sofiaPath, "utf-8");
-    sofiaGeoJson = JSON.parse(content) as GeoJSONFeatureCollection;
+function loadTargetGeoJson(target: string): GeoJSONFeatureCollection {
+  if (!geoJsonCache.has(target)) {
+    const path = resolve(process.cwd(), `${target}.geojson`);
+    const content = readFileSync(path, "utf-8");
+    const geojson = JSON.parse(content) as GeoJSONFeatureCollection;
+    geoJsonCache.set(target, geojson);
   }
-  return sofiaGeoJson;
+  return geoJsonCache.get(target)!;
 }
 
 /**
  * Check if a message's GeoJSON features intersect with a user's interest circle
- * For city-wide messages (cityWide flag), uses sofia.geojson for geometric matching
+ * For city-wide messages (cityWide flag), uses the target's geojson for geometric matching
  */
 export function matchMessageToInterest(
   message: Message,
   interest: Interest,
 ): { matches: boolean; distance: number | null } {
-  // City-wide messages use Sofia boundary for matching
+  // City-wide messages use target boundary for matching
   let geoJson = message.geoJson;
   if (message.cityWide) {
-    geoJson = loadSofiaGeoJson();
+    const target = message.target || "bg.sofia"; // Default to Sofia for backward compatibility
+    geoJson = loadTargetGeoJson(target);
   }
 
   if (!geoJson?.features || geoJson.features.length === 0) {

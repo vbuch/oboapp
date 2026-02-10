@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { normalizeCategoriesInput } from "@/lib/category-utils";
+import { validateTarget } from "@/lib/bounds";
 import type { BaseSourceDocument } from "./types";
 import { logger } from "@/lib/logger";
 
@@ -26,7 +27,7 @@ export async function isUrlProcessed(
 
 /**
  * Save source document to Firestore
- * @throws Error if save operation fails
+ * @throws Error if save operation fails or target is invalid
  */
 export async function saveSourceDocument<T extends BaseSourceDocument>(
   doc: T,
@@ -36,6 +37,9 @@ export async function saveSourceDocument<T extends BaseSourceDocument>(
     logSuccess?: boolean;
   },
 ): Promise<void> {
+  // Validate target before saving
+  validateTarget(doc.target);
+
   const docId = encodeDocumentId(doc.url);
   const docRef = adminDb.collection("sources").doc(docId);
 

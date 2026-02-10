@@ -32,6 +32,7 @@ export const MessageSchema = z.object({
   streets: z.array(StreetSectionSchema).optional(),
   cadastralProperties: z.array(CadastralPropertySchema).optional(),
   busStops: z.array(z.string()).optional(),
+  target: z.string().optional(),
 });
 
 export type Message = z.infer<typeof MessageSchema>;

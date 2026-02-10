@@ -70,6 +70,10 @@ export interface MessageIngestOptions {
    * City-wide messages are hidden from the map but shown in listings
    */
   cityWide?: boolean;
+  /**
+   * Target city/region (e.g., 'bg.sofia')
+   */
+  target?: string;
 }
 
 export interface MessageIngestResult {
@@ -204,6 +208,7 @@ async function processPrecomputedGeoJsonMessage(
     options.sourceUrl,
     options.crawledAt,
     sourceDocumentId,
+    options.target,
   );
 
   // Store categories and isRelevant for precomputed GeoJSON sources (for Firestore indexes)
@@ -278,6 +283,7 @@ async function processWithAIPipeline(
       options.sourceUrl,
       options.crawledAt,
       sourceDocumentId,
+      options.target,
     );
 
     // Store filter & split result

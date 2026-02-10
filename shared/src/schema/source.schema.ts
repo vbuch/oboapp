@@ -5,6 +5,7 @@ export const SourceSchema = z.object({
   name: z.string(),
   url: z.string(),
   logoUrl: z.string(),
+  target: z.string().optional(),
 });
 
 export type Source = z.infer<typeof SourceSchema>;

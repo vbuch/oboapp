@@ -20,6 +20,7 @@ export function buildWebPageSourceDocument(
   dateText: string,
   contentHtml: string,
   sourceType: string,
+  target: string,
   customDateParser?: (dateText: string) => string,
 ): {
   url: string;
@@ -27,6 +28,7 @@ export function buildWebPageSourceDocument(
   datePublished: string;
   message: string;
   sourceType: string;
+  target: string;
 } {
   if (!title) {
     throw new Error(`Failed to extract title from ${url}`);
@@ -50,6 +52,7 @@ export function buildWebPageSourceDocument(
     datePublished,
     message,
     sourceType,
+    target,
   };
 }
 
@@ -65,6 +68,7 @@ export async function processWordpressPost<
   postLink: TPostLink,
   adminDb: Firestore,
   sourceType: string,
+  target: string,
   delayMs: number,
   extractPostDetails: (page: Page) => Promise<TDetails>,
   customDateParser?: (dateText: string) => string,
@@ -87,6 +91,7 @@ export async function processWordpressPost<
       details.dateText,
       details.contentHtml,
       sourceType,
+      target,
       customDateParser,
     );
 

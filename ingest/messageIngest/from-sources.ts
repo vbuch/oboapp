@@ -24,6 +24,7 @@ interface SourceDocument {
   timespanStart?: Date; // Optional timespan start from source
   timespanEnd?: Date; // Optional timespan end from source
   cityWide?: boolean; // Whether source applies to entire city (hidden from map)
+  target?: string; // Target city/region (e.g., 'bg.sofia')
 }
 
 interface IngestOptions {
@@ -109,6 +110,7 @@ async function fetchSources(
       timespanStart: data.timespanStart?.toDate(),
       timespanEnd: data.timespanEnd?.toDate(),
       cityWide: data.cityWide,
+      target: data.target,
     });
   }
 
@@ -206,6 +208,7 @@ async function ingestSource(
       timespanStart: source.timespanStart,
       timespanEnd: source.timespanEnd,
       cityWide: source.cityWide,
+      target: source.target,
     },
   );
 

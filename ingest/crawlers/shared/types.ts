@@ -8,6 +8,7 @@ export interface BaseSourceDocument {
   markdownText?: string; // Optional markdown-formatted message for display
   timespanStart?: Date; // Optional - for precomputed sources with temporal data
   timespanEnd?: Date; // Optional - for precomputed sources with temporal data
+  target: string; // Target city/region (e.g., 'bg.sofia')
 }
 
 export interface SourceDocumentWithGeoJson extends BaseSourceDocument {

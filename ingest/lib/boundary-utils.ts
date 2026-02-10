@@ -9,6 +9,36 @@ import type { GeoJSONFeatureCollection, GeoJSONFeature } from "./types";
 const boundaryCache = new Map<string, GeoJSONFeatureCollection>();
 
 /**
+ * Load geographic boundaries for a target from its GeoJSON file.
+ * Files should be named {target}.geojson (e.g., bg.sofia.geojson)
+ * Results are cached to avoid re-reading files.
+ */
+export function loadBoundariesForTarget(
+  target: string,
+): GeoJSONFeatureCollection {
+  const filename = `${target}.geojson`;
+  const absolutePath = resolve(process.cwd(), filename);
+
+  // Check cache first
+  if (boundaryCache.has(absolutePath)) {
+    return boundaryCache.get(absolutePath)!;
+  }
+
+  try {
+    const content = readFileSync(absolutePath, "utf-8");
+    const geojson = JSON.parse(content) as GeoJSONFeatureCollection;
+
+    // Cache the result
+    boundaryCache.set(absolutePath, geojson);
+
+    return geojson;
+  } catch (error) {
+    logger.error("Failed to load boundaries for target", { target, path: absolutePath, error: error instanceof Error ? error.message : String(error) });
+    throw error;
+  }
+}
+
+/**
  * Load optional geographic boundaries from a GeoJSON file for filtering.
  * If no path is provided, all sources will be processed.
  * Results are cached to avoid re-reading files.

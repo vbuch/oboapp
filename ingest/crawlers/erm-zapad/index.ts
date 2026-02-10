@@ -27,6 +27,7 @@ const BASE_URL = "https://info.ermzapad.bg";
 const INDEX_URL = `${BASE_URL}/webint/vok/avplan.php`;
 const API_URL = INDEX_URL;
 const SOURCE_TYPE = "erm-zapad";
+const TARGET = "bg.sofia";
 
 /**
  * Discover active София-град municipalities from the index page
@@ -195,6 +196,7 @@ function buildSourceDocument(pins: PinRecord[]): ErmZapadSourceDocument | null {
     message,
     markdownText: message,
     sourceType: SOURCE_TYPE,
+    target: TARGET,
     crawledAt: new Date(),
     geoJson: JSON.stringify(validation.geoJson),
     categories: ["electricity"],
