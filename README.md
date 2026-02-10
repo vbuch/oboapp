@@ -4,14 +4,14 @@ A civic tech platform that helps residents of Sofia stay informed about infrastr
 
 ## ⚠️ MONOREPO SETUP
 
-**This is an npm workspace monorepo. Always run `npm install` at the repository root.**
+**This is a pnpm workspace monorepo. Always run `pnpm install` at the repository root.**
 
-The shared package builds automatically via postinstall hook. All workspace dependencies are hoisted to the root.
+The shared package builds automatically via postinstall hook. Dependencies are managed by pnpm with `shamefully-hoist=true`.
 
 **CRITICAL:** When modifying shared package schemas, rebuild is required before running code in web/ingest:
 
-- Run `npm run build` in `shared/` directory, OR
-- Run `npm install` at repository root (triggers postinstall hook)
+- Run `pnpm build` in `shared/` directory, OR
+- Run `pnpm install` at repository root (triggers postinstall hook)
 
 ## Project Structure
 

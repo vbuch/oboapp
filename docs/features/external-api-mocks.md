@@ -42,13 +42,13 @@ GOOGLE_AI_API_KEY=your_key
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key
 
 # Run capture
-npm run capture-fixtures
+pnpm capture-fixtures
 ```
 
 Or capture from existing Firestore messages:
 
 ```bash
-npm run capture:firestore
+pnpm capture:firestore
 ```
 
 ## Customizing Fixtures

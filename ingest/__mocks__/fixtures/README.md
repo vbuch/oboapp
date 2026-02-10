@@ -15,7 +15,7 @@ Run the capture script with real API keys:
 
 ```bash
 cd ingest
-npm run capture-fixtures
+pnpm capture-fixtures
 ```
 
 This will call the real APIs and save responses to fixture files.

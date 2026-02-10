@@ -2,17 +2,13 @@
   "name": "oboapp",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "web",
-    "ingest",
-    "shared"
-  ],
+  "packageManager": "pnpm@10.11.0",
   "scripts": {
-    "build:shared": "npm run build --workspace=shared",
-    "build:all": "npm run build:shared && npm run build --workspace=ingest && npm run build --workspace=web",
-    "test:all": "npm run test:run --workspace=shared --workspace=ingest --workspace=web --if-present",
-    "lint:all": "npm run lint --workspace=shared --workspace=ingest --workspace=web --if-present",
-    "postinstall": "npm run build:shared"
+    "build:shared": "pnpm --filter @oboapp/shared build",
+    "build:all": "pnpm run build:shared && pnpm --filter oboapp-ingest build && pnpm --filter oboapp-web build",
+    "test:all": "pnpm --filter '*' run test:run --if-present",
+    "lint:all": "pnpm --filter '*' run lint --if-present",
+    "postinstall": "pnpm run build:shared"
   },
   "devDependencies": {
     "@types/node": "^20",

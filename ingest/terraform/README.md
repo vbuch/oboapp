@@ -254,8 +254,8 @@ gcloud run jobs execute pipeline-emergent --region=europe-west1 --wait
 
 ```bash
 cd ingest
-npm run pipeline:emergant
-npm run pipeline:all
+pnpm pipeline:emergent
+pnpm pipeline:all
 ```
 
 ### Modifying Resources

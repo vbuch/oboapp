@@ -165,4 +165,4 @@ These tests verify end-to-end pipeline behavior with 5 source fixtures covering:
 - Multiple timespans (film shooting at different locations on different dates)
 - Complex messages (bus rerouting with street closures and multiple bus stop codes)
 
-To run: `cd ingest && npm run test:integration` (requires `GOOGLE_AI_API_KEY` in `.env.local`).
+To run: `cd ingest && pnpm test:integration` (requires `GOOGLE_AI_API_KEY` in `.env.local`).

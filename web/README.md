@@ -4,11 +4,11 @@ Next.js web application for **OboApp** - a civic engagement platform for residen
 
 ## ⚠️ WORKSPACE SETUP
 
-This package is part of an npm workspace. **Run `npm install` at the repository root**, not in this directory.
+This package is part of a pnpm workspace. **Run `pnpm install` at the repository root**, not in this directory.
 
 ## ⚠️ SHARED PACKAGE HOT RELOAD
 
-Next.js uses `transpilePackages: ['@oboapp/shared']` to automatically transpile and hot-reload changes from the shared package during development. No manual rebuild of shared is needed while running `npm run dev`.
+Next.js uses `transpilePackages: ['@oboapp/shared']` to automatically transpile and hot-reload changes from the shared package during development. No manual rebuild of shared is needed while running `pnpm dev`.
 
 ## Tech Stack
 

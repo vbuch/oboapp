@@ -117,16 +117,16 @@ The notification script should be run after message ingestion:
 
 ```bash
 # Run ingestion first
-npm run ingest
+pnpm ingest
 
 # Then run notifications
-npm run notify
+pnpm notify
 ```
 
 For automated workflows, combine them:
 
 ```bash
-npm run ingest && npm run notify
+pnpm ingest && pnpm notify
 ```
 
 ## Setup Requirements
