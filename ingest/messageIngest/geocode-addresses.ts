@@ -230,6 +230,37 @@ async function geocodePins(
 }
 
 /**
+ * Helper: Process a single street endpoint with pre-resolved coordinates
+ */
+function processStreetEndpoint(
+  street: StreetSection,
+  endpointName: string,
+  endpointCoordinates: Coordinates,
+  direction: 'from' | 'to',
+  preGeocodedMap: Map<string, Coordinates>,
+  addresses: Address[],
+): void {
+  const validatedCoords = getValidPreResolvedCoordinates(
+    endpointCoordinates,
+    `street endpoint: ${street.street} ${direction} ${endpointName}`,
+  );
+
+  if (validatedCoords) {
+    preGeocodedMap.set(endpointName, validatedCoords);
+    addresses.push(createAddressFromCoordinates(endpointName, validatedCoords));
+  } else {
+    logger.warn(
+      "Invalid pre-resolved coordinates for street endpoint, will geocode",
+      {
+        street: street.street,
+        endpoint: endpointName,
+        coordinates: endpointCoordinates,
+      },
+    );
+  }
+}
+
+/**
  * Helper: Process street endpoints with pre-resolved coordinates
  */
 function processStreetEndpointsWithPreResolvedCoordinates(
@@ -239,45 +270,25 @@ function processStreetEndpointsWithPreResolvedCoordinates(
 ): void {
   for (const street of streets) {
     if (street.fromCoordinates) {
-      const validatedCoords = getValidPreResolvedCoordinates(
+      processStreetEndpoint(
+        street,
+        street.from,
         street.fromCoordinates,
-        `street endpoint: ${street.street} from ${street.from}`,
+        'from',
+        preGeocodedMap,
+        addresses,
       );
-
-      if (validatedCoords) {
-        preGeocodedMap.set(street.from, validatedCoords);
-        addresses.push(createAddressFromCoordinates(street.from, validatedCoords));
-      } else {
-        logger.warn(
-          "Invalid pre-resolved coordinates for street endpoint, will geocode",
-          {
-            street: street.street,
-            endpoint: street.from,
-            coordinates: street.fromCoordinates,
-          },
-        );
-      }
     }
 
     if (street.toCoordinates) {
-      const validatedCoords = getValidPreResolvedCoordinates(
+      processStreetEndpoint(
+        street,
+        street.to,
         street.toCoordinates,
-        `street endpoint: ${street.street} to ${street.to}`,
+        'to',
+        preGeocodedMap,
+        addresses,
       );
-
-      if (validatedCoords) {
-        preGeocodedMap.set(street.to, validatedCoords);
-        addresses.push(createAddressFromCoordinates(street.to, validatedCoords));
-      } else {
-        logger.warn(
-          "Invalid pre-resolved coordinates for street endpoint, will geocode",
-          {
-            street: street.street,
-            endpoint: street.to,
-            coordinates: street.toCoordinates,
-          },
-        );
-      }
     }
   }
 }
