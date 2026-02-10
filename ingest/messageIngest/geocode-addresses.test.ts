@@ -3,6 +3,7 @@ import {
   findMissingStreetEndpoints,
   deduplicateAddresses,
   geocodeAddressesFromExtractedData,
+  validatePreResolvedCoordinates,
 } from "./geocode-addresses";
 import type { StreetSection, Address, ExtractedLocations } from "@/lib/types";
 
@@ -249,19 +250,19 @@ describe("geocodeAddressesFromExtractedData", () => {
 
     const result = await geocodeAddressesFromExtractedData(extractedData);
 
-    // Should have the pre-resolved coordinates in the map
+    // Should have the pre-resolved coordinates in the map (rounded to 5 decimals)
     expect(result.preGeocodedMap.has("ул. Георги Бенковски №26")).toBe(true);
     expect(result.preGeocodedMap.get("ул. Георги Бенковски №26")).toEqual({
-      lat: 42.6993633,
-      lng: 23.328635,
+      lat: 42.69936,
+      lng: 23.32864,
     });
 
-    // Should have created an address with the coordinates
+    // Should have created an address with the rounded coordinates
     expect(result.addresses).toHaveLength(1);
     expect(result.addresses[0].originalText).toBe("ул. Георги Бенковски №26");
     expect(result.addresses[0].coordinates).toEqual({
-      lat: 42.6993633,
-      lng: 23.328635,
+      lat: 42.69936,
+      lng: 23.32864,
     });
   });
 
@@ -288,16 +289,16 @@ describe("geocodeAddressesFromExtractedData", () => {
 
     const result = await geocodeAddressesFromExtractedData(extractedData);
 
-    // Should have both endpoints in the pre-geocoded map
+    // Should have both endpoints in the pre-geocoded map (rounded to 5 decimals)
     expect(result.preGeocodedMap.has("Start Point")).toBe(true);
     expect(result.preGeocodedMap.has("End Point")).toBe(true);
     expect(result.preGeocodedMap.get("Start Point")).toEqual({
-      lat: 42.693576,
+      lat: 42.69358,
       lng: 23.35161,
     });
     expect(result.preGeocodedMap.get("End Point")).toEqual({
-      lat: 42.693259,
-      lng: 23.3549725,
+      lat: 42.69326,
+      lng: 23.35497,
     });
 
     // Should have created addresses for both endpoints
@@ -334,5 +335,85 @@ describe("geocodeAddressesFromExtractedData", () => {
 
     // geocodeAddresses should be called only for the pin without coordinates
     expect(geocodeAddresses).toHaveBeenCalledWith(["Without coordinates"]);
+  });
+});
+
+describe("validatePreResolvedCoordinates", () => {
+  it("should round coordinates to 5 decimal places", () => {
+    const coords = { lat: 42.69936334567, lng: 23.32863534567 };
+    const result = validatePreResolvedCoordinates(coords, "test");
+
+    expect(result).not.toBeNull();
+    expect(result!.lat).toBe(42.69936);
+    expect(result!.lng).toBe(23.32864);
+  });
+
+  it("should accept valid Sofia coordinates", () => {
+    const coords = { lat: 42.6993633, lng: 23.328635 };
+    const result = validatePreResolvedCoordinates(coords, "test");
+
+    expect(result).not.toBeNull();
+    expect(result!.lat).toBe(42.69936);
+    expect(result!.lng).toBe(23.32864);
+  });
+
+  it("should reject coordinates outside Sofia bounds (north)", () => {
+    const coords = { lat: 43.0, lng: 23.3 }; // Too far north
+    const result = validatePreResolvedCoordinates(coords, "test");
+
+    expect(result).toBeNull();
+  });
+
+  it("should reject coordinates outside Sofia bounds (south)", () => {
+    const coords = { lat: 42.5, lng: 23.3 }; // Too far south
+    const result = validatePreResolvedCoordinates(coords, "test");
+
+    expect(result).toBeNull();
+  });
+
+  it("should reject coordinates outside Sofia bounds (east)", () => {
+    const coords = { lat: 42.7, lng: 23.6 }; // Too far east
+    const result = validatePreResolvedCoordinates(coords, "test");
+
+    expect(result).toBeNull();
+  });
+
+  it("should reject coordinates outside Sofia bounds (west)", () => {
+    const coords = { lat: 42.7, lng: 23.1 }; // Too far west
+    const result = validatePreResolvedCoordinates(coords, "test");
+
+    expect(result).toBeNull();
+  });
+
+  it("should handle coordinates at Sofia boundary edges", () => {
+    // Sofia bounds: south: 42.605, west: 23.188, north: 42.83, east: 23.528
+    const coordsNorth = { lat: 42.83, lng: 23.3 };
+    const coordsSouth = { lat: 42.605, lng: 23.3 };
+    const coordsEast = { lat: 42.7, lng: 23.528 };
+    const coordsWest = { lat: 42.7, lng: 23.188 };
+
+    expect(validatePreResolvedCoordinates(coordsNorth, "test")).not.toBeNull();
+    expect(validatePreResolvedCoordinates(coordsSouth, "test")).not.toBeNull();
+    expect(validatePreResolvedCoordinates(coordsEast, "test")).not.toBeNull();
+    expect(validatePreResolvedCoordinates(coordsWest, "test")).not.toBeNull();
+  });
+
+  it("should handle coordinates with excessive precision", () => {
+    // Micron-level precision (9 decimal places ~0.11mm)
+    const coords = { lat: 42.123456789, lng: 23.987654321 };
+    const result = validatePreResolvedCoordinates(coords, "test");
+
+    // Should round but reject if outside bounds
+    expect(result).toBeNull(); // These coords are outside Sofia
+  });
+
+  it("should round coordinates near street section example from issue", () => {
+    // Example from issue: 42.693576, 23.35161
+    const coords = { lat: 42.693576, lng: 23.35161 };
+    const result = validatePreResolvedCoordinates(coords, "test");
+
+    expect(result).not.toBeNull();
+    expect(result!.lat).toBe(42.69358);
+    expect(result!.lng).toBe(23.35161);
   });
 });

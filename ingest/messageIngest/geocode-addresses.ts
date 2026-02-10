@@ -13,12 +13,56 @@ import {
 } from "@/lib/types";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
 import { logger } from "@/lib/logger";
+import { isWithinSofia } from "@/lib/bounds";
 
 // Internal types for the geocoding pipeline
 export interface GeocodingResult {
   preGeocodedMap: Map<string, Coordinates>;
   addresses: Address[];
   cadastralGeometries?: Map<string, CadastralGeometry>;
+}
+
+/**
+ * Validate and normalize pre-resolved coordinates from source
+ * - Rounds to 5 decimal places (precision ~1.1 meters)
+ * - Validates coordinates are within Sofia bounds
+ * Returns null if coordinates are invalid
+ * Exported for unit testing
+ */
+export function validatePreResolvedCoordinates(
+  coordinates: Coordinates,
+  context: string,
+): Coordinates | null {
+  // Round to 5 decimal places (precision ~1.1 meters at Sofia's latitude)
+  const rounded: Coordinates = {
+    lat: Math.round(coordinates.lat * 100000) / 100000,
+    lng: Math.round(coordinates.lng * 100000) / 100000,
+  };
+
+  // Validate coordinates are within Sofia bounds
+  if (!isWithinSofia(rounded.lat, rounded.lng)) {
+    logger.warn("Pre-resolved coordinates outside Sofia bounds", {
+      context,
+      original: coordinates,
+      rounded,
+    });
+    return null;
+  }
+
+  // Log if coordinates were rounded significantly (more than 0.00001 degrees ~1 meter)
+  const latDiff = Math.abs(coordinates.lat - rounded.lat);
+  const lngDiff = Math.abs(coordinates.lng - rounded.lng);
+  if (latDiff > 0.00001 || lngDiff > 0.00001) {
+    logger.info("Rounded pre-resolved coordinates", {
+      context,
+      original: coordinates,
+      rounded,
+      latDiff,
+      lngDiff,
+    });
+  }
+
+  return rounded;
 }
 
 /**
@@ -126,17 +170,32 @@ export async function geocodeAddressesFromExtractedData(
 
     for (const pin of extractedData.pins) {
       if (pin.coordinates) {
-        // Pre-resolved coordinates from AI — skip Google geocoding
-        preGeocodedMap.set(pin.address, pin.coordinates);
-        addresses.push({
-          originalText: pin.address,
-          formattedAddress: pin.address,
-          coordinates: pin.coordinates,
-          geoJson: {
-            type: "Point",
-            coordinates: [pin.coordinates.lng, pin.coordinates.lat],
-          },
-        });
+        // Validate and normalize pre-resolved coordinates from AI
+        const validatedCoords = validatePreResolvedCoordinates(
+          pin.coordinates,
+          `pin: ${pin.address}`,
+        );
+
+        if (validatedCoords) {
+          // Pre-resolved coordinates are valid — skip Google geocoding
+          preGeocodedMap.set(pin.address, validatedCoords);
+          addresses.push({
+            originalText: pin.address,
+            formattedAddress: pin.address,
+            coordinates: validatedCoords,
+            geoJson: {
+              type: "Point",
+              coordinates: [validatedCoords.lng, validatedCoords.lat],
+            },
+          });
+        } else {
+          // Invalid coordinates — fallback to geocoding
+          logger.warn("Invalid pre-resolved coordinates for pin, will geocode", {
+            address: pin.address,
+            coordinates: pin.coordinates,
+          });
+          pinsToGeocode.push(pin.address);
+        }
       } else {
         pinsToGeocode.push(pin.address);
       }
@@ -157,31 +216,60 @@ export async function geocodeAddressesFromExtractedData(
     // First, add any pre-resolved endpoint coordinates
     for (const street of extractedData.streets) {
       if (street.fromCoordinates) {
-        preGeocodedMap.set(street.from, street.fromCoordinates);
-        addresses.push({
-          originalText: street.from,
-          formattedAddress: street.from,
-          coordinates: street.fromCoordinates,
-          geoJson: {
-            type: "Point",
-            coordinates: [
-              street.fromCoordinates.lng,
-              street.fromCoordinates.lat,
-            ],
-          },
-        });
+        const validatedCoords = validatePreResolvedCoordinates(
+          street.fromCoordinates,
+          `street endpoint: ${street.street} from ${street.from}`,
+        );
+
+        if (validatedCoords) {
+          preGeocodedMap.set(street.from, validatedCoords);
+          addresses.push({
+            originalText: street.from,
+            formattedAddress: street.from,
+            coordinates: validatedCoords,
+            geoJson: {
+              type: "Point",
+              coordinates: [validatedCoords.lng, validatedCoords.lat],
+            },
+          });
+        } else {
+          logger.warn(
+            "Invalid pre-resolved coordinates for street endpoint, will geocode",
+            {
+              street: street.street,
+              endpoint: street.from,
+              coordinates: street.fromCoordinates,
+            },
+          );
+        }
       }
       if (street.toCoordinates) {
-        preGeocodedMap.set(street.to, street.toCoordinates);
-        addresses.push({
-          originalText: street.to,
-          formattedAddress: street.to,
-          coordinates: street.toCoordinates,
-          geoJson: {
-            type: "Point",
-            coordinates: [street.toCoordinates.lng, street.toCoordinates.lat],
-          },
-        });
+        const validatedCoords = validatePreResolvedCoordinates(
+          street.toCoordinates,
+          `street endpoint: ${street.street} to ${street.to}`,
+        );
+
+        if (validatedCoords) {
+          preGeocodedMap.set(street.to, validatedCoords);
+          addresses.push({
+            originalText: street.to,
+            formattedAddress: street.to,
+            coordinates: validatedCoords,
+            geoJson: {
+              type: "Point",
+              coordinates: [validatedCoords.lng, validatedCoords.lat],
+            },
+          });
+        } else {
+          logger.warn(
+            "Invalid pre-resolved coordinates for street endpoint, will geocode",
+            {
+              street: street.street,
+              endpoint: street.to,
+              coordinates: street.toCoordinates,
+            },
+          );
+        }
       }
     }
 
