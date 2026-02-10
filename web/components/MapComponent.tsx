@@ -116,10 +116,11 @@ export default function MapComponent({
   const latestCenterRef = useRef(SOFIA_CENTER);
   const [currentZoom, setCurrentZoom] = useState<number>(14);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
-  const [userLocation, setUserLocation] = useState<{
+  const [rawUserLocation, setRawUserLocation] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
+  const userLocation = shouldTrackLocation ? rawUserLocation : null;
 
   const mapOptions: google.maps.MapOptions = useMemo(
     () => ({
@@ -236,25 +237,56 @@ export default function MapComponent({
   }, [onBoundsChanged]);
 
   const hasAutoCentered = useRef(false);
+
   useEffect(() => {
-    if (!shouldTrackLocation || !navigator.geolocation) return;
+    if (!shouldTrackLocation || !navigator.geolocation) {
+      hasAutoCentered.current = false;
+      return;
+    }
 
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude: lat, longitude: lng } = position.coords;
-        setUserLocation({ lat, lng });
+    const startWatching = () => {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude: lat, longitude: lng } = position.coords;
+          setRawUserLocation({ lat, lng });
 
-        if (mapInstance && !hasAutoCentered.current) {
-          centerMap(lat, lng, 15);
-          hasAutoCentered.current = true; 
+          if (mapInstance && !hasAutoCentered.current) {
+            centerMap(lat, lng, 15);
+            hasAutoCentered.current = true;
+          }
+        },
+        (error) => {
+          console.error("Location tracking error:", error);
+          setRawUserLocation(null);
+        },
+        { 
+          enableHighAccuracy: false, 
+          timeout: 10000, 
+          maximumAge: 60000 
         }
-      },
-      (error) => console.error("Location tracking error:", error), 
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 } 
-    );
+      );
+      return watchId;
+    };
 
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [shouldTrackLocation, mapInstance, centerMap]); 
+    let watchId: number | null = null;
+
+
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' as PermissionName}).then((result) => {
+        if (result.state === 'granted') {
+          watchId = startWatching();
+        }
+      });
+    } else {
+      watchId = startWatching();
+    }
+
+    return () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [shouldTrackLocation, mapInstance, centerMap]);
   return (
     <div className="absolute inset-0">
       {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
