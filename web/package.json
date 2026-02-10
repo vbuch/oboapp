@@ -17,8 +17,7 @@
     "crawl:toplo": "tsx lib/crawlers/toplo-bg/index.ts",
     "crawl:sofia-bg": "tsx lib/crawlers/sofia-bg/index.ts",
     "ingest": "tsx lib/messageIngest/from-sources.ts",
-    "notify": "tsx lib/notifications/match-and-notify.ts",
-    "prepare": "husky"
+    "notify": "tsx lib/notifications/match-and-notify.ts"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.4.0",
@@ -63,8 +62,6 @@
     "eslint-config-next": "^16.0.10",
     "eslint-plugin-react-hooks-addons": "^0.5.0",
     "happy-dom": "^20.0.11",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
     "msw": "^2.12.10",
     "playwright": "^1.57.0",
     "tailwindcss": "^4",

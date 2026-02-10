@@ -8,11 +8,14 @@
     "build:all": "pnpm run build:shared && pnpm --filter oboapp-ingest build && pnpm --filter oboapp-web build",
     "test:all": "pnpm --filter '*' run test:run --if-present",
     "lint:all": "pnpm --filter '*' run lint --if-present",
-    "postinstall": "pnpm run build:shared"
+    "postinstall": "pnpm run build:shared",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@types/node": "^20",
     "eslint": "^9.18.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "typescript": "^5",
     "typescript-eslint": "^8.54.0",
     "vitest": "^4.0.15"
