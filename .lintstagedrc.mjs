@@ -11,8 +11,10 @@ function createLintTask(dir, filenames) {
     throw new Error(`Invalid directory: ${dir}`);
   }
   
-  // Create regex once outside the map loop for better performance
-  const dirPattern = new RegExp(`${dir}/(.+)$`);
+  // Escape special regex characters for safety, even though dir is validated
+  const escapedDir = dir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const dirPattern = new RegExp(`^.*/${escapedDir}/(.+)$`);
+  
   const files = filenames
     .map(f => {
       const match = f.match(dirPattern);
@@ -29,9 +31,9 @@ function createLintTask(dir, filenames) {
     .map(f => `'${f.replace(/'/g, "'\\''")}'`)
     .join(' ');
   
-  // Wrap in bash -c to execute as a shell command
-  // dir is validated and also escaped with single quotes for defense in depth
-  return `bash -c "cd '${dir}' && eslint --fix --no-warn-ignored ${escapedFiles}"`;
+  // Wrap in bash -c to execute cd and eslint as shell commands
+  // dir is validated and shell-escaped for defense in depth
+  return `bash -c 'cd ${dir} && eslint --fix --no-warn-ignored ${escapedFiles}'`;
 }
 
 export default {
