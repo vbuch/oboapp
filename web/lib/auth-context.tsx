@@ -60,10 +60,19 @@ export function AuthProvider({
       process.env.NODE_ENV === "development"
     ) {
       // Dynamic import to satisfy ESLint no-require-imports rule
-      import("@/__mocks__/firebase-auth").then(({ MOCK_USER }) => {
-        setUser(MOCK_USER);
-        setLoading(false);
-      });
+      import("@/__mocks__/firebase-auth")
+        .then(({ MOCK_USER }) => {
+          setUser(MOCK_USER);
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error(
+            "Failed to load MSW mock Firebase auth module:",
+            error,
+          );
+          setUser(null);
+          setLoading(false);
+        });
       return () => {};
     }
 
