@@ -23,6 +23,14 @@ export interface GeocodingResult {
 }
 
 /**
+ * Round a single coordinate value to 5 decimal places (~1.1m precision).
+ * Shared across validation and comparison logic to avoid drift.
+ */
+export function roundCoordinate(value: number): number {
+  return Math.round(value * 100000) / 100000;
+}
+
+/**
  * Validate and normalize pre-resolved coordinates from source
  * - Rounds to 5 decimal places (precision ~1.1 meters)
  * - Validates coordinates are within Sofia bounds
@@ -35,8 +43,8 @@ export function getValidPreResolvedCoordinates(
 ): Coordinates | null {
   // Round to 5 decimal places (precision ~1.1 meters at Sofia's latitude)
   const rounded: Coordinates = {
-    lat: Math.round(coordinates.lat * 100000) / 100000,
-    lng: Math.round(coordinates.lng * 100000) / 100000,
+    lat: roundCoordinate(coordinates.lat),
+    lng: roundCoordinate(coordinates.lng),
   };
 
   // Validate coordinates are within Sofia bounds
@@ -159,7 +167,11 @@ export function createAddressFromCoordinates(
  * Returns addresses that need geocoding and adds validated coordinates to the map
  */
 function processPinsWithPreResolvedCoordinates(
-  pins: Array<{ address: string; coordinates?: Coordinates; timespans: Array<{ start: string; end: string }> }>,
+  pins: Array<{
+    address: string;
+    coordinates?: Coordinates;
+    timespans: Array<{ start: string; end: string }>;
+  }>,
   preGeocodedMap: Map<string, Coordinates>,
   addresses: Address[],
 ): string[] {
@@ -174,7 +186,9 @@ function processPinsWithPreResolvedCoordinates(
 
       if (validatedCoords) {
         preGeocodedMap.set(pin.address, validatedCoords);
-        addresses.push(createAddressFromCoordinates(pin.address, validatedCoords));
+        addresses.push(
+          createAddressFromCoordinates(pin.address, validatedCoords),
+        );
       } else {
         logger.warn("Invalid pre-resolved coordinates for pin, will geocode", {
           address: pin.address,
@@ -223,7 +237,7 @@ function processStreetEndpoint(
   street: StreetSection,
   endpointName: string,
   endpointCoordinates: Coordinates,
-  direction: 'from' | 'to',
+  direction: "from" | "to",
   preGeocodedMap: Map<string, Coordinates>,
   addresses: Address[],
 ): void {
@@ -261,7 +275,7 @@ function processStreetEndpointsWithPreResolvedCoordinates(
         street,
         street.from,
         street.fromCoordinates,
-        'from',
+        "from",
         preGeocodedMap,
         addresses,
       );
@@ -272,7 +286,7 @@ function processStreetEndpointsWithPreResolvedCoordinates(
         street,
         street.to,
         street.toCoordinates,
-        'to',
+        "to",
         preGeocodedMap,
         addresses,
       );
@@ -403,7 +417,11 @@ export async function geocodeAddressesFromExtractedData(
   await geocodePins(extractedData, preGeocodedMap, addresses);
   await geocodeStreetIntersections(extractedData, preGeocodedMap, addresses);
   const cadastralGeometries = await geocodeCadastralProperties(extractedData);
-  await geocodeBusStopsFromExtractedData(extractedData, preGeocodedMap, addresses);
+  await geocodeBusStopsFromExtractedData(
+    extractedData,
+    preGeocodedMap,
+    addresses,
+  );
 
   // Deduplicate addresses before returning
   const deduplicatedAddresses = deduplicateAddresses(addresses);
