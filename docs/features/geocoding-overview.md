@@ -55,6 +55,15 @@ The router determines which geocoding service to use based on location type:
 
 **Multiple Services**: A single message commonly triggers multiple services when it describes a construction site (УПИ), affected streets, a contact address, and nearby bus stops.
 
+## Pre-Resolved Coordinates
+
+Some sources (e.g., Rayon Oborishte) provide explicit coordinates in their messages. When coordinates are detected in the source text, geocoding is skipped:
+
+- **Pin coordinates**: `"ул. Георги Бенковски №26 (42.6993633, 23.328635)"` → Google API skipped, coordinates used directly
+- **Street endpoint coordinates**: `"Координати на ремонта от 42.693576, 23.35161 до 42.693259, 23.3549725"` → Overpass API skipped, straight line drawn between endpoints
+
+This optimization reduces API calls and processing time while maintaining accuracy for messages that already include precise coordinates.
+
 ## Rate Limiting Strategy
 
 Each service applies rate limiting to respect API terms and manage costs:
