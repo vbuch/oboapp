@@ -11,9 +11,11 @@ function createLintTask(dir, filenames) {
     throw new Error(`Invalid directory: ${dir}`);
   }
   
+  // Create regex once outside the map loop for better performance
+  const dirPattern = new RegExp(`${dir}/(.+)$`);
   const files = filenames
     .map(f => {
-      const match = f.match(new RegExp(`${dir}/(.+)$`));
+      const match = f.match(dirPattern);
       return match ? match[1] : null;
     })
     .filter(Boolean);
@@ -28,8 +30,8 @@ function createLintTask(dir, filenames) {
     .join(' ');
   
   // Wrap in bash -c to execute as a shell command
-  // dir is validated above to only contain safe characters
-  return `bash -c "cd ${dir} && eslint --fix --no-warn-ignored ${escapedFiles}"`;
+  // dir is validated and also escaped with single quotes for defense in depth
+  return `bash -c "cd '${dir}' && eslint --fix --no-warn-ignored ${escapedFiles}"`;
 }
 
 export default {
