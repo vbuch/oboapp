@@ -1,26 +1,32 @@
 # Multi-stage build for minimal image size
 FROM node:20-slim AS builder
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
+
 WORKDIR /app
 
-# Copy workspace root package files
-COPY package*.json ./
+# Copy workspace root config files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 
 # Copy shared and ingest package files
 COPY shared ./shared
 COPY ingest ./ingest
 
 # Install workspace dependencies (triggers postinstall → builds shared)
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Install Chromium ONLY (no system deps here)
 RUN cd ingest && npx playwright install chromium
 
 # Build ingest
-RUN cd ingest && npm run build
+RUN cd ingest && pnpm run build
 
 # Production stage
 FROM node:20-slim
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
 
 WORKDIR /app
 
@@ -45,17 +51,17 @@ RUN apt-get update && apt-get install -y \
     fonts-freefont-ttf \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy workspace root package files
-COPY package*.json ./
+# Copy workspace root config files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 
 # Copy shared package
 COPY shared ./shared
 
 # Copy ingest package files
-COPY ingest/package*.json ./ingest/
+COPY ingest/package.json ./ingest/
 
 # Install only production dependencies (skip postinstall since shared is already built)
-RUN npm ci --production --ignore-scripts
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Copy Playwright browser cache
 COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
@@ -74,4 +80,4 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
 
 WORKDIR /app/ingest
 
-CMD ["npm", "run", "prebuilt:crawl", "--", "--help"]
+CMD ["pnpm", "run", "prebuilt:crawl", "--", "--help"]

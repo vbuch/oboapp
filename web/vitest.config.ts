@@ -25,11 +25,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
-      // Force single React instance from workspace root (ensures test renderer uses same React as components)
-      react: path.resolve(__dirname, "../node_modules/react"),
-      "react-dom": path.resolve(__dirname, "../node_modules/react-dom"),
-      // Force single Zod instance from workspace root (critical for OpenAPI extension to work across shared + web)
-      zod: path.resolve(__dirname, "../node_modules/zod"),
+      // Force single React instance (ensures test renderer uses same React as components)
+      react: path.resolve(__dirname, "node_modules/react"),
+      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
+      // Force single Zod instance (critical for OpenAPI extension to work across shared + web)
+      zod: path.resolve(__dirname, "node_modules/zod"),
     },
   },
 });

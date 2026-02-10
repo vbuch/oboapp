@@ -48,7 +48,7 @@ The project includes a [`firestore.indexes.json`](./firestore.indexes.json) file
 
 **Important**: Deploy indexes and rules **before** deploying code changes to prevent query failures.
 
-1. Install Firebase CLI: `npm install -g firebase-tools`
+1. Install Firebase CLI: `pnpm add -g firebase-tools`
 2. Login to Firebase: `firebase login`
 3. Navigate to ingest directory: `cd ingest`
 4. Deploy Firestore configuration: `firebase deploy --only firestore`

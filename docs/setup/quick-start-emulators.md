@@ -20,7 +20,7 @@ cp web/.env.example.emulator web/.env.local
 ### 2. Install Dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 **Note:** run dependency installation the root folder of the monorepo
@@ -39,7 +39,7 @@ Wait for: `✔  All emulators ready! It is now safe to connect your app.`
 
 ```bash
 cd ingest
-npm run emulators
+pnpm emulators
 ```
 
 Wait for: `✔  All emulators ready! It is now safe to connect your app.`
@@ -51,7 +51,7 @@ Open new terminal:
 
 ```bash
 cd ingest
-npm run emulator:seed
+pnpm emulator:seed
 ```
 
 Stop emulators (Ctrl+C), then restart. Data persists across restarts.
@@ -60,7 +60,7 @@ Stop emulators (Ctrl+C), then restart. Data persists across restarts.
 
 ```bash
 cd web
-npm run dev
+pnpm dev
 ```
 
 Make sure to add your Google Maps API key to the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable in `web/.env.local`.
@@ -80,27 +80,27 @@ Make sure to add your Google Maps API key to the `NEXT_PUBLIC_GOOGLE_MAPS_API_KE
 
 ```bash
 cd ingest
-npm run crawl -- --source rayon-oborishte-bg --dry-run
+pnpm crawl -- --source rayon-oborishte-bg --dry-run
 ```
 
 **Run ingestion pipeline (mocked):**
 
 ```bash
 cd ingest
-npm run ingest
+pnpm ingest
 ```
 
 **Reset data:**
 
 ```bash
 cd ingest
-npm run emulator:clear
-npm run emulator:seed
+pnpm emulator:clear
+pnpm emulator:seed
 ```
 
 ## Troubleshooting
 
-**Emulators won't start:** Install firebase-tools globally: `npm install -g firebase-tools`
+**Emulators won't start:** Install firebase-tools globally: `pnpm add -g firebase-tools`
 
 **Web app can't connect:** Verify `NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true` in `web/.env.local`
 

@@ -96,10 +96,10 @@ When developing a new crawler, you may want to clear test data from other source
 
 ```bash
 # Delete all unprocessed sources except lozenets-sofia-bg
-npm run sources:clean -- --retain lozenets-sofia-bg
+pnpm sources:clean -- --retain lozenets-sofia-bg
 
 # Preview what would be deleted (dry-run)
-npm run sources:clean -- --retain lozenets-sofia-bg --dry-run
+pnpm sources:clean -- --retain lozenets-sofia-bg --dry-run
 ```
 
 **Important:** Only deletes sources that have NOT been ingested into messages. Sources with corresponding messages are always preserved.

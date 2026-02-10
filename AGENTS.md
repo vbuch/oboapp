@@ -28,7 +28,7 @@ If you identify a recurring pattern or developer preference:
 
 1. **DRY Extraction:** Identify and extract duplicate patterns.
 2. **Unit Tests:** Write Vitest tests for all functional units (parsers, transformers). For AI pipeline changes, update integration tests in `ingest/lib/ai-pipeline.integration.test.ts`.
-3. **Validation:** Run `npm run test:run` and fix failures. For AI changes, also run `npm run test:integration` if API credentials are configured.
+3. **Validation:** Run `pnpm test:run` and fix failures. For AI changes, also run `pnpm test:integration` if API credentials are configured.
 4. **Documentation:** Update `README.md` and `AGENTS.md` as needed.
 
 ---
@@ -78,8 +78,8 @@ If you identify a recurring pattern or developer preference:
 
 **Linting is configured for both `web/` and `ingest/` directories.**
 
-- Run linting with `npm run lint` in the respective directory
-- Auto-fix issues with `npm run lint:fix`
+- Run linting with `pnpm lint` in the respective directory
+- Auto-fix issues with `pnpm lint:fix`
 - **CRITICAL: NEVER use `eslint-disable` comments.**
 - ESLint rules exist for good reasons (performance, bugs, maintainability)
 - `eslint-disable` masks problems instead of fixing them
@@ -155,7 +155,7 @@ import { buttonStyles, buttonSizes, borderRadius } from "@/lib/theme";
 
 ### Adding dependencies
 
-When adding npm dependencies always prefer running `npm install` over directly editing `package.json`.
+When adding dependencies always prefer running `pnpm add` (or `pnpm add -D` for dev) over directly editing `package.json`.
 
 ---
 
@@ -229,7 +229,7 @@ flowchart LR
 - **Stable IDs:** Generate document IDs from stable data (e.g., CMS ID), not transient URLs.
 - **GeoJSON:** Parse and validate geometry immediately.
 - **Timespans:** Extract timespans in crawlers and store at source root as `timespanStart/End`.
-- **Scripts:** Use the standard template (shebang, dotenv, dynamic imports). Run via `npm run tsx tmp/script.ts`.
+- **Scripts:** Use the standard template (shebang, dotenv, dynamic imports). Run via `pnpm tsx tmp/script.ts`.
 - **Precomputed GeoJSON:** If crawler provides GeoJSON, it bypasses all AI processing stages (Filter & Split, Categorize, Extract Locations). Timespans transfer from source to message during ingestion.
 - **City-Wide Messages:** Set `cityWide: true` with empty FeatureCollection for alerts applying to entire city. Bypasses viewport filtering (always visible), uses sofia.geojson for notification matching.
 - **Workflow Sync (CRITICAL):** When adding/removing crawlers, update BOTH locations:
@@ -303,4 +303,4 @@ flowchart LR
 - **"FIREBASE_SERVICE_ACCOUNT_KEY not found":** You used a static import for firebase-admin. Switch to dynamic.
 - **"Invalid GeoJSON":** Check coordinate order or missing `type`. Use `validateAndFixGeoJSON`.
 - **Duplicate Records:** Ensure your document ID generation is deterministic and stable.
-- **Tests fail in CI/CD but pass locally:** Shared package changes require rebuild. Run `npm run build` in `shared/` directory or `npm install` at repository root (triggers postinstall hook). Common symptom: snapshot tests showing schema field mismatches.
+- **Tests fail in CI/CD but pass locally:** Shared package changes require rebuild. Run `pnpm build` in `shared/` directory or `pnpm install` at repository root (triggers postinstall hook). Common symptom: snapshot tests showing schema field mismatches.

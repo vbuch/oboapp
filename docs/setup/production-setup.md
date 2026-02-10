@@ -159,19 +159,19 @@ Get Firebase config values from: **Firebase Console → Project Settings → Gen
 
 ```bash
 cd ingest
-npm install
-npm run crawl -- --source sofiyska-voda
-npm run ingest
-npm run notify
+pnpm install
+pnpm crawl -- --source sofiyska-voda
+pnpm ingest
+pnpm notify
 ```
 
 ### Web Application
 
 ```bash
 cd web
-npm install
-npm run dev  # Development
-npm run build && npm start  # Production
+pnpm install
+pnpm dev  # Development
+pnpm build && pnpm start  # Production
 ```
 
 ## Deployment

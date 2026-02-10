@@ -113,7 +113,7 @@ Before finalizing, verify:
 - ✅ NO `markdownText` field is set manually (comes from `buildWebPageSourceDocument`)
 - ✅ Source document fields: `url`, `title`, `datePublished`, `message`, `sourceType`, `crawledAt`
 - ✅ Unit tests written for `extractPostLinks` function
-- ✅ Crawler runs via `npm run crawl -- --source={{source-type}}`
+- ✅ Crawler runs via `pnpm crawl -- --source={{source-type}}`
 - ✅ Crawler handles errors per-post (logs and continues, doesn't fail entire crawl)
 - ✅ Uses named exports (not default exports)
 - ✅ No barrel files (`index.ts` for re-exports)
@@ -125,7 +125,7 @@ Before finalizing, verify:
 1. **Configure test database**: Ensure `.env.local` points to a test Firebase project
 2. **Run the crawler**:
    ```bash
-   npm run crawl -- --source={{source-type}}
+   pnpm crawl -- --source={{source-type}}
    ```
 3. **Verify sources collection**: Check Firestore sources collection for crawled documents
    - Confirm `sourceType` matches
@@ -134,7 +134,7 @@ Before finalizing, verify:
    - Ensure no `geoJson`, `timespanStart`, `timespanEnd`, or `markdownText` fields exist
 4. **Run ingestion pipeline**: Process the crawled content through the pipeline
    ```bash
-   npm run ingest
+   pnpm ingest
    ```
 5. **Verify messages collection**: Check Firestore messages collection for processed output
    - Confirm messages were categorized correctly
@@ -180,7 +180,7 @@ Add the new source to `web/lib/sources.json`:
 Once implemented, the crawler runs via:
 
 ```bash
-npm run crawl -- --source={{source-type}}
+pnpm crawl -- --source={{source-type}}
 ```
 
 This executes `ingest/crawl.ts` which dynamically imports the crawler's `crawl()` function.

@@ -4,7 +4,7 @@ Data collection and processing pipeline for OboApp. Collects infrastructure disr
 
 ## ⚠️ WORKSPACE SETUP
 
-This package is part of an npm workspace. **Run `npm install` at the repository root**, not in this directory.
+This package is part of a pnpm workspace. **Run `pnpm install` at the repository root**, not in this directory.
 
 The shared package (@oboapp/shared) is built automatically during workspace installation via postinstall hook.
 
@@ -34,22 +34,22 @@ graph LR
 
 ```bash
 # Run a specific crawler
-npm run crawl -- --source rayon-oborishte-bg
+pnpm crawl -- --source rayon-oborishte-bg
 
 # Sync GTFS bus stop data
-npm run gtfs-stops
+pnpm gtfs-stops
 
 # Process all sources into messages
-npm run ingest
+pnpm ingest
 
 # Send notifications for new messages
-npm run notify
+pnpm notify
 
 # Run emergent pipeline (erm-zapad, toplo-bg, sofiyska-voda + ingest + notify)
-npm run pipeline:emergent
+pnpm pipeline:emergent
 
 # Run full pipeline (all crawlers + ingest + notify)
-npm run pipeline:all
+pnpm pipeline:all
 ```
 
 ## Pipeline Schedules
