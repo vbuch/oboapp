@@ -4,7 +4,7 @@ This guide is for **front-end developers** who want to work on OboApp's UI witho
 
 ## Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 18+ and [pnpm](https://pnpm.io/installation)
 - Git
 
 ## Setup (5 minutes)
@@ -12,7 +12,7 @@ This guide is for **front-end developers** who want to work on OboApp's UI witho
 ### 1. Install Dependencies
 
 ```bash
-npm install  # Execute in root. Installs dependencies for all modules (web, ingest, shared)
+pnpm install  # Execute in root. Installs dependencies for all modules (web, ingest, shared)
 ```
 
 ### 2. Configure Environment Variables
@@ -51,7 +51,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID=demo-app-id
 
 ```bash
 cd web
-npm run dev
+pnpm dev
 ```
 
 The app will be available at [http://localhost:3000](http://localhost:3000).
@@ -121,5 +121,5 @@ You should see console logs indicating MSW is active:
 
 ### "TypeScript errors in **mocks**"
 
-- Run `npm install` in the root directory to build shared package
+- Run `pnpm install` in the root directory to build shared package
 - Restart the TypeScript server in VS Code (Cmd+Shift+P → "TypeScript: Restart TS Server")

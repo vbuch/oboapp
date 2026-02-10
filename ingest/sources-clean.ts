@@ -22,8 +22,8 @@ program
     "after",
     `
 Examples:
-  $ npm run sources:clean -- --retain lozenets-sofia-bg
-  $ npm run sources:clean -- --retain rayon-oborishte-bg --dry-run
+  $ pnpm sources:clean -- --retain lozenets-sofia-bg
+  $ pnpm sources:clean -- --retain rayon-oborishte-bg --dry-run
 
 IMPORTANT: Only deletes sources that have NOT been ingested into messages.
 Sources that have corresponding messages in the messages collection will be preserved.
@@ -38,7 +38,9 @@ Sources that have corresponding messages in the messages collection will be pres
       const { cleanSources } = await import("./lib/sources-clean");
       await cleanSources(options.retain, options.dryRun ?? false);
     } catch (error) {
-      logger.error("Fatal error in sources:clean", { error: error instanceof Error ? error.message : String(error) });
+      logger.error("Fatal error in sources:clean", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       process.exit(1);
     }
   });

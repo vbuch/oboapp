@@ -276,7 +276,7 @@ resource "google_cloud_run_v2_job" "crawlers" {
       
       containers {
         image = local.full_image_url
-        args  = ["npm", "run", "prebuilt:crawl", "--", "--source", each.value.source]
+        args  = ["pnpm", "run", "prebuilt:crawl", "--", "--source", each.value.source]
         
         resources {
           limits = {
@@ -369,7 +369,7 @@ resource "google_cloud_run_v2_job" "ingest" {
       
       containers {
         image = local.full_image_url
-        args  = ["npm", "run", "prebuilt:ingest"]
+        args  = ["pnpm", "run", "prebuilt:ingest"]
         
         resources {
           limits = {
@@ -461,7 +461,7 @@ resource "google_cloud_run_v2_job" "notify" {
       
       containers {
         image = local.full_image_url
-        args  = ["npm", "run", "prebuilt:notify"]
+        args  = ["pnpm", "run", "prebuilt:notify"]
         
         resources {
           limits = {
@@ -555,7 +555,7 @@ resource "google_cloud_run_v2_job" "pipeline_emergent" {
       
       containers {
         image = local.full_image_url
-        args  = ["npm", "run", "prebuilt:pipeline:emergent"]
+        args  = ["pnpm", "run", "prebuilt:pipeline:emergent"]
         
         resources {
           limits = {
@@ -647,7 +647,7 @@ resource "google_cloud_run_v2_job" "pipeline_all" {
       
       containers {
         image = local.full_image_url
-        args  = ["npm", "run", "prebuilt:pipeline:all"]
+        args  = ["pnpm", "run", "prebuilt:pipeline:all"]
         
         resources {
           limits = {
@@ -796,7 +796,7 @@ resource "google_cloud_run_v2_job" "gtfs_sync" {
       
       containers {
         image = local.full_image_url
-        args  = ["npm", "run", "prebuilt:gtfs-stops"]
+        args  = ["pnpm", "run", "prebuilt:gtfs-stops"]
         
         resources {
           limits = {
