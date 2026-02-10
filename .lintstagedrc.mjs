@@ -5,9 +5,9 @@
  * @returns {string} Shell command to run eslint
  */
 function createLintTask(dir, filenames) {
-  // Validate directory to prevent injection
+  // Validate directory to prevent injection - only allow alphanumeric chars and underscores
   const validDirs = ['web', 'ingest', 'shared'];
-  if (!validDirs.includes(dir)) {
+  if (!validDirs.includes(dir) || !/^[a-z_]+$/.test(dir)) {
     throw new Error(`Invalid directory: ${dir}`);
   }
   
@@ -28,6 +28,7 @@ function createLintTask(dir, filenames) {
     .join(' ');
   
   // Wrap in bash -c to execute as a shell command
+  // dir is validated above to only contain safe characters
   return `bash -c "cd ${dir} && eslint --fix --no-warn-ignored ${escapedFiles}"`;
 }
 
