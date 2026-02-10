@@ -29,7 +29,7 @@ export interface GeocodingResult {
  * Returns null if coordinates are invalid
  * Exported for unit testing
  */
-export function validatePreResolvedCoordinates(
+export function getValidPreResolvedCoordinates(
   coordinates: Coordinates,
   context: string,
 ): Coordinates | null {
@@ -171,7 +171,7 @@ export async function geocodeAddressesFromExtractedData(
     for (const pin of extractedData.pins) {
       if (pin.coordinates) {
         // Validate and normalize pre-resolved coordinates from AI
-        const validatedCoords = validatePreResolvedCoordinates(
+        const validatedCoords = getValidPreResolvedCoordinates(
           pin.coordinates,
           `pin: ${pin.address}`,
         );
@@ -216,7 +216,7 @@ export async function geocodeAddressesFromExtractedData(
     // First, add any pre-resolved endpoint coordinates
     for (const street of extractedData.streets) {
       if (street.fromCoordinates) {
-        const validatedCoords = validatePreResolvedCoordinates(
+        const validatedCoords = getValidPreResolvedCoordinates(
           street.fromCoordinates,
           `street endpoint: ${street.street} from ${street.from}`,
         );
@@ -244,7 +244,7 @@ export async function geocodeAddressesFromExtractedData(
         }
       }
       if (street.toCoordinates) {
-        const validatedCoords = validatePreResolvedCoordinates(
+        const validatedCoords = getValidPreResolvedCoordinates(
           street.toCoordinates,
           `street endpoint: ${street.street} to ${street.to}`,
         );

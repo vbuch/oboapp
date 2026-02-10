@@ -3,7 +3,7 @@ import {
   findMissingStreetEndpoints,
   deduplicateAddresses,
   geocodeAddressesFromExtractedData,
-  validatePreResolvedCoordinates,
+  getValidPreResolvedCoordinates,
 } from "./geocode-addresses";
 import type { StreetSection, Address, ExtractedLocations } from "@/lib/types";
 
@@ -338,10 +338,10 @@ describe("geocodeAddressesFromExtractedData", () => {
   });
 });
 
-describe("validatePreResolvedCoordinates", () => {
+describe("getValidPreResolvedCoordinates", () => {
   it("should round coordinates to 5 decimal places", () => {
     const coords = { lat: 42.69936334567, lng: 23.32863534567 };
-    const result = validatePreResolvedCoordinates(coords, "test");
+    const result = getValidPreResolvedCoordinates(coords, "test");
 
     expect(result).not.toBeNull();
     expect(result!.lat).toBe(42.69936);
@@ -350,7 +350,7 @@ describe("validatePreResolvedCoordinates", () => {
 
   it("should accept valid Sofia coordinates", () => {
     const coords = { lat: 42.6993633, lng: 23.328635 };
-    const result = validatePreResolvedCoordinates(coords, "test");
+    const result = getValidPreResolvedCoordinates(coords, "test");
 
     expect(result).not.toBeNull();
     expect(result!.lat).toBe(42.69936);
@@ -359,28 +359,28 @@ describe("validatePreResolvedCoordinates", () => {
 
   it("should reject coordinates outside Sofia bounds (north)", () => {
     const coords = { lat: 43.0, lng: 23.3 }; // Too far north
-    const result = validatePreResolvedCoordinates(coords, "test");
+    const result = getValidPreResolvedCoordinates(coords, "test");
 
     expect(result).toBeNull();
   });
 
   it("should reject coordinates outside Sofia bounds (south)", () => {
     const coords = { lat: 42.5, lng: 23.3 }; // Too far south
-    const result = validatePreResolvedCoordinates(coords, "test");
+    const result = getValidPreResolvedCoordinates(coords, "test");
 
     expect(result).toBeNull();
   });
 
   it("should reject coordinates outside Sofia bounds (east)", () => {
     const coords = { lat: 42.7, lng: 23.6 }; // Too far east
-    const result = validatePreResolvedCoordinates(coords, "test");
+    const result = getValidPreResolvedCoordinates(coords, "test");
 
     expect(result).toBeNull();
   });
 
   it("should reject coordinates outside Sofia bounds (west)", () => {
     const coords = { lat: 42.7, lng: 23.1 }; // Too far west
-    const result = validatePreResolvedCoordinates(coords, "test");
+    const result = getValidPreResolvedCoordinates(coords, "test");
 
     expect(result).toBeNull();
   });
@@ -392,16 +392,16 @@ describe("validatePreResolvedCoordinates", () => {
     const coordsEast = { lat: 42.7, lng: 23.528 };
     const coordsWest = { lat: 42.7, lng: 23.188 };
 
-    expect(validatePreResolvedCoordinates(coordsNorth, "test")).not.toBeNull();
-    expect(validatePreResolvedCoordinates(coordsSouth, "test")).not.toBeNull();
-    expect(validatePreResolvedCoordinates(coordsEast, "test")).not.toBeNull();
-    expect(validatePreResolvedCoordinates(coordsWest, "test")).not.toBeNull();
+    expect(getValidPreResolvedCoordinates(coordsNorth, "test")).not.toBeNull();
+    expect(getValidPreResolvedCoordinates(coordsSouth, "test")).not.toBeNull();
+    expect(getValidPreResolvedCoordinates(coordsEast, "test")).not.toBeNull();
+    expect(getValidPreResolvedCoordinates(coordsWest, "test")).not.toBeNull();
   });
 
   it("should handle coordinates with excessive precision", () => {
     // Micron-level precision (9 decimal places ~0.11mm)
     const coords = { lat: 42.123456789, lng: 23.987654321 };
-    const result = validatePreResolvedCoordinates(coords, "test");
+    const result = getValidPreResolvedCoordinates(coords, "test");
 
     // Should round but reject if outside bounds
     expect(result).toBeNull(); // These coords are outside Sofia
@@ -410,7 +410,7 @@ describe("validatePreResolvedCoordinates", () => {
   it("should round coordinates near street section example from issue", () => {
     // Example from issue: 42.693576, 23.35161
     const coords = { lat: 42.693576, lng: 23.35161 };
-    const result = validatePreResolvedCoordinates(coords, "test");
+    const result = getValidPreResolvedCoordinates(coords, "test");
 
     expect(result).not.toBeNull();
     expect(result!.lat).toBe(42.69358);
