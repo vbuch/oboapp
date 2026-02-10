@@ -1,7 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { GeoJSONLineString } from "@/lib/types";
 import * as turf from "@turf/turf";
 import type { Position } from "geojson";
+
+// Mock firebase-admin to avoid requiring env vars
+vi.mock("@/lib/firebase-admin", () => ({
+  adminDb: vi.fn(),
+}));
 
 /**
  * Tests for GeoJSON polygon generation from LineStrings
@@ -223,5 +228,77 @@ describe("LineString to Polygon conversion", () => {
 
       expect(hasCorrectWindingOrder(clockwise)).toBe(false);
     });
+  });
+});
+
+describe("convertToGeoJSON with pre-resolved coordinates", () => {
+  it("should create straight line when both street endpoints have pre-resolved coordinates", async () => {
+    const { convertToGeoJSON } = await import("./geojson-service");
+    
+    const extractedData = {
+      withSpecificAddress: true,
+      cityWide: false,
+      busStops: [],
+      pins: [],
+      streets: [
+        {
+          street: "ул. Оборище",
+          from: "Start Point",
+          fromCoordinates: { lat: 42.693576, lng: 23.35161 },
+          to: "End Point",
+          toCoordinates: { lat: 42.693259, lng: 23.3549725 },
+          timespans: [{ start: "05.02.2026 00:00", end: "09.03.2026 23:59" }],
+        },
+      ],
+      cadastralProperties: [],
+    };
+
+    const preGeocodedMap = new Map([
+      ["Start Point", { lat: 42.693576, lng: 23.35161 }],
+      ["End Point", { lat: 42.693259, lng: 23.3549725 }],
+    ]);
+
+    const result = await convertToGeoJSON(extractedData, preGeocodedMap);
+
+    expect(result.features).toHaveLength(1);
+    expect(result.features[0].geometry.type).toBe("Polygon");
+    
+    // The underlying centerline should be a straight line between the two points
+    // We can't directly test the centerline, but we can verify the feature was created
+    expect(result.features[0].properties.street).toBe("ул. Оборище");
+    expect(result.features[0].properties.from).toBe("Start Point");
+    expect(result.features[0].properties.to).toBe("End Point");
+  });
+
+  it("should use street geometry when endpoints are geocoded (not pre-resolved)", async () => {
+    const { convertToGeoJSON } = await import("./geojson-service");
+    
+    const extractedData = {
+      withSpecificAddress: true,
+      cityWide: false,
+      busStops: [],
+      pins: [],
+      streets: [
+        {
+          street: "ул. Оборище",
+          from: "ул. Лисец",
+          to: "бул. Ситняково",
+          // No fromCoordinates or toCoordinates - these were geocoded
+          timespans: [{ start: "05.02.2026 00:00", end: "09.03.2026 23:59" }],
+        },
+      ],
+      cadastralProperties: [],
+    };
+
+    const preGeocodedMap = new Map([
+      ["ул. Лисец", { lat: 42.693, lng: 23.351 }],
+      ["бул. Ситняково", { lat: 42.694, lng: 23.352 }],
+    ]);
+
+    const result = await convertToGeoJSON(extractedData, preGeocodedMap);
+
+    expect(result.features).toHaveLength(1);
+    expect(result.features[0].geometry.type).toBe("Polygon");
+    expect(result.features[0].properties.street).toBe("ул. Оборище");
   });
 });

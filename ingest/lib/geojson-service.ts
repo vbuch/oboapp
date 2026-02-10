@@ -216,9 +216,15 @@ async function createClosureFeature(
     );
   }
 
-  // Check if both endpoints have pre-resolved coordinates from the source
+  // Check if both endpoints have pre-resolved coordinates that were actually validated and used
+  // We compare the coordinates we're using with the original pre-resolved coordinates from the source
   const hasPreResolvedCoordinates =
-    !!street.fromCoordinates && !!street.toCoordinates;
+    !!street.fromCoordinates &&
+    !!street.toCoordinates &&
+    street.fromCoordinates.lat === startCoords.lat &&
+    street.fromCoordinates.lng === startCoords.lng &&
+    street.toCoordinates.lat === endCoords.lat &&
+    street.toCoordinates.lng === endCoords.lng;
 
   // Get centerline
   const centerline = await getStreetCenterline(

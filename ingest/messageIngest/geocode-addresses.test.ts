@@ -6,6 +6,7 @@ import {
   getValidPreResolvedCoordinates,
 } from "./geocode-addresses";
 import type { StreetSection, Address, ExtractedLocations } from "@/lib/types";
+import { SOFIA_BOUNDS } from "@/lib/bounds";
 
 // Mock firebase-admin to avoid requiring env vars
 vi.mock("@/lib/firebase-admin", () => ({
@@ -387,10 +388,10 @@ describe("getValidPreResolvedCoordinates", () => {
 
   it("should handle coordinates at Sofia boundary edges", () => {
     // Test at SOFIA_BOUNDS edges (see @/lib/bounds for actual values)
-    const coordsNorth = { lat: 42.83, lng: 23.3 };
-    const coordsSouth = { lat: 42.605, lng: 23.3 };
-    const coordsEast = { lat: 42.7, lng: 23.528 };
-    const coordsWest = { lat: 42.7, lng: 23.188 };
+    const coordsNorth = { lat: SOFIA_BOUNDS.north, lng: 23.3 };
+    const coordsSouth = { lat: SOFIA_BOUNDS.south, lng: 23.3 };
+    const coordsEast = { lat: 42.7, lng: SOFIA_BOUNDS.east };
+    const coordsWest = { lat: 42.7, lng: SOFIA_BOUNDS.west };
 
     expect(getValidPreResolvedCoordinates(coordsNorth, "test")).not.toBeNull();
     expect(getValidPreResolvedCoordinates(coordsSouth, "test")).not.toBeNull();

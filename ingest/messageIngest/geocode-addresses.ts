@@ -49,19 +49,6 @@ export function getValidPreResolvedCoordinates(
     return null;
   }
 
-  // Log if coordinates were rounded significantly (more than 0.00001 degrees ~1 meter)
-  const latDiff = Math.abs(coordinates.lat - rounded.lat);
-  const lngDiff = Math.abs(coordinates.lng - rounded.lng);
-  if (latDiff > 0.00001 || lngDiff > 0.00001) {
-    logger.info("Rounded pre-resolved coordinates", {
-      context,
-      original: coordinates,
-      rounded,
-      latDiff,
-      lngDiff,
-    });
-  }
-
   return rounded;
 }
 
