@@ -1,35 +1,31 @@
+/**
+ * Creates a lint-staged task for a specific package directory
+ * @param {string} dir - The package directory (e.g., 'web', 'ingest', 'shared')
+ * @param {string[]} filenames - Array of staged file paths
+ * @returns {string} Shell command to run eslint
+ */
+function createLintTask(dir, filenames) {
+  const files = filenames
+    .map(f => {
+      const match = f.match(new RegExp(`${dir}/(.+)$`));
+      return match ? match[1] : null;
+    })
+    .filter(Boolean);
+  
+  if (files.length === 0) return '';
+  
+  // Escape filenames for shell using single quotes
+  // Replace any single quotes in the filename with '\''
+  const escapedFiles = files
+    .map(f => `'${f.replace(/'/g, "'\\''")}'`)
+    .join(' ');
+  
+  // Wrap in bash -c to execute as a shell command
+  return `bash -c "cd ${dir} && eslint --fix --no-warn-ignored ${escapedFiles}"`;
+}
+
 export default {
-  'web/**/*.{js,jsx,ts,tsx}': (filenames) => {
-    const files = filenames
-      .map(f => {
-        const match = f.match(/web\/(.+)$/);
-        return match ? match[1] : f;
-      })
-      .filter(f => f)
-      .map(f => `'${f.replace(/'/g, "'\\''")}'`)
-      .join(' ');
-    return files ? `bash -c "cd web && eslint --fix --no-warn-ignored ${files}"` : [];
-  },
-  'ingest/**/*.{js,ts}': (filenames) => {
-    const files = filenames
-      .map(f => {
-        const match = f.match(/ingest\/(.+)$/);
-        return match ? match[1] : f;
-      })
-      .filter(f => f)
-      .map(f => `'${f.replace(/'/g, "'\\''")}'`)
-      .join(' ');
-    return files ? `bash -c "cd ingest && eslint --fix --no-warn-ignored ${files}"` : [];
-  },
-  'shared/**/*.{js,ts}': (filenames) => {
-    const files = filenames
-      .map(f => {
-        const match = f.match(/shared\/(.+)$/);
-        return match ? match[1] : f;
-      })
-      .filter(f => f)
-      .map(f => `'${f.replace(/'/g, "'\\''")}'`)
-      .join(' ');
-    return files ? `bash -c "cd shared && eslint --fix --no-warn-ignored ${files}"` : [];
-  },
+  'web/**/*.{js,jsx,ts,tsx}': (filenames) => createLintTask('web', filenames),
+  'ingest/**/*.{js,ts}': (filenames) => createLintTask('ingest', filenames),
+  'shared/**/*.{js,ts}': (filenames) => createLintTask('shared', filenames),
 };
