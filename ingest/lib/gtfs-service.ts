@@ -2,7 +2,7 @@ import AdmZip from "adm-zip";
 import { parse } from "csv-parse/sync";
 import { adminDb } from "./firebase-admin";
 import { isWithinSofia } from "./bounds";
-import { roundCoordinate } from "../crawlers/shared/coordinate-utils";
+import { roundCoordinate } from "@/lib/coordinate-utils";
 import { logger } from "@/lib/logger";
 
 const GTFS_URL = "https://gtfs.sofiatraffic.bg/api/v1/static";
@@ -72,7 +72,11 @@ export function parseStopsFile(csvContent: string): GTFSStop[] {
 
     // Validate coordinates
     if (Number.isNaN(lat) || Number.isNaN(lng)) {
-      logger.warn("Invalid coordinates for stop", { stopCode, lat: record.stop_lat, lng: record.stop_lon });
+      logger.warn("Invalid coordinates for stop", {
+        stopCode,
+        lat: record.stop_lat,
+        lng: record.stop_lon,
+      });
       continue;
     }
 
@@ -94,7 +98,9 @@ export function parseStopsFile(csvContent: string): GTFSStop[] {
     logger.info("Skipped stops without stop_code", { count: skippedNoCode });
   }
   if (skippedOutOfBounds > 0) {
-    logger.info("Skipped stops outside Sofia boundaries", { count: skippedOutOfBounds });
+    logger.info("Skipped stops outside Sofia boundaries", {
+      count: skippedOutOfBounds,
+    });
   }
 
   return stops;
@@ -140,7 +146,11 @@ export async function syncGTFSStopsToFirestore(): Promise<void> {
 
     await batch.commit();
     written += chunk.length;
-    logger.info("Wrote GTFS batch", { batch: Math.floor(i / BATCH_SIZE) + 1, written, total: stops.length });
+    logger.info("Wrote GTFS batch", {
+      batch: Math.floor(i / BATCH_SIZE) + 1,
+      written,
+      total: stops.length,
+    });
   }
 
   logger.info("Successfully synced bus stops to Firestore", { count: written });

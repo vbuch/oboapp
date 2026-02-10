@@ -13,7 +13,7 @@ import {
   isWithinSofia,
 } from "./geocoding-utils";
 import { delay } from "./delay";
-import { roundCoordinate } from "../crawlers/shared/coordinate-utils";
+import { roundCoordinate } from "@/lib/coordinate-utils";
 import { logger } from "@/lib/logger";
 import { OverpassMockService } from "../__mocks__/services/overpass-mock-service";
 

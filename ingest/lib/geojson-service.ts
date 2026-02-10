@@ -8,7 +8,7 @@ import {
   IntersectionCoordinates,
 } from "./types";
 import { getStreetGeometry } from "./geocoding-router";
-import { roundCoordinate } from "@/messageIngest/geocode-addresses";
+import { roundCoordinate } from "@/lib/coordinate-utils";
 import { logger } from "@/lib/logger";
 
 // Constants for street buffer widths (in meters)
@@ -222,7 +222,7 @@ async function createClosureFeature(
 
   // Check if both endpoints have pre-resolved coordinates that were actually validated and used
   // We compare the coordinates we're using with the rounded version of the original pre-resolved coordinates
-  // (since validation rounds to 5 decimal places)
+  // (since validation rounds to 6 decimal places)
   const hasPreResolvedCoordinates =
     !!street.fromCoordinates &&
     !!street.toCoordinates &&

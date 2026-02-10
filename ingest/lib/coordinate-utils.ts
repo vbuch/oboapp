@@ -1,5 +1,5 @@
 /**
- * Round a coordinate to specified decimal places
+ * Round a coordinate to specified decimal places.
  * @param coord - The coordinate value (latitude or longitude)
  * @param decimals - Number of decimal places (default: 6, ~0.1m precision)
  * @returns Rounded coordinate

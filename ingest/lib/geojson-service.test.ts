@@ -263,11 +263,11 @@ describe("convertToGeoJSON with pre-resolved coordinates", () => {
       cadastralProperties: [],
     };
 
-    // The preGeocodedMap contains rounded coordinates (to 5 decimal places)
+    // The preGeocodedMap contains rounded coordinates (to 6 decimal places)
     // as would be populated by geocodeAddressesFromExtractedData
     const preGeocodedMap = new Map([
-      ["Start Point", { lat: 42.69358, lng: 23.35161 }], // Rounded from 42.693576
-      ["End Point", { lat: 42.69326, lng: 23.35497 }], // Rounded from 42.693259 and 23.3549725
+      ["Start Point", { lat: 42.693576, lng: 23.35161 }], // Rounded from 42.693576
+      ["End Point", { lat: 42.693259, lng: 23.354973 }], // Rounded from 42.693259 and 23.3549725
     ]);
 
     const result = await convertToGeoJSON(extractedData, preGeocodedMap);

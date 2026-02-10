@@ -14,6 +14,7 @@ import {
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
 import { logger } from "@/lib/logger";
 import { isWithinSofia } from "@/lib/bounds";
+import { roundCoordinate } from "@/lib/coordinate-utils";
 
 // Internal types for the geocoding pipeline
 export interface GeocodingResult {
@@ -23,16 +24,8 @@ export interface GeocodingResult {
 }
 
 /**
- * Round a single coordinate value to 5 decimal places (~1.1m precision).
- * Shared across validation and comparison logic to avoid drift.
- */
-export function roundCoordinate(value: number): number {
-  return Math.round(value * 100000) / 100000;
-}
-
-/**
  * Validate and normalize pre-resolved coordinates from source
- * - Rounds to 5 decimal places (precision ~1.1 meters)
+ * - Rounds to 6 decimal places (precision ~0.1 meters)
  * - Validates coordinates are within Sofia bounds
  * Returns null if coordinates are invalid
  * Exported for unit testing
@@ -41,7 +34,7 @@ export function getValidPreResolvedCoordinates(
   coordinates: Coordinates,
   context: string,
 ): Coordinates | null {
-  // Round to 5 decimal places (precision ~1.1 meters at Sofia's latitude)
+  // Round to 6 decimal places (precision ~0.1 meters at Sofia's latitude)
   const rounded: Coordinates = {
     lat: roundCoordinate(coordinates.lat),
     lng: roundCoordinate(coordinates.lng),
