@@ -61,9 +61,15 @@ export { app, db, auth };
 
 /**
  * MSW Mode: Override auth state with mock user
- * This provides a pre-authenticated user for front-end development without Firebase
+ * This provides a pre-authenticated user for front-end development without Firebase.
+ * Double-gated: requires both NEXT_PUBLIC_USE_MSW=true AND a non-production environment
+ * so mock auth can never activate in a production build/runtime.
  */
-if (useMSW && typeof globalThis.window !== "undefined") {
+if (
+  useMSW &&
+  process.env.NODE_ENV === "development" &&
+  typeof globalThis.window !== "undefined"
+) {
   // Import mock user dynamically to avoid server-side issues
   const { MOCK_USER } = await import("@/__mocks__/firebase-auth");
 

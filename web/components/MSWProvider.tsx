@@ -7,13 +7,15 @@ import { useEffect, useState } from "react";
  * Only runs when NEXT_PUBLIC_USE_MSW=true
  */
 export function MSWProvider({ children }: { children: React.ReactNode }) {
-  const [mswReady, setMswReady] = useState(
-    () => process.env.NEXT_PUBLIC_USE_MSW !== "true",
-  );
+  const isMSWEnabled =
+    process.env.NEXT_PUBLIC_USE_MSW === "true" &&
+    process.env.NODE_ENV === "development";
+
+  const [mswReady, setMswReady] = useState(() => !isMSWEnabled);
 
   useEffect(() => {
     const initMSW = async () => {
-      if (process.env.NEXT_PUBLIC_USE_MSW === "true") {
+      if (isMSWEnabled) {
         try {
           const { worker } = await import("@/__mocks__/browser");
           await worker.start({

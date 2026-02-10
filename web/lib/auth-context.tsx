@@ -54,7 +54,11 @@ export function AuthProvider({
 
   useEffect(() => {
     // MSW Mode: Skip Firebase auth subscription and use mock user
-    if (process.env.NEXT_PUBLIC_USE_MSW === "true") {
+    // Double-gated so mock auth can never activate in production
+    if (
+      process.env.NEXT_PUBLIC_USE_MSW === "true" &&
+      process.env.NODE_ENV === "development"
+    ) {
       // Dynamic import to satisfy ESLint no-require-imports rule
       import("@/__mocks__/firebase-auth").then(({ MOCK_USER }) => {
         setUser(MOCK_USER);
