@@ -217,14 +217,17 @@ async function createClosureFeature(
   }
 
   // Check if both endpoints have pre-resolved coordinates that were actually validated and used
-  // We compare the coordinates we're using with the original pre-resolved coordinates from the source
+  // We compare the coordinates we're using with the rounded version of the original pre-resolved coordinates
+  // (since validation rounds to 5 decimal places)
+  const roundCoordinate = (value: number) => Math.round(value * 100000) / 100000;
+  
   const hasPreResolvedCoordinates =
     !!street.fromCoordinates &&
     !!street.toCoordinates &&
-    street.fromCoordinates.lat === startCoords.lat &&
-    street.fromCoordinates.lng === startCoords.lng &&
-    street.toCoordinates.lat === endCoords.lat &&
-    street.toCoordinates.lng === endCoords.lng;
+    roundCoordinate(street.fromCoordinates.lat) === startCoords.lat &&
+    roundCoordinate(street.fromCoordinates.lng) === startCoords.lng &&
+    roundCoordinate(street.toCoordinates.lat) === endCoords.lat &&
+    roundCoordinate(street.toCoordinates.lng) === endCoords.lng;
 
   // Get centerline
   const centerline = await getStreetCenterline(
