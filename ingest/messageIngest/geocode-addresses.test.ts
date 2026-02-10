@@ -386,7 +386,7 @@ describe("validatePreResolvedCoordinates", () => {
   });
 
   it("should handle coordinates at Sofia boundary edges", () => {
-    // Sofia bounds: south: 42.605, west: 23.188, north: 42.83, east: 23.528
+    // Test at SOFIA_BOUNDS edges (see @/lib/bounds for actual values)
     const coordsNorth = { lat: 42.83, lng: 23.3 };
     const coordsSouth = { lat: 42.605, lng: 23.3 };
     const coordsEast = { lat: 42.7, lng: 23.528 };
