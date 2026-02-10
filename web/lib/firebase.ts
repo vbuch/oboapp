@@ -4,15 +4,9 @@ import {
   Firestore,
   connectFirestoreEmulator,
 } from "firebase/firestore";
-import {
-  getAuth,
-  Auth,
-  connectAuthEmulator,
-  onAuthStateChanged,
-} from "firebase/auth";
+import { getAuth, Auth, connectAuthEmulator } from "firebase/auth";
 
 const useEmulators = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === "true";
-const useMSW = process.env.NEXT_PUBLIC_USE_MSW === "true";
 
 const firebaseConfig = useEmulators
   ? {

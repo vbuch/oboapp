@@ -33,7 +33,7 @@ export function MSWProvider({ children }: { children: React.ReactNode }) {
     };
 
     initMSW();
-  }, []);
+  }, [isMSWEnabled]);
 
   // Don't render children until MSW is ready (prevents race conditions)
   if (!mswReady) {
