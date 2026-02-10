@@ -4,13 +4,11 @@ Thank you for your interest in contributing!
 
 ## Quick Start
 
-**New contributor?** Start with zero-dependency local development:
+**Choose your development path:**
 
-**[Quick Start with Emulators](docs/setup/quick-start-emulators.md)** (5 minutes, no Firebase/GCP account needed)
-
-**Need production setup?** Setting up with real Firebase/Google Cloud:
-
-**[Production Setup Guide](docs/setup/production-setup.md)**
+- **Front-end only** (no Java/Docker): **[Quick Start with MSW](docs/setup/quick-start-frontend-msw.md)** - Mock Service Worker for UI development
+- **Full-stack** (zero cloud deps): **[Quick Start with Emulators](docs/setup/quick-start-emulators.md)** - Firebase emulators for backend integration
+- **Production setup**: **[Production Setup Guide](docs/setup/production-setup.md)** - Real Firebase/Google Cloud configuration
 
 ## Project Structure
 

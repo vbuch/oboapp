@@ -4,9 +4,15 @@ import {
   Firestore,
   connectFirestoreEmulator,
 } from "firebase/firestore";
-import { getAuth, Auth, connectAuthEmulator } from "firebase/auth";
+import {
+  getAuth,
+  Auth,
+  connectAuthEmulator,
+  onAuthStateChanged,
+} from "firebase/auth";
 
 const useEmulators = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === "true";
+const useMSW = process.env.NEXT_PUBLIC_USE_MSW === "true";
 
 const firebaseConfig = useEmulators
   ? {
@@ -52,3 +58,37 @@ if (!getApps().length) {
 }
 
 export { app, db, auth };
+
+/**
+ * MSW Mode: Override auth state with mock user
+ * This provides a pre-authenticated user for front-end development without Firebase
+ */
+if (useMSW && typeof globalThis.window !== "undefined") {
+  // Import mock user dynamically to avoid server-side issues
+  const { MOCK_USER } = await import("@/__mocks__/firebase-auth");
+
+  // Override the global onAuthStateChanged export
+  Object.defineProperty(auth, "onAuthStateChanged", {
+    value: (
+      nextOrObserver: Parameters<typeof onAuthStateChanged>[1],
+      error?: Parameters<typeof onAuthStateChanged>[2],
+      completed?: Parameters<typeof onAuthStateChanged>[3],
+    ) => {
+      // If it's a callback function, call it with mock user
+      if (typeof nextOrObserver === "function") {
+        nextOrObserver(MOCK_USER);
+      } else if (nextOrObserver && "next" in nextOrObserver) {
+        // If it's an observer object with next method
+        nextOrObserver.next(MOCK_USER);
+      }
+      // Return unsubscribe function
+      return () => {};
+    },
+    writable: true,
+    configurable: true,
+  });
+
+  console.log(
+    "[Firebase Client] MSW mode enabled - auth is handled in AuthProvider",
+  );
+}

@@ -66,6 +66,7 @@ const eslintConfig = [
       "**/*.d.ts", // Type declaration files
       "**/*.mjs", // Config files not in tsconfig
       "public/firebase-messaging-sw.js", // Service worker not in tsconfig
+      "public/mockServiceWorker.js", // MSW service worker generated file
     ],
   },
 ];

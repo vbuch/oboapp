@@ -296,6 +296,35 @@ flowchart LR
 - **Props:** Use `readonly` interfaces.
 - **No render functions:** Prefer extracting JSX into separate components instead of `render...()` functions inside components. Components are more idiomatic React and easier to test/reuse.
 
+### Mock Service Worker (MSW) for Front-End Development
+
+**Purpose**: Enable front-end developers to work without Firebase emulators (no Java/Docker required).
+
+**Architecture**:
+
+- **Fixtures**: Static mock data in `web/__mocks__/fixtures/` (~20 messages, 2 interests, 5 notifications)
+- **Handlers**: MSW request handlers in `web/__mocks__/handlers.ts` intercept all `/api/*` routes
+- **Browser worker**: `web/__mocks__/browser.ts` sets up service worker in development mode
+- **Auth mock**: `web/__mocks__/firebase-auth.ts` provides pre-authenticated user state
+
+**Activation**: Set `NEXT_PUBLIC_USE_MSW=true` in `.env.local` (see `web/.env.example` and `docs/setup/quick-start-frontend-msw.md`)
+
+**Coverage**:
+
+- ✅ All API routes mocked (messages, interests, subscriptions, notifications)
+- ✅ Firebase Auth returns mock user (bypasses Google OAuth)
+- ✅ In-memory CRUD state for interests/subscriptions
+- ❌ No Firebase Cloud Messaging (push notifications)
+- ❌ No real-time Firestore listeners
+
+**When to update**:
+
+- **New API routes**: Add handlers to `web/__mocks__/handlers.ts`
+- **New schema fields**: Update fixtures to match schemas from `@oboapp/shared`
+- **Edge cases**: Add test messages covering new categories or data structures
+
+**Documentation**: See `docs/setup/quick-start-frontend-msw.md` for developer setup guide.
+
 ---
 
 ## 4. Troubleshooting

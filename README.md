@@ -71,4 +71,10 @@ Documentation is written for technical stakeholders, system administrators, and 
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for local development setup instructions, including Firebase and Google Cloud account configuration.
+**Choose your setup path based on what you're working on:**
+
+- **Front-end only (no Java/Docker)**: [Quick Start: Front-End with MSW](docs/setup/quick-start-frontend-msw.md) - Mock Service Worker for UI development
+- **Full stack (emulators)**: [Quick Start: Firebase Emulators](docs/setup/quick-start-emulators.md) - Local Firebase for backend integration
+- **Production deployment**: [Production Setup Guide](docs/setup/production-setup.md) - Google Cloud configuration
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.

@@ -73,7 +73,9 @@ export default function NotificationPrompt({
           note="След това ще можеш да добавиш зони на интерес и да получаваш известия за събития в тях."
           primaryButton={{
             text: "Разреши известия",
-            onClick: handleAccept,
+            onClick: () => {
+              void handleAccept();
+            },
           }}
           secondaryButton={{
             text: "Не сега",

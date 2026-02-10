@@ -53,6 +53,16 @@ export function AuthProvider({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // MSW Mode: Skip Firebase auth subscription and use mock user
+    if (process.env.NEXT_PUBLIC_USE_MSW === "true") {
+      // Dynamic import to satisfy ESLint no-require-imports rule
+      import("@/__mocks__/firebase-auth").then(({ MOCK_USER }) => {
+        setUser(MOCK_USER);
+        setLoading(false);
+      });
+      return () => {};
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
