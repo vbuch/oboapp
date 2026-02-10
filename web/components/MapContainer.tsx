@@ -52,6 +52,7 @@ interface MapContainerProps {
       onDecline: () => void;
     } | null,
   ) => void;
+  readonly shouldTrackLocation?: boolean;
 }
 
 export default function MapContainer({
@@ -69,6 +70,7 @@ export default function MapContainer({
   onCancelTargetMode,
   onStartAddInterest,
   onGeolocationPromptChange,
+  shouldTrackLocation: initialShouldTrack = false,
 }: MapContainerProps) {
   const [centerMap, setCenterMap] = useState<
     | ((
@@ -137,7 +139,7 @@ export default function MapContainer({
     hasSubscriptions,
   });
 
-  const [isTrackingLocation, setIsTrackingLocation] = useState(false);
+  const [isTrackingLocation, setIsTrackingLocation] = useState(initialShouldTrack);
 
   const { showPrompt, onAccept, onDecline, requestGeolocation, isLocating } =
     useGeolocationPrompt();

@@ -266,7 +266,24 @@ export default function MapComponent({
       setUserLocation(null);
     };
   }, [shouldTrackLocation]);
-
+useEffect(() => {
+  if (shouldTrackLocation && navigator.geolocation) {
+ 
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        if (mapRef.current) {
+          centerMap(latitude, longitude, 15);
+        }
+      },
+      (error) => {
+        console.error("Erro na geolocalização automática:", error);
+      },
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: Infinity }
+    );
+  }
+}, [shouldTrackLocation, centerMap]);
   return (
     <div className="absolute inset-0">
       {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
