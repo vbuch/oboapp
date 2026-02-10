@@ -140,6 +140,9 @@ export default function MapContainer({
   });
 
   const [isTrackingLocation, setIsTrackingLocation] = useState(initialShouldTrack);
+  useEffect(() => {
+    setIsTrackingLocation(initialShouldTrack);
+  }, [initialShouldTrack]);
 
   const { showPrompt, onAccept, onDecline, requestGeolocation, isLocating } =
     useGeolocationPrompt();

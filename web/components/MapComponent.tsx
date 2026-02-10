@@ -235,55 +235,26 @@ export default function MapComponent({
     });
   }, [onBoundsChanged]);
 
-  // Track user location - only when explicitly enabled (after user clicks locate button)
+  const hasAutoCentered = useRef(false);
   useEffect(() => {
-    if (!shouldTrackLocation || !navigator.geolocation) {
-      return;
-    }
+    if (!shouldTrackLocation || !navigator.geolocation) return;
 
-    // Use watchPosition for battery-efficient location tracking
-    // It only updates when position actually changes
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      (error) => {
-        console.error("Error watching location:", error);
-      },
-      {
-        enableHighAccuracy: false, // Accept coarse location to save battery
-        timeout: 10000,
-        maximumAge: 60000, // Cache for 1 minute
-      },
-    );
+        const { latitude: lat, longitude: lng } = position.coords;
+        setUserLocation({ lat, lng });
 
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-      // Clear user location when tracking stops
-      setUserLocation(null);
-    };
-  }, [shouldTrackLocation]);
-useEffect(() => {
-  if (shouldTrackLocation && navigator.geolocation) {
- 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserLocation({ lat: latitude, lng: longitude });
-        if (mapRef.current) {
-          centerMap(latitude, longitude, 15);
+        if (mapInstance && !hasAutoCentered.current) {
+          centerMap(lat, lng, 15);
+          hasAutoCentered.current = true; 
         }
       },
-      (error) => {
-        console.error("Erro na geolocalização automática:", error);
-      },
-      { enableHighAccuracy: false, timeout: 5000, maximumAge: Infinity }
+      (error) => console.error("Location tracking error:", error), 
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 } 
     );
-  }
-}, [shouldTrackLocation, centerMap]);
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [shouldTrackLocation, mapInstance, centerMap]); 
   return (
     <div className="absolute inset-0">
       {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
