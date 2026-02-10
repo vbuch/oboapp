@@ -49,6 +49,7 @@ async function getStreetCenterline(
   startCoords: IntersectionCoordinates,
   endCoords: IntersectionCoordinates,
   streetName: string,
+  hasPreResolvedCoordinates: boolean = false,
 ): Promise<GeoJSONLineString> {
   // Check if start and end are the same or very close
   const distance = Math.sqrt(
@@ -66,6 +67,21 @@ async function getStreetCenterline(
       coordinates: [
         [startCoords.lng, startCoords.lat - offsetDegrees / 2],
         [startCoords.lng, startCoords.lat + offsetDegrees / 2],
+      ],
+    };
+  }
+
+  // If both endpoints have pre-resolved coordinates from the source,
+  // draw a straight line instead of querying Overpass for street geometry
+  if (hasPreResolvedCoordinates) {
+    logger.info("Using straight line for street with pre-resolved coordinates", {
+      street: streetName,
+    });
+    return {
+      type: "LineString",
+      coordinates: [
+        [startCoords.lng, startCoords.lat],
+        [endCoords.lng, endCoords.lat],
       ],
     };
   }
@@ -200,11 +216,16 @@ async function createClosureFeature(
     );
   }
 
+  // Check if both endpoints have pre-resolved coordinates from the source
+  const hasPreResolvedCoordinates =
+    !!street.fromCoordinates && !!street.toCoordinates;
+
   // Get centerline
   const centerline = await getStreetCenterline(
     startCoords,
     endCoords,
     street.street,
+    hasPreResolvedCoordinates,
   );
 
   // Convert to polygon

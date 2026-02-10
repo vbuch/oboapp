@@ -2,12 +2,25 @@ import { describe, it, expect, vi } from "vitest";
 import {
   findMissingStreetEndpoints,
   deduplicateAddresses,
+  geocodeAddressesFromExtractedData,
 } from "./geocode-addresses";
-import type { StreetSection, Address } from "@/lib/types";
+import type { StreetSection, Address, ExtractedLocations } from "@/lib/types";
 
 // Mock firebase-admin to avoid requiring env vars
 vi.mock("@/lib/firebase-admin", () => ({
   adminDb: vi.fn(),
+}));
+
+// Mock geocoding services
+vi.mock("@/lib/geocoding-router", () => ({
+  geocodeAddresses: vi.fn().mockResolvedValue([]),
+  geocodeIntersectionsForStreets: vi.fn().mockResolvedValue(new Map()),
+  geocodeCadastralPropertiesFromIdentifiers: vi.fn().mockResolvedValue(new Map()),
+  geocodeBusStops: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/lib/overpass-geocoding-service", () => ({
+  overpassGeocodeAddresses: vi.fn().mockResolvedValue([]),
 }));
 
 describe(findMissingStreetEndpoints, () => {
@@ -214,5 +227,112 @@ describe(deduplicateAddresses, () => {
     ];
     const result = deduplicateAddresses(addresses);
     expect(result).toHaveLength(1);
+  });
+});
+
+describe("geocodeAddressesFromExtractedData", () => {
+  it("should skip geocoding for pins with pre-resolved coordinates", async () => {
+    const extractedData: ExtractedLocations = {
+      withSpecificAddress: true,
+      cityWide: false,
+      busStops: [],
+      pins: [
+        {
+          address: "ул. Георги Бенковски №26",
+          coordinates: { lat: 42.6993633, lng: 23.328635 },
+          timespans: [{ start: "07.02.2026 08:00", end: "07.02.2026 18:00" }],
+        },
+      ],
+      streets: [],
+      cadastralProperties: [],
+    };
+
+    const result = await geocodeAddressesFromExtractedData(extractedData);
+
+    // Should have the pre-resolved coordinates in the map
+    expect(result.preGeocodedMap.has("ул. Георги Бенковски №26")).toBe(true);
+    expect(result.preGeocodedMap.get("ул. Георги Бенковски №26")).toEqual({
+      lat: 42.6993633,
+      lng: 23.328635,
+    });
+
+    // Should have created an address with the coordinates
+    expect(result.addresses).toHaveLength(1);
+    expect(result.addresses[0].originalText).toBe("ул. Георги Бенковски №26");
+    expect(result.addresses[0].coordinates).toEqual({
+      lat: 42.6993633,
+      lng: 23.328635,
+    });
+  });
+
+  it("should skip geocoding for street endpoints with pre-resolved coordinates", async () => {
+    const extractedData: ExtractedLocations = {
+      withSpecificAddress: true,
+      cityWide: false,
+      busStops: [],
+      pins: [],
+      streets: [
+        {
+          street: "ул. Оборище",
+          from: "Start Point",
+          fromCoordinates: { lat: 42.693576, lng: 23.35161 },
+          to: "End Point",
+          toCoordinates: { lat: 42.693259, lng: 23.3549725 },
+          timespans: [
+            { start: "05.02.2026 00:00", end: "09.03.2026 23:59" },
+          ],
+        },
+      ],
+      cadastralProperties: [],
+    };
+
+    const result = await geocodeAddressesFromExtractedData(extractedData);
+
+    // Should have both endpoints in the pre-geocoded map
+    expect(result.preGeocodedMap.has("Start Point")).toBe(true);
+    expect(result.preGeocodedMap.has("End Point")).toBe(true);
+    expect(result.preGeocodedMap.get("Start Point")).toEqual({
+      lat: 42.693576,
+      lng: 23.35161,
+    });
+    expect(result.preGeocodedMap.get("End Point")).toEqual({
+      lat: 42.693259,
+      lng: 23.3549725,
+    });
+
+    // Should have created addresses for both endpoints
+    expect(result.addresses.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("should mix pre-resolved coordinates with geocoded addresses", async () => {
+    // Import the mocked functions to verify they're not called for pre-resolved
+    const { geocodeAddresses } = await import("@/lib/geocoding-router");
+
+    const extractedData: ExtractedLocations = {
+      withSpecificAddress: true,
+      cityWide: false,
+      busStops: [],
+      pins: [
+        {
+          address: "With coordinates",
+          coordinates: { lat: 42.69, lng: 23.32 },
+          timespans: [{ start: "01.02.2026 00:00", end: "02.02.2026 00:00" }],
+        },
+        {
+          address: "Without coordinates",
+          timespans: [{ start: "01.02.2026 00:00", end: "02.02.2026 00:00" }],
+        },
+      ],
+      streets: [],
+      cadastralProperties: [],
+    };
+
+    const result = await geocodeAddressesFromExtractedData(extractedData);
+
+    // Should have pre-resolved coordinate in the map
+    expect(result.preGeocodedMap.has("With coordinates")).toBe(true);
+
+    // geocodeAddresses should be called only for the pin without coordinates
+    expect(geocodeAddresses).toHaveBeenCalledWith(["Without coordinates"]);
   });
 });
