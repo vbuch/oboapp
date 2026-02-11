@@ -765,7 +765,7 @@ async function geocodeAddressWithNominatim(
         }
         logger.warn("Nominatim result outside target locality", {
           address,
-          target,
+          locality,
           lat: coords.lat,
           lng: coords.lng,
         });
