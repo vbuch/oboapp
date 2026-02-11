@@ -1,9 +1,5 @@
 // Mock data fixtures for emulator seeding
-import { SOFIA_BOUNDS } from "@/lib/bounds";
 import type { Pin, StreetSection, CadastralProperty } from "@oboapp/shared";
-
-// Re-export for convenience
-export { SOFIA_BOUNDS };
 
 export const CATEGORIES = [
   "water",

@@ -1,9 +1,10 @@
 import { Address } from "./types";
 import {
-  isWithinSofia,
-  isSofiaCenterFallback,
+  isCenterFallback,
   isGenericCityAddress,
 } from "./geocoding-utils";
+import { isWithinBounds } from "./bounds";
+import { getTargetCity } from "./target-city";
 import { delay } from "./delay";
 import { logger } from "@/lib/logger";
 import { GoogleGeocodingMockService } from "../__mocks__/services/google-geocoding-mock-service";
@@ -23,6 +24,7 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
   }
 
   try {
+    const targetCity = getTargetCity();
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     const encodedAddress = encodeURIComponent(`${address}, Sofia, Bulgaria`);
     // Use components parameter to restrict to Sofia (locality)
@@ -32,15 +34,15 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
     const data = await response.json();
 
     if (data.status === "OK" && data.results && data.results.length > 0) {
-      // Try to find a result within Sofia's boundaries
+      // Try to find a result within the target city's boundaries
       for (const result of data.results) {
         const lat = result.geometry.location.lat;
         const lng = result.geometry.location.lng;
         const formattedAddress = result.formatted_address;
 
-        // Reject results that match Sofia center exactly (Google's fallback)
-        if (isSofiaCenterFallback(lat, lng)) {
-          logger.warn("Result is Sofia city center generic fallback, rejecting", { address, lat: lat.toFixed(6), lng: lng.toFixed(6) });
+        // Reject results that match city center exactly (Google's fallback)
+        if (isCenterFallback(lat, lng)) {
+          logger.warn("Result is city center generic fallback, rejecting", { address, lat: lat.toFixed(6), lng: lng.toFixed(6) });
           continue;
         }
 
@@ -50,8 +52,8 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
           continue;
         }
 
-        // Validate that the result is actually within Sofia
-        if (isWithinSofia(lat, lng)) {
+        // Validate that the result is actually within the target city's boundaries
+        if (isWithinBounds(targetCity, lat, lng)) {
           return {
             originalText: address,
             formattedAddress: result.formatted_address,
@@ -62,11 +64,11 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
             },
           };
         }
-        logger.warn("Result is outside Sofia", { address, lat: lat.toFixed(6), lng: lng.toFixed(6) });
+        logger.warn("Result is outside target city boundaries", { address, targetCity, lat: lat.toFixed(6), lng: lng.toFixed(6) });
       }
 
-      // All results were outside Sofia
-      logger.warn("No results found within Sofia boundaries", { address });
+      // All results were outside the target city's boundaries
+      logger.warn("No results found within target city boundaries", { address, targetCity });
       return null;
     }
 

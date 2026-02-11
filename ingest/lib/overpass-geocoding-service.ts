@@ -7,10 +7,9 @@ import {
 import * as turf from "@turf/turf";
 import type { Feature, MultiLineString, Position } from "geojson";
 import {
-  SOFIA_BOUNDS,
-  SOFIA_CENTER,
-  SOFIA_BBOX,
-  isWithinSofia,
+  getTargetBounds,
+  getTargetCenter,
+  getTargetBbox,
 } from "./geocoding-utils";
 import { delay } from "./delay";
 import { roundCoordinate } from "@/lib/coordinate-utils";
@@ -112,15 +111,17 @@ async function getStreetGeometryFromOverpass(
 
     let query: string;
 
+    const bbox = getTargetBbox();
+
     if (isSquare) {
       // Search for squares as nodes or ways with place=square
       query = `
         [out:json][timeout:25];
         (
-          node["place"="square"]["name"~"${normalizedName}",i](${SOFIA_BBOX});
-          way["place"="square"]["name"~"${normalizedName}",i](${SOFIA_BBOX});
-          node["place"="square"]["name:bg"~"${normalizedName}",i](${SOFIA_BBOX});
-          way["place"="square"]["name:bg"~"${normalizedName}",i](${SOFIA_BBOX});
+          node["place"="square"]["name"~"${normalizedName}",i](${bbox});
+          way["place"="square"]["name"~"${normalizedName}",i](${bbox});
+          node["place"="square"]["name:bg"~"${normalizedName}",i](${bbox});
+          way["place"="square"]["name:bg"~"${normalizedName}",i](${bbox});
         );
         out geom;
       `;
@@ -134,8 +135,8 @@ async function getStreetGeometryFromOverpass(
       query = `
         [out:json][timeout:25];
         (
-          way${highwayFilter}["name"~"${normalizedName}",i](${SOFIA_BBOX});
-          way${highwayFilter}["name:bg"~"${normalizedName}",i](${SOFIA_BBOX});
+          way${highwayFilter}["name"~"${normalizedName}",i](${bbox});
+          way${highwayFilter}["name:bg"~"${normalizedName}",i](${bbox});
         );
         out geom;
       `;
@@ -332,9 +333,9 @@ function findGeometricIntersection(
         return { lng: point[0], lat: point[1] };
       }
 
-      // Multiple intersections - use Sofia city center as reference point
-      const target = SOFIA_CENTER;
-      const targetPoint = turf.point([target.lng, target.lat]);
+      // Multiple intersections - use target city center as reference point
+      const targetCenter = getTargetCenter();
+      const targetPoint = turf.point([targetCenter.lng, targetCenter.lat]);
 
       const intersectionsWithDistance = intersections.features.map(
         (feature) => {
@@ -715,18 +716,19 @@ async function geocodeAddressWithNominatim(
   try {
     const normalizedAddress = normalizeAddressForNominatim(address);
 
-    // Ensure address includes Sofia context
+    // Ensure address includes city context
     const fullAddress =
       normalizedAddress.includes("София") || normalizedAddress.includes("Sofia")
         ? normalizedAddress
         : `${normalizedAddress}, София, България`;
 
-    // Add bounded search to Sofia area and increase limit to filter results
+    // Add bounded search to target city area and increase limit to filter results
+    const bounds = getTargetBounds();
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
       fullAddress,
     )}&format=json&limit=5&addressdetails=1&bounded=1&viewbox=${
-      SOFIA_BOUNDS.west
-    },${SOFIA_BOUNDS.south},${SOFIA_BOUNDS.east},${SOFIA_BOUNDS.north}`;
+      bounds.west
+    },${bounds.south},${bounds.east},${bounds.north}`;
 
     const response = await fetch(url, {
       headers: {

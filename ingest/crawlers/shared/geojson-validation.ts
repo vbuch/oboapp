@@ -6,17 +6,21 @@ import type {
   GeoJSONLineString,
   GeoJSONPolygon,
 } from "@/lib/types";
-import { SOFIA_BOUNDS } from "@/lib/bounds";
+import { getBoundsForTarget } from "@/lib/bounds";
+import { getTargetCity } from "@/lib/target-city";
 
 /**
- * Check if coordinates are within Sofia bounds
+ * Check if coordinates are within target city bounds
+ * Uses current target city from environment
  */
-export function isWithinSofia(lat: number, lng: number): boolean {
+export function isWithinTargetBounds(lat: number, lng: number): boolean {
+  const targetCity = getTargetCity();
+  const bounds = getBoundsForTarget(targetCity);
   return (
-    lat >= SOFIA_BOUNDS.south &&
-    lat <= SOFIA_BOUNDS.north &&
-    lng >= SOFIA_BOUNDS.west &&
-    lng <= SOFIA_BOUNDS.east
+    lat >= bounds.south &&
+    lat <= bounds.north &&
+    lng >= bounds.west &&
+    lng <= bounds.east
   );
 }
 
@@ -54,8 +58,8 @@ export function detectSwappedCoordinates(lng: number, lat: number): boolean {
     lng <= 90 &&
     lat >= -180 &&
     lat <= 180 &&
-    !isWithinSofia(lat, lng) &&
-    isWithinSofia(lng, lat);
+    !isWithinTargetBounds(lat, lng) &&
+    isWithinTargetBounds(lng, lat);
 
   return seemsSwapped;
 }

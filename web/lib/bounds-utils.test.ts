@@ -1,14 +1,21 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
-  SOFIA_BOUNDS,
+  BOUNDS,
   clampBounds,
   addBuffer,
   featureIntersectsBounds,
   type ViewportBounds,
 } from "./bounds-utils";
 
+// Set environment variable for tests
+beforeEach(() => {
+  process.env.NEXT_PUBLIC_TARGET_CITY = "bg.sofia";
+});
+
+const SOFIA_BOUNDS = BOUNDS["bg.sofia"];
+
 describe("bounds-utils", () => {
-  describe("SOFIA_BOUNDS", () => {
+  describe("BOUNDS registry", () => {
     it("should have correct Sofia boundaries", () => {
       expect(SOFIA_BOUNDS).toEqual({
         south: 42.605,

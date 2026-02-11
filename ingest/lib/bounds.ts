@@ -35,25 +35,6 @@ export const CENTERS: Record<string, CenterDefinition> = {
 };
 
 /**
- * Legacy export for backward compatibility
- * @deprecated Use BOUNDS["bg.sofia"] instead
- */
-export const SOFIA_BOUNDS = BOUNDS["bg.sofia"];
-
-/**
- * Legacy export for backward compatibility
- * @deprecated Use CENTERS["bg.sofia"] instead
- */
-export const SOFIA_CENTER = CENTERS["bg.sofia"];
-
-/**
- * Sofia bounding box in bbox format (south,west,north,east)
- * Used by Overpass API queries
- * @deprecated Use getBboxForTarget("bg.sofia") instead
- */
-export const SOFIA_BBOX = `${SOFIA_BOUNDS.south},${SOFIA_BOUNDS.west},${SOFIA_BOUNDS.north},${SOFIA_BOUNDS.east}`;
-
-/**
  * Get bounds for a target
  * @throws Error if target is not found
  */
@@ -88,9 +69,12 @@ export function getBboxForTarget(target: string): string {
 
 /**
  * Check if coordinates are within target's boundaries
+ * @param target - Target identifier (e.g., "bg.sofia")
+ * @param lat - Latitude
+ * @param lng - Longitude
  * @throws Error if target is not found
  */
-export function isWithinTarget(target: string, lat: number, lng: number): boolean {
+export function isWithinBounds(target: string, lat: number, lng: number): boolean {
   const bounds = getBoundsForTarget(target);
   return (
     lat >= bounds.south &&
@@ -98,14 +82,6 @@ export function isWithinTarget(target: string, lat: number, lng: number): boolea
     lng >= bounds.west &&
     lng <= bounds.east
   );
-}
-
-/**
- * Check if coordinates are within Sofia's administrative boundaries
- * @deprecated Use isWithinTarget("bg.sofia", lat, lng) instead
- */
-export function isWithinSofia(lat: number, lng: number): boolean {
-  return isWithinTarget("bg.sofia", lat, lng);
 }
 
 /**

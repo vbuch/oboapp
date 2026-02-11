@@ -1,5 +1,5 @@
 /**
- * Geographic bounds and viewport utilities for Sofia, Bulgaria
+ * Geographic bounds and viewport utilities
  */
 
 import * as turf from "@turf/turf";
@@ -21,10 +21,23 @@ export const BOUNDS: Record<string, {
 };
 
 /**
- * Legacy export for backward compatibility
- * @deprecated Use BOUNDS["bg.sofia"] instead
+ * Get target city from environment variable (defaults to bg.sofia)
  */
-export const SOFIA_BOUNDS = BOUNDS["bg.sofia"];
+function getTargetCity(): string {
+  return process.env.NEXT_PUBLIC_TARGET_CITY || "bg.sofia";
+}
+
+/**
+ * Get bounds for target city
+ */
+function getTargetBounds() {
+  const targetCity = getTargetCity();
+  const bounds = BOUNDS[targetCity];
+  if (!bounds) {
+    throw new Error(`Unknown target: ${targetCity}. Valid targets: ${Object.keys(BOUNDS).join(", ")}`);
+  }
+  return bounds;
+}
 
 export interface ViewportBounds {
   north: number;
@@ -35,14 +48,15 @@ export interface ViewportBounds {
 }
 
 /**
- * Clamp viewport bounds to Sofia city boundaries
+ * Clamp viewport bounds to target city boundaries
  */
 export function clampBounds(bounds: ViewportBounds): ViewportBounds {
+  const targetBounds = getTargetBounds();
   return {
-    north: Math.min(bounds.north, SOFIA_BOUNDS.north),
-    south: Math.max(bounds.south, SOFIA_BOUNDS.south),
-    east: Math.min(bounds.east, SOFIA_BOUNDS.east),
-    west: Math.max(bounds.west, SOFIA_BOUNDS.west),
+    north: Math.min(bounds.north, targetBounds.north),
+    south: Math.max(bounds.south, targetBounds.south),
+    east: Math.min(bounds.east, targetBounds.east),
+    west: Math.max(bounds.west, targetBounds.west),
   };
 }
 
@@ -50,20 +64,21 @@ export function clampBounds(bounds: ViewportBounds): ViewportBounds {
  * Add percentage-based buffer to viewport bounds
  * @param bounds - Original viewport bounds
  * @param bufferPercent - Buffer percentage (e.g., 0.2 for 20%)
- * @returns Buffered bounds clamped to Sofia boundaries
+ * @returns Buffered bounds clamped to target city boundaries
  */
 export function addBuffer(
   bounds: ViewportBounds,
   bufferPercent: number = 0.2,
 ): ViewportBounds {
+  const targetBounds = getTargetBounds();
   const latBuffer = (bounds.north - bounds.south) * bufferPercent;
   const lngBuffer = (bounds.east - bounds.west) * bufferPercent;
 
   return {
-    north: Math.min(bounds.north + latBuffer, SOFIA_BOUNDS.north),
-    south: Math.max(bounds.south - latBuffer, SOFIA_BOUNDS.south),
-    east: Math.min(bounds.east + lngBuffer, SOFIA_BOUNDS.east),
-    west: Math.max(bounds.west - lngBuffer, SOFIA_BOUNDS.west),
+    north: Math.min(bounds.north + latBuffer, targetBounds.north),
+    south: Math.max(bounds.south - latBuffer, targetBounds.south),
+    east: Math.min(bounds.east + lngBuffer, targetBounds.east),
+    west: Math.max(bounds.west - lngBuffer, targetBounds.west),
   };
 }
 
