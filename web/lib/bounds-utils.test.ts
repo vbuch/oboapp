@@ -9,7 +9,7 @@ import {
 
 // Set environment variable for tests
 beforeEach(() => {
-  process.env.NEXT_PUBLIC_TARGET_CITY = "bg.sofia";
+  process.env.NEXT_PUBLIC_TARGET_LOCALITY = "bg.sofia";
 });
 
 const SOFIA_BOUNDS = BOUNDS["bg.sofia"];

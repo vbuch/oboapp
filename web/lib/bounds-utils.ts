@@ -4,40 +4,30 @@
 
 import * as turf from "@turf/turf";
 import type { GeoJSONFeature } from "@/lib/types";
-
-// Bounds registry - supports multiple targets
-export const BOUNDS: Record<string, {
-  south: number;
-  west: number;
-  north: number;
-  east: number;
-}> = {
-  "bg.sofia": {
-    south: 42.605,
-    west: 23.188,
-    north: 42.83,
-    east: 23.528,
-  },
-};
+import { BOUNDS, getBoundsForTarget } from "@oboapp/shared";
 
 /**
- * Get target city from environment variable (defaults to bg.sofia)
+ * Get target locality from environment variable
+ * @throws Error if NEXT_PUBLIC_TARGET_LOCALITY is not set
  */
-function getTargetCity(): string {
-  return process.env.NEXT_PUBLIC_TARGET_CITY || "bg.sofia";
+function getTargetLocality(): string {
+  const target = process.env.NEXT_PUBLIC_TARGET_LOCALITY;
+  if (!target) {
+    throw new Error("NEXT_PUBLIC_TARGET_LOCALITY environment variable is required but not set");
+  }
+  return target;
 }
 
 /**
- * Get bounds for target city
+ * Get bounds for target locality
  */
 function getTargetBounds() {
-  const targetCity = getTargetCity();
-  const bounds = BOUNDS[targetCity];
-  if (!bounds) {
-    throw new Error(`Unknown target: ${targetCity}. Valid targets: ${Object.keys(BOUNDS).join(", ")}`);
-  }
-  return bounds;
+  const targetLocality = getTargetLocality();
+  return getBoundsForTarget(targetLocality);
 }
+
+// Re-export BOUNDS for tests
+export { BOUNDS };
 
 export interface ViewportBounds {
   north: number;
@@ -48,7 +38,7 @@ export interface ViewportBounds {
 }
 
 /**
- * Clamp viewport bounds to target city boundaries
+ * Clamp viewport bounds to target locality boundaries
  */
 export function clampBounds(bounds: ViewportBounds): ViewportBounds {
   const targetBounds = getTargetBounds();
@@ -64,7 +54,7 @@ export function clampBounds(bounds: ViewportBounds): ViewportBounds {
  * Add percentage-based buffer to viewport bounds
  * @param bounds - Original viewport bounds
  * @param bufferPercent - Buffer percentage (e.g., 0.2 for 20%)
- * @returns Buffered bounds clamped to target city boundaries
+ * @returns Buffered bounds clamped to target locality boundaries
  */
 export function addBuffer(
   bounds: ViewportBounds,

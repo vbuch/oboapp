@@ -8,9 +8,9 @@ import {
 } from "./geocoding-utils";
 import { BOUNDS, CENTERS } from "./bounds";
 
-// Set TARGET_CITY for tests
+// Set TARGET_LOCALITY for tests
 beforeEach(() => {
-  process.env.TARGET_CITY = "bg.sofia";
+  process.env.TARGET_LOCALITY = "bg.sofia";
 });
 
 describe("geocoding-utils", () => {

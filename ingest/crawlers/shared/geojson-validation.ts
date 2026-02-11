@@ -7,15 +7,15 @@ import type {
   GeoJSONPolygon,
 } from "@/lib/types";
 import { getBoundsForTarget } from "@/lib/bounds";
-import { getTargetCity } from "@/lib/target-city";
+import { getTargetLocality } from "@/lib/target-locality";
 
 /**
- * Check if coordinates are within target city bounds
- * Uses current target city from environment
+ * Check if coordinates are within target locality bounds
+ * Uses current target locality from environment
  */
 export function isWithinTargetBounds(lat: number, lng: number): boolean {
-  const targetCity = getTargetCity();
-  const bounds = getBoundsForTarget(targetCity);
+  const targetLocality = getTargetLocality();
+  const bounds = getBoundsForTarget(targetLocality);
   return (
     lat >= bounds.south &&
     lat <= bounds.north &&

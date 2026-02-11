@@ -4,7 +4,7 @@ import {
   isGenericCityAddress,
 } from "./geocoding-utils";
 import { isWithinBounds } from "./bounds";
-import { getTargetCity } from "./target-city";
+import { getTargetLocality } from "./target-locality";
 import { delay } from "./delay";
 import { logger } from "@/lib/logger";
 import { GoogleGeocodingMockService } from "../__mocks__/services/google-geocoding-mock-service";
@@ -24,7 +24,7 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
   }
 
   try {
-    const targetCity = getTargetCity();
+    const targetLocality = getTargetLocality();
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     const encodedAddress = encodeURIComponent(`${address}, Sofia, Bulgaria`);
     // Use components parameter to restrict to Sofia (locality)
@@ -52,8 +52,8 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
           continue;
         }
 
-        // Validate that the result is actually within the target city's boundaries
-        if (isWithinBounds(targetCity, lat, lng)) {
+        // Validate that the result is actually within the target locality's boundaries
+        if (isWithinBounds(targetLocality, lat, lng)) {
           return {
             originalText: address,
             formattedAddress: result.formatted_address,
@@ -64,11 +64,11 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
             },
           };
         }
-        logger.warn("Result is outside target city boundaries", { address, targetCity, lat: lat.toFixed(6), lng: lng.toFixed(6) });
+        logger.warn("Result is outside target locality boundaries", { address, targetLocality, lat: lat.toFixed(6), lng: lng.toFixed(6) });
       }
 
-      // All results were outside the target city's boundaries
-      logger.warn("No results found within target city boundaries", { address, targetCity });
+      // All results were outside the target locality's boundaries
+      logger.warn("No results found within target locality boundaries", { address, targetLocality });
       return null;
     }
 

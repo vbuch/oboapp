@@ -1,6 +1,6 @@
 import { faker } from "@faker-js/faker";
 import { getBoundsForTarget } from "@/lib/bounds";
-import { getTargetCity } from "@/lib/target-city";
+import { getTargetLocality } from "@/lib/target-locality";
 
 export interface Point {
   readonly lat: number;
@@ -21,10 +21,10 @@ export interface GeoJSONFeatureCollection {
   readonly features: readonly GeoJSONFeature[];
 }
 
-// Helper to generate random point within target city
+// Helper to generate random point within target locality
 export function randomSofiaPoint(): Point {
-  const targetCity = getTargetCity();
-  const bounds = getBoundsForTarget(targetCity);
+  const targetLocality = getTargetLocality();
+  const bounds = getBoundsForTarget(targetLocality);
   return {
     lat: faker.number.float({
       min: bounds.south,

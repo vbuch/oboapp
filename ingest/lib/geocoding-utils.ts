@@ -3,27 +3,27 @@
  */
 
 import { getBoundsForTarget, getCenterForTarget, getBboxForTarget } from "./bounds";
-import { getTargetCity } from "./target-city";
+import { getTargetLocality } from "./target-locality";
 
 /**
- * Get the current target city's bounds
+ * Get the current target locality's bounds
  */
 export function getTargetBounds() {
-  return getBoundsForTarget(getTargetCity());
+  return getBoundsForTarget(getTargetLocality());
 }
 
 /**
- * Get the current target city's center
+ * Get the current target locality's center
  */
 export function getTargetCenter() {
-  return getCenterForTarget(getTargetCity());
+  return getCenterForTarget(getTargetLocality());
 }
 
 /**
- * Get the current target city's bbox
+ * Get the current target locality's bbox
  */
 export function getTargetBbox() {
-  return getBboxForTarget(getTargetCity());
+  return getBboxForTarget(getTargetLocality());
 }
 
 /**

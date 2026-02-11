@@ -1,29 +1,29 @@
-# Multi-City Support via Target Field
+# Multi-Locality Support via Target Field
 
 ## Overview
 
-The project supports hosting crawlers and messages for multiple cities through the `target` field and environment-based configuration.
+The project supports hosting crawlers and messages for multiple localities through the `target` field and environment-based configuration.
 
 ## Architecture
 
 ### Target Field
 
-- **Format:** `{country}.{city}` (e.g., `bg.sofia` for Sofia, Bulgaria)
+- **Format:** `{country}.{locality}` (e.g., `bg.sofia` for Sofia, Bulgaria)
 - **Storage:** Added to both `sources` and `messages` collections in Firestore
-- **Default:** All existing crawlers default to `bg.sofia`
+- **Required:** All crawlers must specify a target
 
 ### Environment Configuration
 
-The target city is configured via environment variables:
+The target locality is configured via environment variables:
 
 **Backend/Ingest:**
 ```bash
-TARGET_CITY=bg.sofia  # Defaults to bg.sofia if not set
+TARGET_LOCALITY=bg.sofia  # Required, no default
 ```
 
 **Frontend/Web:**
 ```bash
-NEXT_PUBLIC_TARGET_CITY=bg.sofia  # Defaults to bg.sofia if not set
+NEXT_PUBLIC_TARGET_LOCALITY=bg.sofia  # Required, no default
 ```
 
 ### Bounds Registry
@@ -38,20 +38,20 @@ export const BOUNDS: Record<string, BoundsDefinition> = {
     north: 42.83,
     east: 23.528,
   },
-  // Add new cities here
+  // Add new localities here
 };
 ```
 
 ### GeoJSON Files
 
-Each target requires a corresponding GeoJSON file for city-wide messages:
+Each target requires a corresponding GeoJSON file for locality-wide messages:
 - Naming convention: `{target}.geojson` (e.g., `bg.sofia.geojson`)
 - Location: Root of `ingest/` directory
-- Used by notification matching for city-wide messages
+- Used by notification matching for locality-wide messages
 
-## Adding a New City
+## Adding a New Locality
 
-To add support for a new city (e.g., Plovdiv, Bulgaria):
+To add support for a new locality (e.g., Plovdiv, Bulgaria):
 
 1. **Add bounds definition** in `ingest/lib/bounds.ts` and `web/lib/bounds-utils.ts`:
    ```typescript
@@ -76,7 +76,7 @@ To add support for a new city (e.g., Plovdiv, Bulgaria):
 
 3. **Create GeoJSON file** at `ingest/bg.plovdiv.geojson`:
    - Contains administrative boundary as a FeatureCollection
-   - Used for city-wide message matching
+   - Used for locality-wide message matching
 
 4. **Create a crawler** in `ingest/crawlers/`:
    ```typescript
@@ -93,10 +93,10 @@ To add support for a new city (e.g., Plovdiv, Bulgaria):
 5. **Set environment variables**:
    ```bash
    # Backend/Ingest
-   TARGET_CITY=bg.plovdiv
+   TARGET_LOCALITY=bg.plovdiv
    
    # Frontend/Web
-   NEXT_PUBLIC_TARGET_CITY=bg.plovdiv
+   NEXT_PUBLIC_TARGET_LOCALITY=bg.plovdiv
    ```
 
 6. **Update web bounds** in `web/lib/bounds-utils.ts`:
@@ -126,8 +126,8 @@ validateTarget(target: string): void
 ### Environment-Aware Helpers
 
 ```typescript
-// Get current target from environment (ingest/lib/target-city.ts)
-getTargetCity(): string  // Returns TARGET_CITY or "bg.sofia"
+// Get current target from environment (ingest/lib/target-locality.ts)
+getTargetLocality(): string  // Returns TARGET_LOCALITY or "bg.sofia"
 
 // Get current target's bounds (ingest/lib/geocoding-utils.ts)
 getTargetBounds(): BoundsDefinition
