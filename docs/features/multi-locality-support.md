@@ -1,152 +1,77 @@
-# Multi-Locality Support via Target Field
+# Locality Configuration
 
 ## Overview
 
-The project supports hosting crawlers and messages for multiple localities through the `target` field and environment-based configuration.
+The project supports hosting data for a single configurable locality through the `locality` field and environment-based configuration.
 
 ## Architecture
 
-### Target Field
+### Locality Field
 
 - **Format:** `{country}.{locality}` (e.g., `bg.sofia` for Sofia, Bulgaria)
 - **Storage:** Added to both `sources` and `messages` collections in Firestore
-- **Required:** All crawlers must specify a target
+- **Required:** All crawlers must specify a locality
 
 ### Environment Configuration
 
-The target locality is configured via environment variables:
+Required environment variables (no defaults):
 
 **Backend/Ingest:**
 ```bash
-TARGET_LOCALITY=bg.sofia  # Required, no default
+LOCALITY=bg.sofia
 ```
 
 **Frontend/Web:**
 ```bash
-NEXT_PUBLIC_TARGET_LOCALITY=bg.sofia  # Required, no default
+NEXT_PUBLIC_LOCALITY=bg.sofia
 ```
 
 ### Bounds Registry
 
-Bounds are stored in a registry structure in `ingest/lib/bounds.ts` and `web/lib/bounds-utils.ts`:
+Bounds are stored in the shared package (`@oboapp/shared`):
 
 ```typescript
-export const BOUNDS: Record<string, BoundsDefinition> = {
-  "bg.sofia": {
-    south: 42.605,
-    west: 23.188,
-    north: 42.83,
-    east: 23.528,
-  },
+export const BOUNDS: Record<string, BoundingBox> = {
+  "bg.sofia": { north: 42.7612, south: 42.6104, east: 23.4363, west: 23.2366 },
   // Add new localities here
 };
 ```
 
 ### GeoJSON Files
 
-Each target requires a corresponding GeoJSON file for locality-wide messages:
-- Naming convention: `{target}.geojson` (e.g., `bg.sofia.geojson`)
-- Location: Root of `ingest/` directory
+Each locality requires a corresponding GeoJSON file for locality-wide messages:
+- Naming convention: `{locality}.geojson` (e.g., `bg.sofia.geojson`)
+- Location: `ingest/localities/` directory
 - Used by notification matching for locality-wide messages
 
 ## Adding a New Locality
 
-To add support for a new locality (e.g., Plovdiv, Bulgaria):
-
-1. **Add bounds definition** in `ingest/lib/bounds.ts` and `web/lib/bounds-utils.ts`:
+1. **Add bounds and center** in `shared/src/bounds.ts`:
    ```typescript
-   export const BOUNDS: Record<string, BoundsDefinition> = {
+   export const BOUNDS: Record<string, BoundingBox> = {
      "bg.sofia": { /* existing */ },
-     "bg.plovdiv": {
-       south: 42.10,
-       west: 24.70,
-       north: 42.20,
-       east: 24.85,
-     },
+     "bg.plovdiv": { north: 42.20, south: 42.10, east: 24.85, west: 24.70 },
    };
-   ```
-
-2. **Add center coordinates** in `ingest/lib/bounds.ts`:
-   ```typescript
-   export const CENTERS: Record<string, CenterDefinition> = {
+   
+   export const CENTERS: Record<string, { lat: number; lng: number }> = {
      "bg.sofia": { /* existing */ },
      "bg.plovdiv": { lat: 42.1354, lng: 24.7453 },
    };
    ```
 
-3. **Create GeoJSON file** at `ingest/bg.plovdiv.geojson`:
-   - Contains administrative boundary as a FeatureCollection
-   - Used for locality-wide message matching
+2. **Create GeoJSON file** at `ingest/localities/bg.plovdiv.geojson` containing the administrative boundary as a FeatureCollection
 
-4. **Create a crawler** in `ingest/crawlers/`:
-   ```typescript
-   const TARGET = "bg.plovdiv";
-   const SOURCE_TYPE = "plovdiv-municipality";
-   
-   // Set target when saving source documents
-   await saveSourceDocument({
-     ...sourceDoc,
-     target: TARGET,
-   }, adminDb);
-   ```
+3. **Create crawlers** in `ingest/crawlers/` that set `locality: "bg.plovdiv"` when saving sources
 
-5. **Set environment variables** (required):
+4. **Set environment variables**:
    ```bash
-   # Backend/Ingest
-   TARGET_LOCALITY=bg.plovdiv
-   
-   # Frontend/Web
-   NEXT_PUBLIC_TARGET_LOCALITY=bg.plovdiv
+   LOCALITY=bg.plovdiv                    # Backend/Ingest
+   NEXT_PUBLIC_LOCALITY=bg.plovdiv        # Frontend/Web
    ```
-
-## API Reference
-
-### Shared Package Functions (shared/src/bounds.ts)
-
-All bounds-related functions are now in the shared package and used by both ingest and web:
-
-```typescript
-// Get bounds for a specific target
-getBoundsForTarget(target: string): BoundsDefinition
-
-// Get center coordinates for a target
-getCenterForTarget(target: string): CenterDefinition
-
-// Get bbox string for a target
-getBboxForTarget(target: string): string
-
-// Check if coordinates are within target bounds
-isWithinBounds(target: string, lat: number, lng: number): boolean
-
-// Validate that a target exists
-validateTarget(target: string): void
-```
-
-### Environment-Aware Helpers
-
-```typescript
-// Get current target from environment (ingest/lib/target-locality.ts)
-getTargetLocality(): string  // Throws error if TARGET_LOCALITY not set
-
-// Get current target's bounds (ingest/lib/geocoding-utils.ts)
-getTargetBounds(): BoundsDefinition
-getTargetCenter(): CenterDefinition
-getTargetBbox(): string
-
-// Get current target from environment (web/lib/bounds-utils.ts)
-getTargetBounds(): BoundsDefinition  // Throws error if NEXT_PUBLIC_TARGET_LOCALITY not set
-getTargetCenter(): CenterDefinition
-```
 
 ## Migration
 
-Migration script provided: `migrate/2026-02-10-add-target-field.ts`
-- Backfills `target: "bg.sofia"` to all existing records
-- Safe to run multiple times (skips records that already have target)
-- Run with: `npx tsx migrate/2026-02-10-add-target-field.ts`
-
-## Validation
-
-- Crawlers **must** provide a valid target when saving sources
-- Invalid targets throw an error: `Invalid target: {target}. Valid targets: bg.sofia`
-- Add new targets to the `BOUNDS` registry before use
+Migration script: `migrate/2026-02-10-add-locality-field.ts`
+- Backfills `locality: "bg.sofia"` to all existing records
+- Safe to run multiple times (skips records that already have locality)
+- Run with: `npx tsx migrate/2026-02-10-add-locality-field.ts`

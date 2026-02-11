@@ -51,6 +51,7 @@ See [web/](web) for details.
 - [Message URLs](docs/features/message-urls.md) - Short, shareable URLs for deep-linking to messages
 - [Geocoding System](docs/features/geocoding-overview.md) - Multi-service geocoding with Google, OpenStreetMap, Bulgarian Cadastre, and GTFS APIs
 - [Onboarding Flow](docs/features/onboarding-flow.md) - User onboarding state machine for notifications and zone creation
+- [Locality Configuration](docs/features/multi-locality-support.md) - Environment-based locality configuration for hosting in different cities
 - [Your Sofia API](web/app/api/ysm/README.md) - Public API contract for the Your Sofia mobile client
 
 ### Pipeline
