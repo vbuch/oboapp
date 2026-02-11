@@ -41,17 +41,16 @@ export function isCenterFallback(lat: number, lng: number): boolean {
 
 /**
  * Check if a formatted address is too generic (city-level only)
+ * 
+ * TODO: This function needs to be made locality-aware by accepting a locality parameter
+ * and checking against that locality's name patterns. For now, disabled to avoid
+ * Sofia-specific hardcoding.
+ * 
+ * @param formattedAddress - The formatted address to check
+ * @returns Always returns false (feature disabled until locality-aware implementation)
  */
 export function isGenericCityAddress(formattedAddress: string): boolean {
-  const genericPatterns = [
-    /^Sofia,\s*Bulgaria$/i,
-    /^София,\s*България$/i,
-    /^Sofia$/i,
-    /^София$/i,
-    /^Plovdiv,\s*Bulgaria$/i,
-    /^Пловдив,\s*България$/i,
-    /^Plovdiv$/i,
-    /^Пловдив$/i,
-  ];
-  return genericPatterns.some((pattern) => pattern.test(formattedAddress));
+  // Disabled: needs locality-specific configuration
+  // Previously checked for Sofia/Plovdiv-only addresses
+  return false;
 }

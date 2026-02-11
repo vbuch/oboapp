@@ -62,43 +62,14 @@ describe("geocoding-utils", () => {
   });
 
   describe("isGenericCityAddress", () => {
-    it("should detect generic Sofia addresses in English", () => {
-      expect(isGenericCityAddress("Sofia, Bulgaria")).toBe(true);
-      expect(isGenericCityAddress("Sofia,Bulgaria")).toBe(true);
-      expect(isGenericCityAddress("Sofia")).toBe(true);
-    });
-
-    it("should detect generic Sofia addresses in Bulgarian", () => {
-      expect(isGenericCityAddress("София, България")).toBe(true);
-      expect(isGenericCityAddress("София,България")).toBe(true);
-      expect(isGenericCityAddress("София")).toBe(true);
-    });
-
-    it("should detect generic Plovdiv addresses", () => {
-      expect(isGenericCityAddress("Plovdiv, Bulgaria")).toBe(true);
-      expect(isGenericCityAddress("Plovdiv")).toBe(true);
-      expect(isGenericCityAddress("Пловдив, България")).toBe(true);
-      expect(isGenericCityAddress("Пловдив")).toBe(true);
-    });
-
-    it("should be case insensitive", () => {
-      expect(isGenericCityAddress("SOFIA, BULGARIA")).toBe(true);
-      expect(isGenericCityAddress("sofia, bulgaria")).toBe(true);
-      expect(isGenericCityAddress("СОФИЯ, БЪЛГАРИЯ")).toBe(true);
-    });
-
-    it("should not flag specific addresses in Sofia", () => {
+    it("should be disabled (always returns false) until locality-aware implementation", () => {
+      // Function is currently disabled to avoid Sofia-specific hardcoding
+      // TODO: Re-enable when locality-aware implementation is added
+      expect(isGenericCityAddress("Sofia, Bulgaria")).toBe(false);
+      expect(isGenericCityAddress("София, България")).toBe(false);
+      expect(isGenericCityAddress("Plovdiv, Bulgaria")).toBe(false);
       expect(isGenericCityAddress("ул. Врабча 1, София, България")).toBe(false);
-      expect(isGenericCityAddress("бул. Витоша 1, 1000 София, Bulgaria")).toBe(
-        false
-      );
       expect(isGenericCityAddress("NDK, Sofia, Bulgaria")).toBe(false);
-      expect(isGenericCityAddress("Sofia Airport, Bulgaria")).toBe(false);
-    });
-
-    it("should not flag addresses outside major cities", () => {
-      expect(isGenericCityAddress("Varna, Bulgaria")).toBe(false);
-      expect(isGenericCityAddress("Burgas, Bulgaria")).toBe(false);
     });
   });
 });

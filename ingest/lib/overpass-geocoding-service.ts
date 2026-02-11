@@ -718,11 +718,9 @@ async function geocodeAddressWithNominatim(
   try {
     const normalizedAddress = normalizeAddressForNominatim(address);
 
-    // Ensure address includes city context
-    const fullAddress =
-      normalizedAddress.includes("София") || normalizedAddress.includes("Sofia")
-        ? normalizedAddress
-        : `${normalizedAddress}, София, България`;
+    // Use normalized address with bounded search
+    // The bounds parameter limits results to the configured locality
+    const fullAddress = normalizedAddress;
 
     // Add bounded search to locality area and increase limit to filter results
     const bounds = getLocalityBounds();
