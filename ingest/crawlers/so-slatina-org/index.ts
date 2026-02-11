@@ -17,7 +17,7 @@ dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
 const INDEX_URL = "https://so-slatina.org/";
 const SOURCE_TYPE = "so-slatina-org";
-const TARGET = "bg.sofia";
+const LOCALITY = "bg.sofia";
 const DELAY_BETWEEN_REQUESTS = 2000; // 2 seconds
 
 /**

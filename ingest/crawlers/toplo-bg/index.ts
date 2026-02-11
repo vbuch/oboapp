@@ -12,7 +12,7 @@ import { logger } from "@/lib/logger";
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
 const SOURCE_TYPE = "toplo-bg";
-const TARGET = "bg.sofia";
+const LOCALITY = "bg.sofia";
 const TARGET_URL = "https://toplo.bg/accidents-and-maintenance";
 
 interface ToploBgSourceDocument extends SourceDocumentWithGeoJson {
@@ -110,7 +110,7 @@ export async function crawl(dryRun = false): Promise<void> {
         message,
         markdownText: message, // Store for display in details view
         sourceType: SOURCE_TYPE,
-        locality: TARGET,
+        locality: LOCALITY,
         crawledAt: new Date(),
         geoJson,
         categories: ["heating"],

@@ -18,7 +18,7 @@ dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 const INDEX_URL =
   "https://lozenets.sofia.bg/category/%d0%bd%d0%be%d0%b2%d0%b8%d0%bd%d0%b8/";
 const SOURCE_TYPE = "lozenets-sofia-bg";
-const TARGET = "bg.sofia";
+const LOCALITY = "bg.sofia";
 const DELAY_BETWEEN_REQUESTS = 2000; // 2 seconds
 
 /**

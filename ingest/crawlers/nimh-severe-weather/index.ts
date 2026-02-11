@@ -18,7 +18,7 @@ import { logger } from "@/lib/logger";
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
 const SOURCE_TYPE = "nimh-severe-weather";
-const TARGET = "bg.sofia";
+const LOCALITY = "bg.sofia";
 const TARGET_URL = "https://weather.bg/obshtini/index.php?z=u&o=SOF";
 
 interface NimhSourceDocument extends SourceDocumentWithGeoJson {
@@ -99,7 +99,7 @@ export async function crawl(): Promise<void> {
       message,
       markdownText,
       sourceType: SOURCE_TYPE,
-      locality: TARGET,
+      locality: LOCALITY,
       crawledAt: new Date(),
       geoJson: createMinimalGeoJson(),
       categories: ["weather"],
