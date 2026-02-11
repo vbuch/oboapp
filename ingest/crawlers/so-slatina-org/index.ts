@@ -33,7 +33,7 @@ const processPost = (
     postLink,
     adminDb,
     SOURCE_TYPE,
-    TARGET,
+    LOCALITY,
     DELAY_BETWEEN_REQUESTS,
     extractPostDetails,
   );
