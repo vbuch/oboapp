@@ -31,6 +31,18 @@ If you identify a recurring pattern or developer preference:
 3. **Validation:** Run `pnpm test:run` and fix failures. For AI changes, also run `pnpm test:integration` if API credentials are configured.
 4. **Documentation:** Update `README.md` and `AGENTS.md` as needed.
 
+### Pre-PR Quality Checks
+
+**Before submitting any pull request, ensure ALL of the following pass:**
+
+1. **Linting:** Run `pnpm lint` in both `ingest/` and `web/` directories - must pass with 0 errors
+2. **TypeScript:** Run `pnpm tsc --noEmit` in both directories - must pass with 0 errors
+3. **Tests:** Run `pnpm test:run` - all tests must pass
+4. **Build:** Run `pnpm build` in `shared/` - must build successfully
+5. **Code Review:** Use the `code_review` tool before finalizing
+
+**CRITICAL:** Do NOT submit PRs with failing lints, TypeScript errors, or test failures.
+
 ---
 
 ## 2. Technical Standards
