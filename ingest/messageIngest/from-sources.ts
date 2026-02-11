@@ -115,7 +115,10 @@ async function fetchSources(
   }
 
   const filterInfo = filters.length > 0 ? ` (${filters.join(", ")})` : "";
-  logger.info("Fetched sources", { count: sources.length, filters: filterInfo || undefined });
+  logger.info("Fetched sources", {
+    count: sources.length,
+    filters: filterInfo || undefined,
+  });
   return sources;
 }
 
@@ -174,7 +177,8 @@ async function ingestSource(
     logMeta.timespanStart = source.timespanStart.toISOString();
     logMeta.timespanEnd = source.timespanEnd.toISOString();
   } else if (source.geoJson) {
-    logMeta.warning = "Source has precomputed GeoJSON but missing timespans (will fallback to crawledAt)";
+    logMeta.warning =
+      "Source has precomputed GeoJSON but missing timespans (will fallback to crawledAt)";
   }
   logger.info("Processing message", logMeta);
 
@@ -190,6 +194,10 @@ async function ingestSource(
 
   // Dynamically import messageIngest to avoid loading firebase-admin at startup
   const { messageIngest } = await import("./index");
+
+  if (!source.locality) {
+    throw new Error(`Source missing required locality field: ${source.url}`);
+  }
 
   // Use the sourceType as the source identifier for messageIngest
   const result = await messageIngest(
@@ -248,7 +256,11 @@ async function filterByAge(
   }
 
   if (tooOld > 0) {
-    logger.info("Age filter applied", { recent: recentSources.length, tooOld, maxAgeInDays });
+    logger.info("Age filter applied", {
+      recent: recentSources.length,
+      tooOld,
+      maxAgeInDays,
+    });
   }
 
   return { recentSources, tooOld };
@@ -296,7 +308,10 @@ async function filterByBoundaries(
     }
   }
 
-  logger.info("Boundary filter applied", { withinBounds: withinBounds.length, outsideBounds });
+  logger.info("Boundary filter applied", {
+    withinBounds: withinBounds.length,
+    outsideBounds,
+  });
 
   return { withinBounds, outsideBounds };
 }
@@ -309,7 +324,9 @@ async function maybeInitFirestore(): Promise<Firestore> {
 export async function ingest(
   options: IngestOptions = {},
 ): Promise<IngestSummary> {
-  logger.info("Starting source ingestion", { mode: options.dryRun ? "dry-run" : "production" });
+  logger.info("Starting source ingestion", {
+    mode: options.dryRun ? "dry-run" : "production",
+  });
 
   const boundaries = loadBoundaries(options.boundariesPath);
   if (boundaries) {
@@ -340,7 +357,9 @@ export async function ingest(
   const alreadyIngestedCount = withinBounds.length - sourcesToIngest.length;
 
   if (alreadyIngestedCount > 0) {
-    logger.info("Skipping already-ingested sources", { count: alreadyIngestedCount });
+    logger.info("Skipping already-ingested sources", {
+      count: alreadyIngestedCount,
+    });
   }
 
   const summary: IngestSummary = {
@@ -375,13 +394,19 @@ export async function ingest(
 
       // Don't log as error if it's just outside boundaries or filtered as irrelevant
       if (errorMessage.includes("No features within specified boundaries")) {
-        logger.info("Source outside boundaries after geocoding", { title: source.title });
+        logger.info("Source outside boundaries after geocoding", {
+          title: source.title,
+        });
       } else if (errorMessage.includes("Message filtering failed")) {
         summary.filtered++;
         logger.info("Source filtered as irrelevant", { title: source.title });
       } else {
         summary.errors.push({ url: source.url, error: errorMessage });
-        logger.error("Failed to ingest source", { title: source.title, error: errorMessage, url: source.url });
+        logger.error("Failed to ingest source", {
+          title: source.title,
+          error: errorMessage,
+          url: source.url,
+        });
       }
     }
   }
@@ -410,7 +435,10 @@ function logSummary(summary: IngestSummary, dryRun: boolean): void {
     summaryData.alreadyIngested = summary.alreadyIngested;
     if (summary.filtered > 0) {
       summaryData.filtered = summary.filtered;
-      summaryData.filterPercentage = ((summary.filtered / summary.withinBounds) * 100).toFixed(1);
+      summaryData.filterPercentage = (
+        (summary.filtered / summary.withinBounds) *
+        100
+      ).toFixed(1);
     }
     if (summary.failed > 0) {
       summaryData.failed = summary.failed;
@@ -429,7 +457,9 @@ if (require.main === module) {
     const options = await parseArguments();
     await ingest(options);
   })().catch((error) => {
-    logger.error("Ingestion failed", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("Ingestion failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     process.exit(1);
   });
 }
