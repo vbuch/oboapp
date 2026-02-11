@@ -15,8 +15,7 @@ describe("shared/webpage-crawlers", () => {
 
       expect(doc.url).toBe("https://example.com/post");
       expect(doc.title).toBe("Test Title");
-      expect(doc.sourceType).toBe("test-source",
-        "bg.sofia");
+      expect(doc.sourceType).toBe("test-source");
       expect(doc.message).toContain("Heading");
       expect(doc.message).toContain("Paragraph");
       expect(doc.datePublished).toBeTruthy();

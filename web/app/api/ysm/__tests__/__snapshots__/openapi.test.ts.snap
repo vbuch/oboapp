@@ -436,6 +436,9 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
             },
             "type": "array",
           },
+          "target": {
+            "type": "string",
+          },
           "text": {
             "type": "string",
           },
@@ -449,6 +452,7 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
         "required": [
           "text",
           "createdAt",
+          "target",
         ],
         "type": "object",
       },
@@ -875,6 +879,9 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                   },
                   "type": "array",
                 },
+                "target": {
+                  "type": "string",
+                },
                 "text": {
                   "type": "string",
                 },
@@ -888,6 +895,7 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
               "required": [
                 "text",
                 "createdAt",
+                "target",
               ],
               "type": "object",
             },
@@ -1061,6 +1069,9 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 "name": {
                   "type": "string",
                 },
+                "target": {
+                  "type": "string",
+                },
                 "url": {
                   "type": "string",
                 },
@@ -1070,6 +1081,7 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
                 "name",
                 "url",
                 "logoUrl",
+                "target",
               ],
               "type": "object",
             },

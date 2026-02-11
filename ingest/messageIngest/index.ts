@@ -97,7 +97,7 @@ export async function messageIngest(
   source: string,
   userId: string,
   userEmail: string | null,
-  options: MessageIngestOptions = {},
+  options: MessageIngestOptions = { target: "bg.sofia" },
 ): Promise<MessageIngestResult> {
   const hasPrecomputedGeoJson = Boolean(options.precomputedGeoJson);
   let sourceDocumentId: string | undefined;
@@ -327,6 +327,7 @@ async function processWithAIPipeline(
       const message = await finalizeFailedMessage(
         storedMessageId,
         messageText,
+        options.target,
         ingestErrors,
       );
       messages.push(message);
@@ -350,6 +351,7 @@ async function processWithAIPipeline(
       const message = await finalizeFailedMessage(
         storedMessageId,
         messageText,
+        options.target,
         ingestErrors,
       );
       messages.push(message);
@@ -368,6 +370,7 @@ async function processWithAIPipeline(
       const message = await buildFinalMessageResponse(
         storedMessageId,
         messageText,
+        options.target,
         [],
         null,
       );
@@ -391,6 +394,7 @@ async function processWithAIPipeline(
       const message = await buildFinalMessageResponse(
         storedMessageId,
         messageText,
+        options.target,
         [],
         null,
       );

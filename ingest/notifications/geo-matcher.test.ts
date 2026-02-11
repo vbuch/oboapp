@@ -29,6 +29,7 @@ describe("geo-matcher", () => {
       };
 
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "Test",
         geoJson,
@@ -57,6 +58,7 @@ describe("geo-matcher", () => {
       };
 
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "Test",
         geoJson,
@@ -88,6 +90,7 @@ describe("geo-matcher", () => {
       };
 
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "Test",
         geoJson,
@@ -124,6 +127,7 @@ describe("geo-matcher", () => {
       };
 
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "Test",
         geoJson,
@@ -168,6 +172,7 @@ describe("geo-matcher", () => {
       };
 
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "Test",
         geoJson,
@@ -182,6 +187,7 @@ describe("geo-matcher", () => {
 
     it("should not match when geoJson is undefined", () => {
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "Test",
         geoJson: undefined,
@@ -196,6 +202,7 @@ describe("geo-matcher", () => {
 
     it("should not match when geoJson has no features", () => {
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "Test",
         geoJson: {
@@ -214,6 +221,7 @@ describe("geo-matcher", () => {
     it("should use sofia.geojson for city-wide messages", () => {
       // City-wide message should match any interest in Sofia
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "City-wide alert",
         cityWide: true,
@@ -253,6 +261,7 @@ describe("geo-matcher", () => {
       };
 
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "Test",
         geoJson,
@@ -290,6 +299,7 @@ describe("geo-matcher", () => {
       };
 
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "Test",
         geoJson,
@@ -328,6 +338,7 @@ describe("geo-matcher", () => {
       };
 
       const message: Message = {
+        target: "bg.sofia",
         id: "msg1",
         text: "Test",
         geoJson,
