@@ -22,7 +22,7 @@ export interface GeoJSONFeatureCollection {
 }
 
 // Helper to generate random point within locality
-export function randomSofiaPoint(): Point {
+export function randomLocalityPoint(): Point {
   const locality = getLocality();
   const bounds = getBoundsForLocality(locality);
   return {

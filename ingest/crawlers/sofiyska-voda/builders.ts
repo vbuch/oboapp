@@ -208,6 +208,8 @@ export async function buildSourceDocument(
     timespanEnd = lastUpdate;
   }
 
+  const LOCALITY = "bg.sofia";
+  
   return {
     url,
     datePublished: lastUpdate.toISOString(),
@@ -215,7 +217,7 @@ export async function buildSourceDocument(
     message,
     markdownText: message, // Store markdown in markdownText field
     sourceType: SOURCE_TYPE,
-    locality: "bg.sofia",
+    locality: LOCALITY,
     crawledAt: new Date(),
     geoJson,
     categories: ["water"],

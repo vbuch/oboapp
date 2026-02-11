@@ -208,7 +208,7 @@ async function ingestSource(
       timespanStart: source.timespanStart,
       timespanEnd: source.timespanEnd,
       cityWide: source.cityWide,
-      locality: source.locality || "bg.sofia",
+      locality: source.locality,
     },
   );
 

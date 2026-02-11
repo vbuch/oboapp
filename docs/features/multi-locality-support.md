@@ -31,8 +31,8 @@ NEXT_PUBLIC_LOCALITY=bg.sofia
 Bounds are stored in the shared package (`@oboapp/shared`):
 
 ```typescript
-export const BOUNDS: Record<string, BoundingBox> = {
-  "bg.sofia": { north: 42.7612, south: 42.6104, east: 23.4363, west: 23.2366 },
+export const BOUNDS: Record<string, BoundsDefinition> = {
+  "bg.sofia": { south: 42.605, west: 23.188, north: 42.83, east: 23.528 },
   // Add new localities here
 };
 ```

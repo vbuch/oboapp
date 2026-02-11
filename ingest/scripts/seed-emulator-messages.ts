@@ -2,7 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { faker } from "@faker-js/faker";
 import { MESSAGE_CONFIGS, type MessageConfig } from "./seed-emulator-fixtures";
 import {
-  randomSofiaPoint,
+  randomLocalityPoint,
   createPointGeoJson,
   createLineGeoJson,
   generateTimespan,
@@ -84,7 +84,7 @@ function createGeoJsonForMessage(config: MessageConfig): {
   point: Point;
 } {
   if (config.type === "point") {
-    const point = randomSofiaPoint();
+    const point = randomLocalityPoint();
     const geoJson = createPointGeoJson(point.lat, point.lng);
     return { geoJson, point };
   }
