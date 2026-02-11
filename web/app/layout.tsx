@@ -17,6 +17,15 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_BASE_URL || "https://oboapp.online",
   ),
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icon-192x192.png",
+    other: [
+      { rel: "icon", url: "/icon-32x32.png", sizes: "32x32" },
+      { rel: "icon", url: "/icon-192x192.png", sizes: "192x192" },
+      { rel: "icon", url: "/icon-512x512.png", sizes: "512x512" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
