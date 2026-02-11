@@ -46,9 +46,6 @@ interface IngestSummary {
   errors: Array<{ url: string; error: string }>;
 }
 
-const SYSTEM_USER_ID = "system";
-const SYSTEM_USER_EMAIL = "system@oboapp.local";
-
 async function parseArguments(): Promise<IngestOptions> {
   const args = process.argv.slice(2);
   const options: IngestOptions = {};
@@ -200,25 +197,19 @@ async function ingestSource(
   }
 
   // Use the sourceType as the source identifier for messageIngest
-  const result = await messageIngest(
-    source.message,
-    source.sourceType,
-    SYSTEM_USER_ID,
-    SYSTEM_USER_EMAIL,
-    {
-      precomputedGeoJson: geoJson,
-      sourceUrl: source.url,
-      boundaryFilter: boundaries ?? undefined,
-      crawledAt: source.crawledAt,
-      markdownText: source.markdownText,
-      categories: source.categories,
-      isRelevant: source.isRelevant,
-      timespanStart: source.timespanStart,
-      timespanEnd: source.timespanEnd,
-      cityWide: source.cityWide,
-      locality: source.locality,
-    },
-  );
+  const result = await messageIngest(source.message, source.sourceType, {
+    precomputedGeoJson: geoJson,
+    sourceUrl: source.url,
+    boundaryFilter: boundaries ?? undefined,
+    crawledAt: source.crawledAt,
+    markdownText: source.markdownText,
+    categories: source.categories,
+    isRelevant: source.isRelevant,
+    timespanStart: source.timespanStart,
+    timespanEnd: source.timespanEnd,
+    cityWide: source.cityWide,
+    locality: source.locality,
+  });
 
   logger.info("Completed processing source", {
     title: source.title,

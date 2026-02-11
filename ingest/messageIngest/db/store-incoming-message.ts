@@ -26,8 +26,6 @@ const FIRESTORE_ALREADY_EXISTS_CODES = new Set([
  */
 export async function storeIncomingMessage(
   text: string,
-  userId: string,
-  userEmail: string | null,
   locality: string,
   source: string = "web-interface",
   sourceUrl?: string,
@@ -37,9 +35,7 @@ export async function storeIncomingMessage(
   const messagesRef = adminDb.collection("messages");
   const docData: Record<string, unknown> = {
     text,
-    userId,
     locality,
-    userEmail,
     source,
     createdAt: FieldValue.serverTimestamp(),
     crawledAt: crawledAt || FieldValue.serverTimestamp(),
