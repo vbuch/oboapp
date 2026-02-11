@@ -215,6 +215,7 @@ export async function buildSourceDocument(
     message,
     markdownText: message, // Store markdown in markdownText field
     sourceType: SOURCE_TYPE,
+    target: "bg.sofia",
     crawledAt: new Date(),
     geoJson,
     categories: ["water"],

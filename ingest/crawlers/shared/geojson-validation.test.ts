@@ -2,11 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   validateAndFixGeoJSON,
   isValidCoordinate,
-  isWithinSofia,
   detectSwappedCoordinates,
   fixSwappedCoordinates,
 } from "./geojson-validation";
-import { SOFIA_BOUNDS } from "@/lib/bounds";
+import { BOUNDS, isWithinBounds } from "@/lib/bounds";
+
+const SOFIA_BOUNDS = BOUNDS["bg.sofia"];
 
 describe("geojson-validation", () => {
   describe("isValidCoordinate", () => {
@@ -27,18 +28,18 @@ describe("geojson-validation", () => {
     });
   });
 
-  describe("isWithinSofia", () => {
+  describe("isWithinBounds (with Sofia)", () => {
     it("should accept coordinates within Sofia bounds", () => {
-      expect(isWithinSofia(42.7, 23.32)).toBe(true);
-      expect(isWithinSofia(42.698, 23.319)).toBe(true);
-      expect(isWithinSofia(SOFIA_BOUNDS.south, SOFIA_BOUNDS.west)).toBe(true);
-      expect(isWithinSofia(SOFIA_BOUNDS.north, SOFIA_BOUNDS.east)).toBe(true);
+      expect(isWithinBounds("bg.sofia", 42.7, 23.32)).toBe(true);
+      expect(isWithinBounds("bg.sofia", 42.698, 23.319)).toBe(true);
+      expect(isWithinBounds("bg.sofia", SOFIA_BOUNDS.south, SOFIA_BOUNDS.west)).toBe(true);
+      expect(isWithinBounds("bg.sofia", SOFIA_BOUNDS.north, SOFIA_BOUNDS.east)).toBe(true);
     });
 
     it("should reject coordinates outside Sofia bounds", () => {
-      expect(isWithinSofia(50.0, 23.32)).toBe(false);
-      expect(isWithinSofia(42.7, 20.0)).toBe(false);
-      expect(isWithinSofia(0, 0)).toBe(false);
+      expect(isWithinBounds("bg.sofia", 50.0, 23.32)).toBe(false);
+      expect(isWithinBounds("bg.sofia", 42.7, 20.0)).toBe(false);
+      expect(isWithinBounds("bg.sofia", 0, 0)).toBe(false);
     });
   });
 

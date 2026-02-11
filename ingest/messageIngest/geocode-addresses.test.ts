@@ -6,7 +6,9 @@ import {
   getValidPreResolvedCoordinates,
 } from "./geocode-addresses";
 import type { StreetSection, Address, ExtractedLocations } from "@/lib/types";
-import { SOFIA_BOUNDS } from "@/lib/bounds";
+import { BOUNDS } from "@/lib/bounds";
+
+const SOFIA_BOUNDS = BOUNDS["bg.sofia"];
 
 // Mock firebase-admin to avoid requiring env vars
 vi.mock("@/lib/firebase-admin", () => ({

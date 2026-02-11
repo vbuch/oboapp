@@ -24,6 +24,7 @@ describe(buildMessageResponse, () => {
     const result = await buildMessageResponse(
       "msg-123",
       "Test message",
+      "bg.sofia",
       [mockAddress],
       mockGeoJson,
     );
@@ -31,6 +32,7 @@ describe(buildMessageResponse, () => {
     expect(result).toMatchObject({
       id: "msg-123",
       text: "Test message",
+      target: "bg.sofia",
       addresses: [mockAddress],
       geoJson: mockGeoJson,
     });
@@ -41,6 +43,7 @@ describe(buildMessageResponse, () => {
     const result = await buildMessageResponse(
       "msg-123",
       "Test message",
+      "bg.sofia",
       [mockAddress],
       null,
     );
@@ -49,7 +52,13 @@ describe(buildMessageResponse, () => {
   });
 
   it("should handle empty addresses array", async () => {
-    const result = await buildMessageResponse("msg-123", "Test message", [], null);
+    const result = await buildMessageResponse(
+      "msg-123",
+      "Test message",
+      "bg.sofia",
+      [],
+      null,
+    );
 
     expect(result.addresses).toEqual([]);
     expect(result.geoJson).toBeUndefined();
@@ -59,6 +68,7 @@ describe(buildMessageResponse, () => {
     const result = await buildMessageResponse(
       "msg-123",
       "Test message",
+      "bg.sofia",
       [mockAddress],
       mockGeoJson,
     );
@@ -66,8 +76,42 @@ describe(buildMessageResponse, () => {
     expect(result).not.toHaveProperty("extractedData");
   });
 
+  it("should set createdAt to current time", async () => {
+    const before = new Date().toISOString();
+    const result = await buildMessageResponse(
+      "msg-123",
+      "Test message",
+      "bg.sofia",
+      [],
+      null,
+    );
+    const after = new Date().toISOString();
+
+    expect(result.createdAt >= before).toBe(true);
+    expect(result.createdAt <= after).toBe(true);
+  });
+
+  it("should preserve message id and text", async () => {
+    const result = await buildMessageResponse(
+      "custom-id",
+      "Custom message text",
+      "bg.sofia",
+      [],
+      null,
+    );
+
+    expect(result.id).toBe("custom-id");
+    expect(result.text).toBe("Custom message text");
+  });
+
   it("should generate a valid ISO timestamp for createdAt", async () => {
-    const result = await buildMessageResponse("msg-123", "Test message", [], null);
+    const result = await buildMessageResponse(
+      "msg-123",
+      "Test message",
+      "bg.sofia",
+      [],
+      null,
+    );
 
     const date = new Date(result.createdAt);
     expect(date.toISOString()).toBe(result.createdAt);
@@ -78,6 +122,7 @@ describe(buildMessageResponse, () => {
     const result = await buildMessageResponse(
       "msg-456",
       "Another message",
+      "bg.sofia",
       addresses,
       mockGeoJson,
     );

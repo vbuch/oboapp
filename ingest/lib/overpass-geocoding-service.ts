@@ -11,6 +11,8 @@ import {
   getTargetCenter,
   getTargetBbox,
 } from "./geocoding-utils";
+import { isWithinBounds } from "./bounds";
+import { getTargetLocality } from "./target-locality";
 import { delay } from "./delay";
 import { roundCoordinate } from "@/lib/coordinate-utils";
 import { logger } from "@/lib/logger";
@@ -751,8 +753,9 @@ async function geocodeAddressWithNominatim(
           lng: Number.parseFloat(result.lon),
         };
 
-        // Validate coordinates are within Sofia
-        if (isWithinSofia(coords.lat, coords.lng)) {
+        // Validate coordinates are within target locality
+        const target = getTargetLocality();
+        if (isWithinBounds(target, coords.lat, coords.lng)) {
           logger.info("Nominatim geocoded address", {
             address,
             lat: coords.lat,
@@ -760,8 +763,9 @@ async function geocodeAddressWithNominatim(
           });
           return coords;
         }
-        logger.warn("Nominatim result outside Sofia", {
+        logger.warn("Nominatim result outside target locality", {
           address,
+          target,
           lat: coords.lat,
           lng: coords.lng,
         });

@@ -13,7 +13,8 @@ import {
 } from "@/lib/types";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
 import { logger } from "@/lib/logger";
-import { isWithinSofia } from "@/lib/bounds";
+import { isWithinBounds } from "@/lib/bounds";
+import { getTargetLocality } from "@/lib/target-locality";
 import { roundCoordinate } from "@/lib/coordinate-utils";
 
 // Internal types for the geocoding pipeline
@@ -26,7 +27,7 @@ export interface GeocodingResult {
 /**
  * Validate and normalize pre-resolved coordinates from source
  * - Rounds to 6 decimal places (precision ~0.1 meters)
- * - Validates coordinates are within Sofia bounds
+ * - Validates coordinates are within target locality bounds
  * Returns null if coordinates are invalid
  * Exported for unit testing
  */
@@ -40,10 +41,12 @@ export function getValidPreResolvedCoordinates(
     lng: roundCoordinate(coordinates.lng),
   };
 
-  // Validate coordinates are within Sofia bounds
-  if (!isWithinSofia(rounded.lat, rounded.lng)) {
-    logger.warn("Pre-resolved coordinates outside Sofia bounds", {
+  // Validate coordinates are within target locality bounds
+  const target = getTargetLocality();
+  if (!isWithinBounds(target, rounded.lat, rounded.lng)) {
+    logger.warn("Pre-resolved coordinates outside target locality bounds", {
       context,
+      target,
       original: coordinates,
       rounded,
     });

@@ -75,6 +75,7 @@ export async function GET(request: Request) {
           messages.push({
             id: doc.id,
             text: data.text,
+            target: data.target,
             plainText: data.plainText,
             markdownText: data.markdownText,
             addresses: data.addresses

@@ -9,12 +9,14 @@ describe("shared/webpage-crawlers", () => {
         "Test Title",
         "15 декември 2025",
         "<h2>Heading</h2><p>Paragraph</p>",
-        "test-source"
+        "test-source",
+        "bg.sofia"
       );
 
       expect(doc.url).toBe("https://example.com/post");
       expect(doc.title).toBe("Test Title");
-      expect(doc.sourceType).toBe("test-source");
+      expect(doc.sourceType).toBe("test-source",
+        "bg.sofia");
       expect(doc.message).toContain("Heading");
       expect(doc.message).toContain("Paragraph");
       expect(doc.datePublished).toBeTruthy();
@@ -27,7 +29,8 @@ describe("shared/webpage-crawlers", () => {
           "",
           "1 януари 2025",
           "<p>Content</p>",
-          "test-source"
+          "test-source",
+        "bg.sofia"
         )
       ).toThrow("Failed to extract title");
     });
@@ -39,7 +42,8 @@ describe("shared/webpage-crawlers", () => {
           "Title",
           "1 януари 2025",
           "",
-          "test-source"
+          "test-source",
+        "bg.sofia"
         )
       ).toThrow("Failed to extract content");
     });
@@ -61,7 +65,8 @@ describe("shared/webpage-crawlers", () => {
         "Test",
         "1 януари 2025",
         html,
-        "test-source"
+        "test-source",
+        "bg.sofia"
       );
 
       expect(doc.message).toContain("Main Title");

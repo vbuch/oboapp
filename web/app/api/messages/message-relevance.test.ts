@@ -80,6 +80,7 @@ describe("isMessageRelevant", () => {
     it("should be relevant if pin timespan ends after cutoff", () => {
       const message: Message = {
         text: "Test",
+        target: "bg.sofia",
         createdAt: new Date("2025-12-01").toISOString(), // Old createdAt
         pins: [
           {
@@ -96,6 +97,7 @@ describe("isMessageRelevant", () => {
     it("should be relevant if street timespan ends after cutoff", () => {
       const message: Message = {
         text: "Test",
+        target: "bg.sofia",
         createdAt: new Date("2025-12-01").toISOString(),
         pins: [],
         streets: [
