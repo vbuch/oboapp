@@ -11,6 +11,7 @@ import { logger } from "@/lib/logger";
 export { buildMessage } from "./formatters";
 
 const SOURCE_TYPE = "sofiyska-voda";
+const LOCALITY = "bg.sofia";
 const BASE_URL =
   "https://gispx.sofiyskavoda.bg/arcgis/rest/services/WSI_PUBLIC/InfoCenter_Public/MapServer";
 
@@ -208,8 +209,6 @@ export async function buildSourceDocument(
     timespanEnd = lastUpdate;
   }
 
-  const LOCALITY = "bg.sofia";
-  
   return {
     url,
     datePublished: lastUpdate.toISOString(),
