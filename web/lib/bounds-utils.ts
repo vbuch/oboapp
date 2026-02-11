@@ -4,7 +4,7 @@
 
 import * as turf from "@turf/turf";
 import type { GeoJSONFeature } from "@/lib/types";
-import { BOUNDS, getBoundsForTarget } from "@oboapp/shared";
+import { BOUNDS, getBoundsForTarget, getCenterForTarget } from "@oboapp/shared";
 
 /**
  * Get target locality from environment variable
@@ -21,9 +21,17 @@ function getTargetLocality(): string {
 /**
  * Get bounds for target locality
  */
-function getTargetBounds() {
+export function getTargetBounds() {
   const targetLocality = getTargetLocality();
   return getBoundsForTarget(targetLocality);
+}
+
+/**
+ * Get center for target locality
+ */
+export function getTargetCenter() {
+  const targetLocality = getTargetLocality();
+  return getCenterForTarget(targetLocality);
 }
 
 // Re-export BOUNDS for tests

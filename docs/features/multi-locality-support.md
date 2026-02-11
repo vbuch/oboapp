@@ -90,7 +90,7 @@ To add support for a new locality (e.g., Plovdiv, Bulgaria):
    }, adminDb);
    ```
 
-5. **Set environment variables**:
+5. **Set environment variables** (required):
    ```bash
    # Backend/Ingest
    TARGET_LOCALITY=bg.plovdiv
@@ -99,12 +99,11 @@ To add support for a new locality (e.g., Plovdiv, Bulgaria):
    NEXT_PUBLIC_TARGET_LOCALITY=bg.plovdiv
    ```
 
-6. **Update web bounds** in `web/lib/bounds-utils.ts`:
-   - Add the same bounds definition for frontend map viewport
-
 ## API Reference
 
-### Backend Functions (ingest/lib/bounds.ts)
+### Shared Package Functions (shared/src/bounds.ts)
+
+All bounds-related functions are now in the shared package and used by both ingest and web:
 
 ```typescript
 // Get bounds for a specific target
@@ -127,12 +126,16 @@ validateTarget(target: string): void
 
 ```typescript
 // Get current target from environment (ingest/lib/target-locality.ts)
-getTargetLocality(): string  // Returns TARGET_LOCALITY or "bg.sofia"
+getTargetLocality(): string  // Throws error if TARGET_LOCALITY not set
 
 // Get current target's bounds (ingest/lib/geocoding-utils.ts)
 getTargetBounds(): BoundsDefinition
 getTargetCenter(): CenterDefinition
 getTargetBbox(): string
+
+// Get current target from environment (web/lib/bounds-utils.ts)
+getTargetBounds(): BoundsDefinition  // Throws error if NEXT_PUBLIC_TARGET_LOCALITY not set
+getTargetCenter(): CenterDefinition
 ```
 
 ## Migration

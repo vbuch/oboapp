@@ -168,7 +168,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-14T10:00:00.000Z",
+        target: "bg.sofia",
+      createdAt: "2024-01-14T10:00:00.000Z",
         timespanEnd: "2024-01-15T14:00:00.000Z",
       };
 
@@ -180,7 +181,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-14T10:00:00.000Z",
+        target: "bg.sofia",
+      createdAt: "2024-01-14T10:00:00.000Z",
         timespanEnd: "2024-01-14T14:00:00.000Z",
       };
 
@@ -194,7 +196,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-15T08:00:00.000Z", // Today in UTC (10:00 Bulgarian)
+        target: "bg.sofia",
+      createdAt: "2024-01-15T08:00:00.000Z", // Today in UTC (10:00 Bulgarian)
       };
 
       expect(classifyMessage(message)).toBe("active" as MessageClassification);
@@ -205,7 +208,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-14T08:00:00.000Z", // Yesterday
+        target: "bg.sofia",
+      createdAt: "2024-01-14T08:00:00.000Z", // Yesterday
       };
 
       expect(classifyMessage(message)).toBe(
@@ -218,7 +222,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-15T08:00:00.000Z", // Today as string
+        target: "bg.sofia",
+      createdAt: "2024-01-15T08:00:00.000Z", // Today as string
       };
 
       expect(classifyMessage(message)).toBe("active" as MessageClassification);
@@ -229,7 +234,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-10T08:00:00.000Z", // Old date
+        target: "bg.sofia",
+      createdAt: "2024-01-10T08:00:00.000Z", // Old date
         // No extractedData
       };
 
@@ -243,7 +249,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-15T08:00:00.000Z", // Today (would be active)
+        target: "bg.sofia",
+      createdAt: "2024-01-15T08:00:00.000Z", // Today (would be active)
         timespanEnd: "2024-01-14T14:00:00.000Z",
       };
 
@@ -258,7 +265,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-14T10:00:00.000Z",
+        target: "bg.sofia",
+      createdAt: "2024-01-14T10:00:00.000Z",
         timespanEnd: "2024-01-15T01:00:00.000Z",
       };
 
@@ -270,7 +278,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-14T10:00:00.000Z",
+        target: "bg.sofia",
+      createdAt: "2024-01-14T10:00:00.000Z",
         timespanEnd: "2024-01-16T14:00:00.000Z",
       };
 
@@ -282,7 +291,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-14T10:00:00.000Z",
+        target: "bg.sofia",
+      createdAt: "2024-01-14T10:00:00.000Z",
         timespanEnd: "2024-01-22T16:00:00.000Z",
       };
 
@@ -294,7 +304,8 @@ describe("message-classification", () => {
         id: "test-1",
         text: "Test message",
         source: "test",
-        createdAt: "2024-01-14T10:00:00.000Z",
+        target: "bg.sofia",
+      createdAt: "2024-01-14T10:00:00.000Z",
         timespanEnd: "2024-01-16T16:00:00.000Z",
       };
 
@@ -309,7 +320,8 @@ describe("message-classification", () => {
         id: "test-reported-case",
         text: "ул. Св. Св. Кирил и Методий\nОт: ул. Дунав → До: ул. 11-ти август",
         source: "test",
-        createdAt: "2026-01-14T10:00:00.000Z",
+        target: "bg.sofia",
+      createdAt: "2026-01-14T10:00:00.000Z",
         timespanEnd: "2026-01-22T16:00:00.000Z",
       };
 

@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   BOUNDS,
+  getTargetBounds,
+  getTargetCenter,
   clampBounds,
   addBuffer,
   featureIntersectsBounds,
@@ -23,6 +25,30 @@ describe("bounds-utils", () => {
         north: 42.83,
         east: 23.528,
       });
+    });
+  });
+
+  describe("getTargetBounds", () => {
+    it("should return bounds for the target locality", () => {
+      const bounds = getTargetBounds();
+      expect(bounds).toEqual(SOFIA_BOUNDS);
+    });
+
+    it("should throw error if environment variable not set", () => {
+      delete process.env.NEXT_PUBLIC_TARGET_LOCALITY;
+      expect(() => getTargetBounds()).toThrow("NEXT_PUBLIC_TARGET_LOCALITY environment variable is required but not set");
+    });
+  });
+
+  describe("getTargetCenter", () => {
+    it("should return center for the target locality", () => {
+      const center = getTargetCenter();
+      expect(center).toEqual({ lat: 42.6977, lng: 23.3219 });
+    });
+
+    it("should throw error if environment variable not set", () => {
+      delete process.env.NEXT_PUBLIC_TARGET_LOCALITY;
+      expect(() => getTargetCenter()).toThrow("NEXT_PUBLIC_TARGET_LOCALITY environment variable is required but not set");
     });
   });
 

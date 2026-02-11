@@ -76,6 +76,7 @@ describe("createMessageUrl", () => {
       id: "aB3xYz12",
       text: "Test message",
       createdAt: "2024-01-01T00:00:00Z",
+      target: "bg.sofia",
     };
     expect(createMessageUrl(message)).toBe("/?messageId=aB3xYz12");
   });
@@ -85,6 +86,7 @@ describe("createMessageUrl", () => {
       id: "test/id?value",
       text: "Test message",
       createdAt: "2024-01-01T00:00:00Z",
+      target: "bg.sofia",
     };
     expect(createMessageUrl(message)).toBe("/?messageId=test%2Fid%3Fvalue");
   });
