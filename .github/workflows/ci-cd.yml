@@ -42,7 +42,7 @@ jobs:
 
       - name: Run unit tests
         working-directory: ./ingest
-        run: pnpm run test:run
+        run: pnpm test:run
 
   test-web:
     name: Test Web
@@ -70,7 +70,7 @@ jobs:
 
       - name: Run unit tests
         working-directory: ./web
-        run: pnpm run test:run
+        run: pnpm test:run
 
   build-and-deploy:
     name: Build and Deploy to GCP

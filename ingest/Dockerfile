@@ -20,7 +20,7 @@ RUN pnpm install --frozen-lockfile
 RUN cd ingest && npx playwright install chromium
 
 # Build ingest
-RUN cd ingest && pnpm run build
+RUN cd ingest && pnpm build
 
 # Production stage
 FROM node:20-slim
