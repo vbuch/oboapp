@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import * as turf from "@turf/turf";
 import type { Message, Interest, GeoJSONFeatureCollection } from "@/lib/types";
 import { logger } from "@/lib/logger";
+import { validateLocality } from "@oboapp/shared";
 
 // Cache GeoJSON files by locality
 const geoJsonCache = new Map<string, GeoJSONFeatureCollection>();
@@ -10,8 +11,12 @@ const geoJsonCache = new Map<string, GeoJSONFeatureCollection>();
 /**
  * Load locality GeoJSON file (cached)
  * Files should be named {locality}.geojson under localities/ (e.g., localities/bg.sofia.geojson)
+ * @throws Error if locality is invalid or file not found
  */
 function loadLocalityGeoJson(locality: string): GeoJSONFeatureCollection {
+  // Validate locality to prevent path traversal
+  validateLocality(locality);
+  
   if (!geoJsonCache.has(locality)) {
     const path = resolve(process.cwd(), "localities", `${locality}.geojson`);
     const content = readFileSync(path, "utf-8");

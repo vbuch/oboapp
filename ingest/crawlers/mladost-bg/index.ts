@@ -34,7 +34,7 @@ const processPost = (
     postLink,
     adminDb,
     SOURCE_TYPE,
-    TARGET,
+    LOCALITY,
     DELAY_BETWEEN_REQUESTS,
     extractPostDetails,
     parseBulgarianMonthDate, // Custom date parser for "DD Month YYYY" format

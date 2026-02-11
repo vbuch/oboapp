@@ -83,14 +83,21 @@ async function sendNotifications(
     }
 
     const messageData = messageDoc.data();
+    
+    // Validate required locality field
+    if (!messageData?.locality) {
+      console.error(`Message ${messageDoc.id} missing required locality field`);
+      continue;
+    }
+    
     const message: Message = {
       id: messageDoc.id,
-      text: messageData?.text || "",
-      locality: messageData?.locality,
-      geoJson: messageData?.geoJson
+      text: messageData.text || "",
+      locality: messageData.locality,
+      geoJson: messageData.geoJson
         ? JSON.parse(messageData.geoJson)
         : undefined,
-      createdAt: convertTimestamp(messageData?.createdAt),
+      createdAt: convertTimestamp(messageData.createdAt),
     };
 
     // Send to all user devices
