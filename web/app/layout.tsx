@@ -22,6 +22,8 @@ export const metadata: Metadata = {
     apple: "/icon-192x192.png",
     other: [
       { rel: "icon", url: "/icon-32x32.png", sizes: "32x32" },
+      { rel: "icon", url: "/icon-72x72.png", sizes: "72x72" },
+      { rel: "icon", url: "/icon-192x192.png", sizes: "192x192" },
       { rel: "icon", url: "/icon-512x512.png", sizes: "512x512" },
     ],
   },
