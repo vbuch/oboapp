@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   findMissingStreetEndpoints,
   deduplicateAddresses,
@@ -6,9 +6,14 @@ import {
   getValidPreResolvedCoordinates,
 } from "./geocode-addresses";
 import type { StreetSection, Address, ExtractedLocations } from "@/lib/types";
-import { BOUNDS } from "@/lib/bounds";
+import { BOUNDS } from "@oboapp/shared";
 
-const SOFIA_BOUNDS = BOUNDS["bg.sofia"];
+// Set LOCALITY for tests
+beforeEach(() => {
+  process.env.LOCALITY = "bg.sofia";
+});
+
+const TEST_BOUNDS = BOUNDS[process.env.LOCALITY || "bg.sofia"];
 
 // Mock firebase-admin to avoid requiring env vars
 vi.mock("@/lib/firebase-admin", () => ({
@@ -385,11 +390,11 @@ describe("getValidPreResolvedCoordinates", () => {
   });
 
   it("should handle coordinates at Sofia boundary edges", () => {
-    // Test at SOFIA_BOUNDS edges (see @/lib/bounds for actual values)
-    const coordsNorth = { lat: SOFIA_BOUNDS.north, lng: 23.3 };
-    const coordsSouth = { lat: SOFIA_BOUNDS.south, lng: 23.3 };
-    const coordsEast = { lat: 42.7, lng: SOFIA_BOUNDS.east };
-    const coordsWest = { lat: 42.7, lng: SOFIA_BOUNDS.west };
+    // Test at bounds edges (see @oboapp/shared bounds for actual values)
+    const coordsNorth = { lat: TEST_BOUNDS.north, lng: 23.3 };
+    const coordsSouth = { lat: TEST_BOUNDS.south, lng: 23.3 };
+    const coordsEast = { lat: 42.7, lng: TEST_BOUNDS.east };
+    const coordsWest = { lat: 42.7, lng: TEST_BOUNDS.west };
 
     expect(getValidPreResolvedCoordinates(coordsNorth, "test")).not.toBeNull();
     expect(getValidPreResolvedCoordinates(coordsSouth, "test")).not.toBeNull();

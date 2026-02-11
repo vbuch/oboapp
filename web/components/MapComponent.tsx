@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { GoogleMap, Circle } from "@react-google-maps/api";
 import { Message, Interest } from "@/lib/types";
-import { getTargetBounds, getTargetCenter } from "@/lib/bounds-utils";
+import { getLocalityBounds, getLocalityCenter } from "@/lib/bounds-utils";
 import GeoJSONLayer from "./GeoJSONLayer";
 import InterestCircles from "./InterestCircles";
 import InterestTargetMode from "./InterestTargetMode";
@@ -111,12 +111,12 @@ export default function MapComponent({
   initialCenter,
   shouldTrackLocation = false,
 }: MapComponentProps) {
-  // Get target locality bounds and center
-  const targetBounds = getTargetBounds();
-  const targetCenter = getTargetCenter();
+  // Get locality bounds and center
+  const localityBounds = getLocalityBounds();
+  const localityCenter = getLocalityCenter();
 
   const mapRef = useRef<google.maps.Map | null>(null);
-  const latestCenterRef = useRef(targetCenter);
+  const latestCenterRef = useRef(localityCenter);
   const [currentZoom, setCurrentZoom] = useState<number>(14);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const [userLocation, setUserLocation] = useState<{
@@ -127,20 +127,20 @@ export default function MapComponent({
   const mapOptions: google.maps.MapOptions = useMemo(
     () => ({
       zoom: 14,
-      center: initialCenter || targetCenter,
+      center: initialCenter || localityCenter,
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
       styles: mapStyles,
       clickableIcons: false, // Disable clicking on POIs (shops, hospitals, etc.)
       restriction: {
-        latLngBounds: targetBounds,
+        latLngBounds: localityBounds,
         strictBounds: true,
       },
       minZoom: 12,
       maxZoom: 18,
     }),
-    [initialCenter, targetBounds, targetCenter],
+    [initialCenter, localityBounds, localityCenter],
   );
 
   const centerMap = useCallback(

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { BOUNDS, getBboxForTarget, isWithinBounds } from "./bounds";
+import { BOUNDS, getBboxForLocality, isWithinBounds } from "@oboapp/shared";
 
 const SOFIA_BOUNDS = BOUNDS["bg.sofia"];
 
@@ -14,18 +14,18 @@ describe("bounds", () => {
       });
     });
 
-    it("should get bounds for target", () => {
+    it("should get bounds for locality", () => {
       expect(BOUNDS["bg.sofia"]).toEqual(SOFIA_BOUNDS);
     });
   });
 
-  describe("getBboxForTarget", () => {
+  describe("getBboxForLocality", () => {
     it("should format bounds as bbox string", () => {
-      expect(getBboxForTarget("bg.sofia")).toBe("42.605,23.188,42.83,23.528");
+      expect(getBboxForLocality("bg.sofia")).toBe("42.605,23.188,42.83,23.528");
     });
 
-    it("should throw for invalid target", () => {
-      expect(() => getBboxForTarget("invalid")).toThrow("Unknown target");
+    it("should throw for invalid locality", () => {
+      expect(() => getBboxForLocality("invalid")).toThrow("Unknown locality");
     });
   });
 
@@ -74,8 +74,8 @@ describe("bounds", () => {
       expect(isWithinBounds("bg.sofia", 45.0, 25.0)).toBe(false);
     });
 
-    it("should throw for invalid target", () => {
-      expect(() => isWithinBounds("invalid", 42.7, 23.3)).toThrow("Unknown target");
+    it("should throw for invalid locality", () => {
+      expect(() => isWithinBounds("invalid", 42.7, 23.3)).toThrow("Unknown locality");
     });
   });
 });

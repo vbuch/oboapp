@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       messages.push({
         id: doc.id,
         text: data.text,
-        target: data.target,
+        locality: data.locality,
         markdownText: data.markdownText,
         addresses: data.addresses
           ? safeJsonParse<Address[]>(data.addresses, [], "addresses")

@@ -1,30 +1,30 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  getTargetBounds,
-  getTargetCenter,
-  getTargetBbox,
+  getLocalityBounds,
+  getLocalityCenter,
+  getLocalityBbox,
   isCenterFallback,
   isGenericCityAddress,
 } from "./geocoding-utils";
-import { BOUNDS, CENTERS } from "./bounds";
+import { BOUNDS, CENTERS } from "@oboapp/shared";
 
-// Set TARGET_LOCALITY for tests
+// Set LOCALITY for tests
 beforeEach(() => {
-  process.env.TARGET_LOCALITY = "bg.sofia";
+  process.env.LOCALITY = "bg.sofia";
 });
 
 describe("geocoding-utils", () => {
-  describe("getTarget functions", () => {
+  describe("getLocality functions", () => {
     it("should get correct bounds for Sofia", () => {
-      expect(getTargetBounds()).toEqual(BOUNDS["bg.sofia"]);
+      expect(getLocalityBounds()).toEqual(BOUNDS["bg.sofia"]);
     });
 
     it("should get correct center for Sofia", () => {
-      expect(getTargetCenter()).toEqual(CENTERS["bg.sofia"]);
+      expect(getLocalityCenter()).toEqual(CENTERS["bg.sofia"]);
     });
 
     it("should format bbox correctly for Sofia", () => {
-      expect(getTargetBbox()).toBe("42.605,23.188,42.83,23.528");
+      expect(getLocalityBbox()).toBe("42.605,23.188,42.83,23.528");
     });
   });
 

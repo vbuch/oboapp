@@ -7,12 +7,12 @@ import {
 import * as turf from "@turf/turf";
 import type { Feature, MultiLineString, Position } from "geojson";
 import {
-  getTargetBounds,
-  getTargetCenter,
-  getTargetBbox,
+  getLocalityBounds,
+  getLocalityCenter,
+  getLocalityBbox,
 } from "./geocoding-utils";
-import { isWithinBounds } from "./bounds";
-import { getTargetLocality } from "./target-locality";
+import { isWithinBounds } from "@oboapp/shared";
+import { getLocality } from "./target-locality";
 import { delay } from "./delay";
 import { roundCoordinate } from "@/lib/coordinate-utils";
 import { logger } from "@/lib/logger";
@@ -113,7 +113,7 @@ async function getStreetGeometryFromOverpass(
 
     let query: string;
 
-    const bbox = getTargetBbox();
+    const bbox = getLocalityBbox();
 
     if (isSquare) {
       // Search for squares as nodes or ways with place=square
@@ -335,9 +335,9 @@ function findGeometricIntersection(
         return { lng: point[0], lat: point[1] };
       }
 
-      // Multiple intersections - use target city center as reference point
-      const targetCenter = getTargetCenter();
-      const targetPoint = turf.point([targetCenter.lng, targetCenter.lat]);
+      // Multiple intersections - use locality center as reference point
+      const localityCenter = getLocalityCenter();
+      const targetPoint = turf.point([localityCenter.lng, localityCenter.lat]);
 
       const intersectionsWithDistance = intersections.features.map(
         (feature) => {
@@ -724,8 +724,8 @@ async function geocodeAddressWithNominatim(
         ? normalizedAddress
         : `${normalizedAddress}, София, България`;
 
-    // Add bounded search to target city area and increase limit to filter results
-    const bounds = getTargetBounds();
+    // Add bounded search to locality area and increase limit to filter results
+    const bounds = getLocalityBounds();
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
       fullAddress,
     )}&format=json&limit=5&addressdetails=1&bounded=1&viewbox=${
@@ -753,9 +753,9 @@ async function geocodeAddressWithNominatim(
           lng: Number.parseFloat(result.lon),
         };
 
-        // Validate coordinates are within target locality
-        const target = getTargetLocality();
-        if (isWithinBounds(target, coords.lat, coords.lng)) {
+        // Validate coordinates are within locality
+        const locality = getLocality();
+        if (isWithinBounds(locality, coords.lat, coords.lng)) {
           logger.info("Nominatim geocoded address", {
             address,
             lat: coords.lat,

@@ -35,47 +35,47 @@ export const CENTERS: Record<string, CenterDefinition> = {
 };
 
 /**
- * Get bounds for a target
- * @throws Error if target is not found
+ * Get bounds for a locality
+ * @throws Error if locality is not found
  */
-export function getBoundsForTarget(target: string): BoundsDefinition {
-  const bounds = BOUNDS[target];
+export function getBoundsForLocality(locality: string): BoundsDefinition {
+  const bounds = BOUNDS[locality];
   if (!bounds) {
-    throw new Error(`Unknown target: ${target}. Valid targets: ${Object.keys(BOUNDS).join(", ")}`);
+    throw new Error(`Unknown locality: ${locality}. Valid localities: ${Object.keys(BOUNDS).join(", ")}`);
   }
   return bounds;
 }
 
 /**
- * Get center for a target
- * @throws Error if target is not found
+ * Get center for a locality
+ * @throws Error if locality is not found
  */
-export function getCenterForTarget(target: string): CenterDefinition {
-  const center = CENTERS[target];
+export function getCenterForLocality(locality: string): CenterDefinition {
+  const center = CENTERS[locality];
   if (!center) {
-    throw new Error(`Unknown target: ${target}. Valid targets: ${Object.keys(CENTERS).join(", ")}`);
+    throw new Error(`Unknown locality: ${locality}. Valid localities: ${Object.keys(CENTERS).join(", ")}`);
   }
   return center;
 }
 
 /**
- * Get bbox string for a target
- * @throws Error if target is not found
+ * Get bbox string for a locality
+ * @throws Error if locality is not found
  */
-export function getBboxForTarget(target: string): string {
-  const bounds = getBoundsForTarget(target);
+export function getBboxForLocality(locality: string): string {
+  const bounds = getBoundsForLocality(locality);
   return `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
 }
 
 /**
- * Check if coordinates are within target's boundaries
- * @param target - Target identifier (e.g., "bg.sofia")
+ * Check if coordinates are within a locality's boundaries
+ * @param locality - Locality identifier (e.g., "bg.sofia")
  * @param lat - Latitude
  * @param lng - Longitude
- * @throws Error if target is not found
+ * @throws Error if locality is not found
  */
-export function isWithinBounds(target: string, lat: number, lng: number): boolean {
-  const bounds = getBoundsForTarget(target);
+export function isWithinBounds(locality: string, lat: number, lng: number): boolean {
+  const bounds = getBoundsForLocality(locality);
   return (
     lat >= bounds.south &&
     lat <= bounds.north &&
@@ -85,11 +85,11 @@ export function isWithinBounds(target: string, lat: number, lng: number): boolea
 }
 
 /**
- * Validate that a target exists
- * @throws Error if target is invalid
+ * Validate that a locality exists
+ * @throws Error if locality is invalid
  */
-export function validateTarget(target: string): void {
-  if (!BOUNDS[target]) {
-    throw new Error(`Invalid target: ${target}. Valid targets: ${Object.keys(BOUNDS).join(", ")}`);
+export function validateLocality(locality: string): void {
+  if (!BOUNDS[locality]) {
+    throw new Error(`Invalid locality: ${locality}. Valid localities: ${Object.keys(BOUNDS).join(", ")}`);
   }
 }

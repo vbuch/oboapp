@@ -86,7 +86,7 @@ async function sendNotifications(
     const message: Message = {
       id: messageDoc.id,
       text: messageData?.text || "",
-      target: messageData?.target || "bg.sofia",
+      locality: messageData?.locality,
       geoJson: messageData?.geoJson
         ? JSON.parse(messageData.geoJson)
         : undefined,

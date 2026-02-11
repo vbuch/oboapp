@@ -7,7 +7,7 @@ describe("notification-sender", () => {
     const baseMessage: Message = {
       id: "aB3xYz12",
       text: "Test message",
-      target: "bg.sofia",
+      locality: "bg.sofia",
       createdAt: "2026-02-05T12:00:00.000Z",
     };
 

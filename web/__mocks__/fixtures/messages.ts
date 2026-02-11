@@ -7,7 +7,7 @@ import type { Message } from "@oboapp/shared";
 export const MOCK_MESSAGES: Message[] = [
   // Cluster 1: City center (around 42.6977, 23.3219)
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-water-center-1",
     text: "Планирано спиране на водоподаването на ул. Граф Игнатиев от No 5 до No 25",
     plainText:
@@ -53,7 +53,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-construction-center-2",
     text: "Ремонт на тротоара на бул. Витоша между ул. Московска и ул. Алабин",
     plainText:
@@ -110,7 +110,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-public-transport-center-3",
     text: "Промяна в движението на трамваи №10 и №12 поради ремонт на релсите на бул. Христо Ботев",
     plainText:
@@ -142,7 +142,7 @@ export const MOCK_MESSAGES: Message[] = [
 
   // Cluster 2: Mladost district (east, around 42.65, 23.38)
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-heating-mladost-1",
     text: "Авария на топлопровод в ж.к. Младост 1, блокове 40-50",
     plainText: "Авария на топлопровод в ж.к. Младост 1, блокове 40-50",
@@ -169,7 +169,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-waste-mladost-2",
     text: "Почистване на контейнери за смет в района на бул. Александър Малинов",
     plainText:
@@ -201,7 +201,7 @@ export const MOCK_MESSAGES: Message[] = [
 
   // Scattered messages across Sofia
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-electricity-lozenets-1",
     text: "Планирано прекъсване на електрозахранването в района на ул. Кричим и ул. Гоце Делчев",
     plainText:
@@ -262,7 +262,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-road-block-oborishte-1",
     text: "Затворена за движение ул. Оборище заради асфалтиране",
     plainText: "Затворена за движение ул. Оборище заради асфалтиране",
@@ -317,7 +317,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-parking-studentski-1",
     text: "Създаване на нови паркоместа в ж.к. Студентски град",
     plainText: "Създаване на нови паркоместа в ж.к. Студентски град",
@@ -343,7 +343,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-weather-citywide-1",
     text: "Жълт код за силен вятър в София. Очакват се пориви до 25 м/с.",
     plainText: "Жълт код за силен вятър в София. Очакват се пориви до 25 м/с.",
@@ -362,7 +362,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-culture-slatina-1",
     text: "Концерт на открито в парк Възраждане на 15 февруари",
     plainText: "Концерт на открито в парк Възраждане на 15 февруари",
@@ -388,7 +388,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-bicycles-sredec-1",
     text: "Нова велоалея по ул. Цар Освободител от НДК до Орлов мост",
     plainText: "Нова велоалея по ул. Цар Освободител от НДК до Орлов мост",
@@ -417,7 +417,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-health-lozenets-2",
     text: "Безплатни прегледи за хипертония в ДКЦ Лозенец",
     plainText: "Безплатни прегледи за хипертония в ДКЦ Лозенец",
@@ -443,7 +443,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-sports-mladost-3",
     text: "Турнир по футбол за деца в Спортен комплекс Младост",
     plainText: "Турнир по футбол за деца в Спортен комплекс Младост",
@@ -469,7 +469,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-art-center-4",
     text: "Изложба на съвременно изкуство в Градската градина",
     plainText: "Изложба на съвременно изкуство в Градската градина",
@@ -495,7 +495,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-traffic-ring-road-1",
     text: "Интензивен трафик на Околовръстен път заради катастрофа",
     plainText: "Интензивен трафик на Околовръстен път заради катастрофа",
@@ -521,7 +521,7 @@ export const MOCK_MESSAGES: Message[] = [
     },
   },
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-air-quality-center-5",
     text: "Повишени нива на фини прахови частици в центъра на София",
     plainText: "Повишени нива на фини прахови частици в центъра на София",
@@ -549,7 +549,7 @@ export const MOCK_MESSAGES: Message[] = [
 
   // Messages with no GeoJSON (edge case)
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-no-geojson-1",
     text: "Обявление за обществена поръчка за озеленяване",
     plainText: "Обявление за обществена поръчка за озеленяване",
@@ -562,7 +562,7 @@ export const MOCK_MESSAGES: Message[] = [
 
   // Messages without categories (edge case)
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-uncategorized-1",
     text: "Общо съобщение от кмета на София",
     plainText: "Общо съобщение от кмета на София",
@@ -586,7 +586,7 @@ export const MOCK_MESSAGES: Message[] = [
 
   // Long text edge case
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-long-text-1",
     text: "Във връзка с предстоящия ремонт на улична мрежа в централната градска част, Столичната община уведомява гражданите, че на 15 февруари 2026 г. ще започнат строителни дейности по цялостно обновяване на пътната настилка на бул. Цар Борис III от кръстовището с бул. Джавахарлал Неру до Централна гара. Ремонтът е част от мащабна програма за модернизация на транспортната инфраструктура и ще продължи ориентировъчно до края на март 2026 г.",
     plainText:
@@ -618,7 +618,7 @@ export const MOCK_MESSAGES: Message[] = [
 
   // Bus stop edge case
   {
-    target: "bg.sofia",
+    locality: "bg.sofia",
     id: "msg-bus-stop-1",
     text: "Временна промяна на спирка на автобус №94 - спира до блок 23 в ж.к. Дружба",
     plainText:

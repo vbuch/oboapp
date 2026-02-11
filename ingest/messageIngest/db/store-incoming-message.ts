@@ -32,7 +32,7 @@ export async function storeIncomingMessage(
   sourceUrl?: string,
   crawledAt?: Date,
   sourceDocumentId?: string,
-  target?: string,
+  locality?: string,
 ): Promise<string> {
   const messagesRef = adminDb.collection("messages");
   const docData: Record<string, unknown> = {
@@ -52,8 +52,8 @@ export async function storeIncomingMessage(
     docData.sourceDocumentId = sourceDocumentId;
   }
 
-  if (target) {
-    docData.target = target;
+  if (locality) {
+    docData.locality = locality;
   }
 
   // Atomically create document with retry on collision

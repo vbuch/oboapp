@@ -15,7 +15,7 @@ export function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
   return {
     id: doc.id,
     text: data.text,
-    target: data.target,
+    locality: data.locality,
     plainText: data.plainText,
     addresses: data.addresses
       ? safeJsonParse<Address[]>(data.addresses, [], "addresses")

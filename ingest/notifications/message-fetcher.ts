@@ -25,7 +25,7 @@ export async function getUnprocessedMessages(
       unprocessedMessages.push({
         id: doc.id,
         text: data.text,
-        target: data.target,
+        locality: data.locality,
         geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
         createdAt: convertTimestamp(data.createdAt),
         cityWide: data.cityWide,

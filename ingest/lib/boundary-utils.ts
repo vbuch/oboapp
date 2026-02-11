@@ -9,14 +9,14 @@ import type { GeoJSONFeatureCollection, GeoJSONFeature } from "./types";
 const boundaryCache = new Map<string, GeoJSONFeatureCollection>();
 
 /**
- * Load geographic boundaries for a target from its GeoJSON file.
- * Files should be named {target}.geojson (e.g., bg.sofia.geojson)
+ * Load geographic boundaries for a locality from its GeoJSON file.
+ * Files should be in localities/{locality}.geojson (e.g., localities/bg.sofia.geojson)
  * Results are cached to avoid re-reading files.
  */
-export function loadBoundariesForTarget(
-  target: string,
+export function loadBoundariesForLocality(
+  locality: string,
 ): GeoJSONFeatureCollection {
-  const filename = `${target}.geojson`;
+  const filename = `localities/${locality}.geojson`;
   const absolutePath = resolve(process.cwd(), filename);
 
   // Check cache first
@@ -33,7 +33,7 @@ export function loadBoundariesForTarget(
 
     return geojson;
   } catch (error) {
-    logger.error("Failed to load boundaries for target", { target, path: absolutePath, error: error instanceof Error ? error.message : String(error) });
+    logger.error("Failed to load boundaries for locality", { locality, path: absolutePath, error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 }

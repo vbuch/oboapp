@@ -1,6 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { normalizeCategoriesInput } from "@/lib/category-utils";
-import { validateTarget } from "@/lib/bounds";
+import { validateLocality } from "@oboapp/shared";
 import type { BaseSourceDocument } from "./types";
 import { logger } from "@/lib/logger";
 
@@ -38,7 +38,7 @@ export async function saveSourceDocument<T extends BaseSourceDocument>(
   },
 ): Promise<void> {
   // Validate target before saving
-  validateTarget(doc.target);
+  validateLocality(doc.locality);
 
   const docId = encodeDocumentId(doc.url);
   const docRef = adminDb.collection("sources").doc(docId);

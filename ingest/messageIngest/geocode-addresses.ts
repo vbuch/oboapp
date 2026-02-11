@@ -13,8 +13,8 @@ import {
 } from "@/lib/types";
 import type { CadastralGeometry } from "@/lib/cadastre-geocoding-service";
 import { logger } from "@/lib/logger";
-import { isWithinBounds } from "@/lib/bounds";
-import { getTargetLocality } from "@/lib/target-locality";
+import { isWithinBounds } from "@oboapp/shared";
+import { getLocality } from "@/lib/target-locality";
 import { roundCoordinate } from "@/lib/coordinate-utils";
 
 // Internal types for the geocoding pipeline
@@ -42,11 +42,11 @@ export function getValidPreResolvedCoordinates(
   };
 
   // Validate coordinates are within target locality bounds
-  const target = getTargetLocality();
-  if (!isWithinBounds(target, rounded.lat, rounded.lng)) {
-    logger.warn("Pre-resolved coordinates outside target locality bounds", {
+  const locality = getLocality();
+  if (!isWithinBounds(locality, rounded.lat, rounded.lng)) {
+    logger.warn("Pre-resolved coordinates outside locality bounds", {
       context,
-      target,
+      locality,
       original: coordinates,
       rounded,
     });

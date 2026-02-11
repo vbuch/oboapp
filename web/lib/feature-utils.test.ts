@@ -12,7 +12,7 @@ describe("feature-utils", () => {
       const messages: Message[] = [
         {
           id: "msg1",
-          target: "bg.sofia",
+          locality: "bg.sofia",
           text: "Test message",
           createdAt: "2024-01-01",
           geoJson: {
@@ -46,7 +46,7 @@ describe("feature-utils", () => {
         },
         {
           id: "msg2",
-          target: "bg.sofia",
+          locality: "bg.sofia",
           text: "Another message",
           createdAt: "2024-01-02",
           geoJson: {
@@ -149,13 +149,13 @@ describe("feature-utils", () => {
       const messages: Message[] = [
         {
           id: "msg1",
-          target: "bg.sofia",
+          locality: "bg.sofia",
           text: "Message without geoJson",
           createdAt: "2024-01-01",
         },
         {
           id: "msg2",
-          target: "bg.sofia",
+          locality: "bg.sofia",
           text: "Another message",
           createdAt: "2024-01-02",
           geoJson: undefined,
@@ -171,7 +171,7 @@ describe("feature-utils", () => {
       const messages: Message[] = [
         {
           id: "msg1",
-          target: "bg.sofia",
+          locality: "bg.sofia",
           text: "Message with empty features",
           createdAt: "2024-01-01",
           geoJson: {
@@ -190,7 +190,7 @@ describe("feature-utils", () => {
       const messages: Message[] = [
         {
           id: "msg1",
-          target: "bg.sofia",
+          locality: "bg.sofia",
           text: "Message with invalid geometry",
           createdAt: "2024-01-01",
           geoJson: {
@@ -222,7 +222,7 @@ describe("feature-utils", () => {
     it("should handle messages without id", () => {
       const messages: Message[] = [
         {
-          target: "bg.sofia",
+          locality: "bg.sofia",
           text: "Message without id",
           createdAt: "2024-01-01",
           geoJson: {
@@ -251,7 +251,7 @@ describe("feature-utils", () => {
       const messages: Message[] = [
         {
           id: "msg1",
-          target: "bg.sofia",
+          locality: "bg.sofia",
           text: "Test message",
           createdAt: "2024-01-01",
           geoJson: {

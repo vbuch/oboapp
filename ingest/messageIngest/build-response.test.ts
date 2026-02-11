@@ -32,7 +32,7 @@ describe(buildMessageResponse, () => {
     expect(result).toMatchObject({
       id: "msg-123",
       text: "Test message",
-      target: "bg.sofia",
+      locality: "bg.sofia",
       addresses: [mockAddress],
       geoJson: mockGeoJson,
     });

@@ -99,7 +99,7 @@ export async function crawl(): Promise<void> {
       message,
       markdownText,
       sourceType: SOURCE_TYPE,
-      target: TARGET,
+      locality: TARGET,
       crawledAt: new Date(),
       geoJson: createMinimalGeoJson(),
       categories: ["weather"],

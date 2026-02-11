@@ -1,8 +1,8 @@
 import AdmZip from "adm-zip";
 import { parse } from "csv-parse/sync";
 import { adminDb } from "./firebase-admin";
-import { isWithinBounds } from "./bounds";
-import { getTargetLocality } from "./target-locality";
+import { isWithinBounds } from "@oboapp/shared";
+import { getLocality } from "./target-locality";
 import { roundCoordinate } from "@/lib/coordinate-utils";
 import { logger } from "@/lib/logger";
 
@@ -55,7 +55,7 @@ export function parseStopsFile(csvContent: string): GTFSStop[] {
     trim: true,
   });
 
-  const targetLocality = getTargetLocality();
+  const locality = getLocality();
   const stops: GTFSStop[] = [];
   let skippedOutOfBounds = 0;
   let skippedNoCode = 0;
@@ -83,7 +83,7 @@ export function parseStopsFile(csvContent: string): GTFSStop[] {
     }
 
     // Validate within target locality boundaries
-    if (!isWithinBounds(targetLocality, lat, lng)) {
+    if (!isWithinBounds(locality, lat, lng)) {
       skippedOutOfBounds++;
       continue;
     }

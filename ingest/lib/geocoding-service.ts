@@ -3,8 +3,8 @@ import {
   isCenterFallback,
   isGenericCityAddress,
 } from "./geocoding-utils";
-import { isWithinBounds } from "./bounds";
-import { getTargetLocality } from "./target-locality";
+import { isWithinBounds } from "@oboapp/shared";
+import { getLocality } from "./target-locality";
 import { delay } from "./delay";
 import { logger } from "@/lib/logger";
 import { GoogleGeocodingMockService } from "../__mocks__/services/google-geocoding-mock-service";
@@ -24,7 +24,7 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
   }
 
   try {
-    const targetLocality = getTargetLocality();
+    const locality = getLocality();
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     const encodedAddress = encodeURIComponent(`${address}, Sofia, Bulgaria`);
     // Use components parameter to restrict to Sofia (locality)
@@ -52,8 +52,8 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
           continue;
         }
 
-        // Validate that the result is actually within the target locality's boundaries
-        if (isWithinBounds(targetLocality, lat, lng)) {
+        // Validate that the result is actually within the locality's boundaries
+        if (isWithinBounds(locality, lat, lng)) {
           return {
             originalText: address,
             formattedAddress: result.formatted_address,
@@ -64,11 +64,11 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
             },
           };
         }
-        logger.warn("Result is outside target locality boundaries", { address, targetLocality, lat: lat.toFixed(6), lng: lng.toFixed(6) });
+        logger.warn("Result is outside locality boundaries", { address, locality, lat: lat.toFixed(6), lng: lng.toFixed(6) });
       }
 
-      // All results were outside the target locality's boundaries
-      logger.warn("No results found within target locality boundaries", { address, targetLocality });
+      // All results were outside the locality's boundaries
+      logger.warn("No results found within locality boundaries", { address, locality });
       return null;
     }
 

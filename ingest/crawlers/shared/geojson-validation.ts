@@ -6,16 +6,16 @@ import type {
   GeoJSONLineString,
   GeoJSONPolygon,
 } from "@/lib/types";
-import { getBoundsForTarget } from "@/lib/bounds";
-import { getTargetLocality } from "@/lib/target-locality";
+import { getBoundsForLocality } from "@oboapp/shared";
+import { getLocality } from "@/lib/target-locality";
 
 /**
  * Check if coordinates are within target locality bounds
  * Uses current target locality from environment
  */
 export function isWithinTargetBounds(lat: number, lng: number): boolean {
-  const targetLocality = getTargetLocality();
-  const bounds = getBoundsForTarget(targetLocality);
+  const locality = getLocality();
+  const bounds = getBoundsForLocality(locality);
   return (
     lat >= bounds.south &&
     lat <= bounds.north &&

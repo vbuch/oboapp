@@ -71,10 +71,10 @@ export interface MessageIngestOptions {
    */
   cityWide?: boolean;
   /**
-   * Target locality (e.g., 'bg.sofia')
+   * Locality identifier (e.g., 'bg.sofia')
    * Required for all messages
    */
-  target: string;
+  locality: string;
 }
 
 export interface MessageIngestResult {
@@ -97,7 +97,7 @@ export async function messageIngest(
   source: string,
   userId: string,
   userEmail: string | null,
-  options: MessageIngestOptions = { target: "bg.sofia" },
+  options: MessageIngestOptions,
 ): Promise<MessageIngestResult> {
   const hasPrecomputedGeoJson = Boolean(options.precomputedGeoJson);
   let sourceDocumentId: string | undefined;
@@ -145,7 +145,7 @@ async function processSingleMessage(
 
   // Early exit: No extracted locations and no precomputed GeoJSON
   if (!precomputedGeoJson && !extractedLocations) {
-    return await finalizeFailedMessage(messageId, text, options.target, ingestErrors);
+    return await finalizeFailedMessage(messageId, text, options.locality, ingestErrors);
   }
 
   let addresses: Address[] = [];
@@ -172,7 +172,7 @@ async function processSingleMessage(
 
     // Early exit: Geocoding failed
     if (!geocodingResult) {
-      return await buildFinalMessageResponse(messageId, text, options.target, addresses, null);
+      return await buildFinalMessageResponse(messageId, text, options.locality, addresses, null);
     }
 
     addresses = geocodingResult.addresses;
@@ -187,7 +187,7 @@ async function processSingleMessage(
 
   await finalizeMessageWithResults(messageId, geoJson, ingestErrors);
 
-  return await buildFinalMessageResponse(messageId, text, options.target, addresses, geoJson);
+  return await buildFinalMessageResponse(messageId, text, options.locality, addresses, geoJson);
 }
 
 /**
@@ -209,7 +209,7 @@ async function processPrecomputedGeoJsonMessage(
     options.sourceUrl,
     options.crawledAt,
     sourceDocumentId,
-    options.target,
+    options.locality,
   );
 
   // Store categories and isRelevant for precomputed GeoJSON sources (for Firestore indexes)
@@ -284,7 +284,7 @@ async function processWithAIPipeline(
       options.sourceUrl,
       options.crawledAt,
       sourceDocumentId,
-      options.target,
+      options.locality,
     );
 
     // Store filter & split result
@@ -306,7 +306,7 @@ async function processWithAIPipeline(
       const message = await handleIrrelevantMessage(
         storedMessageId,
         irrelevantMessageText,
-        options.target,
+        options.locality,
         ingestErrors,
       );
       messages.push(message);
@@ -327,7 +327,7 @@ async function processWithAIPipeline(
       const message = await finalizeFailedMessage(
         storedMessageId,
         messageText,
-        options.target,
+        options.locality,
         ingestErrors,
       );
       messages.push(message);
@@ -351,7 +351,7 @@ async function processWithAIPipeline(
       const message = await finalizeFailedMessage(
         storedMessageId,
         messageText,
-        options.target,
+        options.locality,
         ingestErrors,
       );
       messages.push(message);
@@ -370,7 +370,7 @@ async function processWithAIPipeline(
       const message = await buildFinalMessageResponse(
         storedMessageId,
         messageText,
-        options.target,
+        options.locality,
         [],
         null,
       );
@@ -394,7 +394,7 @@ async function processWithAIPipeline(
       const message = await buildFinalMessageResponse(
         storedMessageId,
         messageText,
-        options.target,
+        options.locality,
         [],
         null,
       );
@@ -585,7 +585,7 @@ async function storeExtractedLocations(
 async function handleIrrelevantMessage(
   messageId: string,
   text: string,
-  target: string,
+  locality: string,
   ingestErrors: IngestErrorCollector,
 ): Promise<InternalMessage> {
   logger.info("Message filtered as irrelevant, marking as finalized");
@@ -596,7 +596,7 @@ async function handleIrrelevantMessage(
   });
 
   const { buildMessageResponse } = await import("./build-response");
-  return await buildMessageResponse(messageId, text, target, [], null);
+  return await buildMessageResponse(messageId, text, locality, [], null);
 }
 
 /**
@@ -727,7 +727,7 @@ async function convertToGeoJson(
 async function finalizeFailedMessage(
   messageId: string,
   text: string,
-  target: string,
+  locality: string,
   ingestErrors: IngestErrorCollector,
 ): Promise<InternalMessage> {
   ingestErrors.error(
@@ -739,7 +739,7 @@ async function finalizeFailedMessage(
   });
 
   const { buildMessageResponse } = await import("./build-response");
-  return await buildMessageResponse(messageId, text, target, [], null);
+  return await buildMessageResponse(messageId, text, locality, [], null);
 }
 
 /**
@@ -831,10 +831,10 @@ async function finalizeMessageWithoutGeoJson(
 async function buildFinalMessageResponse(
   messageId: string,
   text: string,
-  target: string,
+  locality: string,
   addresses: Address[],
   geoJson: GeoJSONFeatureCollection | null,
 ): Promise<InternalMessage> {
   const { buildMessageResponse } = await import("./build-response");
-  return await buildMessageResponse(messageId, text, target, addresses, geoJson);
+  return await buildMessageResponse(messageId, text, locality, addresses, geoJson);
 }

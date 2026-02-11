@@ -5,7 +5,7 @@ import {
   detectSwappedCoordinates,
   fixSwappedCoordinates,
 } from "./geojson-validation";
-import { BOUNDS, isWithinBounds } from "@/lib/bounds";
+import { BOUNDS, isWithinBounds } from "@oboapp/shared";
 
 const SOFIA_BOUNDS = BOUNDS["bg.sofia"];
 

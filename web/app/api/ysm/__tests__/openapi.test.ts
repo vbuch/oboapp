@@ -16,7 +16,7 @@ describe("YSM OpenAPI", () => {
             name: "Source One",
             url: "https://example.com",
             logoUrl: "https://example.com/logo.png",
-            target: "bg.sofia",
+            locality: "bg.sofia",
           },
         ],
       }),
@@ -28,7 +28,7 @@ describe("YSM OpenAPI", () => {
           {
             id: "msg-1",
             text: "Test message",
-            target: "bg.sofia",
+            locality: "bg.sofia",
             markdownText: "Test",
             addresses: [
               {
@@ -72,8 +72,8 @@ describe("YSM OpenAPI", () => {
           messageId: "msg-1",
           messageSnapshot: {
             text: "Test message",
-            target: "bg.sofia",
-            createdAt: "2025-01-01T00:00:00.000Z",
+            locality: "bg.sofia",
+            createdAt:"2025-01-01T00:00:00.000Z",
           },
           notifiedAt: "2025-01-01T01:00:00.000Z",
           interestId: "interest-1",

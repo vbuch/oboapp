@@ -1,8 +1,8 @@
 #!/usr/bin/env npx tsx
 
 /**
- * Migration script to backfill target field for existing sources and messages
- * Run with: npx tsx migrate/2026-02-10-add-target-field.ts
+ * Migration script to backfill locality field for existing sources and messages
+ * Run with: npx tsx migrate/2026-02-10-add-locality-field.ts
  */
 
 import dotenv from "dotenv";
@@ -14,10 +14,10 @@ dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 async function main() {
   const { adminDb } = await import("../ingest/lib/firebase-admin");
 
-  console.log("Starting migration to add target field...");
+  console.log("Starting migration to add locality field...");
 
-  // Default target for all existing records
-  const DEFAULT_TARGET = "bg.sofia";
+  // Default locality for all existing records
+  const DEFAULT_LOCALITY = "bg.sofia";
 
   // Migrate sources collection
   console.log("\n1. Migrating sources collection...");
@@ -30,14 +30,14 @@ async function main() {
   for (const doc of sourcesSnapshot.docs) {
     const data = doc.data();
     
-    // Skip if target already exists
-    if (data.target) {
+    // Skip if locality already exists
+    if (data.locality) {
       sourcesSkipped++;
       continue;
     }
 
-    // Update with default target
-    await doc.ref.update({ target: DEFAULT_TARGET });
+    // Update with default locality
+    await doc.ref.update({ locality: DEFAULT_LOCALITY });
     sourcesUpdated++;
 
     if (sourcesUpdated % 100 === 0) {
@@ -58,14 +58,14 @@ async function main() {
   for (const doc of messagesSnapshot.docs) {
     const data = doc.data();
     
-    // Skip if target already exists
-    if (data.target) {
+    // Skip if locality already exists
+    if (data.locality) {
       messagesSkipped++;
       continue;
     }
 
-    // Update with default target
-    await doc.ref.update({ target: DEFAULT_TARGET });
+    // Update with default locality
+    await doc.ref.update({ locality: DEFAULT_LOCALITY });
     messagesUpdated++;
 
     if (messagesUpdated % 100 === 0) {

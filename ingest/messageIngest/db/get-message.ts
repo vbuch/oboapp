@@ -25,7 +25,7 @@ export async function getMessageById(
   return {
     id: messageSnapshot.id,
     text: data.text,
-    target: data.target,
+    locality: data.locality,
     addresses: data.addresses ? JSON.parse(data.addresses) : [],
     geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
     crawledAt: data.crawledAt?.toDate?.() || data.crawledAt,

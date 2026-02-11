@@ -1,16 +1,4 @@
 /**
- * Geographic bounds for localities
- * Re-exported from @oboapp/shared for convenience
+ * @deprecated This file is intentionally empty. Import from @oboapp/shared directly.
+ * Keeping file to avoid breaking any untracked references.
  */
-
-export {
-  BOUNDS,
-  CENTERS,
-  getBoundsForTarget,
-  getCenterForTarget,
-  getBboxForTarget,
-  isWithinBounds,
-  validateTarget,
-  type BoundsDefinition,
-  type CenterDefinition,
-} from "@oboapp/shared";

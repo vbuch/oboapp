@@ -1,11 +1,11 @@
 /**
- * Get the target locality identifier from environment variable
- * @throws Error if TARGET_LOCALITY is not set
+ * Get the locality identifier from environment variable
+ * @throws Error if LOCALITY is not set
  */
-export function getTargetLocality(): string {
-  const target = process.env.TARGET_LOCALITY;
-  if (!target) {
-    throw new Error("TARGET_LOCALITY environment variable is required but not set");
+export function getLocality(): string {
+  const locality = process.env.LOCALITY;
+  if (!locality) {
+    throw new Error("LOCALITY environment variable is required but not set");
   }
-  return target;
+  return locality;
 }

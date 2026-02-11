@@ -4,36 +4,35 @@ import * as turf from "@turf/turf";
 import type { Message, Interest, GeoJSONFeatureCollection } from "@/lib/types";
 import { logger } from "@/lib/logger";
 
-// Cache GeoJSON files by target
+// Cache GeoJSON files by locality
 const geoJsonCache = new Map<string, GeoJSONFeatureCollection>();
 
 /**
- * Load target GeoJSON file (cached)
- * Files should be named {target}.geojson (e.g., bg.sofia.geojson)
+ * Load locality GeoJSON file (cached)
+ * Files should be named {locality}.geojson under localities/ (e.g., localities/bg.sofia.geojson)
  */
-function loadTargetGeoJson(target: string): GeoJSONFeatureCollection {
-  if (!geoJsonCache.has(target)) {
-    const path = resolve(process.cwd(), `${target}.geojson`);
+function loadLocalityGeoJson(locality: string): GeoJSONFeatureCollection {
+  if (!geoJsonCache.has(locality)) {
+    const path = resolve(process.cwd(), "localities", `${locality}.geojson`);
     const content = readFileSync(path, "utf-8");
     const geojson = JSON.parse(content) as GeoJSONFeatureCollection;
-    geoJsonCache.set(target, geojson);
+    geoJsonCache.set(locality, geojson);
   }
-  return geoJsonCache.get(target)!;
+  return geoJsonCache.get(locality)!;
 }
 
 /**
  * Check if a message's GeoJSON features intersect with a user's interest circle
- * For city-wide messages (cityWide flag), uses the target's geojson for geometric matching
+ * For city-wide messages (cityWide flag), uses the locality's geojson for geometric matching
  */
 export function matchMessageToInterest(
   message: Message,
   interest: Interest,
 ): { matches: boolean; distance: number | null } {
-  // City-wide messages use target boundary for matching
+  // City-wide messages use locality boundary for matching
   let geoJson = message.geoJson;
   if (message.cityWide) {
-    const target = message.target || "bg.sofia"; // Default to Sofia for backward compatibility
-    geoJson = loadTargetGeoJson(target);
+    geoJson = loadLocalityGeoJson(message.locality);
   }
 
   if (!geoJson?.features || geoJson.features.length === 0) {

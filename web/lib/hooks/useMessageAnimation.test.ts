@@ -34,7 +34,7 @@ describe("useMessageAnimation", () => {
     id,
     text: "Test message",
     createdAt: new Date().toISOString(),
-    target: "bg.sofia",
+    locality: "bg.sofia",
     finalizedAt: new Date().toISOString(),
     addresses: [],
   });

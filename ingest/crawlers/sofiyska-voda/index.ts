@@ -124,7 +124,7 @@ async function saveSourceDocument(
   adminDb: Firestore,
 ): Promise<void> {
   await saveSourceDocumentShared(
-    { ...doc, target: TARGET },
+    { ...doc, locality: TARGET },
     adminDb,
     {
       transformData: (d) => ({

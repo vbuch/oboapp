@@ -110,7 +110,7 @@ export async function crawl(dryRun = false): Promise<void> {
         message,
         markdownText: message, // Store for display in details view
         sourceType: SOURCE_TYPE,
-        target: TARGET,
+        locality: TARGET,
         crawledAt: new Date(),
         geoJson,
         categories: ["heating"],
