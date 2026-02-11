@@ -205,11 +205,11 @@ async function processPrecomputedGeoJsonMessage(
     text,
     userId,
     userEmail,
+    options.locality,
     source,
     options.sourceUrl,
     options.crawledAt,
     sourceDocumentId,
-    options.locality,
   );
 
   // Store categories and isRelevant for precomputed GeoJSON sources (for Firestore indexes)
@@ -280,11 +280,11 @@ async function processWithAIPipeline(
       messageText,
       userId,
       userEmail,
+      options.locality,
       source,
       options.sourceUrl,
       options.crawledAt,
       sourceDocumentId,
-      options.locality,
     );
 
     // Store filter & split result
