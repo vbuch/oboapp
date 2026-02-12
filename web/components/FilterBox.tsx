@@ -3,6 +3,8 @@
 import { useEffect, useRef, useMemo } from "react";
 import FilterIcon from "@/components/icons/FilterIcon";
 import CategoryFilterItem from "@/components/CategoryFilterItem";
+import SourceFilterItem from "@/components/SourceFilterItem";
+import Accordion from "@/components/Accordion";
 import Checkbox from "@/components/Checkbox";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { useDragPanel } from "@/lib/hooks/useDragPanel";
@@ -39,11 +41,21 @@ interface CategoryCount {
   count: number;
 }
 
-interface CategoryFilterBoxProps {
+interface SourceCount {
+  sourceId: string;
+  name: string;
+  count: number;
+}
+
+interface FilterBoxProps {
   readonly isOpen: boolean;
   readonly selectedCategories: Set<Category | typeof UNCATEGORIZED>;
+  readonly selectedSources: Set<string>;
   readonly categoryCounts: CategoryCount[];
+  readonly sourceCounts: SourceCount[];
   readonly hasActiveFilters: boolean;
+  readonly hasActiveCategoryFilters: boolean;
+  readonly hasActiveSourceFilters: boolean;
   readonly isInitialLoad: boolean;
   readonly isLoadingCounts: boolean;
   readonly showArchived: boolean;
@@ -51,27 +63,33 @@ interface CategoryFilterBoxProps {
   readonly onToggleCategory: (
     category: Category | typeof UNCATEGORIZED,
   ) => void;
+  readonly onToggleSource: (sourceId: string) => void;
   readonly onToggleShowArchived: () => void;
-  readonly onClearAllCategories: () => void;
+  readonly onClearAllFilters: () => void;
 }
 
 /**
- * Category filter box - slides in/out from left side
- * Shows category checkboxes with counts
+ * Filter box - slides in/out from left side
+ * Shows category and source filters with accordions
  */
-export default function CategoryFilterBox({
+export default function FilterBox({
   isOpen,
   selectedCategories,
+  selectedSources,
   categoryCounts,
+  sourceCounts,
   hasActiveFilters,
+  hasActiveCategoryFilters,
+  hasActiveSourceFilters,
   isInitialLoad,
   isLoadingCounts,
   showArchived,
   onTogglePanel,
   onToggleCategory,
+  onToggleSource,
   onToggleShowArchived,
-  onClearAllCategories,
-}: CategoryFilterBoxProps) {
+  onClearAllFilters,
+}: FilterBoxProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Horizontal drag to open/close functionality
@@ -131,51 +149,80 @@ export default function CategoryFilterBox({
           ref={panelRef}
           className="relative z-20 w-[320px] max-h-[calc(100vh-80px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[450] my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
         >
-          {/* Category List with Archived Toggle - Only show when loaded */}
+          {/* Filter Lists - Only show when loaded */}
           {isInitialLoad ? (
             <div className="overflow-y-auto flex-1">
               <CategoryFilterSkeleton />
             </div>
           ) : (
             <div className="overflow-y-auto flex-1">
-              <div className="px-4 py-4 space-y-1">
-                {categoryCounts.map(({ category, count }) => (
-                  <CategoryFilterItem
-                    key={category}
-                    category={category}
-                    label={
-                      category === UNCATEGORIZED
-                        ? UNCATEGORIZED_LABEL
-                        : CATEGORY_LABELS[category]
-                    }
-                    checked={selectedCategories.has(category)}
-                    onChange={() => onToggleCategory(category)}
-                    count={count}
-                    isLoadingCount={isLoadingCounts}
-                  />
-                ))}
-
-                <div className="border-t border-neutral-border pt-3 mt-1">
-                  <Checkbox
-                    label="Покажи минали"
-                    checked={showArchived}
-                    onChange={onToggleShowArchived}
-                  />
+              {/* Categories Accordion - Open by default */}
+              <Accordion
+                title="Категории"
+                defaultOpen={true}
+                hasActiveFilters={hasActiveCategoryFilters}
+              >
+                <div className="px-4 space-y-1">
+                  {categoryCounts.map(({ category, count }) => (
+                    <CategoryFilterItem
+                      key={category}
+                      category={category}
+                      label={
+                        category === UNCATEGORIZED
+                          ? UNCATEGORIZED_LABEL
+                          : CATEGORY_LABELS[category]
+                      }
+                      checked={selectedCategories.has(category)}
+                      onChange={() => onToggleCategory(category)}
+                      count={count}
+                      isLoadingCount={isLoadingCounts}
+                    />
+                  ))}
                 </div>
+              </Accordion>
 
-                {/* Clear All Button - Desktop only (mobile has it in footer) */}
-                {hasActiveFilters && (
-                  <div className="hidden sm:block border-t border-neutral-border pt-3 mt-1">
-                    <button
-                      type="button"
-                      onClick={onClearAllCategories}
-                      className={`w-full ${buttonSizes.md} ${buttonStyles.ghost} ${borderRadius.md}`}
-                    >
-                      Изчисти всички
-                    </button>
-                  </div>
-                )}
+              {/* Sources Accordion - Closed by default */}
+              <Accordion
+                title="Източници"
+                defaultOpen={false}
+                hasActiveFilters={hasActiveSourceFilters}
+              >
+                <div className="px-4 space-y-1">
+                  {sourceCounts.map(({ sourceId, name, count }) => (
+                    <SourceFilterItem
+                      key={sourceId}
+                      sourceId={sourceId}
+                      label={name}
+                      checked={selectedSources.has(sourceId)}
+                      onChange={() => onToggleSource(sourceId)}
+                      count={count}
+                      isLoadingCount={isLoadingCounts}
+                    />
+                  ))}
+                </div>
+              </Accordion>
+
+              {/* Show Archived Checkbox */}
+              <div className="border-t border-neutral-border px-4 py-3">
+                <Checkbox
+                  label="Покажи минали"
+                  checked={showArchived}
+                  onChange={onToggleShowArchived}
+                />
               </div>
+
+              {/* Clear All Button - Desktop only (mobile has it in footer) */}
+              {hasActiveFilters && (
+                <div className="hidden sm:block border-t border-neutral-border px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={onClearAllFilters}
+                    className={`w-full ${buttonSizes.md} ${buttonStyles.ghost} ${borderRadius.md}`}
+                  >
+                    Изчисти всички
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -183,7 +230,7 @@ export default function CategoryFilterBox({
           <div className="border-t border-neutral-border px-4 py-4 flex gap-2 sm:hidden">
             <button
               type="button"
-              onClick={onClearAllCategories}
+              onClick={onClearAllFilters}
               className={`flex-1 ${buttonSizes.md} ${buttonStyles.ghost} ${borderRadius.md} ${hasActiveFilters ? "" : "invisible"}`}
             >
               Изчисти всички

@@ -32,8 +32,15 @@ export async function GET(request: Request) {
       );
     }
 
-    const { north, south, east, west, zoom, categories: selectedCategories } =
-      parsed.data;
+    const {
+      north,
+      south,
+      east,
+      west,
+      zoom,
+      categories: selectedCategories,
+      sources: selectedSources,
+    } = parsed.data;
 
     let viewportBounds: ViewportBounds | null = null;
     if (
@@ -61,6 +68,11 @@ export async function GET(request: Request) {
 
     // If categories param was provided but resulted in empty array, return empty result
     if (selectedCategories && selectedCategories.length === 0) {
+      return NextResponse.json({ messages: [] });
+    }
+
+    // If sources param was provided but resulted in empty array, return empty result
+    if (selectedSources && selectedSources.length === 0) {
       return NextResponse.json({ messages: [] });
     }
 
@@ -179,6 +191,14 @@ export async function GET(request: Request) {
     let messages = allMessages.filter((message) => {
       return message.geoJson !== null && message.geoJson !== undefined;
     });
+
+    // Apply source filtering if specified
+    if (selectedSources && selectedSources.length > 0) {
+      const sourceSet = new Set(selectedSources);
+      messages = messages.filter((message) => {
+        return message.source && sourceSet.has(message.source);
+      });
+    }
 
     // Filter by viewport bounds if provided (skip cityWide messages - they're always visible)
     if (viewportBounds) {
