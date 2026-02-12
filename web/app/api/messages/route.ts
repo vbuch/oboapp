@@ -72,6 +72,8 @@ export async function GET(request: Request) {
     }
 
     // Validate and deduplicate sources
+    // Note: Unlike categories, empty sources param (?sources=) is treated as "no filter"
+    // to maintain backwards compatibility and allow flexible querying
     let validatedSources: string[] | undefined;
     if (selectedSources && selectedSources.length > 0) {
       const { getCurrentLocalitySources } = await import("@/lib/source-utils");

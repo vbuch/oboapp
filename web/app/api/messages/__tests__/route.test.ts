@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GET } from "../route";
 
 // Mock the firebase-admin module
@@ -42,8 +42,9 @@ const formatDate = (date: Date) => {
 const setupFirebaseMock = async (mockMessages: any[]) => {
   const { adminDb } = await import("@/lib/firebase-admin");
 
-  const createMockQuery = () => {
-    const whereConditions: Array<{ field: string; operator: string; value: any }> = [];
+  const createMockQuery = (initialConditions: Array<{ field: string; operator: string; value: any }> = []) => {
+    // Each query has its own immutable conditions array
+    const whereConditions = [...initialConditions];
 
     const applyFilters = (messages: any[]) => {
       return messages.filter((doc) => {
@@ -80,25 +81,19 @@ const setupFirebaseMock = async (mockMessages: any[]) => {
       get: vi.fn().mockResolvedValue(mockSnapshot),
     };
 
-    const mockOrderBy2: any = {
-      orderBy: vi.fn().mockReturnValue(mockGet),
-      get: vi.fn().mockResolvedValue(mockSnapshot),
-    };
-
-    const mockOrderBy1: any = {
-      orderBy: vi.fn().mockReturnValue(mockOrderBy2),
-      where: vi.fn((field: string, operator: string, value: any) => {
-        whereConditions.push({ field, operator, value });
-        return mockOrderBy1;
-      }),
-    };
-
     const mockQuery: any = {
       where: vi.fn((field: string, operator: string, value: any) => {
-        whereConditions.push({ field, operator, value });
-        return mockOrderBy1;
+        // Create a new query with the new condition added (immutable)
+        return createMockQuery([...whereConditions, { field, operator, value }]);
       }),
-      orderBy: vi.fn().mockReturnValue(mockOrderBy2),
+      orderBy: vi.fn((/* field: string, direction?: string */) => {
+        // Return a chainable object that supports both orderBy and get
+        return {
+          orderBy: vi.fn().mockReturnValue(mockGet),
+          get: vi.fn().mockResolvedValue(mockSnapshot),
+        };
+      }),
+      get: vi.fn().mockResolvedValue(mockSnapshot),
     };
 
     return mockQuery;
@@ -410,6 +405,12 @@ describe("GET /api/messages - Date Filtering", () => {
 describe("GET /api/messages - Source Filtering", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set locality for source validation
+    process.env.NEXT_PUBLIC_LOCALITY = "bg.sofia";
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_LOCALITY;
   });
 
   it("should filter messages by single source", async () => {
@@ -501,7 +502,7 @@ describe("GET /api/messages - Source Filtering", () => {
     expect(sources).not.toContain("erm-zapad");
   });
 
-  it("should return empty array when source filter is empty", async () => {
+  it("should return all messages when source filter is empty (no filter)", async () => {
     const now = new Date();
 
     const mockMessages = [
@@ -523,7 +524,8 @@ describe("GET /api/messages - Source Filtering", () => {
     const response = await GET(mockRequest);
     const data = await response.json();
 
-    expect(data.messages).toHaveLength(0);
+    // Empty sources parameter should not filter - returns all messages
+    expect(data.messages).toHaveLength(1);
   });
 
   it("should filter messages without source field when filtering by source", async () => {
