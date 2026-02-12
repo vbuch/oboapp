@@ -111,7 +111,7 @@ oxlint is still under active development and does not support all ESLint rules. 
 - Developers must manually ensure proper hook dependencies when writing React components
 - Always specify `type="button"` on buttons that should not submit forms
 - TypeScript strict mode and code reviews help catch related issues
-- Future: Consider running ESLint in CI for React-specific rules if these become common issues
+- Future: If these missing rules become common issues, consider running ESLint alongside oxlint in CI specifically for React-specific rules, or wait for oxlint to add support
 
 ### Tailwind Theme System
 
