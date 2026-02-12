@@ -397,3 +397,160 @@ describe("GET /api/messages - Date Filtering", () => {
     expect(data.messages).toHaveLength(1);
   });
 });
+
+describe("GET /api/messages - Source Filtering", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should filter messages by single source", async () => {
+    const now = new Date();
+
+    const mockMessages = [
+      {
+        id: "msg1",
+        data: () => ({
+          text: "Message from sofia-bg",
+          source: "sofia-bg",
+          geoJson: JSON.stringify(createMockGeoJson()),
+          createdAt: { _seconds: now.getTime() / 1000 },
+          timespanEnd: { _seconds: now.getTime() / 1000 },
+        }),
+      },
+      {
+        id: "msg2",
+        data: () => ({
+          text: "Message from toplo-bg",
+          source: "toplo-bg",
+          geoJson: JSON.stringify(createMockGeoJson()),
+          createdAt: { _seconds: now.getTime() / 1000 },
+          timespanEnd: { _seconds: now.getTime() / 1000 },
+        }),
+      },
+    ];
+
+    await setupFirebaseMock(mockMessages);
+
+    const mockRequest = new Request(
+      "http://localhost/api/messages?sources=sofia-bg",
+    );
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(data.messages).toHaveLength(1);
+    expect(data.messages[0].source).toBe("sofia-bg");
+  });
+
+  it("should filter messages by multiple sources", async () => {
+    const now = new Date();
+
+    const mockMessages = [
+      {
+        id: "msg1",
+        data: () => ({
+          text: "Message from sofia-bg",
+          source: "sofia-bg",
+          geoJson: JSON.stringify(createMockGeoJson()),
+          createdAt: { _seconds: now.getTime() / 1000 },
+          timespanEnd: { _seconds: now.getTime() / 1000 },
+        }),
+      },
+      {
+        id: "msg2",
+        data: () => ({
+          text: "Message from toplo-bg",
+          source: "toplo-bg",
+          geoJson: JSON.stringify(createMockGeoJson()),
+          createdAt: { _seconds: now.getTime() / 1000 },
+          timespanEnd: { _seconds: now.getTime() / 1000 },
+        }),
+      },
+      {
+        id: "msg3",
+        data: () => ({
+          text: "Message from erm-zapad",
+          source: "erm-zapad",
+          geoJson: JSON.stringify(createMockGeoJson()),
+          createdAt: { _seconds: now.getTime() / 1000 },
+          timespanEnd: { _seconds: now.getTime() / 1000 },
+        }),
+      },
+    ];
+
+    await setupFirebaseMock(mockMessages);
+
+    const mockRequest = new Request(
+      "http://localhost/api/messages?sources=sofia-bg,toplo-bg",
+    );
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(data.messages).toHaveLength(2);
+    const sources = data.messages.map((m: any) => m.source);
+    expect(sources).toContain("sofia-bg");
+    expect(sources).toContain("toplo-bg");
+    expect(sources).not.toContain("erm-zapad");
+  });
+
+  it("should return empty array when source filter is empty", async () => {
+    const now = new Date();
+
+    const mockMessages = [
+      {
+        id: "msg1",
+        data: () => ({
+          text: "Message from sofia-bg",
+          source: "sofia-bg",
+          geoJson: JSON.stringify(createMockGeoJson()),
+          createdAt: { _seconds: now.getTime() / 1000 },
+          timespanEnd: { _seconds: now.getTime() / 1000 },
+        }),
+      },
+    ];
+
+    await setupFirebaseMock(mockMessages);
+
+    const mockRequest = new Request("http://localhost/api/messages?sources=");
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(data.messages).toHaveLength(0);
+  });
+
+  it("should filter messages without source field when filtering by source", async () => {
+    const now = new Date();
+
+    const mockMessages = [
+      {
+        id: "msg1",
+        data: () => ({
+          text: "Message from sofia-bg",
+          source: "sofia-bg",
+          geoJson: JSON.stringify(createMockGeoJson()),
+          createdAt: { _seconds: now.getTime() / 1000 },
+          timespanEnd: { _seconds: now.getTime() / 1000 },
+        }),
+      },
+      {
+        id: "msg2",
+        data: () => ({
+          text: "Message without source",
+          geoJson: JSON.stringify(createMockGeoJson()),
+          createdAt: { _seconds: now.getTime() / 1000 },
+          timespanEnd: { _seconds: now.getTime() / 1000 },
+        }),
+      },
+    ];
+
+    await setupFirebaseMock(mockMessages);
+
+    const mockRequest = new Request(
+      "http://localhost/api/messages?sources=sofia-bg",
+    );
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(data.messages).toHaveLength(1);
+    expect(data.messages[0].id).toBe("msg1");
+  });
+});
