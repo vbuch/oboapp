@@ -23,6 +23,7 @@ export default function Accordion({
 }: AccordionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const contentId = useId();
+  const titleId = useId();
 
   return (
     <div className="border-b border-neutral-border last:border-b-0">
@@ -34,7 +35,9 @@ export default function Accordion({
         aria-controls={contentId}
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-neutral-dark">{title}</span>
+          <span id={titleId} className="text-sm font-medium text-neutral-dark">
+            {title}
+          </span>
           {/* Red dot indicator when accordion is closed and has active filters */}
           {!isOpen && hasActiveFilters && (
             <span className="w-2 h-2 bg-error rounded-full" />
@@ -47,7 +50,12 @@ export default function Accordion({
         />
       </button>
       {isOpen && (
-        <div id={contentId} className="pb-2">
+        <div
+          id={contentId}
+          role="region"
+          aria-labelledby={titleId}
+          className="pb-2"
+        >
           {children}
         </div>
       )}
