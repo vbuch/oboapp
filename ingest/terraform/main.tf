@@ -254,6 +254,12 @@ locals {
       timeout      = "1800s"
       description  = "Crawl Lozenets district"
     }
+    raioniskar = {
+      source       = "raioniskar-bg"
+      memory       = "1Gi"
+      timeout      = "1800s"
+      description  = "Crawl Raion Iskar website"
+    }
     nimh-severe-weather = {
       source       = "nimh-severe-weather"
       memory       = "512Mi"
