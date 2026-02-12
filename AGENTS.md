@@ -99,6 +99,20 @@ If you identify a recurring pattern or developer preference:
 - **Exception:** Only disable rules in generated code or vendor files you cannot modify
 - Test files, mocks, and utility scripts allow `any` types for flexibility
 
+**Known Limitations:**
+
+oxlint is still under active development and does not support all ESLint rules. The following rules from our previous ESLint configuration are **not available** in oxlint:
+
+- `react-hooks/exhaustive-deps` - Ensures all dependencies are listed in React hooks (useEffect, useCallback, etc.)
+- `react/button-has-type` - Enforces explicit type attributes on button elements
+
+**Mitigation Strategy:**
+
+- Developers must manually ensure proper hook dependencies when writing React components
+- Always specify `type="button"` on buttons that should not submit forms
+- TypeScript strict mode and code reviews help catch related issues
+- Future: Consider running ESLint in CI for React-specific rules if these become common issues
+
 ### Tailwind Theme System
 
 **Always use theme colors from `lib/colors.ts` - never hardcode colors.**

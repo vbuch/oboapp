@@ -18,7 +18,8 @@
     "no-var": "error",
     "prefer-const": "error",
     "no-else-return": ["error", { "allowElseIf": false }],
-    "typescript/no-explicit-any": "error"
+    "typescript/no-explicit-any": "error",
+    "typescript/no-empty-object-type": "off"
   },
   "overrides": [
     {
