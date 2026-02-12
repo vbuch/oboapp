@@ -23,6 +23,32 @@ if (!APP_URL_ENV && process.env.NODE_ENV === "production") {
 }
 
 const APP_URL = APP_URL_ENV || "http://localhost:3000";
+
+/**
+ * Strip markdown formatting from text
+ * Removes common markdown patterns like **bold**, *italic*, # headers, [links](url), etc.
+ */
+function stripMarkdown(text: string): string {
+  return (
+    text
+      // Remove bold (**text** or __text__)
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/__(.+?)__/g, "$1")
+      // Remove italic (*text* or _text_)
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/_(.+?)_/g, "$1")
+      // Remove headers (# Header)
+      .replace(/^#{1,6}\s+/gm, "")
+      // Remove links [text](url)
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      // Remove inline code (`code`)
+      .replace(/`(.+?)`/g, "$1")
+      // Normalize whitespace
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+}
+
 /**
  * Build notification payload for FCM
  */
@@ -30,10 +56,15 @@ export function buildNotificationPayload(
   message: Message,
   match: NotificationMatch,
 ) {
+  // Use plainText if available (no markdown), otherwise strip markdown from text
+  const textForNotification = message.plainText
+    ? message.plainText
+    : stripMarkdown(message.text);
+
   const messagePreview =
-    message.text.length > 100
-      ? message.text.substring(0, 100) + "..."
-      : message.text;
+    textForNotification.length > 100
+      ? textForNotification.substring(0, 100) + "..."
+      : textForNotification;
 
   const distanceText = match.distance
     ? ` (${Math.round(match.distance)}m от вашия район)`
