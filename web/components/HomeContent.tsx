@@ -237,7 +237,10 @@ export default function HomeContent() {
           hasActiveFilters={
             categoryFilter.hasActiveFilters || sourceFilter.hasActiveFilters
           }
-          hasActiveCategoryFilters={categoryFilter.hasActiveFilters}
+          hasActiveCategoryFilters={
+            categoryFilter.selectedCategories &&
+            categoryFilter.selectedCategories.size > 0
+          }
           hasActiveSourceFilters={sourceFilter.hasActiveFilters}
           isInitialLoad={categoryFilter.isInitialLoad}
           isLoadingCounts={
