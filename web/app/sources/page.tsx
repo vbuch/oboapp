@@ -7,7 +7,7 @@ import GeocodingSourceCard from "@/components/GeocodingSourceCard";
 
 export const metadata: Metadata = {
   title: "Източници - OboApp",
-  description: "източници на данни за събития и уведомления в район Оборище",
+  description: "Източници на данни за събития и уведомления",
 };
 
 export default function SourcesPage() {
