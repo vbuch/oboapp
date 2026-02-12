@@ -71,9 +71,23 @@ export async function GET(request: Request) {
       return NextResponse.json({ messages: [] });
     }
 
-    // If sources param was provided but resulted in empty array, return empty result
-    if (selectedSources && selectedSources.length === 0) {
-      return NextResponse.json({ messages: [] });
+    // Validate and deduplicate sources
+    let validatedSources: string[] | undefined;
+    if (selectedSources && selectedSources.length > 0) {
+      const { getCurrentLocalitySources } = await import("@/lib/source-utils");
+      const localitySources = getCurrentLocalitySources();
+      const validSourceIds = new Set(localitySources.map((s) => s.id));
+      
+      // Deduplicate and filter to only valid sources for this locality
+      const uniqueSources = Array.from(new Set(selectedSources));
+      validatedSources = uniqueSources.filter((sourceId) =>
+        validSourceIds.has(sourceId),
+      );
+
+      // If no valid sources remain after validation, return empty result
+      if (validatedSources.length === 0) {
+        return NextResponse.json({ messages: [] });
+      }
     }
 
     // Use Admin SDK for reading messages
@@ -82,7 +96,7 @@ export async function GET(request: Request) {
     let allMessages: Message[] = [];
 
     // Determine if we need source filtering
-    const hasSourceFilter = selectedSources && selectedSources.length > 0;
+    const hasSourceFilter = validatedSources && validatedSources.length > 0;
     const hasCategoryFilter = selectedCategories && selectedCategories.length > 0;
 
     // Apply filtering based on what's selected
@@ -103,7 +117,7 @@ export async function GET(request: Request) {
           .get();
 
         const uncategorizedMessages: Message[] = [];
-        const sourceSet = new Set(selectedSources);
+        const sourceSet = new Set(validatedSources);
 
         snapshot.forEach((doc) => {
           const data = doc.data();
@@ -145,7 +159,7 @@ export async function GET(request: Request) {
 
         const snapshots = await Promise.all(queryPromises);
         const messagesMap = new Map<string, Message>();
-        const sourceSet = new Set(selectedSources);
+        const sourceSet = new Set(validatedSources);
 
         for (let i = 0; i < snapshots.length; i++) {
           const snapshot = snapshots[i];
@@ -172,7 +186,17 @@ export async function GET(request: Request) {
           });
         }
 
-        allMessages = Array.from(messagesMap.values());
+        allMessages = Array.from(messagesMap.values()).sort((a, b) => {
+          // Primary sort: timespanEnd descending (ISO string comparison)
+          const aEnd = a.timespanEnd ?? "";
+          const bEnd = b.timespanEnd ?? "";
+          if (aEnd !== bEnd) return bEnd.localeCompare(aEnd);
+
+          // Secondary sort: createdAt descending (ISO string comparison)
+          const aCreated = a.createdAt ?? "";
+          const bCreated = b.createdAt ?? "";
+          return bCreated.localeCompare(aCreated);
+        });
       }
     } else if (hasCategoryFilter) {
       // Only category filter - existing logic
@@ -251,14 +275,25 @@ export async function GET(request: Request) {
           });
         }
 
-        allMessages = Array.from(messagesMap.values());
+        allMessages = Array.from(messagesMap.values()).sort((a, b) => {
+          // Primary sort: timespanEnd descending (ISO string comparison)
+          const aEnd = a.timespanEnd ?? "";
+          const bEnd = b.timespanEnd ?? "";
+          if (aEnd !== bEnd) return bEnd.localeCompare(aEnd);
+
+          // Secondary sort: createdAt descending (ISO string comparison)
+          const aCreated = a.createdAt ?? "";
+          const bCreated = b.createdAt ?? "";
+          return bCreated.localeCompare(aCreated);
+        });
       }
     } else if (hasSourceFilter) {
       // Only source filter - use database-level filtering with index
       const queryPromises: Promise<FirebaseFirestore.QuerySnapshot>[] = [];
 
-      // Query each source separately using the source + timespanEnd index
-      for (const source of selectedSources) {
+      // Query each validated source separately using the source + timespanEnd index
+      // validatedSources is guaranteed to be defined and non-empty here due to hasSourceFilter check
+      for (const source of validatedSources!) {
         const sourceQuery = messagesRef
           .where("source", "==", source)
           .where("timespanEnd", ">=", cutoffDate)
@@ -280,7 +315,18 @@ export async function GET(request: Request) {
         });
       }
 
-      allMessages = Array.from(messagesMap.values());
+      // Sort merged results by timespanEnd desc, then createdAt desc
+      allMessages = Array.from(messagesMap.values()).sort((a, b) => {
+        // Primary sort: timespanEnd descending (ISO string comparison)
+        const aEnd = a.timespanEnd ?? "";
+        const bEnd = b.timespanEnd ?? "";
+        if (aEnd !== bEnd) return bEnd.localeCompare(aEnd);
+
+        // Secondary sort: createdAt descending (ISO string comparison)
+        const aCreated = a.createdAt ?? "";
+        const bCreated = b.createdAt ?? "";
+        return bCreated.localeCompare(aCreated);
+      });
     } else {
       // No filters - fetch all messages with timespan filter (server-side)
       const snapshot = await messagesRef

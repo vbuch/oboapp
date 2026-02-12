@@ -3,7 +3,6 @@
 import { Check } from "lucide-react";
 
 interface SourceFilterItemProps {
-  readonly sourceId: string;
   readonly label: string;
   readonly checked: boolean;
   readonly onChange: () => void;
@@ -16,7 +15,6 @@ interface SourceFilterItemProps {
  * Matches the style of CategoryFilterItem but without icon and colored border
  */
 export default function SourceFilterItem({
-  sourceId,
   label,
   checked,
   onChange,

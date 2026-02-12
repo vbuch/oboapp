@@ -191,7 +191,6 @@ export default function FilterBox({
                   {sourceCounts.map(({ sourceId, name, count }) => (
                     <SourceFilterItem
                       key={sourceId}
-                      sourceId={sourceId}
                       label={name}
                       checked={selectedSources.has(sourceId)}
                       onChange={() => onToggleSource(sourceId)}
