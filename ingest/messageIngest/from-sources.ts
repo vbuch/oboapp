@@ -10,6 +10,12 @@ import { logger } from "@/lib/logger";
 // Load environment variables
 dotenv.config({ path: resolve(process.cwd(), ".env.local"), debug: false });
 
+/**
+ * Maximum number of retry attempts for a failed message
+ * After this many attempts, the message will be skipped during ingestion
+ */
+const MAX_RETRY_ATTEMPTS = 3;
+
 interface SourceDocument {
   url: string;
   datePublished: string;
@@ -41,6 +47,7 @@ interface IngestSummary {
   outsideBounds: number;
   ingested: number;
   alreadyIngested: number;
+  maxRetriesReached: number;
   filtered: number;
   failed: number;
   errors: Array<{ url: string; error: string }>;
@@ -122,9 +129,12 @@ async function fetchSources(
 async function getAlreadyIngestedSet(
   adminDb: Firestore,
   sources: SourceDocument[],
-): Promise<Set<string>> {
+): Promise<{
+  alreadyIngestedIds: Set<string>;
+  maxRetriesReachedIds: Set<string>;
+}> {
   if (sources.length === 0) {
-    return new Set();
+    return { alreadyIngestedIds: new Set(), maxRetriesReachedIds: new Set() };
   }
 
   const { encodeDocumentId } = await import("../crawlers/shared/firestore");
@@ -133,25 +143,79 @@ async function getAlreadyIngestedSet(
   // Firestore 'in' queries support up to 30 values, so we need to batch
   const BATCH_SIZE = 30;
   const alreadyIngestedIds = new Set<string>();
+  const maxRetriesReachedIds = new Set<string>();
 
   for (let i = 0; i < sourceDocumentIds.length; i += BATCH_SIZE) {
     const batch = sourceDocumentIds.slice(i, i + BATCH_SIZE);
     const messagesSnapshot = await adminDb
       .collection("messages")
       .where("sourceDocumentId", "in", batch)
-      .select("sourceDocumentId") // Only fetch the field we need
+      .select("sourceDocumentId", "retryCount", "finalizedAt") // Fetch fields we need
       .get();
 
     for (const doc of messagesSnapshot.docs) {
-      const sourceDocId = doc.data().sourceDocumentId;
-      if (sourceDocId) {
+      const data = doc.data();
+      const sourceDocId = data.sourceDocumentId;
+      if (!sourceDocId) {
+        continue;
+      }
+
+      const retryCount = data.retryCount || 0;
+      const finalizedAt = data.finalizedAt;
+
+      // If message is finalized successfully, mark as already ingested
+      if (finalizedAt) {
         alreadyIngestedIds.add(sourceDocId);
+      }
+
+      // If message has exceeded max retries, skip it
+      if (retryCount >= MAX_RETRY_ATTEMPTS) {
+        maxRetriesReachedIds.add(sourceDocId);
       }
     }
   }
 
-  return alreadyIngestedIds;
+  return { alreadyIngestedIds, maxRetriesReachedIds };
 }
+
+/**
+ * Increment retry count for a message with given sourceDocumentId
+ * Creates or updates the message document with incremented retryCount
+ */
+async function incrementRetryCount(
+  adminDb: Firestore,
+  sourceDocumentId: string,
+): Promise<void> {
+  const messagesRef = adminDb.collection("messages");
+
+  // Find message by sourceDocumentId
+  const snapshot = await messagesRef
+    .where("sourceDocumentId", "==", sourceDocumentId)
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) {
+    logger.warn("Cannot increment retry count: message not found", {
+      sourceDocumentId,
+    });
+    return;
+  }
+
+  const messageDoc = snapshot.docs[0];
+  const currentRetryCount = messageDoc.data().retryCount || 0;
+  const newRetryCount = currentRetryCount + 1;
+
+  await messageDoc.ref.update({
+    retryCount: newRetryCount,
+  });
+
+  logger.info("Incremented retry count for message", {
+    messageId: messageDoc.id,
+    sourceDocumentId,
+    retryCount: newRetryCount,
+  });
+}
+
 
 async function ingestSource(
   source: SourceDocument,
@@ -341,15 +405,32 @@ export async function ingest(
 
   // Batch-check which sources are already ingested (avoids 1371 sequential DB queries!)
   const { encodeDocumentId } = await import("../crawlers/shared/firestore");
-  const alreadyIngestedSet = await getAlreadyIngestedSet(adminDb, withinBounds);
-  const sourcesToIngest = withinBounds.filter(
-    (s) => !alreadyIngestedSet.has(encodeDocumentId(s.url)),
-  );
-  const alreadyIngestedCount = withinBounds.length - sourcesToIngest.length;
+  const { alreadyIngestedIds, maxRetriesReachedIds } =
+    await getAlreadyIngestedSet(adminDb, withinBounds);
+
+  const sourcesToIngest = withinBounds.filter((s) => {
+    const docId = encodeDocumentId(s.url);
+    return !alreadyIngestedIds.has(docId) && !maxRetriesReachedIds.has(docId);
+  });
+
+  const alreadyIngestedCount = withinBounds.filter((s) =>
+    alreadyIngestedIds.has(encodeDocumentId(s.url)),
+  ).length;
+
+  const maxRetriesReachedCount = withinBounds.filter((s) =>
+    maxRetriesReachedIds.has(encodeDocumentId(s.url)),
+  ).length;
 
   if (alreadyIngestedCount > 0) {
     logger.info("Skipping already-ingested sources", {
       count: alreadyIngestedCount,
+    });
+  }
+
+  if (maxRetriesReachedCount > 0) {
+    logger.warn("Skipping sources that exceeded max retry attempts", {
+      count: maxRetriesReachedCount,
+      maxRetries: MAX_RETRY_ATTEMPTS,
     });
   }
 
@@ -360,6 +441,7 @@ export async function ingest(
     outsideBounds,
     ingested: 0,
     alreadyIngested: alreadyIngestedCount,
+    maxRetriesReached: maxRetriesReachedCount,
     filtered: 0,
     failed: 0,
     errors: [],
@@ -392,6 +474,9 @@ export async function ingest(
         summary.filtered++;
         logger.info("Source filtered as irrelevant", { title: source.title });
       } else {
+        // Increment retry count for actual failures (not boundary/filter issues)
+        await incrementRetryCount(adminDb, sourceDocumentId);
+
         summary.errors.push({ url: source.url, error: errorMessage });
         logger.error("Failed to ingest source", {
           title: source.title,
@@ -420,10 +505,16 @@ function logSummary(summary: IngestSummary, dryRun: boolean): void {
     summaryData.outsideBounds = summary.outsideBounds;
   }
   if (dryRun) {
-    summaryData.wouldIngest = summary.withinBounds - summary.alreadyIngested;
+    summaryData.wouldIngest =
+      summary.withinBounds -
+      summary.alreadyIngested -
+      summary.maxRetriesReached;
   } else {
     summaryData.ingested = summary.ingested;
     summaryData.alreadyIngested = summary.alreadyIngested;
+    if (summary.maxRetriesReached > 0) {
+      summaryData.maxRetriesReached = summary.maxRetriesReached;
+    }
     if (summary.filtered > 0) {
       summaryData.filtered = summary.filtered;
       summaryData.filterPercentage = (
