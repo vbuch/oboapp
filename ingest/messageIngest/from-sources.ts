@@ -163,7 +163,8 @@ async function getAlreadyIngestedSet(
       const retryCount = data.retryCount || 0;
       const finalizedAt = data.finalizedAt;
 
-      // If message is finalized successfully, mark as already ingested
+      // If message is finalized, mark as already ingested
+      // (finalized = processing complete, regardless of success or failure)
       if (finalizedAt) {
         alreadyIngestedIds.add(sourceDocId);
       }
