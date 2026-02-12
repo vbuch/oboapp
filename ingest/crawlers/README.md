@@ -10,6 +10,7 @@ Automated data collectors that fetch public notifications and disruptions from e
 - **studentski-bg** - Scrapes construction/maintenance schedules from Rayon Studentski's website
 - **so-slatina-org** - Scrapes repair/disruption notices from Rayon Slatina's website
 - **lozenets-sofia-bg** - Scrapes public announcements from Rayon Lozenets' website
+- **raioniskar-bg** - Scrapes important infrastructure notifications from Rayon Iskar's website
 - **sofia-bg** - Scrapes municipal repair announcements and traffic changes from Sofia.bg
 - **sofiyska-voda** - Fetches water supply disruptions from Sofiyska Voda's ArcGIS API
 - **toplo-bg** - Fetches heating infrastructure incidents from Toplo.bg with pre-geocoded polygons
@@ -27,7 +28,7 @@ Each crawler:
 
 ### Crawler Architecture
 
-WordPress-style crawlers (rayon-oborishte-bg, sredec-sofia-org, sofia-bg, mladost-bg, studentski-bg, so-slatina-org, lozenets-sofia-bg) use shared utilities from `shared/webpage-crawlers.ts`:
+WordPress-style crawlers (rayon-oborishte-bg, sredec-sofia-org, sofia-bg, mladost-bg, studentski-bg, so-slatina-org, lozenets-sofia-bg, raioniskar-bg) use shared utilities from `shared/webpage-crawlers.ts`:
 
 - **`crawlWordpressPage`** - Manages browser, extracts post links from index page, handles deduplication, processes each post
 - **`processWordpressPost`** - Fetches post details, builds document via custom builder function, saves to Firestore
@@ -63,7 +64,7 @@ Crawlers handle message formatting differently based on whether they provide pre
 - Can produce markdown (erm-zapad, sofiyska-voda) or plain text (toplo-bg)
 - **City-wide messages** (nimh-severe-weather): Set `cityWide: true` with empty FeatureCollection for alerts applying to the entire city (reusable pattern for city-wide infrastructure alerts)
 
-**Crawlers without GeoJSON** (rayon-oborishte-bg, sredec-sofia-org, sofia-bg, mladost-bg, studentski-bg, so-slatina-org, lozenets-sofia-bg):
+**Crawlers without GeoJSON** (rayon-oborishte-bg, sredec-sofia-org, sofia-bg, mladost-bg, studentski-bg, so-slatina-org, lozenets-sofia-bg, raioniskar-bg):
 
 - Go through the full AI extraction pipeline
 - Store HTML content converted to markdown in `message` field only
@@ -80,6 +81,7 @@ npx tsx crawl --source mladost-bg
 npx tsx crawl --source studentski-bg
 npx tsx crawl --source so-slatina-org
 npx tsx crawl --source lozenets-sofia-bg
+npx tsx crawl --source raioniskar-bg
 npx tsx crawl --source sofiyska-voda
 npx tsx crawl --source toplo-bg
 npx tsx crawl --source sofia-bg
