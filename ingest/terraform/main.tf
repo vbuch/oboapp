@@ -114,6 +114,14 @@ resource "google_project_iam_member" "workflows_invoker" {
   member  = "serviceAccount:${google_service_account.ingest_runner.email}"
 }
 
+# Grant Workflows Admin to CI service account (for Terraform to create/update workflow definitions)
+# This uses a variable so it's self-bootstrapping — the CI SA that runs Terraform gets the permission it needs.
+resource "google_project_iam_member" "ci_workflows_admin" {
+  project = var.project_id
+  role    = "roles/workflows.admin"
+  member  = "serviceAccount:${var.ci_service_account_email}"
+}
+
 # Grant Secret Manager access
 resource "google_project_iam_member" "secret_accessor" {
   project = var.project_id
@@ -175,7 +183,10 @@ resource "google_workflows_workflow" "pipeline_emergent" {
   service_account = google_service_account.ingest_runner.email
   source_contents = file("${path.module}/workflows/emergent.yaml")
   
-  depends_on = [google_project_service.workflows]
+  depends_on = [
+    google_project_service.workflows,
+    google_project_iam_member.ci_workflows_admin,
+  ]
 }
 
 # Workflow for all crawlers pipeline (runs 3x daily)
@@ -186,7 +197,10 @@ resource "google_workflows_workflow" "pipeline_all" {
   service_account = google_service_account.ingest_runner.email
   source_contents = file("${path.module}/workflows/all.yaml")
   
-  depends_on = [google_project_service.workflows]
+  depends_on = [
+    google_project_service.workflows,
+    google_project_iam_member.ci_workflows_admin,
+  ]
 }
 
 # ── Cloud Run Jobs ────────────────────────────────────────────────────────────
@@ -253,6 +267,12 @@ locals {
       memory       = "1Gi"
       timeout      = "1800s"
       description  = "Crawl Lozenets district"
+    }
+    raioniskar = {
+      source       = "raioniskar-bg"
+      memory       = "1Gi"
+      timeout      = "1800s"
+      description  = "Crawl Raion Iskar website"
     }
     nimh-severe-weather = {
       source       = "nimh-severe-weather"

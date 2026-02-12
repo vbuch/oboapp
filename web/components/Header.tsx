@@ -39,18 +39,17 @@ export default function Header() {
                 className="flex-shrink-0 relative sm:-mb-10 md:-mb-12 cursor-pointer hover:opacity-90 transition-opacity"
               >
                 {logoError ? null : (
-                  <Image
-                    src="/logo.png"
-                    alt="OboApp"
-                    width={96}
-                    height={96}
-                    className="h-9 sm:h-16 md:h-20 w-auto object-contain relative z-30"
-                    style={{
-                      filter: "drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))",
-                    }}
-                    onError={() => setLogoError(true)}
-                    priority
-                  />
+                  <div className="inline-block bg-white rounded-lg p-1 shadow-md relative z-30">
+                    <Image
+                      src="/logo.png"
+                      alt="OboApp"
+                      width={96}
+                      height={96}
+                      className="h-9 sm:h-16 md:h-20 w-auto object-contain"
+                      onError={() => setLogoError(true)}
+                      priority
+                    />
+                  </div>
                 )}
               </Link>
               <div>

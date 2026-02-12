@@ -1,5 +1,5 @@
 # Cloud Workflow for All Crawlers Pipeline
-# Runs all 11 crawlers in two parallel batches (9 + 2 due to GCP 10-branch limit),
+# Runs all 12 crawlers in two parallel batches (10 + 2 due to GCP 10-branch limit),
 # then runs ingest and notify sequentially.
 # Always continues to ingest/notify even if some crawlers fail.
 
@@ -165,6 +165,23 @@ main:
                               args:
                                 text: '${"Crawler lozenets failed: " + string(e)}'
                                 severity: "ERROR"
+            - raioniskar:
+                steps:
+                  - callRaioniskar:
+                      try:
+                        call: http.post
+                        args:
+                          url: '${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-raioniskar:run"}'
+                          auth:
+                            type: OAuth2
+                      except:
+                        as: e
+                        steps:
+                          - log10:
+                              call: sys.log
+                              args:
+                                text: '${"Crawler raioniskar failed: " + string(e)}'
+                                severity: "ERROR"
     - batch2:
         parallel:
           branches:
@@ -180,7 +197,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - log10:
+                          - log11:
                               call: sys.log
                               args:
                                 text: '${"Crawler sofiyska-voda failed: " + string(e)}'
@@ -197,7 +214,7 @@ main:
                       except:
                         as: e
                         steps:
-                          - log11:
+                          - log12:
                               call: sys.log
                               args:
                                 text: '${"Crawler nimh-severe-weather failed: " + string(e)}'
@@ -212,7 +229,7 @@ main:
         except:
           as: e
           steps:
-            - log12:
+            - log13:
                 call: sys.log
                 args:
                   text: '${"Ingest failed: " + string(e)}'
@@ -227,7 +244,7 @@ main:
         except:
           as: e
           steps:
-            - log13:
+            - log14:
                 call: sys.log
                 args:
                   text: '${"Notify failed: " + string(e)}'

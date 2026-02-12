@@ -184,6 +184,7 @@ jobs:
             -var="firebase_project_id=$FIREBASE_PROJECT_ID" \
             -var="alert_email=$ALERT_EMAIL" \
             -var="locality=$LOCALITY" \
+            -var="ci_service_account_email=${{ secrets.GCP_SERVICE_ACCOUNT }}" \
             -out=tfplan
 
       - name: Terraform Apply

@@ -62,3 +62,8 @@ variable "locality" {
   type        = string
   default     = "bg.sofia"
 }
+
+variable "ci_service_account_email" {
+  description = "Email of the CI/CD service account that runs Terraform (needs workflows.admin to update workflow definitions)"
+  type        = string
+}
