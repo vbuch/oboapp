@@ -95,6 +95,9 @@ export default function HomeContent() {
     onDecline: () => void;
   } | null>(null);
 
+  // Message hover state for map highlight
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+
   // Interest/zone management
   const {
     targetMode,
@@ -240,6 +243,7 @@ export default function HomeContent() {
           user={user}
           targetMode={targetMode}
           initialMapCenter={initialMapCenter}
+          hoveredMessageId={hoveredMessageId}
           onFeatureClick={handleFeatureClick}
           onMapReady={handleMapReady}
           onBoundsChanged={handleBoundsChanged}
@@ -265,6 +269,7 @@ export default function HomeContent() {
             onMessageClick={(message) => {
               router.push(createMessageUrl(message), { scroll: false });
             }}
+            onMessageHover={setHoveredMessageId}
             variant="list"
           />
         </div>

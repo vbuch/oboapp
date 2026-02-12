@@ -21,6 +21,7 @@ interface MapContainerProps {
     editingInterestId?: string | null;
   };
   readonly initialMapCenter?: { lat: number; lng: number } | null;
+  readonly hoveredMessageId?: string | null;
   readonly onFeatureClick: (messageId: string) => void;
   readonly onMapReady: (
     centerMap: (
@@ -61,6 +62,7 @@ export default function MapContainer({
   user,
   targetMode,
   initialMapCenter,
+  hoveredMessageId,
   onFeatureClick,
   onMapReady,
   onBoundsChanged,
@@ -214,6 +216,7 @@ export default function MapContainer({
         onInterestClick={onInterestClick}
         initialCenter={initialMapCenter || undefined}
         shouldTrackLocation={isTrackingLocation}
+        hoveredMessageId={hoveredMessageId}
         targetMode={
           targetMode.active
             ? {
