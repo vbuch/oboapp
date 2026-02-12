@@ -90,8 +90,24 @@ function filterMessagesByCategories(
   });
 }
 
+/**
+ * Helper: Filter messages by sources
+ */
+function filterMessagesBySources(
+  messages: Message[],
+  sources?: string[],
+): Message[] {
+  if (!sources || sources.length === 0) {
+    return messages;
+  }
+
+  return messages.filter((msg) => {
+    return msg.source && sources.includes(msg.source);
+  });
+}
+
 export const handlers = [
-  // GET /api/messages - Fetch messages with viewport/category filtering
+  // GET /api/messages - Fetch messages with viewport/category/source filtering
   http.get("/api/messages", ({ request }) => {
     const url = new URL(request.url);
     const north = url.searchParams.get("north");
@@ -99,9 +115,14 @@ export const handlers = [
     const east = url.searchParams.get("east");
     const west = url.searchParams.get("west");
     const categoriesParam = url.searchParams.get("categories");
+    const sourcesParam = url.searchParams.get("sources");
 
     const categories = categoriesParam
       ? categoriesParam.split(",").filter(Boolean)
+      : undefined;
+
+    const sources = sourcesParam
+      ? sourcesParam.split(",").filter(Boolean)
       : undefined;
 
     let filteredMessages = [...MOCK_MESSAGES];
@@ -117,6 +138,9 @@ export const handlers = [
 
     // Apply category filtering
     filteredMessages = filterMessagesByCategories(filteredMessages, categories);
+
+    // Apply source filtering
+    filteredMessages = filterMessagesBySources(filteredMessages, sources);
 
     return HttpResponse.json({ messages: filteredMessages });
   }),
