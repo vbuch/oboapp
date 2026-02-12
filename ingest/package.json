@@ -6,8 +6,8 @@
     "test": "vitest --exclude=**/*.integration.test.ts",
     "test:run": "vitest run --exclude=**/*.integration.test.ts",
     "test:integration": "vitest run lib/ai-pipeline.integration.test.ts",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
     "crawl": "tsx crawl",
     "ingest": "tsx ingest",
     "notify": "tsx notify",
@@ -53,12 +53,10 @@
     "@types/node": "^20",
     "@types/turndown": "^5.0.6",
     "@vitest/coverage-v8": "^4.0.15",
-    "eslint-config-next": "^16.0.10",
     "firebase-tools": "^15.5.1",
     "geojson": "^0.5.0",
     "happy-dom": "^20.0.11",
     "tsc-alias": "^1.8.16",
-    "tsx": "^4.21.0",
-    "typescript-eslint": "^8.54.0"
+    "tsx": "^4.21.0"
   }
 }

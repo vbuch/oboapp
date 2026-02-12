@@ -19,7 +19,7 @@ This document outlines critical patterns, standards, and workflows for AI agents
 If you identify a recurring pattern or developer preference:
 
 1. **Apply immediate fix.**
-2. **Suggest automation** (ESLint, Prettier, etc.).
+2. **Suggest automation** (oxlint, Prettier, etc.).
 3. **Propose AGENTS.md update** if it's a general project standard (affects 10+ files or architecture).
 
 ### Required Implementation Steps
@@ -86,17 +86,16 @@ If you identify a recurring pattern or developer preference:
 - **Imports:** Prefer named exports.
 - **No Barrel Files:** Avoid `index.ts` files that re-export other modules. Use direct imports instead (e.g., `import Button from "@/components/Button"` not `import { Button } from "@/components"`).
 
-### ESLint & Code Quality
+### Linting & Code Quality (oxlint)
 
-**Linting is configured for both `web/` and `ingest/` directories.**
+**We use [oxlint](https://oxc.rs/docs/guide/usage/linter) instead of ESLint.** It's a Rust-based linter that runs 50-100x faster, making pre-commit hooks near-instant. Configuration lives in `.oxlintrc.json` at the repo root.
 
 - Run linting with `pnpm lint` in the respective directory
 - Auto-fix issues with `pnpm lint:fix`
-- **CRITICAL: NEVER use `eslint-disable` comments.**
-- ESLint rules exist for good reasons (performance, bugs, maintainability)
-- `eslint-disable` masks problems instead of fixing them
+- **CRITICAL: NEVER use inline disable comments to suppress warnings.**
+- Lint rules exist for good reasons (performance, bugs, maintainability)
 - Always fix the underlying issue, never suppress the warning
-- If a rule seems wrong for the entire project, configure it in `eslint.config.mjs`
+- If a rule seems wrong for the entire project, configure it in `.oxlintrc.json`
 - **Exception:** Only disable rules in generated code or vendor files you cannot modify
 - Test files, mocks, and utility scripts allow `any` types for flexibility
 

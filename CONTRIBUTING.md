@@ -30,7 +30,8 @@ Each has its own `.env.local` configuration.
 - Follow patterns in [AGENTS.md](AGENTS.md)
 - TypeScript strict mode, named exports, no barrel files
 - Tailwind theme colors from `web/lib/colors.ts` - never hardcode
-- Never use `eslint-disable` comments - fix the issue instead
+- Never use inline disable comments to suppress lint warnings - fix the issue instead
+- We use [oxlint](https://oxc.rs/docs/guide/usage/linter) (Rust-based) instead of ESLint for speed
 - Add Vitest tests for new functionality (**at least for the pure functions**)
 
 ## Pull Request Process

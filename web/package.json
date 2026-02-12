@@ -7,8 +7,8 @@
     "dev:emulator": "NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
@@ -43,7 +43,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.3",
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
     "@next/mdx": "^16.1.1",
@@ -59,15 +58,12 @@
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.15",
     "@vitest/ui": "^4.0.15",
-    "eslint-config-next": "^16.0.10",
-    "eslint-plugin-react-hooks-addons": "^0.5.0",
     "happy-dom": "^20.0.11",
     "msw": "^2.12.10",
     "playwright": "^1.57.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "turndown": "^7.2.2",
-    "typescript-eslint": "^8.54.0"
+    "turndown": "^7.2.2"
   },
   "optionalDependencies": {
     "lightningcss": "^1.30.2"

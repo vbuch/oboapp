@@ -7,17 +7,16 @@
     "build:shared": "pnpm --filter @oboapp/shared build",
     "build:all": "pnpm build:shared && pnpm --filter oboapp-ingest build && pnpm --filter oboapp-web build",
     "test:all": "pnpm --filter '*' test:run --if-present",
-    "lint:all": "pnpm --filter '*' lint --if-present",
+    "lint:all": "pnpm --filter oboapp-web lint && pnpm --filter oboapp-ingest lint",
     "postinstall": "pnpm build:shared",
     "prepare": "husky"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "eslint": "^9.18.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
+    "oxlint": "^1.47.0",
     "typescript": "^5",
-    "typescript-eslint": "^8.54.0",
     "vitest": "^4.0.15"
   },
   "optionalDependencies": {

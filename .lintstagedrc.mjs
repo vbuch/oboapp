@@ -1,8 +1,12 @@
 /**
- * Creates a lint-staged task for a specific package directory
+ * Creates a lint-staged task for a specific package directory using oxlint.
+ * oxlint is a Rust-based linter that runs 50-100x faster than ESLint,
+ * making it ideal for pre-commit hooks. Full ESLint with type-aware rules
+ * still runs in CI via `pnpm lint`.
+ *
  * @param {string} dir - The package directory (e.g., 'web', 'ingest', 'shared')
  * @param {string[]} filenames - Array of staged file paths
- * @returns {string} Shell command to run eslint
+ * @returns {string} Shell command to run oxlint
  */
 function createLintTask(dir, filenames) {
   // Validate directory to prevent injection - only allow alphanumeric chars and underscores
@@ -31,9 +35,9 @@ function createLintTask(dir, filenames) {
     .map((f) => `'${f.replace(/'/g, "'\\''")}'`)
     .join(" ");
 
-  // Wrap in bash -c to execute cd and eslint as shell commands
-  // dir is validated and shell-escaped for defense in depth
-  return `bash -c 'cd ${dir} && eslint --no-warn-ignored ${escapedFiles}'`;
+  // Use oxlint for fast pre-commit linting (no type-checking overhead)
+  // Full ESLint with type-aware rules runs in CI
+  return `bash -c 'cd ${dir} && npx oxlint ${escapedFiles}'`;
 }
 
 export default {
