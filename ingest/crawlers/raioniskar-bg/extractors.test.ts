@@ -69,6 +69,16 @@ describe("raioniskar-bg/extractors", () => {
           title: "Valid Post",
           date: "2026-02-10",
         },
+        {
+          url: "https://raioniskar.bg/?c=news/show/123&lang=bg",
+          title: "News Post - Should be filtered out",
+          date: "2026-02-09",
+        },
+        {
+          url: "https://raioniskar.bg/?c=articles/show/456&lang=bg",
+          title: "Article - Should be filtered out",
+          date: "2026-02-08",
+        },
       ]);
 
       const page = createMockPage(mockEvaluate) as any;
@@ -76,6 +86,7 @@ describe("raioniskar-bg/extractors", () => {
 
       expect(posts).toHaveLength(1);
       expect(posts[0].url).toContain("important_messages/show");
+      expect(posts[0].title).toBe("Valid Post");
     });
 
     it("should handle posts with empty dates", async () => {

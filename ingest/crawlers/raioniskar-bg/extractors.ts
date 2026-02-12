@@ -10,7 +10,7 @@ import {
  * Extract post links from the index page (важни съобщения section)
  */
 export async function extractPostLinks(page: Page): Promise<PostLink[]> {
-  // Filter to include only important messages with numeric IDs
+  // Filter to include only important messages
   // URLs use pattern: /?c=important_messages/show/{ID}&lang=bg
   const urlFilter = (url: string) => {
     return url.includes("important_messages/show/");

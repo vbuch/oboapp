@@ -22,7 +22,5 @@ export const SELECTORS = {
     TITLE: 'h1.title',
     // Date
     DATE: '.date-and-category',
-    // Main message body
-    MESSAGE: '.body.user-generated-content',
   },
 } as const;
