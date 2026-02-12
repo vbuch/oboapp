@@ -77,10 +77,13 @@ export default function GeoJSONLayer({
     featuresList.forEach((feature, index) => {
       const key = createFeatureKey(feature.messageId, feature.featureIndex);
 
+      // Check if this marker should be highlighted (hovered or selected)
+      const isHighlighted = feature.messageId === hoveredMessageId || feature.messageId === selectedMessageId;
+
       const marker = new google.maps.Marker({
         position: jitteredCentroids[index], // Use jittered position
         map: null, // Will be managed by clusterer
-        icon: createMarkerIcon(false, classification),
+        icon: createMarkerIcon(isHighlighted, classification),
         title:
           (feature.properties?.["address"] as string | undefined) ||
           (feature.properties?.["street_name"] as string | undefined) ||
