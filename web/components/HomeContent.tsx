@@ -12,7 +12,7 @@ import MapContainer from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView";
 import MessagesGrid from "@/components/MessagesGrid";
 import InterestContextMenu from "@/components/InterestContextMenu";
-import CategoryFilterBox from "@/components/CategoryFilterBox";
+import FilterBox from "@/components/FilterBox";
 import GeolocationPrompt from "@/components/GeolocationPrompt";
 import { useInterests } from "@/lib/hooks/useInterests";
 import { useAuth } from "@/lib/auth-context";
@@ -20,6 +20,7 @@ import { useMessages } from "@/lib/hooks/useMessages";
 import { useMapNavigation } from "@/lib/hooks/useMapNavigation";
 import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
 import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
+import { useSourceFilter } from "@/lib/hooks/useSourceFilter";
 import { classifyMessage } from "@/lib/message-classification";
 import { createMessageUrl } from "@/lib/url-utils";
 import type { Message } from "@/lib/types";
@@ -61,6 +62,7 @@ export default function HomeContent() {
     error,
     handleBoundsChanged,
     setSelectedCategories,
+    setSelectedSources,
   } = useMessages();
 
   // Category filtering hook (manages UI state and category selection)
@@ -68,6 +70,13 @@ export default function HomeContent() {
     availableCategories,
     messages, // Pass all messages initially - we'll filter within the hook
     setSelectedCategories,
+  );
+
+  // Source filtering hook (manages UI state and source selection)
+  const sourceFilter = useSourceFilter(
+    messages,
+    categoryFilter.showArchived,
+    setSelectedSources,
   );
 
   // Filter archived messages based on toggle state
@@ -218,19 +227,34 @@ export default function HomeContent() {
 
       {/* Map Section - Left side on desktop, top on mobile */}
       <div className="relative [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-3/5 h-[calc(66vh-64px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:h-[calc(100vh-80px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:sticky [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:self-start">
-        {/* Category Filter Box */}
-        <CategoryFilterBox
+        {/* Filter Box */}
+        <FilterBox
           isOpen={categoryFilter.isOpen}
           selectedCategories={categoryFilter.selectedCategories}
+          selectedSources={sourceFilter.selectedSources}
           categoryCounts={categoryFilter.categoryCounts}
-          hasActiveFilters={categoryFilter.hasActiveFilters}
+          sourceCounts={sourceFilter.sourceCounts}
+          hasActiveFilters={
+            categoryFilter.hasActiveFilters || sourceFilter.hasActiveFilters
+          }
+          hasActiveCategoryFilters={
+            categoryFilter.selectedCategories &&
+            categoryFilter.selectedCategories.size > 0
+          }
+          hasActiveSourceFilters={sourceFilter.hasActiveFilters}
           isInitialLoad={categoryFilter.isInitialLoad}
-          isLoadingCounts={categoryFilter.isLoadingCounts}
+          isLoadingCounts={
+            categoryFilter.isLoadingCounts || sourceFilter.isLoadingCounts
+          }
           showArchived={categoryFilter.showArchived}
           onTogglePanel={categoryFilter.togglePanel}
           onToggleCategory={categoryFilter.toggleCategory}
+          onToggleSource={sourceFilter.toggleSource}
           onToggleShowArchived={categoryFilter.toggleShowArchived}
-          onClearAllCategories={categoryFilter.clearAllCategories}
+          onClearAllFilters={() => {
+            categoryFilter.clearAllCategories();
+            sourceFilter.clearAllSources();
+          }}
         />
 
         <MapContainer

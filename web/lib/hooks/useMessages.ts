@@ -32,6 +32,9 @@ export function useMessages() {
   const [selectedCategories, setSelectedCategories] = useState<Set<
     Category | typeof UNCATEGORIZED
   > | null>(null);
+  const [selectedSources, setSelectedSources] = useState<Set<string> | null>(
+    null,
+  );
 
   // All categories are always available (predefined enum)
   // Memoize to prevent recreation on every render
@@ -44,6 +47,7 @@ export function useMessages() {
     async (
       bounds?: ViewportBounds | null,
       categories?: Set<Category | typeof UNCATEGORIZED> | null,
+      sources?: Set<string> | null,
     ) => {
       try {
         setIsLoading(true);
@@ -51,11 +55,23 @@ export function useMessages() {
 
         // TODO: Migrate message fetching to react-query for caching and retries.
 
-        // Build URL with optional categories
+        // Build URL with optional categories and sources
         let url = buildMessagesUrl(bounds);
+        const params = new URLSearchParams();
+        
         if (categories && categories.size > 0) {
           const categoriesParam = Array.from(categories).join(",");
-          url = `${url}${bounds ? "&" : "?"}categories=${encodeURIComponent(categoriesParam)}`;
+          params.set("categories", categoriesParam);
+        }
+        
+        if (sources && sources.size > 0) {
+          const sourcesParam = Array.from(sources).join(",");
+          params.set("sources", sourcesParam);
+        }
+        
+        const queryString = params.toString();
+        if (queryString) {
+          url = `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
         }
 
         const response = await fetch(url);
@@ -99,18 +115,18 @@ export function useMessages() {
     };
   }, [handleBoundsChanged]);
 
-  // Fetch messages when viewport bounds or selected categories change
+  // Fetch messages when viewport bounds or selected categories or sources change
   useEffect(() => {
     if (viewportBounds) {
-      fetchMessages(viewportBounds, selectedCategories);
+      fetchMessages(viewportBounds, selectedCategories, selectedSources);
     }
-  }, [viewportBounds, selectedCategories, fetchMessages]);
+  }, [viewportBounds, selectedCategories, selectedSources, fetchMessages]);
 
   // Listen for message submission events
   useEffect(() => {
     const handleMessageSubmitted = () => {
       setTimeout(() => {
-        fetchMessages(viewportBounds, selectedCategories);
+        fetchMessages(viewportBounds, selectedCategories, selectedSources);
       }, 2000);
     };
 
@@ -122,7 +138,7 @@ export function useMessages() {
         handleMessageSubmitted,
       );
     };
-  }, [fetchMessages, viewportBounds, selectedCategories]);
+  }, [fetchMessages, viewportBounds, selectedCategories, selectedSources]);
 
   return {
     messages,
@@ -131,5 +147,6 @@ export function useMessages() {
     error,
     handleBoundsChanged,
     setSelectedCategories,
+    setSelectedSources,
   };
 }

@@ -1,16 +1,19 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import sources from "@/lib/sources.json";
+import { getCurrentLocalitySources } from "@/lib/source-utils";
 import geocodingSources from "@/lib/geocoding.json";
 import SourceCard from "@/components/SourceCard";
 import GeocodingSourceCard from "@/components/GeocodingSourceCard";
 
 export const metadata: Metadata = {
   title: "Източници - OboApp",
-  description: "Източници на данни за събития и уведомления в район Оборище",
+  description: "Източници на данни за събития и уведомления",
 };
 
 export default function SourcesPage() {
+  // Get only sources applicable to the current locality
+  const sources = getCurrentLocalitySources();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

@@ -1,33 +1,26 @@
 "use client";
 
 import { Check } from "lucide-react";
-import CategoryIcon from "@/components/CategoryIcon";
-import { CATEGORY_STYLES } from "@/lib/category-styles";
-import { Category, UNCATEGORIZED } from "@oboapp/shared";
 
-interface CategoryFilterItemProps {
-  readonly category: Category | typeof UNCATEGORIZED;
+interface SourceFilterItemProps {
   readonly label: string;
   readonly checked: boolean;
   readonly onChange: () => void;
-  readonly count?: number;
-  readonly isLoadingCount?: boolean;
+  readonly count: number;
+  readonly isLoadingCount: boolean;
 }
 
 /**
- * Category filter item - button style with colored border when selected
- * Shows category icon, label, count badge, and checkmark when selected
+ * Individual source filter item with checkbox-like button
+ * Matches the style of CategoryFilterItem but without icon and colored border
  */
-export default function CategoryFilterItem({
-  category,
+export default function SourceFilterItem({
   label,
   checked,
   onChange,
   count,
-  isLoadingCount = false,
-}: CategoryFilterItemProps) {
-  const style = CATEGORY_STYLES[category];
-
+  isLoadingCount,
+}: SourceFilterItemProps) {
   return (
     <button
       type="button"
@@ -39,11 +32,14 @@ export default function CategoryFilterItem({
       style={{
         borderWidth: "1px",
         borderStyle: "solid",
-        borderColor: checked ? style.color : "transparent",
+        borderColor: checked ? "#6B7280" : "transparent", // neutral-500 for checked state
       }}
+      aria-label={`${checked ? "Премахни" : "Филтрирай"} ${label}`}
     >
-      <CategoryIcon category={category} size={20} showBackground={checked} />
+      {/* Label - same as CategoryFilterItem */}
       <span className="flex-1 text-left text-sm text-foreground">{label}</span>
+
+      {/* Count Badge - same style as CategoryFilterItem */}
       {count !== undefined && (
         <span
           className={`text-xs px-2 py-0.5 rounded-full ${
@@ -55,9 +51,9 @@ export default function CategoryFilterItem({
           {isLoadingCount ? "\u00A0" : count}
         </span>
       )}
-      {checked && (
-        <Check size={18} strokeWidth={2.5} style={{ color: style.color }} />
-      )}
+
+      {/* Checkmark - same as CategoryFilterItem but without color */}
+      {checked && <Check size={18} strokeWidth={2.5} className="text-neutral" />}
     </button>
   );
 }
