@@ -192,14 +192,6 @@ export async function GET(request: Request) {
       return message.geoJson !== null && message.geoJson !== undefined;
     });
 
-    // Apply source filtering if specified
-    if (selectedSources && selectedSources.length > 0) {
-      const sourceSet = new Set(selectedSources);
-      messages = messages.filter((message) => {
-        return message.source && sourceSet.has(message.source);
-      });
-    }
-
     // Filter by viewport bounds if provided (skip cityWide messages - they're always visible)
     if (viewportBounds) {
       messages = messages.filter((message) => {
@@ -212,6 +204,14 @@ export async function GET(request: Request) {
         return message.geoJson.features.some((feature) =>
           featureIntersectsBounds(feature, viewportBounds),
         );
+      });
+    }
+
+    // Apply source filtering if specified (after viewport filtering to preserve cityWide messages)
+    if (selectedSources && selectedSources.length > 0) {
+      const sourceSet = new Set(selectedSources);
+      messages = messages.filter((message) => {
+        return message.source && sourceSet.has(message.source);
       });
     }
 

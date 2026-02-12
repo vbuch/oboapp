@@ -73,7 +73,11 @@ export default function HomeContent() {
   );
 
   // Source filtering hook (manages UI state and source selection)
-  const sourceFilter = useSourceFilter(messages, setSelectedSources);
+  const sourceFilter = useSourceFilter(
+    messages,
+    categoryFilter.showArchived,
+    setSelectedSources,
+  );
 
   // Filter archived messages based on toggle state
   const filteredMessages = useMemo(() => {

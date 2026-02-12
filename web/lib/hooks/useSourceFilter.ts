@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { Message } from "@/lib/types";
+import { classifyMessage } from "@/lib/message-classification";
 import sources from "@/lib/sources.json";
 
 const STORAGE_KEY = "sourceFilter";
@@ -109,10 +110,12 @@ function saveFilterState(state: SourceFilterState): void {
  * Hook for source-based message filtering
  *
  * @param viewportMessages - Messages in current viewport (used for counting)
+ * @param showArchived - Whether to include archived messages in counts
  * @param onSourceSelectionChange - Callback when selected sources change
  */
 export function useSourceFilter(
   viewportMessages: Message[],
+  showArchived: boolean,
   onSourceSelectionChange: (selected: Set<string>) => void,
 ) {
   const initialFilterState = useMemo(() => loadFilterState(), []);
@@ -162,10 +165,20 @@ export function useSourceFilter(
     };
   }, [viewportMessages]);
 
-  // Count features per source
+  // Count features per source - ONLY for viewport messages that match showArchived filter
   const sourceCounts = useMemo<SourceCount[]>(() => {
-    return computeSourceCounts(viewportMessages);
-  }, [viewportMessages]);
+    let messagesToCount = viewportMessages;
+
+    // Filter messages based on showArchived toggle
+    if (!showArchived) {
+      // Only count active (non-archived) messages
+      messagesToCount = viewportMessages.filter(
+        (message) => classifyMessage(message) === "active",
+      );
+    }
+
+    return computeSourceCounts(messagesToCount);
+  }, [viewportMessages, showArchived]);
 
   // Check if filters are active
   const hasActiveFilters = useMemo<boolean>(() => {
