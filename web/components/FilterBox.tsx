@@ -147,7 +147,7 @@ export default function FilterBox({
         {/* Filter Panel */}
         <div
           ref={panelRef}
-          className="relative z-20 w-[320px] max-h-[calc(100vh-80px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[450] my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
+          className="relative z-20 w-[320px] max-h-[calc(100vh-80px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[450px] my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
         >
           {/* Filter Lists - Only show when loaded */}
           {isInitialLoad ? (

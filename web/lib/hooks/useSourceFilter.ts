@@ -17,6 +17,8 @@ interface SourceCount {
   count: number;
 }
 
+const LOCALE = "bg"; // Bulgarian locale for sorting
+
 export function computeSourceCounts(
   viewportMessages: Message[],
 ): SourceCount[] {
@@ -43,7 +45,7 @@ export function computeSourceCounts(
       count: counts.get(source.id) || 0,
     }))
     .filter((item) => item.count > 0)
-    .sort((a, b) => a.name.localeCompare(b.name, "bg"));
+    .sort((a, b) => a.name.localeCompare(b.name, LOCALE));
 }
 
 export function computeHasActiveSourceFilters(
@@ -134,24 +136,29 @@ export function useSourceFilter(
 
   // Track loading state when viewportMessages change
   useEffect(() => {
+    // Use a flag to prevent state updates if the component unmounts
     let isMounted = true;
+    let timerId: NodeJS.Timeout | undefined;
 
+    // Defer loading state to avoid synchronous setState in effect
     Promise.resolve().then(() => {
       if (isMounted) {
         setIsLoadingCounts(true);
 
-        const timer = setTimeout(() => {
+        // Keep loading state visible for at least 300ms for better UX
+        timerId = setTimeout(() => {
           if (isMounted) {
             setIsLoadingCounts(false);
           }
         }, 300);
-
-        return () => clearTimeout(timer);
       }
     });
 
     return () => {
       isMounted = false;
+      if (timerId) {
+        clearTimeout(timerId);
+      }
     };
   }, [viewportMessages]);
 
