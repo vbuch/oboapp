@@ -31,6 +31,9 @@ export default function Checkbox({
       type="button"
       onClick={() => !disabled && onChange(!checked)}
       disabled={disabled}
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={label}
       className={`w-full flex items-center gap-3 py-2 px-3 rounded-md cursor-pointer transition-colors ${
         disabled
           ? "opacity-50 cursor-not-allowed"
