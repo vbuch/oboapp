@@ -14,8 +14,9 @@ export function stripMarkdown(text: string): string {
       // Remove italic (*text*) - only when * is used for emphasis
       .replace(/\*(.+?)\*/g, "$1")
       // Remove italic with underscore (_text_) - only when surrounded by spaces or at boundaries
+      // Use lookahead/lookbehind to avoid consuming boundary characters
       // This prevents matching underscores in identifiers like SF_5267_04
-      .replace(/(\s|^)_([^_]+?)_(\s|$)/g, "$1$2$3")
+      .replace(/(?<=\s|^)_([^_]+?)_(?=\s|$)/g, "$1")
       // Remove headers (# Header)
       .replace(/^#{1,6}\s+/gm, "")
       // Remove links [text](url)

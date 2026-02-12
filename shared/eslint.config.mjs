@@ -39,7 +39,7 @@ const eslintConfig = [
       "build/**",
       "node_modules/**",
       "**/*.d.ts", // Type declaration files
-      "**/*.mjs", // Config files not in tsconfig
+      "eslint.config.mjs", // Config file itself (not in tsconfig)
     ],
   },
 ];
