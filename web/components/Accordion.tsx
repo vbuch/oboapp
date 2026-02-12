@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useId } from "react";
 import { ChevronDown } from "lucide-react";
 import { borderRadius } from "@/lib/colors";
 
@@ -22,6 +22,7 @@ export default function Accordion({
   children,
 }: AccordionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const contentId = useId();
 
   return (
     <div className="border-b border-neutral-border last:border-b-0">
@@ -30,6 +31,7 @@ export default function Accordion({
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full flex items-center justify-between py-3 px-4 hover:bg-neutral-light/50 transition-colors cursor-pointer ${borderRadius.md}`}
         aria-expanded={isOpen}
+        aria-controls={contentId}
       >
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-neutral-dark">{title}</span>
@@ -44,7 +46,11 @@ export default function Accordion({
           }`}
         />
       </button>
-      {isOpen && <div className="pb-2">{children}</div>}
+      {isOpen && (
+        <div id={contentId} className="pb-2">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
