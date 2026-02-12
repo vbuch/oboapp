@@ -41,7 +41,7 @@ Set up oboapp with real Firebase/Google Cloud Platform infrastructure for produc
 
 ## Step 3: Create Service Account
 
-See detailed instructions: [Firebase Service Account Setup](../features/firebase-service-account-setup.md)
+See detailed instructions: [Firebase Service Account Setup](../setup/firebase-service-account-setup.md)
 
 1. In Firebase Console → **Project Settings** → **Service Accounts**
 2. Click **Generate new private key**
