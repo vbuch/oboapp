@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { Message } from "@/lib/types";
 import { classifyMessage } from "@/lib/message-classification";
-import sources from "@/lib/sources.json";
+import { getCurrentLocalitySources } from "@/lib/source-utils";
 
 const STORAGE_KEY = "sourceFilter";
 
@@ -24,9 +24,12 @@ export function computeSourceCounts(
   viewportMessages: Message[],
 ): SourceCount[] {
   const counts = new Map<string, number>();
+  
+  // Get all sources for the current locality
+  const localitySources = getCurrentLocalitySources();
 
-  // Initialize counts for all known sources
-  for (const source of sources) {
+  // Initialize counts for all locality sources (including those with 0 records)
+  for (const source of localitySources) {
     counts.set(source.id, 0);
   }
 
@@ -38,14 +41,13 @@ export function computeSourceCounts(
     }
   }
 
-  // Return only sources with non-zero counts, sorted by name
-  return sources
+  // Return ALL sources for the locality, sorted by name (including those with 0 count)
+  return localitySources
     .map((source) => ({
       sourceId: source.id,
       name: source.name,
       count: counts.get(source.id) || 0,
     }))
-    .filter((item) => item.count > 0)
     .sort((a, b) => a.name.localeCompare(b.name, LOCALE));
 }
 

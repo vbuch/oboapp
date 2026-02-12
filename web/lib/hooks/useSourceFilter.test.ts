@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from "vitest";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import {
   computeSourceCounts,
   computeHasActiveSourceFilters,
@@ -51,6 +51,16 @@ describe("useSourceFilter helpers", () => {
   });
 
   describe("computeSourceCounts", () => {
+    beforeEach(() => {
+      // Set NEXT_PUBLIC_LOCALITY for tests
+      process.env.NEXT_PUBLIC_LOCALITY = "bg.sofia";
+    });
+
+    afterEach(() => {
+      // Clean up
+      delete process.env.NEXT_PUBLIC_LOCALITY;
+    });
+
     it("counts features per source and sorts by name", () => {
       const viewportMessages: Message[] = [
         buildMessage({
@@ -86,7 +96,7 @@ describe("useSourceFilter helpers", () => {
       }
     });
 
-    it("returns only sources with non-zero counts", () => {
+    it("returns ALL sources for locality including those with zero counts", () => {
       const viewportMessages: Message[] = [
         buildMessage({
           source: "sofia-bg",
@@ -96,13 +106,18 @@ describe("useSourceFilter helpers", () => {
 
       const counts = computeSourceCounts(viewportMessages);
 
-      // Should only include sofia-bg, not all sources
+      // Should include ALL sources for the locality, not just those with records
+      expect(counts.length).toBeGreaterThan(1);
+
+      // Sofia-bg should have count of 1
       const sofiaBg = counts.find((c) => c.sourceId === "sofia-bg");
       expect(sofiaBg).toBeDefined();
       expect(sofiaBg?.count).toBe(1);
 
-      // Should not include sources with zero counts
-      expect(counts.every((c) => c.count > 0)).toBe(true);
+      // Other sources should have count of 0
+      const otherSources = counts.filter((c) => c.sourceId !== "sofia-bg");
+      expect(otherSources.length).toBeGreaterThan(0);
+      expect(otherSources.every((c) => c.count === 0)).toBe(true);
     });
 
     it("handles messages without source", () => {
@@ -114,8 +129,9 @@ describe("useSourceFilter helpers", () => {
 
       const counts = computeSourceCounts(viewportMessages);
 
-      // Messages without source should be ignored
-      expect(counts.length).toBeGreaterThanOrEqual(0);
+      // All sources should have count of 0
+      expect(counts.length).toBeGreaterThan(0);
+      expect(counts.every((c) => c.count === 0)).toBe(true);
     });
   });
 
