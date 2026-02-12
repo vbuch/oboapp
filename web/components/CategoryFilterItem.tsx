@@ -34,7 +34,7 @@ export default function CategoryFilterItem({
       onClick={onChange}
       aria-pressed={checked}
       className={`w-full flex items-center gap-3 py-2 px-3 rounded-md cursor-pointer transition-colors ${
-        checked ? "bg-neutral-light" : "bg-transparent"
+        checked ? "bg-neutral-light hover:bg-neutral-border" : "bg-transparent hover:bg-neutral-light"
       }`}
       style={{
         borderWidth: "1px",

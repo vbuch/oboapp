@@ -81,45 +81,47 @@ export async function GET(request: Request) {
 
     let allMessages: Message[] = [];
 
-    // Apply category filtering if categories are selected
-    if (selectedCategories && selectedCategories.length > 0) {
-      // Separate uncategorized from real categories
+    // Determine if we need source filtering
+    const hasSourceFilter = selectedSources && selectedSources.length > 0;
+    const hasCategoryFilter = selectedCategories && selectedCategories.length > 0;
+
+    // Apply filtering based on what's selected
+    if (hasCategoryFilter && hasSourceFilter) {
+      // Both category and source filters - need to combine them
+      // We'll use category filtering at DB level, then filter sources in memory
+      // This is acceptable because category filtering reduces the dataset significantly
+      
       const realCategories = selectedCategories.filter(
         (c) => c !== "uncategorized",
       );
       const includeUncategorized = selectedCategories.includes("uncategorized");
 
-      // If only uncategorized is selected, we need to fetch all and filter in memory
-      // because Firestore doesn't have an index for categories == null with timespanEnd ordering
       if (includeUncategorized && realCategories.length === 0) {
-        // Fetch messages with timespanEnd >= cutoffDate (server-side filtering)
         const snapshot = await messagesRef
           .where("timespanEnd", ">=", cutoffDate)
           .orderBy("timespanEnd", "desc")
           .get();
 
         const uncategorizedMessages: Message[] = [];
+        const sourceSet = new Set(selectedSources);
 
         snapshot.forEach((doc) => {
           const data = doc.data();
           const categories = data.categories;
-
-          // Check if message is uncategorized
           const isUncategorized =
             !categories ||
             (Array.isArray(categories) && categories.length === 0);
 
-          if (isUncategorized) {
+          // Apply both category and source filters
+          if (isUncategorized && data.source && sourceSet.has(data.source)) {
             uncategorizedMessages.push(docToMessage(doc));
           }
         });
 
         allMessages = uncategorizedMessages;
       } else {
-        // We have real categories (and possibly uncategorized)
         const queryPromises: Promise<FirebaseFirestore.QuerySnapshot>[] = [];
 
-        // Query for real categories using OR filter with server-side timespan filtering
         if (realCategories.length > 0) {
           const categoryFilters = realCategories.map((cat) =>
             where("categories", "array-contains", cat),
@@ -133,7 +135,6 @@ export async function GET(request: Request) {
           queryPromises.push(categoriesQuery.get());
         }
 
-        // If uncategorized is also selected, fetch with timespan filter
         if (includeUncategorized) {
           const allMessagesQuery = messagesRef
             .where("timespanEnd", ">=", cutoffDate)
@@ -142,10 +143,90 @@ export async function GET(request: Request) {
           queryPromises.push(allMessagesQuery.get());
         }
 
-        // Execute queries in parallel
         const snapshots = await Promise.all(queryPromises);
+        const messagesMap = new Map<string, Message>();
+        const sourceSet = new Set(selectedSources);
 
-        // Merge results and deduplicate by message ID
+        for (let i = 0; i < snapshots.length; i++) {
+          const snapshot = snapshots[i];
+          const isUncategorizedSnapshot =
+            includeUncategorized && i === snapshots.length - 1;
+
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+
+            if (isUncategorizedSnapshot) {
+              const categories = data.categories;
+              const isUncategorized =
+                !categories ||
+                (Array.isArray(categories) && categories.length === 0);
+              if (!isUncategorized) return;
+            }
+
+            // Apply source filter
+            if (data.source && sourceSet.has(data.source)) {
+              if (!messagesMap.has(doc.id)) {
+                messagesMap.set(doc.id, docToMessage(doc));
+              }
+            }
+          });
+        }
+
+        allMessages = Array.from(messagesMap.values());
+      }
+    } else if (hasCategoryFilter) {
+      // Only category filter - existing logic
+      const realCategories = selectedCategories.filter(
+        (c) => c !== "uncategorized",
+      );
+      const includeUncategorized = selectedCategories.includes("uncategorized");
+
+      if (includeUncategorized && realCategories.length === 0) {
+        const snapshot = await messagesRef
+          .where("timespanEnd", ">=", cutoffDate)
+          .orderBy("timespanEnd", "desc")
+          .get();
+
+        const uncategorizedMessages: Message[] = [];
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const categories = data.categories;
+          const isUncategorized =
+            !categories ||
+            (Array.isArray(categories) && categories.length === 0);
+
+          if (isUncategorized) {
+            uncategorizedMessages.push(docToMessage(doc));
+          }
+        });
+
+        allMessages = uncategorizedMessages;
+      } else {
+        const queryPromises: Promise<FirebaseFirestore.QuerySnapshot>[] = [];
+
+        if (realCategories.length > 0) {
+          const categoryFilters = realCategories.map((cat) =>
+            where("categories", "array-contains", cat),
+          );
+
+          const categoriesQuery = messagesRef
+            .where(or(...categoryFilters))
+            .where("timespanEnd", ">=", cutoffDate)
+            .orderBy("timespanEnd", "desc");
+
+          queryPromises.push(categoriesQuery.get());
+        }
+
+        if (includeUncategorized) {
+          const allMessagesQuery = messagesRef
+            .where("timespanEnd", ">=", cutoffDate)
+            .orderBy("timespanEnd", "desc");
+
+          queryPromises.push(allMessagesQuery.get());
+        }
+
+        const snapshots = await Promise.all(queryPromises);
         const messagesMap = new Map<string, Message>();
 
         for (let i = 0; i < snapshots.length; i++) {
@@ -156,16 +237,14 @@ export async function GET(request: Request) {
           snapshot.forEach((doc) => {
             const data = doc.data();
 
-            // If this is the uncategorized snapshot, filter for uncategorized only
             if (isUncategorizedSnapshot) {
               const categories = data.categories;
               const isUncategorized =
                 !categories ||
                 (Array.isArray(categories) && categories.length === 0);
-              if (!isUncategorized) return; // Skip categorized messages
+              if (!isUncategorized) return;
             }
 
-            // Only add if not already present (deduplication)
             if (!messagesMap.has(doc.id)) {
               messagesMap.set(doc.id, docToMessage(doc));
             }
@@ -174,8 +253,36 @@ export async function GET(request: Request) {
 
         allMessages = Array.from(messagesMap.values());
       }
+    } else if (hasSourceFilter) {
+      // Only source filter - use database-level filtering with index
+      const queryPromises: Promise<FirebaseFirestore.QuerySnapshot>[] = [];
+
+      // Query each source separately using the source + timespanEnd index
+      for (const source of selectedSources) {
+        const sourceQuery = messagesRef
+          .where("source", "==", source)
+          .where("timespanEnd", ">=", cutoffDate)
+          .orderBy("timespanEnd", "desc");
+
+        queryPromises.push(sourceQuery.get());
+      }
+
+      // Execute queries in parallel
+      const snapshots = await Promise.all(queryPromises);
+      const messagesMap = new Map<string, Message>();
+
+      // Merge results and deduplicate
+      for (const snapshot of snapshots) {
+        snapshot.forEach((doc) => {
+          if (!messagesMap.has(doc.id)) {
+            messagesMap.set(doc.id, docToMessage(doc));
+          }
+        });
+      }
+
+      allMessages = Array.from(messagesMap.values());
     } else {
-      // No category filter - fetch all messages with timespan filter (server-side)
+      // No filters - fetch all messages with timespan filter (server-side)
       const snapshot = await messagesRef
         .where("timespanEnd", ">=", cutoffDate)
         .orderBy("timespanEnd", "desc")
@@ -207,13 +314,8 @@ export async function GET(request: Request) {
       });
     }
 
-    // Apply source filtering if specified (after viewport filtering to preserve cityWide messages)
-    if (selectedSources && selectedSources.length > 0) {
-      const sourceSet = new Set(selectedSources);
-      messages = messages.filter((message) => {
-        return message.source && sourceSet.has(message.source);
-      });
-    }
+    // Source filtering is now done at database level (above)
+    // No need for in-memory filtering
 
     // Simplify geometry to centroids for low zoom levels (for clustering)
     if (zoom !== undefined && zoom < CLUSTER_ZOOM_THRESHOLD) {

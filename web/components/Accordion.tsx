@@ -28,7 +28,7 @@ export default function Accordion({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between py-3 px-4 hover:bg-neutral-light/50 transition-colors ${borderRadius.md}`}
+        className={`w-full flex items-center justify-between py-3 px-4 hover:bg-neutral-light/50 transition-colors cursor-pointer ${borderRadius.md}`}
         aria-expanded={isOpen}
       >
         <div className="flex items-center gap-2">

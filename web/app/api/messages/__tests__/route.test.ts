@@ -42,61 +42,70 @@ const formatDate = (date: Date) => {
 const setupFirebaseMock = async (mockMessages: any[]) => {
   const { adminDb } = await import("@/lib/firebase-admin");
 
-  let whereField: string | null = null;
-  let whereOperator: string | null = null;
-  let whereValue: any = null;
+  const createMockQuery = () => {
+    const whereConditions: Array<{ field: string; operator: string; value: any }> = [];
 
-  const mockSnapshot = {
-    forEach: vi.fn((callback) => {
-      // Filter messages based on where clause if it was called
-      const filteredMessages =
-        whereField && whereOperator && whereValue
-          ? mockMessages.filter((doc) => {
-              const data = doc.data();
-              const fieldValue = whereField ? data[whereField] : null;
+    const applyFilters = (messages: any[]) => {
+      return messages.filter((doc) => {
+        const data = doc.data();
+        
+        return whereConditions.every((condition) => {
+          const fieldValue = data[condition.field];
 
-              if (!fieldValue) return false;
+          if (condition.operator === ">=") {
+            if (!fieldValue) return false;
+            const dateValue = fieldValue._seconds
+              ? new Date(fieldValue._seconds * 1000)
+              : fieldValue;
+            return dateValue >= condition.value;
+          }
 
-              // Convert Firestore timestamp to Date for comparison
-              const dateValue = fieldValue._seconds
-                ? new Date(fieldValue._seconds * 1000)
-                : fieldValue;
+          if (condition.operator === "==") {
+            return fieldValue === condition.value;
+          }
 
-              if (whereOperator === ">=") {
-                return dateValue >= whereValue;
-              }
-              return false;
-            })
-          : mockMessages;
+          return false;
+        });
+      });
+    };
 
-      filteredMessages.forEach((doc) => callback(doc));
-    }),
+    const mockSnapshot = {
+      forEach: vi.fn((callback: any) => {
+        const filteredMessages = applyFilters(mockMessages);
+        filteredMessages.forEach((doc) => callback(doc));
+      }),
+    };
+
+    const mockGet = {
+      get: vi.fn().mockResolvedValue(mockSnapshot),
+    };
+
+    const mockOrderBy2: any = {
+      orderBy: vi.fn().mockReturnValue(mockGet),
+      get: vi.fn().mockResolvedValue(mockSnapshot),
+    };
+
+    const mockOrderBy1: any = {
+      orderBy: vi.fn().mockReturnValue(mockOrderBy2),
+      where: vi.fn((field: string, operator: string, value: any) => {
+        whereConditions.push({ field, operator, value });
+        return mockOrderBy1;
+      }),
+    };
+
+    const mockQuery: any = {
+      where: vi.fn((field: string, operator: string, value: any) => {
+        whereConditions.push({ field, operator, value });
+        return mockOrderBy1;
+      }),
+      orderBy: vi.fn().mockReturnValue(mockOrderBy2),
+    };
+
+    return mockQuery;
   };
 
-  const mockGet = {
-    get: vi.fn().mockResolvedValue(mockSnapshot),
-  };
-
-  // Support chained orderBy calls
-  const mockOrderBy2 = {
-    orderBy: vi.fn().mockReturnValue(mockGet),
-  };
-
-  const mockOrderBy1 = {
-    orderBy: vi.fn().mockReturnValue(mockOrderBy2),
-  };
-
-  const mockCollection = {
-    where: vi.fn((field, operator, value) => {
-      whereField = field;
-      whereOperator = operator;
-      whereValue = value;
-      return mockOrderBy1;
-    }),
-    orderBy: vi.fn().mockReturnValue(mockGet),
-  };
-
-  vi.mocked(adminDb.collection).mockReturnValue(mockCollection as any);
+  // Mock adminDb.collection to return a fresh query for each call
+  vi.mocked(adminDb.collection).mockImplementation(() => createMockQuery() as any);
 };
 
 describe("GET /api/messages - Query Parameter Validation", () => {
