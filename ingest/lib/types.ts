@@ -24,6 +24,9 @@ export type {
   InternalMessage,
 } from "@oboapp/shared";
 
+// Re-export shared utilities
+export { stripMarkdown } from "@oboapp/shared";
+
 // Re-export with GeoJSON prefix for backward compatibility
 export type {
   GeoJsonPoint as GeoJSONPoint,

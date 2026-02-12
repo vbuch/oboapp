@@ -2,3 +2,4 @@
 export * from "./schema";
 export * from "./message-id-utils";
 export * from "./bounds";
+export * from "./markdown-utils";
