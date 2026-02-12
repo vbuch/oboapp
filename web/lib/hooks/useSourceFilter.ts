@@ -143,7 +143,7 @@ export function useSourceFilter(
   useEffect(() => {
     // Use a flag to prevent state updates if the component unmounts
     let isMounted = true;
-    let timerId: NodeJS.Timeout | undefined;
+    let timerId: ReturnType<typeof setTimeout> | undefined;
 
     // Defer loading state to avoid synchronous setState in effect
     Promise.resolve().then(() => {
