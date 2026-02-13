@@ -13,8 +13,12 @@ async function checkData() {
     process.env.FIRESTORE_EMULATOR_HOST,
   );
   console.log(
-    "  NEXT_PUBLIC_FIREBASE_PROJECT_ID:",
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    "  FIREBASE_PROJECT_ID:",
+    process.env.FIREBASE_PROJECT_ID,
+  );
+  console.log(
+    "  FIREBASE_PROJECT_ID:",
+    process.env.FIREBASE_PROJECT_ID,
   );
   console.log();
 

@@ -14,11 +14,11 @@ import { convertTimestamp } from "./utils";
 import { logger } from "@/lib/logger";
 
 // App URL (use env var or fallback for tests)
-const APP_URL_ENV = process.env.NEXT_PUBLIC_APP_URL;
+const APP_URL_ENV = process.env.APP_URL;
 
 if (!APP_URL_ENV && process.env.NODE_ENV === "production") {
   throw new Error(
-    "Environment variable NEXT_PUBLIC_APP_URL must be set in production.",
+    "Environment variable APP_URL must be set in production.",
   );
 }
 

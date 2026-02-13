@@ -16,7 +16,7 @@ if (!getApps().length) {
     // Emulator mode - no credentials needed
     logger.info("Firebase Admin using emulators");
     adminApp = initializeApp({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "demo-project",
+      projectId: process.env.FIREBASE_PROJECT_ID || "demo-project",
     });
   } else {
     // Production mode - use service account key from environment
@@ -28,7 +28,7 @@ if (!getApps().length) {
 
         adminApp = initializeApp({
           credential: cert(serviceAccount),
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          projectId: process.env.FIREBASE_PROJECT_ID,
         });
       } catch (error) {
         logger.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY", { error: error instanceof Error ? error.message : String(error) });

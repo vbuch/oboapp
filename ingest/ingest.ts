@@ -44,10 +44,10 @@ Examples:
     dotenv.config({ path: resolve(process.cwd(), ".env.local") });
     verifyEnvSet([
       "FIREBASE_SERVICE_ACCOUNT_KEY",
-      "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+      "FIREBASE_PROJECT_ID",
       "GOOGLE_AI_API_KEY",
       "GOOGLE_AI_MODEL",
-      "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
+      "GOOGLE_MAPS_API_KEY",
     ]);
 
     try {
@@ -88,7 +88,7 @@ program
     dotenv.config({ path: resolve(process.cwd(), ".env.local") });
     verifyEnvSet([
       "FIREBASE_SERVICE_ACCOUNT_KEY",
-      "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+      "FIREBASE_PROJECT_ID",
     ]);
 
     try {

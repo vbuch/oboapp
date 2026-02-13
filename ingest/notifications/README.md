@@ -140,7 +140,7 @@ Add these to your `.env.local`:
 NEXT_PUBLIC_FIREBASE_VAPID_KEY=your_vapid_key_here
 
 # Optional: Custom app URL for notification links
-NEXT_PUBLIC_APP_URL=https://your-domain.com
+APP_URL=https://your-domain.com
 ```
 
 ### Firebase Console Setup

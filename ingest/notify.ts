@@ -32,8 +32,8 @@ Examples:
     dotenv.config({ path: resolve(process.cwd(), ".env.local") });
     verifyEnvSet([
       "FIREBASE_SERVICE_ACCOUNT_KEY",
-      "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
-      "NEXT_PUBLIC_APP_URL",
+      "FIREBASE_PROJECT_ID",
+      "APP_URL",
     ]);
 
     try {
