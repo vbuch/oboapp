@@ -13,9 +13,9 @@ import Locations from "./Locations";
 import DetailItem from "./DetailItem";
 import MessageText from "./MessageText";
 import CategoryChips from "@/components/CategoryChips";
-import { getCentroid } from "@/lib/geometry-utils";
+import { getFeaturesCentroid } from "@/lib/geometry-utils";
 
-type CloseMethod = "drag" | "esc" | "backdrop";
+type CloseMethod = "drag" | "esc";
 
 function formatDate(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
@@ -26,25 +26,6 @@ function formatDate(date: Date | string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-// Calculate combined centroid from all GeoJSON features
-function getFeaturesCentroid(
-  geoJson: Message["geoJson"],
-): { lat: number; lng: number } | null {
-  const features = geoJson?.features;
-  if (!features || features.length === 0) return null;
-
-  const centroids = features
-    .map((f) => getCentroid(f.geometry))
-    .filter((c): c is { lat: number; lng: number } => c !== null);
-
-  if (centroids.length === 0) return null;
-
-  const avgLat = centroids.reduce((sum, c) => sum + c.lat, 0) / centroids.length;
-  const avgLng = centroids.reduce((sum, c) => sum + c.lng, 0) / centroids.length;
-
-  return { lat: avgLat, lng: avgLng };
 }
 
 interface MessageDetailViewProps {
@@ -91,31 +72,22 @@ export default function MessageDetailView({
   if (!message) return null;
 
   return (
-    <>
-      <div
-        className={`fixed inset-0 z-30 bg-black/20 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 ${
-          isVisible ? "opacity-100" : "opacity-0"
-        }`}
-        onClick={() => handleClose("backdrop")}
-        aria-hidden="true"
-      />
-
-      <aside
-        aria-label="Детайли за сигнала"
-        className={`fixed z-40 bg-white shadow-2xl overflow-y-auto transition-all duration-300 ease-out
-          bottom-0 left-0 right-0 max-h-[85vh] rounded-t-2xl
-          sm:inset-y-0 sm:left-auto sm:right-0 sm:w-96 sm:max-h-none sm:rounded-none
-          ${
-            isVisible
-              ? "translate-y-0 sm:translate-y-0 sm:translate-x-0"
-              : "translate-y-full sm:translate-y-0 sm:translate-x-full"
-          }
-        `}
-        style={{
-          transform: isDragging ? `translateY(${dragOffset}px)` : undefined,
-          transition: isDragging ? "none" : undefined,
-        }}
-      >
+    <aside
+      aria-label="Детайли за сигнала"
+      className={`fixed z-40 bg-white shadow-2xl overflow-y-auto transition-all duration-300 ease-out
+        bottom-0 left-0 right-0 max-h-[85vh] rounded-t-2xl
+        sm:inset-y-0 sm:left-auto sm:right-0 sm:w-96 sm:max-h-none sm:rounded-none
+        ${
+          isVisible
+            ? "translate-y-0 sm:translate-y-0 sm:translate-x-0"
+            : "translate-y-full sm:translate-y-0 sm:translate-x-full"
+        }
+      `}
+      style={{
+        transform: isDragging ? `translateY(${dragOffset}px)` : undefined,
+        transition: isDragging ? "none" : undefined,
+      }}
+    >
         <Header
           handlers={handlers}
           onClose={onClose}
@@ -215,6 +187,5 @@ export default function MessageDetailView({
             })()}
         </div>
       </aside>
-    </>
   );
 }

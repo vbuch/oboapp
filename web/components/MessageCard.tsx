@@ -12,6 +12,7 @@ import CategoryChips from "@/components/CategoryChips";
 interface MessageCardProps {
   readonly message: Message;
   readonly onClick: (message: Message) => void;
+  readonly onHover?: (messageId: string | null) => void;
   readonly children?: React.ReactNode;
 }
 
@@ -51,6 +52,7 @@ export function MessageCardSkeleton() {
 export default function MessageCard({
   message,
   onClick,
+  onHover,
   children,
 }: MessageCardProps) {
   const [logoError, setLogoError] = useState(false);
@@ -121,6 +123,10 @@ export default function MessageCard({
       type="button"
       className="bg-white rounded-lg shadow-md p-4 border border-neutral-border hover:shadow-lg transition-shadow cursor-pointer w-full text-left relative h-full flex flex-col min-w-0 overflow-clip"
       onClick={handleClick}
+      onMouseEnter={() => message.id && onHover?.(message.id)}
+      onMouseLeave={() => onHover?.(null)}
+      onFocus={() => message.id && onHover?.(message.id)}
+      onBlur={() => onHover?.(null)}
     >
       {/* Status indicator circle (top-right) */}
       <div
