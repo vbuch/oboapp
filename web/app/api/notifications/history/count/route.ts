@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching notification count:", error);
     return NextResponse.json(
       { error: "Failed to fetch notification count" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

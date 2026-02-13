@@ -20,15 +20,12 @@ vi.mock("@/lib/verifyAuthToken", () => ({
 }));
 
 function createRequest(): Request {
-  return new Request(
-    "http://localhost:3000/api/notifications/history/count",
-    {
-      method: "GET",
-      headers: {
-        authorization: "Bearer test-token",
-      },
+  return new Request("http://localhost:3000/api/notifications/history/count", {
+    method: "GET",
+    headers: {
+      authorization: "Bearer test-token",
     },
-  );
+  });
 }
 
 describe("GET /api/notifications/history/count", () => {

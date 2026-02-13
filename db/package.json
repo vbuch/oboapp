@@ -12,10 +12,6 @@
     "./collections": {
       "types": "./dist/collections/index.d.ts",
       "default": "./dist/collections/index.js"
-    },
-    "./migrate": {
-      "types": "./dist/migrate/firestore-to-mongo.d.ts",
-      "default": "./dist/migrate/firestore-to-mongo.js"
     }
   },
   "scripts": {
@@ -23,8 +19,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "migrate": "tsx src/migrate/firestore-to-mongo.ts"
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@oboapp/shared": "workspace:*",
@@ -40,8 +35,6 @@
   },
   "devDependencies": {
     "@types/node": "^20",
-    "dotenv": "^17.2.3",
-    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.0.15"
   }

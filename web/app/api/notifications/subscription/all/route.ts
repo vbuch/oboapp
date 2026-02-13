@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
         endpoint: doc.endpoint as string,
         createdAt: toISOString(doc.createdAt),
         updatedAt: toISOString(doc.updatedAt),
-        deviceInfo: (doc.deviceInfo as NotificationSubscription["deviceInfo"]) || {},
+        deviceInfo:
+          (doc.deviceInfo as NotificationSubscription["deviceInfo"]) || {},
       }))
       .sort((a, b) => {
         // Sort by createdAt descending (newest first)
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching subscriptions:", error);
     return NextResponse.json(
       { error: "Failed to fetch subscriptions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -62,7 +63,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting subscriptions:", error);
     return NextResponse.json(
       { error: "Failed to delete subscriptions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

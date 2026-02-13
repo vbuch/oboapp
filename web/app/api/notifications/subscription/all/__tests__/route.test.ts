@@ -30,13 +30,16 @@ function createRequest(
   method: string,
   headers: Record<string, string> = {},
 ): Request {
-  return new Request("http://localhost:3000/api/notifications/subscription/all", {
-    method,
-    headers: {
-      authorization: "Bearer test-token",
-      ...headers,
+  return new Request(
+    "http://localhost:3000/api/notifications/subscription/all",
+    {
+      method,
+      headers: {
+        authorization: "Bearer test-token",
+        ...headers,
+      },
     },
-  });
+  );
 }
 
 describe("GET /api/notifications/subscription/all", () => {
