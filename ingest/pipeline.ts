@@ -3,7 +3,7 @@
 import { Command } from "commander";
 import { resolve, join } from "node:path";
 import dotenv from "dotenv";
-import { verifyEnvSet } from "@/lib/verify-env";
+import { verifyEnvSet, verifyDbEnv } from "@/lib/verify-env";
 import { readdirSync, statSync } from "node:fs";
 import { logger } from "@/lib/logger";
 
@@ -36,10 +36,13 @@ async function runCrawler(source: string): Promise<boolean> {
     logger.info(`Crawler ${source} completed`, { step: "crawl", source });
     return true;
   } catch (error) {
-    logger.error(`Crawler ${source} failed: ${error instanceof Error ? error.message : String(error)}`, {
-      step: "crawl",
-      source,
-    });
+    logger.error(
+      `Crawler ${source} failed: ${error instanceof Error ? error.message : String(error)}`,
+      {
+        step: "crawl",
+        source,
+      },
+    );
     return false;
   }
 }
@@ -51,9 +54,12 @@ async function runIngest(): Promise<void> {
     await ingest({});
     logger.info("Ingest completed", { step: "ingest" });
   } catch (error) {
-    logger.error(`Ingest failed: ${error instanceof Error ? error.message : String(error)}`, {
-      step: "ingest",
-    });
+    logger.error(
+      `Ingest failed: ${error instanceof Error ? error.message : String(error)}`,
+      {
+        step: "ingest",
+      },
+    );
     throw error;
   }
 }
@@ -65,9 +71,12 @@ async function runNotify(): Promise<void> {
     await main();
     logger.info("Notify completed", { step: "notify" });
   } catch (error) {
-    logger.error(`Notify failed: ${error instanceof Error ? error.message : String(error)}`, {
-      step: "notify",
-    });
+    logger.error(
+      `Notify failed: ${error instanceof Error ? error.message : String(error)}`,
+      {
+        step: "notify",
+      },
+    );
     throw error;
   }
 }
@@ -91,11 +100,14 @@ async function runPipeline(crawlers: string[], pipelineName: string) {
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
 
-    logger.info(`Crawler results: ${successful.length} succeeded, ${failed.length} failed`, {
-      pipeline: pipelineName,
-      succeeded: successful.map((r) => r.source),
-      failed: failed.map((r) => r.source),
-    });
+    logger.info(
+      `Crawler results: ${successful.length} succeeded, ${failed.length} failed`,
+      {
+        pipeline: pipelineName,
+        succeeded: successful.map((r) => r.source),
+        failed: failed.map((r) => r.source),
+      },
+    );
 
     // Continue with ingest and notify even if some crawlers failed
     // This ensures that successfully crawled data is processed
@@ -103,10 +115,13 @@ async function runPipeline(crawlers: string[], pipelineName: string) {
     await runNotify();
 
     if (failed.length > 0) {
-      logger.error(`${pipelineName} pipeline completed with ${failed.length} crawler failure(s)`, {
-        pipeline: pipelineName,
-        failedCrawlers: failed.map((r) => r.source),
-      });
+      logger.error(
+        `${pipelineName} pipeline completed with ${failed.length} crawler failure(s)`,
+        {
+          pipeline: pipelineName,
+          failedCrawlers: failed.map((r) => r.source),
+        },
+      );
       process.exit(1); // Exit with error to signal partial failure
     } else {
       logger.info(`${pipelineName} pipeline completed successfully`, {
@@ -115,9 +130,12 @@ async function runPipeline(crawlers: string[], pipelineName: string) {
       process.exit(0);
     }
   } catch (error) {
-    logger.error(`${pipelineName} pipeline failed: ${error instanceof Error ? error.message : String(error)}`, {
-      pipeline: pipelineName,
-    });
+    logger.error(
+      `${pipelineName} pipeline failed: ${error instanceof Error ? error.message : String(error)}`,
+      {
+        pipeline: pipelineName,
+      },
+    );
     process.exit(1);
   }
 }
@@ -125,15 +143,16 @@ async function runPipeline(crawlers: string[], pipelineName: string) {
 program
   .name("pipeline")
   .description("Run data ingestion pipeline with crawlers, ingest, and notify")
-  .option("--emergent", "Run only emergent crawlers (ERM, Toplo, Sofiyska Voda)")
+  .option(
+    "--emergent",
+    "Run only emergent crawlers (ERM, Toplo, Sofiyska Voda)",
+  )
   .option("--all", "Run all crawlers")
-  .addHelpText(
-    "after",
-    () => {
-      const longFlowCrawlers = getAvailableSources().filter(
-        (crawler) => !EMERGENT_CRAWLERS.includes(crawler)
-      );
-      return `
+  .addHelpText("after", () => {
+    const longFlowCrawlers = getAvailableSources().filter(
+      (crawler) => !EMERGENT_CRAWLERS.includes(crawler),
+    );
+    return `
 Crawler Groups:
   Emergent crawlers (short-lived messages, run every 30 minutes):
     ${EMERGENT_CRAWLERS.map((c) => `- ${c}`).join("\n    ")}
@@ -145,14 +164,12 @@ Examples:
   $ npx tsx pipeline --emergent
   $ npx tsx pipeline --all
 `;
-    }
-  )
+  })
   .action(async (options) => {
     // Ensure environment variables are loaded and required keys are present
     dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+    verifyDbEnv();
     verifyEnvSet([
-      "FIREBASE_SERVICE_ACCOUNT_KEY",
-      "FIREBASE_PROJECT_ID",
       "GOOGLE_AI_API_KEY",
       "GOOGLE_AI_MODEL",
       "GOOGLE_MAPS_API_KEY",
