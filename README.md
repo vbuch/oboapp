@@ -15,9 +15,10 @@ The shared package builds automatically via postinstall hook. Dependencies are m
 
 ## Project Structure
 
-This monorepo contains three packages:
+This monorepo contains four packages:
 
 - **[shared/](shared)** - Shared TypeScript schemas (Zod) used by both web and ingest
+- **[db/](db)** - Database abstraction layer (`@oboapp/db`) — dual-write over Firestore and MongoDB
 - **[ingest/](ingest)** - Automated data collection and processing pipeline
 - **[web/](web)** - Next.js web application
 
@@ -38,7 +39,8 @@ See [web/](web) for details.
 ## Tech Stack
 
 - **Frontend**: Next.js 16, React 19, TypeScript, Google Maps API
-- **Backend**: Node.js, Firebase (Firestore, Auth, Cloud Messaging)
+- **Backend**: Node.js, Firebase (Auth, Cloud Messaging), Firestore, MongoDB
+- **Database**: `@oboapp/db` abstraction with dual-write support (see [Database Layer](docs/features/database-layer.md))
 - **AI**: Google Gemini for address extraction
 - **Infrastructure**: Google Cloud Run, Terraform, Docker, Vercel
 - **Automation**: Playwright for web scraping
@@ -51,6 +53,7 @@ See [web/](web) for details.
 - [Message URLs](docs/features/message-urls.md) - Short, shareable URLs for deep-linking to messages
 - [Geocoding System](docs/features/geocoding-overview.md) - Multi-service geocoding with Google, OpenStreetMap, Bulgarian Cadastre, and GTFS APIs
 - [Onboarding Flow](docs/features/onboarding-flow.md) - User onboarding state machine for notifications and zone creation
+- [Database Layer](docs/features/database-layer.md) - Dual-write database abstraction over Firestore and MongoDB
 - [Locality Configuration](docs/features/multi-locality-support.md) - Environment-based locality configuration for hosting in different cities
 - [Your Sofia API](web/app/api/ysm/README.md) - Public API contract for the Your Sofia mobile client
 
