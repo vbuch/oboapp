@@ -7,7 +7,7 @@
  * Idempotent — safe to re-run. Uses upsert to avoid duplicates.
  *
  * Usage:
- *   pnpm --filter @oboapp/db migrate
+ *   cd db && npx tsx migrate/2026-02-13-firestore-to-mongo.ts
  *
  * Required env vars:
  *   FIREBASE_SERVICE_ACCOUNT_KEY — Firestore credentials
@@ -18,9 +18,8 @@
 import dotenv from "dotenv";
 import { resolve } from "node:path";
 
-// Load env before any Firebase imports
-dotenv.config({ path: resolve(process.cwd(), ".env.local") });
-dotenv.config({ path: resolve(process.cwd(), "../.env.local") });
+// Load env from ingest/.env.local
+dotenv.config({ path: resolve(process.cwd(), "../ingest/.env.local") });
 
 import { MongoClient, type Document } from "mongodb";
 
@@ -51,7 +50,10 @@ function convertTimestamp(value: unknown): Date | unknown {
       return new Date(secs * 1000);
     }
     // Firestore Timestamp with toDate()
-    if ("toDate" in value && typeof (value as Record<string, unknown>).toDate === "function") {
+    if (
+      "toDate" in value &&
+      typeof (value as Record<string, unknown>).toDate === "function"
+    ) {
       return (value as { toDate(): Date }).toDate();
     }
   }
@@ -140,7 +142,12 @@ async function migrate(): Promise<void> {
 
   console.log("Starting Firestore → MongoDB migration...\n");
 
-  const summary: { collection: string; firestore: number; mongodb: number; status: string }[] = [];
+  const summary: {
+    collection: string;
+    firestore: number;
+    mongodb: number;
+    status: string;
+  }[] = [];
 
   for (const collectionName of COLLECTIONS) {
     console.log(`\n--- Migrating: ${collectionName} ---`);
@@ -203,7 +210,9 @@ async function migrate(): Promise<void> {
   const allOk = summary.every(
     (s) => s.status === "OK" || s.status === "skipped (empty)",
   );
-  console.log(`\nOverall: ${allOk ? "SUCCESS" : "SOME COLLECTIONS NEED ATTENTION"}`);
+  console.log(
+    `\nOverall: ${allOk ? "SUCCESS" : "SOME COLLECTIONS NEED ATTENTION"}`,
+  );
 
   await mongoClient.close();
 }
