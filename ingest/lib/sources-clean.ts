@@ -1,4 +1,4 @@
-import type { Firestore } from "firebase-admin/firestore";
+import type { OboDb } from "@oboapp/db";
 import { logger } from "@/lib/logger";
 
 interface SourceDocument {
@@ -10,21 +10,20 @@ interface SourceDocument {
 /**
  * Get all source document IDs that have been ingested into messages
  */
-async function getIngestedSourceIds(adminDb: Firestore): Promise<Set<string>> {
+async function getIngestedSourceIds(db: OboDb): Promise<Set<string>> {
   logger.info("Checking which sources have been ingested");
 
-  const messagesSnapshot = await adminDb
-    .collection("messages")
-    .select("sourceDocumentId")
-    .get();
+  const docs = await db.messages.findMany({
+    select: ["sourceDocumentId"],
+  });
 
   const ingestedIds = new Set<string>();
-  messagesSnapshot.forEach((doc) => {
-    const sourceDocId = doc.data().sourceDocumentId;
+  for (const doc of docs) {
+    const sourceDocId = doc.sourceDocumentId as string;
     if (sourceDocId) {
       ingestedIds.add(sourceDocId);
     }
-  });
+  }
 
   logger.info("Found ingested sources", { count: ingestedIds.size });
   return ingestedIds;
@@ -40,45 +39,47 @@ export async function cleanSources(
   logger.info("Cleaning sources", { mode: dryRun ? "dry-run" : "production" });
   logger.info("Retaining source type", { retainSourceType });
 
-  // Dynamically import firebase-admin after env is loaded
-  const { adminDb } = await import("@/lib/firebase-admin");
+  // Dynamically import db after env is loaded
+  const { getDb } = await import("@/lib/db");
+  const db = await getDb();
 
   // Get all sources
-  const sourcesSnapshot = await adminDb.collection("sources").get();
-  logger.info("Total sources in database", { count: sourcesSnapshot.size });
+  const allSources = await db.sources.findMany();
+  logger.info("Total sources in database", { count: allSources.length });
 
-  if (sourcesSnapshot.empty) {
+  if (allSources.length === 0) {
     logger.info("No sources found in database");
     return;
   }
 
   // Get set of ingested source IDs
-  const ingestedSourceIds = await getIngestedSourceIds(adminDb);
+  const ingestedSourceIds = await getIngestedSourceIds(db);
 
   // Categorize sources
   const retained: SourceDocument[] = [];
   const toDelete: { id: string; doc: SourceDocument }[] = [];
   const ingested: SourceDocument[] = [];
 
-  sourcesSnapshot.forEach((doc) => {
-    const data = doc.data() as SourceDocument;
-    const sourceType = data.sourceType;
+  for (const data of allSources) {
+    const sourceType = data.sourceType as string;
+    const id = data._id as string;
+    const doc = data as unknown as SourceDocument;
 
     // Keep sources of the retain type
     if (sourceType === retainSourceType) {
-      retained.push(data);
-      return;
+      retained.push(doc);
+      continue;
     }
 
     // Keep sources that have been ingested
-    if (ingestedSourceIds.has(doc.id)) {
-      ingested.push(data);
-      return;
+    if (ingestedSourceIds.has(id)) {
+      ingested.push(doc);
+      continue;
     }
 
     // Mark for deletion
-    toDelete.push({ id: doc.id, doc: data });
-  });
+    toDelete.push({ id, doc });
+  }
 
   // Display summary
   logger.info("Source cleanup summary", {
@@ -106,22 +107,9 @@ export async function cleanSources(
 
   // Delete sources in batches
   logger.info("Deleting sources");
-  const BATCH_SIZE = 500;
-  let deleted = 0;
+  const idsToDelete = toDelete.map(({ id }) => id);
+  await db.sources.deleteManyByIds(idsToDelete);
 
-  for (let i = 0; i < toDelete.length; i += BATCH_SIZE) {
-    const batch = adminDb.batch();
-    const batchItems = toDelete.slice(i, i + BATCH_SIZE);
-
-    batchItems.forEach(({ id }) => {
-      batch.delete(adminDb.collection("sources").doc(id));
-    });
-
-    await batch.commit();
-    deleted += batchItems.length;
-    logger.info("Deleted sources progress", { deleted, total: toDelete.length });
-  }
-
-  logger.info("Successfully deleted unprocessed sources", { deleted });
+  logger.info("Successfully deleted unprocessed sources", { deleted: idsToDelete.length });
   logger.info("Retained sources", { count: retained.length + ingested.length });
 }

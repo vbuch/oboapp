@@ -5,10 +5,11 @@
   "packageManager": "pnpm@10.11.0",
   "scripts": {
     "build:shared": "pnpm --filter @oboapp/shared build",
-    "build:all": "pnpm build:shared && pnpm --filter oboapp-ingest build && pnpm --filter oboapp-web build",
+    "build:db": "pnpm --filter @oboapp/db build",
+    "build:all": "pnpm build:shared && pnpm build:db && pnpm --filter oboapp-ingest build && pnpm --filter oboapp-web build",
     "test:all": "pnpm --filter '*' test:run --if-present",
     "lint:all": "pnpm --filter '*' lint --if-present",
-    "postinstall": "pnpm build:shared",
+    "postinstall": "pnpm build:shared && pnpm build:db",
     "prepare": "husky"
   },
   "devDependencies": {

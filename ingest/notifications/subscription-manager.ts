@@ -1,45 +1,40 @@
-import type { Firestore } from "firebase-admin/firestore";
+import type { OboDb } from "@oboapp/db";
 import { NotificationSubscription } from "@/lib/types";
-import { convertTimestamp } from "./utils";
 import { logger } from "@/lib/logger";
+
+function toDateOrString(value: unknown): Date | string {
+  if (value instanceof Date) return value;
+  if (typeof value === "string") return value;
+  return new Date();
+}
 
 /**
  * Get user subscriptions
  */
 export async function getUserSubscriptions(
-  adminDb: Firestore,
+  db: OboDb,
   userId: string,
 ): Promise<NotificationSubscription[]> {
-  const subscriptionsRef = adminDb.collection("notificationSubscriptions");
-  const snapshot = await subscriptionsRef.where("userId", "==", userId).get();
+  const docs = await db.notificationSubscriptions.findByUserId(userId);
 
-  const subscriptions: NotificationSubscription[] = [];
-  snapshot.forEach((doc) => {
-    const data = doc.data();
-    subscriptions.push({
-      id: doc.id,
-      userId: data.userId,
-      token: data.token,
-      endpoint: data.endpoint,
-      createdAt: convertTimestamp(data.createdAt),
-      updatedAt: convertTimestamp(data.updatedAt),
-      deviceInfo: data.deviceInfo,
-    });
-  });
-
-  return subscriptions;
+  return docs.map((data) => ({
+    id: data._id as string,
+    userId: data.userId as string,
+    token: data.token as string,
+    endpoint: data.endpoint as string,
+    createdAt: toDateOrString(data.createdAt),
+    updatedAt: toDateOrString(data.updatedAt),
+    deviceInfo: data.deviceInfo as NotificationSubscription["deviceInfo"],
+  }));
 }
 
 /**
  * Delete invalid subscription from database
  */
 export async function deleteSubscription(
-  adminDb: Firestore,
+  db: OboDb,
   subscriptionId: string,
 ): Promise<void> {
-  await adminDb
-    .collection("notificationSubscriptions")
-    .doc(subscriptionId)
-    .delete();
+  await db.notificationSubscriptions.deleteOne(subscriptionId);
   logger.info("Removed invalid subscription", { subscriptionId: subscriptionId.substring(0, 8) });
 }

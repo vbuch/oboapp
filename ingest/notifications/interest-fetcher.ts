@@ -1,29 +1,29 @@
-import type { Firestore } from "firebase-admin/firestore";
+import type { OboDb } from "@oboapp/db";
 import { Interest } from "@/lib/types";
-import { convertTimestamp } from "./utils";
 import { logger } from "@/lib/logger";
+
+function toDateOrString(value: unknown): Date | string {
+  if (value instanceof Date) return value;
+  if (typeof value === "string") return value;
+  return new Date();
+}
 
 /**
  * Get all user interests
  */
-export async function getAllInterests(adminDb: Firestore): Promise<Interest[]> {
+export async function getAllInterests(db: OboDb): Promise<Interest[]> {
   logger.info("Fetching user interests");
 
-  const interestsRef = adminDb.collection("interests");
-  const snapshot = await interestsRef.get();
+  const docs = await db.interests.findMany();
 
-  const interests: Interest[] = [];
-  snapshot.forEach((doc) => {
-    const data = doc.data();
-    interests.push({
-      id: doc.id,
-      userId: data.userId,
-      coordinates: data.coordinates,
-      radius: data.radius,
-      createdAt: convertTimestamp(data.createdAt),
-      updatedAt: convertTimestamp(data.updatedAt),
-    });
-  });
+  const interests: Interest[] = docs.map((data) => ({
+    id: data._id as string,
+    userId: data.userId as string,
+    coordinates: data.coordinates as Interest["coordinates"],
+    radius: data.radius as number,
+    createdAt: toDateOrString(data.createdAt),
+    updatedAt: toDateOrString(data.updatedAt),
+  }));
 
   logger.info("Found user interests", {
     count: interests.length,

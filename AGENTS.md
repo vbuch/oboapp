@@ -66,6 +66,37 @@ If you identify a recurring pattern or developer preference:
   }
   ```
 
+### Database Access (`@oboapp/db`)
+
+**All database operations MUST go through `@oboapp/db` — never use `adminDb.collection()` directly.**
+
+The `@oboapp/db` package provides a unified interface (`OboDb`) over Firestore and MongoDB via typed collection repositories. It handles serialization (JSON strings, Timestamps) transparently.
+
+- **Initialization:** Use `getDb()` from `@/lib/db` (both `ingest/` and `web/`). It's a lazy singleton.
+- **Collections:** `db.messages`, `db.sources`, `db.interests`, `db.notificationMatches`, `db.notificationSubscriptions`, `db.gtfsStops`
+- **Key methods:** `findById(id)`, `findMany(options)`, `insertOne(data)`, `updateOne(id, data)`, `deleteOne(id)`, `count(where)`
+- **Records:** All find methods return `Record<string, unknown>` with an `_id` field for the document ID.
+- **Dates:** The adapter converts Firestore Timestamps → `Date` objects. Consumers convert to ISO strings as needed.
+- **Serialization:** `geoJson` and `addresses` are automatically parsed from JSON strings (Firestore) — consumers receive native objects.
+
+**Pattern:**
+
+```typescript
+import { getDb } from "@/lib/db";
+
+async function example() {
+  const db = await getDb();
+  const message = await db.messages.findById("abc123");
+  const docs = await db.messages.findMany({
+    where: [{ field: "source", op: "==", value: "sofia-bg" }],
+    orderBy: [{ field: "createdAt", direction: "desc" }],
+    limit: 10,
+  });
+}
+```
+
+**Env vars (optional, for dual-write):** `MONGODB_URI`, `MONGODB_DATABASE`, `DB_READ_SOURCE` (firestore|mongodb)
+
 ### GeoJSON
 
 - **Types:** Use `GeoJSONFeatureCollection` from `@/lib/types` (NOT `geojson` npm package).

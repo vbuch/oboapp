@@ -1,4 +1,3 @@
-import { adminDb } from "./firebase-admin";
 import type { Address } from "./types";
 import { logger } from "@/lib/logger";
 
@@ -16,24 +15,22 @@ async function geocodeBusStop(
   stopCode: string,
 ): Promise<BusStopGeometry | null> {
   try {
-    const db = adminDb;
-    const doc = await db.collection("gtfsStops").doc(stopCode).get();
+    const { getDb } = await import("@/lib/db");
+    const db = await getDb();
+    const doc = await db.gtfsStops.findById(stopCode);
 
-    if (!doc.exists) {
+    if (!doc) {
       logger.warn("Bus stop not found in GTFS data", { stopCode });
       return null;
     }
 
-    const data = doc.data();
-    if (!data) {
-      return null;
-    }
+    const coordinates = doc.coordinates as { latitude: number; longitude: number };
 
     return {
-      stopCode: data.stopCode,
-      stopName: data.stopName,
-      lat: data.coordinates.latitude,
-      lng: data.coordinates.longitude,
+      stopCode: doc.stopCode as string,
+      stopName: doc.stopName as string,
+      lat: coordinates.latitude,
+      lng: coordinates.longitude,
     };
   } catch (error) {
     logger.error("Failed to geocode bus stop", { stopCode, error: error instanceof Error ? error.message : String(error) });

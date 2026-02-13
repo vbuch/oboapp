@@ -1,37 +1,39 @@
-import type { Firestore } from "firebase-admin/firestore";
+import type { OboDb } from "@oboapp/db";
 import { Message } from "@/lib/types";
-import { convertTimestamp } from "./utils";
 import { logger } from "@/lib/logger";
+
+function toISOString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") return value;
+  return new Date().toISOString();
+}
 
 /**
  * Get all unprocessed messages (messages without notificationsSent flag)
  */
 export async function getUnprocessedMessages(
-  adminDb: Firestore,
+  db: OboDb,
 ): Promise<Message[]> {
   logger.info("Fetching unprocessed messages");
 
-  const messagesRef = adminDb.collection("messages");
-
-  // Get all messages ordered by createdAt
-  const messagesSnapshot = await messagesRef.orderBy("createdAt", "asc").get();
+  const docs = await db.messages.findMany({
+    orderBy: [{ field: "createdAt", direction: "asc" }],
+  });
 
   // Filter for messages that don't have notificationsSent or where it's false
   const unprocessedMessages: Message[] = [];
-  messagesSnapshot.forEach((doc) => {
-    const data = doc.data();
-    // Only include messages where notificationsSent is not true
+  for (const data of docs) {
     if (data.notificationsSent !== true) {
       unprocessedMessages.push({
-        id: doc.id,
-        text: data.text,
-        locality: data.locality,
-        geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
-        createdAt: convertTimestamp(data.createdAt),
-        cityWide: data.cityWide,
+        id: data._id as string,
+        text: (data.text as string) || "",
+        locality: data.locality as string,
+        geoJson: data.geoJson as Message["geoJson"],
+        createdAt: toISOString(data.createdAt),
+        cityWide: data.cityWide as boolean | undefined,
       });
     }
-  });
+  }
 
   logger.info("Found unprocessed messages", { count: unprocessedMessages.length });
 
@@ -42,16 +44,15 @@ export async function getUnprocessedMessages(
  * Mark messages as having notifications sent
  */
 export async function markMessagesAsNotified(
-  adminDb: Firestore,
+  db: OboDb,
   messageIds: string[],
 ): Promise<void> {
   logger.info("Marking messages as notified", { count: messageIds.length });
 
-  const messagesRef = adminDb.collection("messages");
   const now = new Date();
 
   for (const messageId of messageIds) {
-    await messagesRef.doc(messageId).update({
+    await db.messages.updateOne(messageId, {
       notificationsSent: true,
       notificationsSentAt: now,
     });

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/db";
 import { isValidMessageId } from "@oboapp/shared";
-import { docToMessage } from "@/lib/doc-to-message";
+import { recordToMessage } from "@/lib/doc-to-message";
 
 /**
  * Fetch a message by its ID.
@@ -23,14 +23,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Invalid id format" }, { status: 400 });
     }
 
-    // Message ID IS the document ID — direct lookup, no query needed
-    const doc = await adminDb.collection("messages").doc(id).get();
+    const db = await getDb();
+    const doc = await db.messages.findById(id);
 
-    if (!doc.exists) {
+    if (!doc) {
       return NextResponse.json({ error: "Message not found" }, { status: 404 });
     }
 
-    const message = docToMessage(doc);
+    const message = recordToMessage(doc);
 
     return NextResponse.json({ message });
   } catch (error) {

@@ -1,7 +1,6 @@
-import type { Firestore } from "firebase-admin/firestore";
+import type { OboDb } from "@oboapp/db";
 import type { Message, Interest, NotificationMatch } from "@/lib/types";
 import { matchMessageToInterest } from "./geo-matcher";
-import { convertTimestamp } from "./utils";
 import { logger } from "@/lib/logger";
 
 export interface MatchResult {
@@ -96,16 +95,15 @@ export function deduplicateMatches(matches: MatchResult[]): MatchResult[] {
  * Store notification matches in Firestore
  */
 export async function storeNotificationMatches(
-  adminDb: Firestore,
+  db: OboDb,
   matches: MatchResult[],
 ): Promise<void> {
   logger.info("Storing notification matches");
 
-  const matchesRef = adminDb.collection("notificationMatches");
   const now = new Date();
 
   for (const match of matches) {
-    await matchesRef.add({
+    await db.notificationMatches.insertOne({
       userId: match.userId,
       messageId: match.messageId,
       interestId: match.interestId,
@@ -122,28 +120,26 @@ export async function storeNotificationMatches(
  * Get unnotified matches
  */
 export async function getUnnotifiedMatches(
-  adminDb: Firestore,
+  db: OboDb,
 ): Promise<NotificationMatch[]> {
   logger.info("Fetching unnotified matches");
 
-  const matchesRef = adminDb.collection("notificationMatches");
-  const snapshot = await matchesRef.where("notified", "==", false).get();
+  const docs = await db.notificationMatches.findUnnotified();
 
-  const matches: NotificationMatch[] = [];
-  snapshot.forEach((doc) => {
-    const data = doc.data();
-    matches.push({
-      id: doc.id,
-      userId: data.userId,
-      messageId: data.messageId,
-      interestId: data.interestId,
-      matchedAt: convertTimestamp(data.matchedAt),
-      notified: data.notified || false,
-      notifiedAt: data.notifiedAt
-        ? convertTimestamp(data.notifiedAt)
-        : undefined,
-      distance: data.distance,
-    });
+  const matches: NotificationMatch[] = docs.map((data) => {
+    const toStr = (v: unknown): string =>
+      v instanceof Date ? v.toISOString() : typeof v === "string" ? v : new Date().toISOString();
+
+    return {
+      id: data._id as string,
+      userId: data.userId as string,
+      messageId: data.messageId as string,
+      interestId: data.interestId as string,
+      matchedAt: toStr(data.matchedAt),
+      notified: (data.notified as boolean) || false,
+      notifiedAt: data.notifiedAt ? toStr(data.notifiedAt) : undefined,
+      distance: data.distance as number | undefined,
+    };
   });
 
   logger.info("Found unnotified matches", { count: matches.length });
