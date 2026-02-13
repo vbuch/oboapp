@@ -119,10 +119,11 @@ export default function MapComponent({
   const latestCenterRef = useRef(localityCenter);
   const [currentZoom, setCurrentZoom] = useState<number>(14);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
-  const [userLocation, setUserLocation] = useState<{
+  const [rawUserLocation, setRawUserLocation] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
+  const userLocation = shouldTrackLocation ? rawUserLocation : null;
 
   const mapOptions: google.maps.MapOptions = useMemo(
     () => ({
@@ -238,38 +239,57 @@ export default function MapComponent({
     });
   }, [onBoundsChanged]);
 
-  // Track user location - only when explicitly enabled (after user clicks locate button)
+  const hasAutoCentered = useRef(false);
+
   useEffect(() => {
     if (!shouldTrackLocation || !navigator.geolocation) {
+      hasAutoCentered.current = false;
       return;
     }
 
-    // Use watchPosition for battery-efficient location tracking
-    // It only updates when position actually changes
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      (error) => {
-        console.error("Error watching location:", error);
-      },
-      {
-        enableHighAccuracy: false, // Accept coarse location to save battery
-        timeout: 10000,
-        maximumAge: 60000, // Cache for 1 minute
-      },
-    );
+    const startWatching = () => {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude: lat, longitude: lng } = position.coords;
+          setRawUserLocation({ lat, lng });
+
+          if (mapInstance && !hasAutoCentered.current) {
+            centerMap(lat, lng, 15);
+            hasAutoCentered.current = true;
+          }
+        },
+        (error) => {
+          console.error("Location tracking error:", error);
+          setRawUserLocation(null);
+        },
+        { 
+          enableHighAccuracy: false, 
+          timeout: 10000, 
+          maximumAge: 60000 
+        }
+      );
+      return watchId;
+    };
+
+    let watchId: number | null = null;
+
+
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' as PermissionName}).then((result) => {
+        if (result.state === 'granted') {
+          watchId = startWatching();
+        }
+      });
+    } else {
+      watchId = startWatching();
+    }
 
     return () => {
-      navigator.geolocation.clearWatch(watchId);
-      // Clear user location when tracking stops
-      setUserLocation(null);
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
     };
-  }, [shouldTrackLocation]);
-
+  }, [shouldTrackLocation, mapInstance, centerMap]);
   return (
     <div className="absolute inset-0">
       {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
