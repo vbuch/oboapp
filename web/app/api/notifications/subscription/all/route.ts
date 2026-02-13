@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/db";
 import { NotificationSubscription } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
-import { convertTimestamp } from "@/lib/firestore-utils";
+
+function toISOString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") return value;
+  return new Date().toISOString();
+}
 
 // GET - Fetch all subscriptions for the user
 export async function GET(request: NextRequest) {
@@ -10,22 +15,19 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
     const { userId } = await verifyAuthToken(authHeader);
 
-    const subscriptionsRef = adminDb.collection("notificationSubscriptions");
-    const snapshot = await subscriptionsRef.where("userId", "==", userId).get();
+    const db = await getDb();
+    const docs = await db.notificationSubscriptions.findByUserId(userId);
 
-    const subscriptions: NotificationSubscription[] = snapshot.docs
-      .map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          userId: data.userId,
-          token: data.token,
-          endpoint: data.endpoint,
-          createdAt: convertTimestamp(data.createdAt),
-          updatedAt: convertTimestamp(data.updatedAt),
-          deviceInfo: data.deviceInfo || {},
-        };
-      })
+    const subscriptions: NotificationSubscription[] = docs
+      .map((doc) => ({
+        id: doc._id as string,
+        userId: doc.userId as string,
+        token: doc.token as string,
+        endpoint: doc.endpoint as string,
+        createdAt: toISOString(doc.createdAt),
+        updatedAt: toISOString(doc.updatedAt),
+        deviceInfo: (doc.deviceInfo as NotificationSubscription["deviceInfo"]) || {},
+      }))
       .sort((a, b) => {
         // Sort by createdAt descending (newest first)
         return (
@@ -49,17 +51,13 @@ export async function DELETE(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
     const { userId } = await verifyAuthToken(authHeader);
 
-    const subscriptionsRef = adminDb.collection("notificationSubscriptions");
-    const snapshot = await subscriptionsRef.where("userId", "==", userId).get();
+    const db = await getDb();
+    const docs = await db.notificationSubscriptions.findByUserId(userId);
+    const count = docs.length;
 
-    // Delete all subscriptions for this user
-    const batch = adminDb.batch();
-    snapshot.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-    await batch.commit();
+    await db.notificationSubscriptions.deleteAllByUserId(userId);
 
-    return NextResponse.json({ success: true, deleted: snapshot.size });
+    return NextResponse.json({ success: true, deleted: count });
   } catch (error) {
     console.error("Error deleting subscriptions:", error);
     return NextResponse.json(
