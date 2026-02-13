@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/db";
 import { Interest } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
-import { convertTimestamp } from "@/lib/firestore-utils";
 
 // Constants
 const MIN_RADIUS = 100; // meters
@@ -17,41 +16,36 @@ function validateRadius(radius: number): number {
   return Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, radius));
 }
 
+function toISOString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") return value;
+  return new Date().toISOString();
+}
+
+function recordToInterest(record: Record<string, unknown>): Interest {
+  return {
+    id: record._id as string,
+    userId: record.userId as string,
+    coordinates: record.coordinates as Interest["coordinates"],
+    radius: record.radius as number,
+    createdAt: toISOString(record.createdAt),
+    updatedAt: toISOString(record.updatedAt),
+  };
+}
+
 // GET - Fetch all interests for the authenticated user
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
     const { userId } = await verifyAuthToken(authHeader);
 
-    const interestsRef = adminDb.collection("interests");
+    const db = await getDb();
+    const docs = await db.interests.findByUserId(userId);
 
-    // Query without orderBy initially to avoid index requirement
-    // Firestore will prompt to create index on first run with orderBy
-    let snapshot;
-    try {
-      snapshot = await interestsRef
-        .where("userId", "==", userId)
-        .orderBy("createdAt", "desc")
-        .get();
-    } catch {
-      // If index doesn't exist, fall back to query without orderBy
-      snapshot = await interestsRef.where("userId", "==", userId).get();
-    }
+    const interests: Interest[] = docs.map(recordToInterest);
 
-    const interests: Interest[] = [];
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      interests.push({
-        id: doc.id,
-        userId: data.userId,
-        coordinates: data.coordinates,
-        radius: data.radius,
-        createdAt: convertTimestamp(data.createdAt),
-        updatedAt: convertTimestamp(data.updatedAt),
-      });
-    });
-
-    // Sort in JavaScript if we couldn't sort in query
+    // Sort in JavaScript (findByUserId already orders by createdAt desc,
+    // but we sort again defensively)
     interests.sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
@@ -116,11 +110,11 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     };
 
-    const interestsRef = adminDb.collection("interests");
-    const docRef = await interestsRef.add(interestData);
+    const db = await getDb();
+    const docId = await db.interests.insertOne(interestData);
 
     const newInterest: Interest = {
-      id: docRef.id,
+      id: docId,
       ...interestData,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
@@ -164,25 +158,24 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const interestRef = adminDb.collection("interests").doc(interestId);
-    const doc = await interestRef.get();
+    const db = await getDb();
+    const doc = await db.interests.findById(interestId);
 
-    if (!doc.exists) {
+    if (!doc) {
       return NextResponse.json(
         { error: "Interest not found" },
         { status: 404 },
       );
     }
 
-    const data = doc.data();
-    if (data?.userId !== userId) {
+    if (doc.userId !== userId) {
       return NextResponse.json(
         { error: "Unauthorized - You can only delete your own interests" },
         { status: 403 },
       );
     }
 
-    await interestRef.delete();
+    await db.interests.deleteOne(interestId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -222,25 +215,24 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const interestRef = adminDb.collection("interests").doc(id);
-    const doc = await interestRef.get();
+    const db = await getDb();
+    const doc = await db.interests.findById(id);
 
-    if (!doc.exists) {
+    if (!doc) {
       return NextResponse.json(
         { error: "Interest not found" },
         { status: 404 },
       );
     }
 
-    const data = doc.data();
-    if (data?.userId !== userId) {
+    if (doc.userId !== userId) {
       return NextResponse.json(
         { error: "Unauthorized - You can only update your own interests" },
         { status: 403 },
       );
     }
 
-    const updates: Partial<Interest> = {
+    const updates: Record<string, unknown> = {
       updatedAt: new Date(),
     };
 
@@ -266,20 +258,12 @@ export async function PATCH(request: NextRequest) {
       updates.radius = validateRadius(radius);
     }
 
-    await interestRef.update(updates);
+    await db.interests.updateOne(id, updates);
 
     // Fetch updated document
-    const updatedDoc = await interestRef.get();
-    const updatedData = updatedDoc.data();
+    const updatedDoc = await db.interests.findById(id);
 
-    const updatedInterest: Interest = {
-      id: updatedDoc.id,
-      userId: updatedData!.userId,
-      coordinates: updatedData!.coordinates,
-      radius: updatedData!.radius,
-      createdAt: convertTimestamp(updatedData!.createdAt),
-      updatedAt: convertTimestamp(updatedData!.updatedAt),
-    };
+    const updatedInterest: Interest = recordToInterest(updatedDoc!);
 
     return NextResponse.json({ interest: updatedInterest });
   } catch (error) {

@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.33.0",
+    "@oboapp/db": "workspace:*",
     "@oboapp/shared": "workspace:*",
     "@react-google-maps/api": "^2.20.7",
     "@turf/turf": "^7.3.1",

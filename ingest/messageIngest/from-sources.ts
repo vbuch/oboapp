@@ -2,7 +2,7 @@
 
 import * as dotenv from "dotenv";
 import { resolve } from "node:path";
-import type { Firestore } from "firebase-admin/firestore";
+import type { OboDb } from "@oboapp/db";
 import { GeoJSONFeatureCollection } from "@/lib/types";
 import { isWithinBoundaries, loadBoundaries } from "@/lib/boundary-utils";
 import { logger } from "@/lib/logger";
@@ -72,44 +72,42 @@ async function parseArguments(): Promise<IngestOptions> {
 }
 
 async function fetchSources(
-  adminDb: Firestore,
+  db: OboDb,
   options: IngestOptions,
 ): Promise<SourceDocument[]> {
-  let query = adminDb.collection("sources") as FirebaseFirestore.Query;
+  const where: { field: string; op: "=="; value: unknown }[] = [];
   const filters: string[] = [];
 
   if (options.sourceType) {
-    query = query.where("sourceType", "==", options.sourceType);
+    where.push({ field: "sourceType", op: "==", value: options.sourceType });
     filters.push(`sourceType=${options.sourceType}`);
   }
 
   if (options.limit) {
-    query = query.limit(options.limit);
     filters.push(`limit=${options.limit}`);
   }
 
-  const snapshot = await query.get();
-  const sources: SourceDocument[] = [];
+  const docs = await db.sources.findMany({
+    where: where.length > 0 ? where : undefined,
+    limit: options.limit,
+  });
 
-  for (const doc of snapshot.docs) {
-    const data = doc.data();
-    sources.push({
-      url: data.url,
-      datePublished: data.datePublished,
-      title: data.title,
-      message: data.message,
-      sourceType: data.sourceType,
-      crawledAt: data.crawledAt?.toDate() ?? new Date(),
-      geoJson: data.geoJson,
-      markdownText: data.markdownText,
-      categories: data.categories,
-      isRelevant: data.isRelevant,
-      timespanStart: data.timespanStart?.toDate(),
-      timespanEnd: data.timespanEnd?.toDate(),
-      cityWide: data.cityWide,
-      locality: data.locality,
-    });
-  }
+  const sources: SourceDocument[] = docs.map((data) => ({
+    url: data.url as string,
+    datePublished: data.datePublished as string,
+    title: data.title as string,
+    message: data.message as string,
+    sourceType: data.sourceType as string,
+    crawledAt: data.crawledAt instanceof Date ? data.crawledAt : new Date(data.crawledAt as string ?? Date.now()),
+    geoJson: data.geoJson as string | GeoJSONFeatureCollection | undefined,
+    markdownText: data.markdownText as string | undefined,
+    categories: data.categories as string[] | undefined,
+    isRelevant: data.isRelevant as boolean | undefined,
+    timespanStart: data.timespanStart instanceof Date ? data.timespanStart : (data.timespanStart ? new Date(data.timespanStart as string) : undefined),
+    timespanEnd: data.timespanEnd instanceof Date ? data.timespanEnd : (data.timespanEnd ? new Date(data.timespanEnd as string) : undefined),
+    cityWide: data.cityWide as boolean | undefined,
+    locality: data.locality as string | undefined,
+  }));
 
   const filterInfo = filters.length > 0 ? ` (${filters.join(", ")})` : "";
   logger.info("Fetched sources", {
@@ -120,7 +118,7 @@ async function fetchSources(
 }
 
 async function getAlreadyIngestedSet(
-  adminDb: Firestore,
+  db: OboDb,
   sources: SourceDocument[],
 ): Promise<Set<string>> {
   if (sources.length === 0) {
@@ -130,23 +128,16 @@ async function getAlreadyIngestedSet(
   const { encodeDocumentId } = await import("../crawlers/shared/firestore");
   const sourceDocumentIds = sources.map((s) => encodeDocumentId(s.url));
 
-  // Firestore 'in' queries support up to 30 values, so we need to batch
-  const BATCH_SIZE = 30;
+  const docs = await db.messages.findBySourceDocumentIds(
+    sourceDocumentIds,
+    ["sourceDocumentId"],
+  );
+
   const alreadyIngestedIds = new Set<string>();
-
-  for (let i = 0; i < sourceDocumentIds.length; i += BATCH_SIZE) {
-    const batch = sourceDocumentIds.slice(i, i + BATCH_SIZE);
-    const messagesSnapshot = await adminDb
-      .collection("messages")
-      .where("sourceDocumentId", "in", batch)
-      .select("sourceDocumentId") // Only fetch the field we need
-      .get();
-
-    for (const doc of messagesSnapshot.docs) {
-      const sourceDocId = doc.data().sourceDocumentId;
-      if (sourceDocId) {
-        alreadyIngestedIds.add(sourceDocId);
-      }
+  for (const doc of docs) {
+    const sourceDocId = doc.sourceDocumentId as string;
+    if (sourceDocId) {
+      alreadyIngestedIds.add(sourceDocId);
     }
   }
 
@@ -155,7 +146,7 @@ async function getAlreadyIngestedSet(
 
 async function ingestSource(
   source: SourceDocument,
-  adminDb: Firestore,
+  _db: OboDb,
   dryRun: boolean,
   boundaries: GeoJSONFeatureCollection | null,
   sourceDocumentId: string,
@@ -307,9 +298,9 @@ async function filterByBoundaries(
   return { withinBounds, outsideBounds };
 }
 
-async function maybeInitFirestore(): Promise<Firestore> {
-  const firebase = await import("@/lib/firebase-admin");
-  return firebase.adminDb;
+async function maybeInitDb(): Promise<OboDb> {
+  const { getDb } = await import("@/lib/db");
+  return getDb();
 }
 
 export async function ingest(
@@ -323,9 +314,9 @@ export async function ingest(
   if (boundaries) {
     logger.info("Using boundary filtering");
   }
-  const adminDb = await maybeInitFirestore();
+  const db = await maybeInitDb();
 
-  const allSources = await fetchSources(adminDb, options);
+  const allSources = await fetchSources(db, options);
 
   // Filter by age first (skip sources older than 90 days)
   const { recentSources, tooOld } = await filterByAge(allSources);
@@ -341,7 +332,7 @@ export async function ingest(
 
   // Batch-check which sources are already ingested (avoids 1371 sequential DB queries!)
   const { encodeDocumentId } = await import("../crawlers/shared/firestore");
-  const alreadyIngestedSet = await getAlreadyIngestedSet(adminDb, withinBounds);
+  const alreadyIngestedSet = await getAlreadyIngestedSet(db, withinBounds);
   const sourcesToIngest = withinBounds.filter(
     (s) => !alreadyIngestedSet.has(encodeDocumentId(s.url)),
   );
@@ -370,7 +361,7 @@ export async function ingest(
     try {
       const wasIngested = await ingestSource(
         source,
-        adminDb,
+        db,
         options.dryRun ?? false,
         boundaries,
         sourceDocumentId,

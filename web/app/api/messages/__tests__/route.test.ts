@@ -1,11 +1,45 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GET } from "../route";
 
-// Mock the firebase-admin module
-vi.mock("@/lib/firebase-admin", () => ({
-  adminDb: {
-    collection: vi.fn(),
-  },
+// Mock data store — tests set this before each test
+let mockMessagesData: Record<string, unknown>[] = [];
+
+// Mock the db module (replaces the old firebase-admin mock)
+vi.mock("@/lib/db", () => ({
+  getDb: vi.fn().mockImplementation(async () => ({
+    messages: {
+      findMany: vi.fn().mockImplementation(async (options?: any) => {
+        let filtered = [...mockMessagesData];
+
+        if (options?.where) {
+          for (const clause of options.where) {
+            filtered = filtered.filter((doc) => {
+              const fieldValue = doc[clause.field];
+
+              switch (clause.op) {
+                case ">=":
+                  if (fieldValue == null) return false;
+                  return fieldValue >= clause.value;
+                case "==":
+                  return fieldValue === clause.value;
+                case "array-contains-any":
+                  return (
+                    Array.isArray(fieldValue) &&
+                    clause.value.some((v: any) =>
+                      (fieldValue as unknown[]).includes(v),
+                    )
+                  );
+                default:
+                  return true;
+              }
+            });
+          }
+        }
+
+        return filtered;
+      }),
+    },
+  })),
 }));
 
 // Mock the messageIngest module
@@ -29,79 +63,6 @@ const createMockGeoJson = () => ({
     },
   ],
 });
-
-// Format dates as DD.MM.YYYY HH:MM
-const formatDate = (date: Date) => {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}.${month}.${year} 08:00`;
-};
-
-// Helper to create Firebase mock structure
-const setupFirebaseMock = async (mockMessages: any[]) => {
-  const { adminDb } = await import("@/lib/firebase-admin");
-
-  const createMockQuery = (initialConditions: Array<{ field: string; operator: string; value: any }> = []) => {
-    // Each query has its own immutable conditions array
-    const whereConditions = [...initialConditions];
-
-    const applyFilters = (messages: any[]) => {
-      return messages.filter((doc) => {
-        const data = doc.data();
-        
-        return whereConditions.every((condition) => {
-          const fieldValue = data[condition.field];
-
-          if (condition.operator === ">=") {
-            if (!fieldValue) return false;
-            const dateValue = fieldValue._seconds
-              ? new Date(fieldValue._seconds * 1000)
-              : fieldValue;
-            return dateValue >= condition.value;
-          }
-
-          if (condition.operator === "==") {
-            return fieldValue === condition.value;
-          }
-
-          return false;
-        });
-      });
-    };
-
-    const mockSnapshot = {
-      forEach: vi.fn((callback: any) => {
-        const filteredMessages = applyFilters(mockMessages);
-        filteredMessages.forEach((doc) => callback(doc));
-      }),
-    };
-
-    const mockGet = {
-      get: vi.fn().mockResolvedValue(mockSnapshot),
-    };
-
-    const mockQuery: any = {
-      where: vi.fn((field: string, operator: string, value: any) => {
-        // Create a new query with the new condition added (immutable)
-        return createMockQuery([...whereConditions, { field, operator, value }]);
-      }),
-      orderBy: vi.fn((/* field: string, direction?: string */) => {
-        // Return a chainable object that supports both orderBy and get
-        return {
-          orderBy: vi.fn().mockReturnValue(mockGet),
-          get: vi.fn().mockResolvedValue(mockSnapshot),
-        };
-      }),
-      get: vi.fn().mockResolvedValue(mockSnapshot),
-    };
-
-    return mockQuery;
-  };
-
-  // Mock adminDb.collection to return a fresh query for each call
-  vi.mocked(adminDb.collection).mockImplementation(() => createMockQuery() as any);
-};
 
 describe("GET /api/messages - Query Parameter Validation", () => {
   beforeEach(() => {
@@ -213,12 +174,12 @@ describe("GET /api/messages - Query Parameter Validation", () => {
 describe("GET /api/messages - Date Filtering", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMessagesData = [];
     // Reset environment variable
     delete process.env.MESSAGE_RELEVANCE_DAYS;
   });
 
   it("should filter out messages with all timespans expired", async () => {
-    // Create mock data - one message with expired timespans, one with current
     const now = new Date();
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -226,55 +187,22 @@ describe("GET /api/messages - Date Filtering", () => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const expiredDate = new Date("2024-01-01");
 
-    const mockMessages = [
+    mockMessagesData = [
       {
-        id: "msg1",
-        data: () => ({
-          text: "Old disruption",
-          extractedData: JSON.stringify({
-            responsibleEntity: "Test",
-            pins: [
-              {
-                address: "ул. Тест 1",
-                timespans: [
-                  { start: "01.01.2024 08:00", end: "01.01.2024 18:00" },
-                ],
-              },
-            ],
-            streets: [],
-          }),
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: expiredDate.getTime() / 1000 },
-          timespanEnd: { _seconds: expiredDate.getTime() / 1000 },
-        }),
+        _id: "msg1",
+        text: "Old disruption",
+        geoJson: createMockGeoJson(),
+        createdAt: expiredDate,
+        timespanEnd: expiredDate,
       },
       {
-        id: "msg2",
-        data: () => ({
-          text: "Current disruption",
-          extractedData: JSON.stringify({
-            responsibleEntity: "Test",
-            pins: [
-              {
-                address: "ул. Тест 2",
-                timespans: [
-                  {
-                    start: formatDate(yesterday),
-                    end: formatDate(tomorrow),
-                  },
-                ],
-              },
-            ],
-            streets: [],
-          }),
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: yesterday.getTime() / 1000 },
-          timespanEnd: { _seconds: tomorrow.getTime() / 1000 },
-        }),
+        _id: "msg2",
+        text: "Current disruption",
+        geoJson: createMockGeoJson(),
+        createdAt: yesterday,
+        timespanEnd: tomorrow,
       },
     ];
-
-    await setupFirebaseMock(mockMessages);
 
     const mockRequest = new Request("http://localhost/api/messages");
     const response = await GET(mockRequest);
@@ -294,28 +222,22 @@ describe("GET /api/messages - Date Filtering", () => {
     const oldDate = new Date();
     oldDate.setDate(oldDate.getDate() - 40); // 40 days ago
 
-    const mockMessages = [
+    mockMessagesData = [
       {
-        id: "msg1",
-        data: () => ({
-          text: "Recent message without timespans",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: recentDate.getTime() / 1000 },
-          timespanEnd: { _seconds: recentDate.getTime() / 1000 }, // Falls back to createdAt
-        }),
+        _id: "msg1",
+        text: "Recent message without timespans",
+        geoJson: createMockGeoJson(),
+        createdAt: recentDate,
+        timespanEnd: recentDate,
       },
       {
-        id: "msg2",
-        data: () => ({
-          text: "Old message without timespans",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: oldDate.getTime() / 1000 },
-          timespanEnd: { _seconds: oldDate.getTime() / 1000 }, // Falls back to createdAt
-        }),
+        _id: "msg2",
+        text: "Old message without timespans",
+        geoJson: createMockGeoJson(),
+        createdAt: oldDate,
+        timespanEnd: oldDate,
       },
     ];
-
-    await setupFirebaseMock(mockMessages);
 
     const mockRequest = new Request("http://localhost/api/messages");
     const response = await GET(mockRequest);
@@ -332,40 +254,15 @@ describe("GET /api/messages - Date Filtering", () => {
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const mockMessages = [
+    mockMessagesData = [
       {
-        id: "msg1",
-        data: () => ({
-          text: "Mixed timespans",
-          extractedData: JSON.stringify({
-            responsibleEntity: "Test",
-            pins: [
-              {
-                address: "ул. Тест 1",
-                timespans: [
-                  { start: formatDate(yesterday), end: formatDate(yesterday) }, // expired
-                ],
-              },
-            ],
-            streets: [
-              {
-                street: "ул. Тест",
-                from: "кръстовище А",
-                to: "кръстовище Б",
-                timespans: [
-                  { start: formatDate(yesterday), end: formatDate(tomorrow) }, // current
-                ],
-              },
-            ],
-          }),
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: yesterday.getTime() / 1000 },
-          timespanEnd: { _seconds: tomorrow.getTime() / 1000 }, // MAX end time
-        }),
+        _id: "msg1",
+        text: "Mixed timespans",
+        geoJson: createMockGeoJson(),
+        createdAt: yesterday,
+        timespanEnd: tomorrow, // MAX end time
       },
     ];
-
-    await setupFirebaseMock(mockMessages);
 
     const mockRequest = new Request("http://localhost/api/messages");
     const response = await GET(mockRequest);
@@ -379,19 +276,15 @@ describe("GET /api/messages - Date Filtering", () => {
     const date5DaysAgo = new Date();
     date5DaysAgo.setDate(date5DaysAgo.getDate() - 5);
 
-    const mockMessages = [
+    mockMessagesData = [
       {
-        id: "msg1",
-        data: () => ({
-          text: "Message from 5 days ago",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: date5DaysAgo.getTime() / 1000 },
-          timespanEnd: { _seconds: date5DaysAgo.getTime() / 1000 },
-        }),
+        _id: "msg1",
+        text: "Message from 5 days ago",
+        geoJson: createMockGeoJson(),
+        createdAt: date5DaysAgo,
+        timespanEnd: date5DaysAgo,
       },
     ];
-
-    await setupFirebaseMock(mockMessages);
 
     const mockRequest = new Request("http://localhost/api/messages");
     const response = await GET(mockRequest);
@@ -405,6 +298,7 @@ describe("GET /api/messages - Date Filtering", () => {
 describe("GET /api/messages - Source Filtering", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMessagesData = [];
     // Set locality for source validation
     process.env.NEXT_PUBLIC_LOCALITY = "bg.sofia";
   });
@@ -416,30 +310,24 @@ describe("GET /api/messages - Source Filtering", () => {
   it("should filter messages by single source", async () => {
     const now = new Date();
 
-    const mockMessages = [
+    mockMessagesData = [
       {
-        id: "msg1",
-        data: () => ({
-          text: "Message from sofia-bg",
-          source: "sofia-bg",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: now.getTime() / 1000 },
-          timespanEnd: { _seconds: now.getTime() / 1000 },
-        }),
+        _id: "msg1",
+        text: "Message from sofia-bg",
+        source: "sofia-bg",
+        geoJson: createMockGeoJson(),
+        createdAt: now,
+        timespanEnd: now,
       },
       {
-        id: "msg2",
-        data: () => ({
-          text: "Message from toplo-bg",
-          source: "toplo-bg",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: now.getTime() / 1000 },
-          timespanEnd: { _seconds: now.getTime() / 1000 },
-        }),
+        _id: "msg2",
+        text: "Message from toplo-bg",
+        source: "toplo-bg",
+        geoJson: createMockGeoJson(),
+        createdAt: now,
+        timespanEnd: now,
       },
     ];
-
-    await setupFirebaseMock(mockMessages);
 
     const mockRequest = new Request(
       "http://localhost/api/messages?sources=sofia-bg",
@@ -454,40 +342,32 @@ describe("GET /api/messages - Source Filtering", () => {
   it("should filter messages by multiple sources", async () => {
     const now = new Date();
 
-    const mockMessages = [
+    mockMessagesData = [
       {
-        id: "msg1",
-        data: () => ({
-          text: "Message from sofia-bg",
-          source: "sofia-bg",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: now.getTime() / 1000 },
-          timespanEnd: { _seconds: now.getTime() / 1000 },
-        }),
+        _id: "msg1",
+        text: "Message from sofia-bg",
+        source: "sofia-bg",
+        geoJson: createMockGeoJson(),
+        createdAt: now,
+        timespanEnd: now,
       },
       {
-        id: "msg2",
-        data: () => ({
-          text: "Message from toplo-bg",
-          source: "toplo-bg",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: now.getTime() / 1000 },
-          timespanEnd: { _seconds: now.getTime() / 1000 },
-        }),
+        _id: "msg2",
+        text: "Message from toplo-bg",
+        source: "toplo-bg",
+        geoJson: createMockGeoJson(),
+        createdAt: now,
+        timespanEnd: now,
       },
       {
-        id: "msg3",
-        data: () => ({
-          text: "Message from erm-zapad",
-          source: "erm-zapad",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: now.getTime() / 1000 },
-          timespanEnd: { _seconds: now.getTime() / 1000 },
-        }),
+        _id: "msg3",
+        text: "Message from erm-zapad",
+        source: "erm-zapad",
+        geoJson: createMockGeoJson(),
+        createdAt: now,
+        timespanEnd: now,
       },
     ];
-
-    await setupFirebaseMock(mockMessages);
 
     const mockRequest = new Request(
       "http://localhost/api/messages?sources=sofia-bg,toplo-bg",
@@ -505,20 +385,16 @@ describe("GET /api/messages - Source Filtering", () => {
   it("should return all messages when source filter is empty (no filter)", async () => {
     const now = new Date();
 
-    const mockMessages = [
+    mockMessagesData = [
       {
-        id: "msg1",
-        data: () => ({
-          text: "Message from sofia-bg",
-          source: "sofia-bg",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: now.getTime() / 1000 },
-          timespanEnd: { _seconds: now.getTime() / 1000 },
-        }),
+        _id: "msg1",
+        text: "Message from sofia-bg",
+        source: "sofia-bg",
+        geoJson: createMockGeoJson(),
+        createdAt: now,
+        timespanEnd: now,
       },
     ];
-
-    await setupFirebaseMock(mockMessages);
 
     const mockRequest = new Request("http://localhost/api/messages?sources=");
     const response = await GET(mockRequest);
@@ -531,29 +407,23 @@ describe("GET /api/messages - Source Filtering", () => {
   it("should filter messages without source field when filtering by source", async () => {
     const now = new Date();
 
-    const mockMessages = [
+    mockMessagesData = [
       {
-        id: "msg1",
-        data: () => ({
-          text: "Message from sofia-bg",
-          source: "sofia-bg",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: now.getTime() / 1000 },
-          timespanEnd: { _seconds: now.getTime() / 1000 },
-        }),
+        _id: "msg1",
+        text: "Message from sofia-bg",
+        source: "sofia-bg",
+        geoJson: createMockGeoJson(),
+        createdAt: now,
+        timespanEnd: now,
       },
       {
-        id: "msg2",
-        data: () => ({
-          text: "Message without source",
-          geoJson: JSON.stringify(createMockGeoJson()),
-          createdAt: { _seconds: now.getTime() / 1000 },
-          timespanEnd: { _seconds: now.getTime() / 1000 },
-        }),
+        _id: "msg2",
+        text: "Message without source",
+        geoJson: createMockGeoJson(),
+        createdAt: now,
+        timespanEnd: now,
       },
     ];
-
-    await setupFirebaseMock(mockMessages);
 
     const mockRequest = new Request(
       "http://localhost/api/messages?sources=sofia-bg",
@@ -565,10 +435,3 @@ describe("GET /api/messages - Source Filtering", () => {
     expect(data.messages[0].id).toBe("msg1");
   });
 });
-
-// Note: Combined category and source filtering tests would require a more sophisticated
-// Firebase mock that can handle the or() queries for categories and parallel queries for sources.
-// The actual implementation in route.ts (lines 89-286) handles this correctly:
-// - Categories are filtered at DB level using or() queries
-// - Sources are then filtered in-memory from the category-filtered results
-// This combination is tested in manual QA and production usage.
