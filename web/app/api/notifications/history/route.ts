@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/db";
 import { NotificationHistoryItem, DeviceNotification } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
-import { convertTimestamp } from "@/lib/firestore-utils";
+
+function toISOString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") return value;
+  return new Date().toISOString();
+}
 
 // GET - Fetch latest 20 notification history items for the user
 export async function GET(request: NextRequest) {
@@ -10,33 +15,26 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
     const { userId } = await verifyAuthToken(authHeader);
 
-    const matchesRef = adminDb.collection("notificationMatches");
-    const snapshot = await matchesRef
-      .where("userId", "==", userId)
-      .where("notified", "==", true)
-      .orderBy("notifiedAt", "desc")
-      .limit(20)
-      .get();
+    const db = await getDb();
+    const docs = await db.notificationMatches.findByUserId(userId, { limit: 20 });
 
-    const historyItems: NotificationHistoryItem[] = snapshot.docs.map((doc) => {
-      const data = doc.data();
-
+    const historyItems: NotificationHistoryItem[] = docs.map((doc) => {
       // Calculate successful devices count
-      const deviceNotifications = data.deviceNotifications || [];
+      const deviceNotifications = (doc.deviceNotifications as DeviceNotification[]) || [];
       const successfulDevicesCount = deviceNotifications.filter(
         (d: DeviceNotification) => d.success
       ).length;
 
       return {
-        id: doc.id,
-        messageId: data.messageId,
-        messageSnapshot: data.messageSnapshot || {
+        id: doc._id as string,
+        messageId: doc.messageId as string,
+        messageSnapshot: (doc.messageSnapshot as NotificationHistoryItem["messageSnapshot"]) || {
           text: "",
-          createdAt: convertTimestamp(data.notifiedAt),
+          createdAt: toISOString(doc.notifiedAt),
         },
-        notifiedAt: convertTimestamp(data.notifiedAt),
-        distance: data.distance,
-        interestId: data.interestId,
+        notifiedAt: toISOString(doc.notifiedAt),
+        distance: doc.distance as number,
+        interestId: doc.interestId as string,
         successfulDevicesCount,
       };
     });

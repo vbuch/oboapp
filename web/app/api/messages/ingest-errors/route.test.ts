@@ -1,90 +1,94 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET } from "./route";
 
-// Mock the firebase-admin module
-vi.mock("@/lib/firebase-admin", () => ({
-  adminDb: {
-    collection: vi.fn(),
-  },
-}));
+// Mock data store — tests set this before each test
+let mockMessagesData: Record<string, unknown>[] = [];
 
-// Helper to create Firebase Timestamp
-const createTimestamp = (date: Date) => ({
-  _seconds: Math.floor(date.getTime() / 1000),
-  _nanoseconds: 0,
-  toDate: () => date,
-});
+// Mock the db module (replaces the old firebase-admin mock)
+vi.mock("@/lib/db", () => ({
+  getDb: vi.fn().mockImplementation(async () => ({
+    messages: {
+      findMany: vi.fn().mockImplementation(async (options?: any) => {
+        let filtered = [...mockMessagesData];
+
+        if (options?.where) {
+          for (const clause of options.where) {
+            filtered = filtered.filter((doc) => {
+              const fieldValue = doc[clause.field];
+
+              switch (clause.op) {
+                case ">":
+                  if (fieldValue == null) return false;
+                  return fieldValue > clause.value;
+                case ">=":
+                  if (fieldValue == null) return false;
+                  return fieldValue >= clause.value;
+                case "<=":
+                  if (fieldValue == null) return false;
+                  return fieldValue <= clause.value;
+                case "==":
+                  return fieldValue === clause.value;
+                default:
+                  return true;
+              }
+            });
+          }
+        }
+
+        if (options?.limit) {
+          filtered = filtered.slice(0, options.limit);
+        }
+
+        return filtered;
+      }),
+    },
+  })),
+}));
 
 describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMessagesData = [];
   });
 
   it("should validate pins field as array and fallback to undefined for non-arrays", async () => {
-    const { adminDb } = await import("@/lib/firebase-admin");
-
     const now = new Date();
-    const mockMessages = [
+
+    mockMessagesData = [
       {
-        id: "msg-1",
-        data: () => ({
-          text: "Test message 1",
-          plainText: "Test message 1",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          pins: [{ latitude: 42.7, longitude: 23.3 }], // Valid array
-        }),
+        _id: "msg-1",
+        text: "Test message 1",
+        plainText: "Test message 1",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        pins: [{ latitude: 42.7, longitude: 23.3 }], // Valid array
       },
       {
-        id: "msg-2",
-        data: () => ({
-          text: "Test message 2",
-          plainText: "Test message 2",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          pins: "not-an-array", // Invalid: string
-        }),
+        _id: "msg-2",
+        text: "Test message 2",
+        plainText: "Test message 2",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        pins: "not-an-array", // Invalid: string
       },
       {
-        id: "msg-3",
-        data: () => ({
-          text: "Test message 3",
-          plainText: "Test message 3",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          pins: null, // Invalid: null
-        }),
+        _id: "msg-3",
+        text: "Test message 3",
+        plainText: "Test message 3",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        pins: null, // Invalid: null
       },
     ];
-
-    const mockSnapshot = {
-      empty: false,
-      size: 3,
-      docs: mockMessages,
-      forEach: vi.fn((callback) => {
-        mockMessages.forEach((doc) => callback(doc));
-      }),
-    };
-
-    const mockGet = vi.fn().mockResolvedValue(mockSnapshot);
-    const mockLimit = { get: mockGet };
-    const mockOrderBy2 = { limit: vi.fn().mockReturnValue(mockLimit) };
-    const mockOrderBy1 = {
-      orderBy: vi.fn().mockReturnValue(mockOrderBy2),
-    };
-    const mockWhere = { orderBy: vi.fn().mockReturnValue(mockOrderBy1) };
-    const mockCollection = { where: vi.fn().mockReturnValue(mockWhere) };
-
-    vi.mocked(adminDb.collection).mockReturnValue(mockCollection as any);
 
     const mockRequest = new Request(
       "http://localhost/api/messages/ingest-errors",
@@ -108,57 +112,32 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
   });
 
   it("should validate streets field as array and fallback to undefined for non-arrays", async () => {
-    const { adminDb } = await import("@/lib/firebase-admin");
-
     const now = new Date();
-    const mockMessages = [
+
+    mockMessagesData = [
       {
-        id: "msg-1",
-        data: () => ({
-          text: "Test message 1",
-          plainText: "Test message 1",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          streets: [{ name: "Test Street" }], // Valid array
-        }),
+        _id: "msg-1",
+        text: "Test message 1",
+        plainText: "Test message 1",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        streets: [{ name: "Test Street" }], // Valid array
       },
       {
-        id: "msg-2",
-        data: () => ({
-          text: "Test message 2",
-          plainText: "Test message 2",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          streets: { name: "Invalid Object" }, // Invalid: object
-        }),
+        _id: "msg-2",
+        text: "Test message 2",
+        plainText: "Test message 2",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        streets: { name: "Invalid Object" }, // Invalid: object
       },
     ];
-
-    const mockSnapshot = {
-      empty: false,
-      size: 2,
-      docs: mockMessages,
-      forEach: vi.fn((callback) => {
-        mockMessages.forEach((doc) => callback(doc));
-      }),
-    };
-
-    const mockGet = vi.fn().mockResolvedValue(mockSnapshot);
-    const mockLimit = { get: mockGet };
-    const mockOrderBy2 = { limit: vi.fn().mockReturnValue(mockLimit) };
-    const mockOrderBy1 = {
-      orderBy: vi.fn().mockReturnValue(mockOrderBy2),
-    };
-    const mockWhere = { orderBy: vi.fn().mockReturnValue(mockOrderBy1) };
-    const mockCollection = { where: vi.fn().mockReturnValue(mockWhere) };
-
-    vi.mocked(adminDb.collection).mockReturnValue(mockCollection as any);
 
     const mockRequest = new Request(
       "http://localhost/api/messages/ingest-errors",
@@ -177,57 +156,32 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
   });
 
   it("should validate cadastralProperties field as array and fallback to undefined for non-arrays", async () => {
-    const { adminDb } = await import("@/lib/firebase-admin");
-
     const now = new Date();
-    const mockMessages = [
+
+    mockMessagesData = [
       {
-        id: "msg-1",
-        data: () => ({
-          text: "Test message 1",
-          plainText: "Test message 1",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          cadastralProperties: [{ identifier: "УПИ-123" }], // Valid array
-        }),
+        _id: "msg-1",
+        text: "Test message 1",
+        plainText: "Test message 1",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        cadastralProperties: [{ identifier: "УПИ-123" }], // Valid array
       },
       {
-        id: "msg-2",
-        data: () => ({
-          text: "Test message 2",
-          plainText: "Test message 2",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          cadastralProperties: 123, // Invalid: number
-        }),
+        _id: "msg-2",
+        text: "Test message 2",
+        plainText: "Test message 2",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        cadastralProperties: 123, // Invalid: number
       },
     ];
-
-    const mockSnapshot = {
-      empty: false,
-      size: 2,
-      docs: mockMessages,
-      forEach: vi.fn((callback) => {
-        mockMessages.forEach((doc) => callback(doc));
-      }),
-    };
-
-    const mockGet = vi.fn().mockResolvedValue(mockSnapshot);
-    const mockLimit = { get: mockGet };
-    const mockOrderBy2 = { limit: vi.fn().mockReturnValue(mockLimit) };
-    const mockOrderBy1 = {
-      orderBy: vi.fn().mockReturnValue(mockOrderBy2),
-    };
-    const mockWhere = { orderBy: vi.fn().mockReturnValue(mockOrderBy1) };
-    const mockCollection = { where: vi.fn().mockReturnValue(mockWhere) };
-
-    vi.mocked(adminDb.collection).mockReturnValue(mockCollection as any);
 
     const mockRequest = new Request(
       "http://localhost/api/messages/ingest-errors",
@@ -248,57 +202,32 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
   });
 
   it("should validate busStops field as array and fallback to undefined for non-arrays", async () => {
-    const { adminDb } = await import("@/lib/firebase-admin");
-
     const now = new Date();
-    const mockMessages = [
+
+    mockMessagesData = [
       {
-        id: "msg-1",
-        data: () => ({
-          text: "Test message 1",
-          plainText: "Test message 1",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          busStops: [{ name: "Stop 1" }], // Valid array
-        }),
+        _id: "msg-1",
+        text: "Test message 1",
+        plainText: "Test message 1",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        busStops: [{ name: "Stop 1" }], // Valid array
       },
       {
-        id: "msg-2",
-        data: () => ({
-          text: "Test message 2",
-          plainText: "Test message 2",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          busStops: undefined, // Invalid: undefined
-        }),
+        _id: "msg-2",
+        text: "Test message 2",
+        plainText: "Test message 2",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        busStops: undefined, // Invalid: undefined
       },
     ];
-
-    const mockSnapshot = {
-      empty: false,
-      size: 2,
-      docs: mockMessages,
-      forEach: vi.fn((callback) => {
-        mockMessages.forEach((doc) => callback(doc));
-      }),
-    };
-
-    const mockGet = vi.fn().mockResolvedValue(mockSnapshot);
-    const mockLimit = { get: mockGet };
-    const mockOrderBy2 = { limit: vi.fn().mockReturnValue(mockLimit) };
-    const mockOrderBy1 = {
-      orderBy: vi.fn().mockReturnValue(mockOrderBy2),
-    };
-    const mockWhere = { orderBy: vi.fn().mockReturnValue(mockOrderBy1) };
-    const mockCollection = { where: vi.fn().mockReturnValue(mockWhere) };
-
-    vi.mocked(adminDb.collection).mockReturnValue(mockCollection as any);
 
     const mockRequest = new Request(
       "http://localhost/api/messages/ingest-errors",
@@ -317,44 +246,21 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
   });
 
   it("should handle messages with missing geoJson and no location fields", async () => {
-    const { adminDb } = await import("@/lib/firebase-admin");
-
     const now = new Date();
-    const mockMessages = [
+
+    mockMessagesData = [
       {
-        id: "msg-1",
-        data: () => ({
-          text: "Test message without geoJson",
-          plainText: "Test message without geoJson",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          // No geoJson, no location fields
-        }),
+        _id: "msg-1",
+        text: "Test message without geoJson",
+        plainText: "Test message without geoJson",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        // No geoJson, no location fields
       },
     ];
-
-    const mockSnapshot = {
-      empty: false,
-      size: 1,
-      docs: mockMessages,
-      forEach: vi.fn((callback) => {
-        mockMessages.forEach((doc) => callback(doc));
-      }),
-    };
-
-    const mockGet = vi.fn().mockResolvedValue(mockSnapshot);
-    const mockLimit = { get: mockGet };
-    const mockOrderBy2 = { limit: vi.fn().mockReturnValue(mockLimit) };
-    const mockOrderBy1 = {
-      orderBy: vi.fn().mockReturnValue(mockOrderBy2),
-    };
-    const mockWhere = { orderBy: vi.fn().mockReturnValue(mockOrderBy1) };
-    const mockCollection = { where: vi.fn().mockReturnValue(mockWhere) };
-
-    vi.mocked(adminDb.collection).mockReturnValue(mockCollection as any);
 
     const mockRequest = new Request(
       "http://localhost/api/messages/ingest-errors",
@@ -373,47 +279,24 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
   });
 
   it("should preserve all location fields when they are valid arrays", async () => {
-    const { adminDb } = await import("@/lib/firebase-admin");
-
     const now = new Date();
-    const mockMessages = [
+
+    mockMessagesData = [
       {
-        id: "msg-1",
-        data: () => ({
-          text: "Test message with all location fields",
-          plainText: "Test message with all location fields",
-          finalizedAt: createTimestamp(now),
-          createdAt: createTimestamp(now),
-          source: "test-source",
-          sourceUrl: "https://example.com",
-          categories: [],
-          pins: [{ latitude: 42.7, longitude: 23.3 }],
-          streets: [{ name: "Test Street" }],
-          cadastralProperties: [{ identifier: "УПИ-123" }],
-          busStops: [{ name: "Stop 1" }],
-        }),
+        _id: "msg-1",
+        text: "Test message with all location fields",
+        plainText: "Test message with all location fields",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        sourceUrl: "https://example.com",
+        categories: [],
+        pins: [{ latitude: 42.7, longitude: 23.3 }],
+        streets: [{ name: "Test Street" }],
+        cadastralProperties: [{ identifier: "УПИ-123" }],
+        busStops: [{ name: "Stop 1" }],
       },
     ];
-
-    const mockSnapshot = {
-      empty: false,
-      size: 1,
-      docs: mockMessages,
-      forEach: vi.fn((callback) => {
-        mockMessages.forEach((doc) => callback(doc));
-      }),
-    };
-
-    const mockGet = vi.fn().mockResolvedValue(mockSnapshot);
-    const mockLimit = { get: mockGet };
-    const mockOrderBy2 = { limit: vi.fn().mockReturnValue(mockLimit) };
-    const mockOrderBy1 = {
-      orderBy: vi.fn().mockReturnValue(mockOrderBy2),
-    };
-    const mockWhere = { orderBy: vi.fn().mockReturnValue(mockOrderBy1) };
-    const mockCollection = { where: vi.fn().mockReturnValue(mockWhere) };
-
-    vi.mocked(adminDb.collection).mockReturnValue(mockCollection as any);
 
     const mockRequest = new Request(
       "http://localhost/api/messages/ingest-errors",

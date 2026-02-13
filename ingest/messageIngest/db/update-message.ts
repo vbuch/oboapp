@@ -1,8 +1,10 @@
-import { adminDb } from "@/lib/firebase-admin";
-import { processFieldsForFirestore } from "./process-fields";
+import { getDb } from "@/lib/db";
 
 /**
- * Update message document with multiple fields atomically
+ * Update message document with multiple fields.
+ * The db adapter handles serialization (stringify geoJson/addresses for Firestore,
+ * native objects for MongoDB).
+ *
  * @param messageId - The message document ID
  * @param fields - Object containing fields to update
  */
@@ -10,7 +12,6 @@ export async function updateMessage(
   messageId: string,
   fields: Record<string, unknown>,
 ): Promise<void> {
-  const messagesRef = adminDb.collection("messages");
-  const processedFields = processFieldsForFirestore(fields);
-  await messagesRef.doc(messageId).update(processedFields);
+  const db = await getDb();
+  await db.messages.updateOne(messageId, fields);
 }

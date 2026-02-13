@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb, adminAuth } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/db";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
 
 // DELETE - Delete all user data and account
@@ -8,59 +8,38 @@ export async function DELETE(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
     const { userId } = await verifyAuthToken(authHeader);
 
-    // Delete all user data from multiple collections using batch operations
+    const db = await getDb();
 
-    // 1. Delete all interests
-    const interestsRef = adminDb.collection("interests");
-    const interestsSnapshot = await interestsRef
-      .where("userId", "==", userId)
-      .get();
+    // Delete all user data from multiple collections
 
-    const interestsBatch = adminDb.batch();
-    interestsSnapshot.forEach((doc) => {
-      interestsBatch.delete(doc.ref);
-    });
-    await interestsBatch.commit();
+    // 1. Count and delete all interests
+    const interestsDocs = await db.interests.findByUserId(userId);
+    await db.interests.deleteAllByUserId(userId);
 
-    // 2. Delete all notification subscriptions
-    const subscriptionsRef = adminDb.collection("notificationSubscriptions");
-    const subscriptionsSnapshot = await subscriptionsRef
-      .where("userId", "==", userId)
-      .get();
+    // 2. Count and delete all notification subscriptions
+    const subscriptionsDocs = await db.notificationSubscriptions.findByUserId(userId);
+    await db.notificationSubscriptions.deleteAllByUserId(userId);
 
-    const subscriptionsBatch = adminDb.batch();
-    subscriptionsSnapshot.forEach((doc) => {
-      subscriptionsBatch.delete(doc.ref);
-    });
-    await subscriptionsBatch.commit();
-
-    // 3. Delete all notification matches
-    const matchesRef = adminDb.collection("notificationMatches");
-    const matchesSnapshot = await matchesRef
-      .where("userId", "==", userId)
-      .get();
-
-    const matchesBatch = adminDb.batch();
-    matchesSnapshot.forEach((doc) => {
-      matchesBatch.delete(doc.ref);
-    });
-    await matchesBatch.commit();
+    // 3. Count and delete all notification matches
+    const matchesDocs = await db.notificationMatches.findByUserId(userId, {});
+    await db.notificationMatches.deleteAllByUserId(userId);
 
     // 4. Delete the Firebase Auth user
     // This requires recent re-authentication on the client side (which we enforce in the UI)
     try {
+      const { adminAuth } = await import("@/lib/firebase-admin");
       await adminAuth.deleteUser(userId);
     } catch (authError) {
       console.error("Error deleting Firebase Auth user:", authError);
-      // Continue even if auth deletion fails - Firestore data is already deleted
+      // Continue even if auth deletion fails - database data is already deleted
     }
 
     return NextResponse.json({
       success: true,
       deleted: {
-        interests: interestsSnapshot.size,
-        subscriptions: subscriptionsSnapshot.size,
-        matches: matchesSnapshot.size,
+        interests: interestsDocs.length,
+        subscriptions: subscriptionsDocs.length,
+        matches: matchesDocs.length,
       },
     });
   } catch (error) {
