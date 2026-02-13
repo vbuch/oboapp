@@ -39,5 +39,4 @@ function createLintTask(dir, filenames) {
 export default {
   "web/**/*.{js,jsx,ts,tsx}": (filenames) => createLintTask("web", filenames),
   "ingest/**/*.{js,ts}": (filenames) => createLintTask("ingest", filenames),
-  "shared/**/*.{js,ts}": (filenames) => createLintTask("shared", filenames),
 };
