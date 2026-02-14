@@ -342,7 +342,7 @@ resource "google_cloud_run_v2_job" "crawlers" {
         }
         
         env {
-          name = "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          name = "GOOGLE_MAPS_API_KEY"
           value_source {
             secret_key_ref {
               secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
@@ -353,12 +353,12 @@ resource "google_cloud_run_v2_job" "crawlers" {
         
         # Public Firebase config (these can be in code or here)
         env {
-          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          name  = "FIREBASE_PROJECT_ID"
           value = var.firebase_project_id
         }
         
         env {
-          name  = "NEXT_PUBLIC_APP_URL"
+          name  = "APP_URL"
           value = "https://oboapp.online"
         }
         
@@ -440,7 +440,7 @@ resource "google_cloud_run_v2_job" "ingest" {
         }
         
         env {
-          name = "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          name = "GOOGLE_MAPS_API_KEY"
           value_source {
             secret_key_ref {
               secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
@@ -450,12 +450,12 @@ resource "google_cloud_run_v2_job" "ingest" {
         }
         
         env {
-          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          name  = "FIREBASE_PROJECT_ID"
           value = var.firebase_project_id
         }
         
         env {
-          name  = "NEXT_PUBLIC_APP_URL"
+          name  = "APP_URL"
           value = "https://oboapp.online"
         }
         
@@ -537,7 +537,7 @@ resource "google_cloud_run_v2_job" "notify" {
         }
         
         env {
-          name = "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          name = "GOOGLE_MAPS_API_KEY"
           value_source {
             secret_key_ref {
               secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
@@ -547,12 +547,12 @@ resource "google_cloud_run_v2_job" "notify" {
         }
         
         env {
-          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          name  = "FIREBASE_PROJECT_ID"
           value = var.firebase_project_id
         }
         
         env {
-          name  = "NEXT_PUBLIC_APP_URL"
+          name  = "APP_URL"
           value = "https://oboapp.online"
         }
         
@@ -636,7 +636,7 @@ resource "google_cloud_run_v2_job" "pipeline_emergent" {
         }
         
         env {
-          name = "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          name = "GOOGLE_MAPS_API_KEY"
           value_source {
             secret_key_ref {
               secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
@@ -646,12 +646,12 @@ resource "google_cloud_run_v2_job" "pipeline_emergent" {
         }
         
         env {
-          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          name  = "FIREBASE_PROJECT_ID"
           value = var.firebase_project_id
         }
         
         env {
-          name  = "NEXT_PUBLIC_APP_URL"
+          name  = "APP_URL"
           value = "https://oboapp.online"
         }
         
@@ -733,7 +733,7 @@ resource "google_cloud_run_v2_job" "pipeline_all" {
         }
         
         env {
-          name = "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          name = "GOOGLE_MAPS_API_KEY"
           value_source {
             secret_key_ref {
               secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
@@ -743,12 +743,12 @@ resource "google_cloud_run_v2_job" "pipeline_all" {
         }
         
         env {
-          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          name  = "FIREBASE_PROJECT_ID"
           value = var.firebase_project_id
         }
         
         env {
-          name  = "NEXT_PUBLIC_APP_URL"
+          name  = "APP_URL"
           value = "https://oboapp.online"
         }
         
@@ -867,7 +867,7 @@ resource "google_cloud_run_v2_job" "gtfs_sync" {
         }
         
         env {
-          name  = "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          name  = "FIREBASE_PROJECT_ID"
           value = var.firebase_project_id
         }
         

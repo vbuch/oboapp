@@ -25,7 +25,7 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
 
   try {
     const locality = getLocality();
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     const encodedAddress = encodeURIComponent(`${address}, Sofia, Bulgaria`);
     // Use components parameter to restrict to Sofia (locality)
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&components=locality:Sofia|country:BG&key=${apiKey}`;
