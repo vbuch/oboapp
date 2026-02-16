@@ -157,8 +157,7 @@ export default function HomeContent() {
       const message = messages.find((m) => m.id === messageId);
       if (message?.id) {
         // Update URL for the selected message using its canonical URL
-        // Use replace() instead of push() to avoid adding history entries for modal state
-        router.replace(createMessageUrl(message), { scroll: false });
+        router.push(createMessageUrl(message), { scroll: false });
       }
     },
     [messages, router],
@@ -321,8 +320,7 @@ export default function HomeContent() {
             messages={filteredMessages}
             isLoading={isLoading}
             onMessageClick={(message) => {
-              // Use replace() instead of push() to avoid adding history entries for modal state
-              router.replace(createMessageUrl(message), { scroll: false });
+              router.push(createMessageUrl(message), { scroll: false });
             }}
             variant="list"
           />

@@ -77,9 +77,8 @@ export default function SourcePage() {
   const handleMessageClick = useCallback(
     (message: Message) => {
       // Stay on sources page with query param to keep source context
-      // Use replace() instead of push() to avoid adding history entries for modal state
       const messageUrl = `/sources/${sourceId}?messageId=${encodeURIComponent(String(message.id))}`;
-      router.replace(messageUrl, {
+      router.push(messageUrl, {
         scroll: false,
       });
     },
@@ -88,7 +87,7 @@ export default function SourcePage() {
 
   // Handle closing detail view
   const handleCloseDetail = useCallback(() => {
-    // Use replace() instead of push() to avoid adding history entries for modal state
+    // Use replace() to avoid adding history entry when explicitly closing
     router.replace(`/sources/${sourceId}`, { scroll: false });
   }, [router, sourceId]);
 

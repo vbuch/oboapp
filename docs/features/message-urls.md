@@ -81,7 +81,8 @@ All message details render as an overlay on the homepage map:
    - `HomeContent` looks up the message in viewport messages by ID
    - If not found in viewport (e.g., message outside current map bounds), fetches via `/api/messages/by-id`
    - Renders `MessageDetailView` as a slide-in panel over the map
-   - Uses `router.replace()` to update URL without adding browser history entries (modal overlay behavior)
+   - Uses `router.push()` to add history entry when opening (enables browser back to close)
+   - Uses `router.replace()` when explicitly closing (avoids duplicate history entries)
 
 2. **`/m/[slug]/page.tsx`** — External URL redirect
    - Redirects to `/?messageId={id}`
@@ -90,13 +91,16 @@ All message details render as an overlay on the homepage map:
 
 ### Browser History Behavior
 
-The message detail overlay uses `router.replace()` instead of `router.push()` to avoid polluting browser history:
+The message detail overlay manages history to provide natural navigation:
 
-- **Opening a detail**: Updates URL to `/?messageId={id}` without creating a history entry
-- **Closing a detail**: Updates URL to `/` without creating a history entry
-- **Browser back button**: Takes user to the actual previous page they navigated from (not through detail states)
+- **Opening a detail**: Uses `router.push()` to add a history entry with `?messageId={id}`
+- **Browser back button**: Removes the `?messageId` query param, which closes the detail
+- **Explicit close** (X button, ESC, backdrop): Uses `router.replace()` to update URL to `/` without adding history entry
 
-This makes the modal feel like an overlay rather than a navigation, providing a natural user experience in PWA installations.
+This provides intuitive PWA navigation:
+- Users can press back to close details
+- Explicitly closing details doesn't create redundant history entries
+- The modal overlay is tracked in history, but closing it doesn't pollute the stack
 
 ## API Endpoints
 

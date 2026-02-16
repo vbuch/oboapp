@@ -77,15 +77,14 @@ export default function IngestErrorsPage() {
 
   const handleMessageClick = useCallback(
     (message: InternalMessage) => {
-      // Use replace() instead of push() to avoid adding history entries for modal state
       const url = `/ingest-errors?messageId=${encodeURIComponent(String(message.id))}`;
-      router.replace(url, { scroll: false });
+      router.push(url, { scroll: false });
     },
     [router],
   );
 
   const handleCloseDetail = useCallback(() => {
-    // Use replace() instead of push() to avoid adding history entries for modal state
+    // Use replace() to avoid adding history entry when explicitly closing
     router.replace("/ingest-errors", { scroll: false });
   }, [router]);
 
