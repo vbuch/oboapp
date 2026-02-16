@@ -259,7 +259,7 @@ export default function FilterBox({
             <FilterIcon className="w-5 h-5 text-white" />
             {/* Active Filter Indicator - Red Dot */}
             {hasActiveFilters && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-error rounded-full border-2 border-background" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-error rounded-full border-2 border-white" />
             )}
           </div>
         </button>
