@@ -223,9 +223,15 @@ describe("onboardingReducer", () => {
   describe("PERMISSION_RESULT action", () => {
     it("transitions to blocked when permission denied", () => {
       const initialState = createInitialState("notificationPrompt", "default");
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
       const action: OnboardingAction = {
         type: "PERMISSION_RESULT",
-        payload: { permission: "denied" },
+        payload: { permission: "denied", context },
       };
 
       const result = onboardingReducer(initialState, action);
@@ -234,11 +240,17 @@ describe("onboardingReducer", () => {
       expect(result.lastPermission).toBe("denied");
     });
 
-    it("transitions to loginPrompt when permission granted", () => {
+    it("transitions to loginPrompt when permission granted (unauthenticated)", () => {
       const initialState = createInitialState("notificationPrompt", "default");
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
       const action: OnboardingAction = {
         type: "PERMISSION_RESULT",
-        payload: { permission: "granted" },
+        payload: { permission: "granted", context },
       };
 
       const result = onboardingReducer(initialState, action);
@@ -247,11 +259,36 @@ describe("onboardingReducer", () => {
       expect(result.lastPermission).toBe("granted");
     });
 
-    it("ignores action from non-notificationPrompt states", () => {
-      const initialState = createInitialState("loginPrompt", "default");
+    it("transitions to complete when permission granted (authenticated with zones)", () => {
+      const initialState = createInitialState("notificationPrompt", "default");
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: true,
+        zonesCount: 2,
+        hasSubscriptions: false,
+      };
       const action: OnboardingAction = {
         type: "PERMISSION_RESULT",
-        payload: { permission: "granted" },
+        payload: { permission: "granted", context },
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("complete");
+      expect(result.lastPermission).toBe("granted");
+    });
+
+    it("ignores action from non-notificationPrompt states", () => {
+      const initialState = createInitialState("loginPrompt", "default");
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+      };
+      const action: OnboardingAction = {
+        type: "PERMISSION_RESULT",
+        payload: { permission: "granted", context },
       };
 
       const result = onboardingReducer(initialState, action);
