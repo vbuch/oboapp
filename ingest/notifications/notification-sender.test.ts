@@ -1,8 +1,44 @@
-import { describe, it, expect } from "vitest";
-import { buildNotificationPayload } from "./notification-sender";
-import type { Message, NotificationMatch } from "@/lib/types";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  buildNotificationPayload,
+  sendPushNotification,
+  sendToUserDevices,
+} from "./notification-sender";
+import type {
+  Message,
+  NotificationMatch,
+  NotificationSubscription,
+} from "@/lib/types";
+
+// Mock subscription-manager
+vi.mock("./subscription-manager", () => ({
+  getUserSubscriptions: vi.fn(),
+  deleteSubscription: vi.fn(),
+}));
+
+import {
+  getUserSubscriptions,
+  deleteSubscription,
+} from "./subscription-manager";
+
+const mockGetUserSubscriptions = vi.mocked(getUserSubscriptions);
+const mockDeleteSubscription = vi.mocked(deleteSubscription);
+
+function createMockMessaging(sendBehavior?: () => Promise<string>) {
+  return {
+    send: sendBehavior ?? vi.fn().mockResolvedValue("message-id-123"),
+  } as unknown as import("firebase-admin/messaging").Messaging;
+}
+
+function createMockDb() {
+  return {} as unknown as import("firebase-admin/firestore").Firestore;
+}
 
 describe("notification-sender", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe("buildNotificationPayload", () => {
     const baseMessage: Message = {
       id: "aB3xYz12",
@@ -72,6 +108,220 @@ describe("notification-sender", () => {
 
       expect(payload.data.url).toContain("/m/aB3xYz12");
       expect(payload.webpush.fcmOptions.link).toContain("/m/aB3xYz12");
+    });
+  });
+
+  describe("sendPushNotification", () => {
+    const baseMessage: Message = {
+      id: "msg1",
+      text: "Test message",
+      locality: "bg.sofia",
+      createdAt: "2026-02-05T12:00:00.000Z",
+    };
+
+    const baseMatch: NotificationMatch = {
+      id: "match1",
+      messageId: "msg1",
+      userId: "user1",
+      interestId: "int1",
+      matchedAt: "2026-02-05T12:00:00.000Z",
+      notified: false,
+      distance: 100,
+    };
+
+    const baseSubscription: NotificationSubscription = {
+      id: "sub123",
+      userId: "user1",
+      token: "fcm-token-abc",
+      endpoint: "https://push.example.com",
+      createdAt: "2026-02-05T12:00:00.000Z",
+      updatedAt: "2026-02-05T12:00:00.000Z",
+    };
+
+    it("should return success when FCM send succeeds", async () => {
+      const db = createMockDb();
+      const messaging = createMockMessaging();
+
+      const result = await sendPushNotification(
+        db,
+        messaging,
+        baseSubscription,
+        baseMessage,
+        baseMatch,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.error).toBeUndefined();
+      expect(result.tokenInvalid).toBeUndefined();
+    });
+
+    it("should delete subscription when token is not registered", async () => {
+      const db = createMockDb();
+      const error = new Error("Requested entity was not found.");
+      (error as { code?: string }).code =
+        "messaging/registration-token-not-registered";
+      const messaging = createMockMessaging(() => Promise.reject(error));
+
+      const result = await sendPushNotification(
+        db,
+        messaging,
+        baseSubscription,
+        baseMessage,
+        baseMatch,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.tokenInvalid).toBe(true);
+      expect(mockDeleteSubscription).toHaveBeenCalledWith(db, "sub123");
+    });
+
+    it("should delete subscription when token is invalid", async () => {
+      const db = createMockDb();
+      const error = new Error("Invalid registration token");
+      (error as { code?: string }).code =
+        "messaging/invalid-registration-token";
+      const messaging = createMockMessaging(() => Promise.reject(error));
+
+      const result = await sendPushNotification(
+        db,
+        messaging,
+        baseSubscription,
+        baseMessage,
+        baseMatch,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.tokenInvalid).toBe(true);
+      expect(mockDeleteSubscription).toHaveBeenCalledWith(db, "sub123");
+    });
+
+    it("should not delete subscription for other FCM errors", async () => {
+      const db = createMockDb();
+      const error = new Error("Server error");
+      (error as { code?: string }).code = "messaging/internal-error";
+      const messaging = createMockMessaging(() => Promise.reject(error));
+
+      const result = await sendPushNotification(
+        db,
+        messaging,
+        baseSubscription,
+        baseMessage,
+        baseMatch,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.tokenInvalid).toBe(false);
+      expect(mockDeleteSubscription).not.toHaveBeenCalled();
+    });
+
+    it("should not attempt delete when subscription has no id", async () => {
+      const db = createMockDb();
+      const error = new Error("Requested entity was not found.");
+      (error as { code?: string }).code =
+        "messaging/registration-token-not-registered";
+      const messaging = createMockMessaging(() => Promise.reject(error));
+
+      const subscriptionWithoutId: NotificationSubscription = {
+        ...baseSubscription,
+        id: undefined,
+      };
+
+      const result = await sendPushNotification(
+        db,
+        messaging,
+        subscriptionWithoutId,
+        baseMessage,
+        baseMatch,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.tokenInvalid).toBe(true);
+      expect(mockDeleteSubscription).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("sendToUserDevices", () => {
+    const baseMessage: Message = {
+      id: "msg1",
+      text: "Test message",
+      locality: "bg.sofia",
+      createdAt: "2026-02-05T12:00:00.000Z",
+    };
+
+    const baseMatch: NotificationMatch = {
+      id: "match1",
+      messageId: "msg1",
+      userId: "user1",
+      interestId: "int1",
+      matchedAt: "2026-02-05T12:00:00.000Z",
+      notified: false,
+      distance: 100,
+    };
+
+    it("should return zero count when user has no subscriptions", async () => {
+      const db = createMockDb();
+      const messaging = createMockMessaging();
+      mockGetUserSubscriptions.mockResolvedValue([]);
+
+      const result = await sendToUserDevices(
+        db,
+        messaging,
+        "user1",
+        baseMessage,
+        baseMatch,
+      );
+
+      expect(result.successCount).toBe(0);
+      expect(result.notifications).toHaveLength(0);
+    });
+
+    it("should clean up stale tokens and continue sending to valid devices", async () => {
+      const db = createMockDb();
+
+      const staleToken: NotificationSubscription = {
+        id: "sub-stale",
+        userId: "user1",
+        token: "expired-token",
+        endpoint: "https://push.example.com/1",
+        createdAt: "2026-02-01T00:00:00.000Z",
+        updatedAt: "2026-02-01T00:00:00.000Z",
+      };
+
+      const validToken: NotificationSubscription = {
+        id: "sub-valid",
+        userId: "user1",
+        token: "valid-token",
+        endpoint: "https://push.example.com/2",
+        createdAt: "2026-02-01T00:00:00.000Z",
+        updatedAt: "2026-02-01T00:00:00.000Z",
+      };
+
+      mockGetUserSubscriptions.mockResolvedValue([staleToken, validToken]);
+
+      const staleError = new Error("Requested entity was not found.");
+      (staleError as { code?: string }).code =
+        "messaging/registration-token-not-registered";
+
+      let callCount = 0;
+      const messaging = createMockMessaging(() => {
+        callCount++;
+        if (callCount === 1) return Promise.reject(staleError);
+        return Promise.resolve("ok");
+      });
+
+      const result = await sendToUserDevices(
+        db,
+        messaging,
+        "user1",
+        baseMessage,
+        baseMatch,
+      );
+
+      expect(result.successCount).toBe(1);
+      expect(result.notifications).toHaveLength(2);
+      expect(result.notifications[0].success).toBe(false);
+      expect(result.notifications[1].success).toBe(true);
+      expect(mockDeleteSubscription).toHaveBeenCalledWith(db, "sub-stale");
     });
   });
 });
