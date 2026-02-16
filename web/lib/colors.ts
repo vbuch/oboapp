@@ -139,8 +139,8 @@ export const zIndex = {
   overlayContent: "z-40",
   /** Modal backdrops - full-screen overlays for modals and prompts */
   modalBackdrop: "z-50",
-  /** Modal content - dialogs, prompts that appear above everything */
-  modalContent: "z-50",
+  /** Modal content - dialogs, prompts that appear above modal backdrops */
+  modalContent: "z-60",
 } as const;
 
 /**
