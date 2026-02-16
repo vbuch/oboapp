@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import MapComponent from "@/components/MapComponent";
 import GeolocationButton from "@/components/GeolocationButton";
-import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
 import { useGeolocationPrompt } from "@/lib/hooks/useGeolocationPrompt";
 import { useOnboardingFlow } from "@/lib/hooks/useOnboardingFlow";
 import { useAuth } from "@/lib/auth-context";
@@ -52,6 +51,15 @@ interface MapContainerProps {
       onDecline: () => void;
     } | null,
   ) => void;
+  readonly onOnboardingStateChange: (
+    state: import("@/lib/hooks/useOnboardingFlow").OnboardingState,
+    callbacks: {
+      onPermissionResult: (permission: NotificationPermission) => void;
+      onDismiss: () => void;
+      onAddInterests: () => void;
+      onAddInterestClick: () => void;
+    },
+  ) => void;
 }
 
 export default function MapContainer({
@@ -69,6 +77,7 @@ export default function MapContainer({
   onCancelTargetMode,
   onStartAddInterest,
   onGeolocationPromptChange,
+  onOnboardingStateChange,
 }: MapContainerProps) {
   const [centerMap, setCenterMap] = useState<
     | ((
@@ -151,6 +160,27 @@ export default function MapContainer({
     }
   }, [showPrompt, onAccept, onDecline, onGeolocationPromptChange]);
 
+  // Memoize onboarding callbacks to prevent useEffect loop
+  const onboardingCallbacks = React.useMemo(
+    () => ({
+      onPermissionResult: handlePermissionResult,
+      onDismiss: handleDismiss,
+      onAddInterests: onStartAddInterest,
+      onAddInterestClick: handleAddInterestClick,
+    }),
+    [
+      handlePermissionResult,
+      handleDismiss,
+      onStartAddInterest,
+      handleAddInterestClick,
+    ],
+  );
+
+  // Sync onboarding state to parent for proper DOM ordering
+  React.useEffect(() => {
+    onOnboardingStateChange(onboardingState, onboardingCallbacks);
+  }, [onboardingState, onboardingCallbacks, onOnboardingStateChange]);
+
   const handleMapReady = (
     centerMapFn: (
       lat: number,
@@ -225,17 +255,6 @@ export default function MapContainer({
               }
             : undefined
         }
-      />
-
-      {/* Onboarding prompts - controlled by state machine */}
-      <OnboardingPrompt
-        state={onboardingState}
-        targetModeActive={targetMode.active}
-        user={user}
-        onPermissionResult={handlePermissionResult}
-        onDismiss={handleDismiss}
-        onAddInterests={onStartAddInterest}
-        onAddInterestClick={handleAddInterestClick}
       />
 
       {/* Geolocation button - always visible */}

@@ -14,6 +14,7 @@ import MessagesGrid from "@/components/MessagesGrid";
 import InterestContextMenu from "@/components/InterestContextMenu";
 import FilterBox from "@/components/FilterBox";
 import GeolocationPrompt from "@/components/GeolocationPrompt";
+import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
 import { useInterests } from "@/lib/hooks/useInterests";
 import { useAuth } from "@/lib/auth-context";
 import { useMessages } from "@/lib/hooks/useMessages";
@@ -25,6 +26,7 @@ import { classifyMessage } from "@/lib/message-classification";
 import { createMessageUrl } from "@/lib/url-utils";
 import { zIndex } from "@/lib/colors";
 import type { Message } from "@/lib/types";
+import type { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
 import { isValidMessageId } from "@oboapp/shared";
 
 /**
@@ -103,6 +105,16 @@ export default function HomeContent() {
     show: boolean;
     onAccept: () => void;
     onDecline: () => void;
+  } | null>(null);
+
+  // Onboarding state (lifted from MapContainer for proper DOM ordering)
+  const [onboardingState, setOnboardingState] =
+    React.useState<OnboardingState | null>(null);
+  const [onboardingCallbacks, setOnboardingCallbacks] = React.useState<{
+    onPermissionResult: (permission: NotificationPermission) => void;
+    onDismiss: () => void;
+    onAddInterests: () => void;
+    onAddInterestClick: () => void;
   } | null>(null);
 
   // Interest/zone management
@@ -273,6 +285,10 @@ export default function HomeContent() {
           onCancelTargetMode={handleCancelTargetMode}
           onStartAddInterest={handleStartAddInterest}
           onGeolocationPromptChange={setGeolocationPrompt}
+          onOnboardingStateChange={(state, callbacks) => {
+            setOnboardingState(state);
+            setOnboardingCallbacks(callbacks);
+          }}
         />
         {isLoading && (
           <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-lg shadow-md ${zIndex.nav}`}>
@@ -309,6 +325,19 @@ export default function HomeContent() {
           onMove={handleMoveInterest}
           onDelete={handleDeleteInterest}
           onClose={handleCloseInterestMenu}
+        />
+      )}
+
+      {/* Onboarding Prompts - rendered at root for proper z-index stacking */}
+      {onboardingState && onboardingCallbacks && (
+        <OnboardingPrompt
+          state={onboardingState}
+          targetModeActive={targetMode.active}
+          user={user}
+          onPermissionResult={onboardingCallbacks.onPermissionResult}
+          onDismiss={onboardingCallbacks.onDismiss}
+          onAddInterests={onboardingCallbacks.onAddInterests}
+          onAddInterestClick={onboardingCallbacks.onAddInterestClick}
         />
       )}
 
