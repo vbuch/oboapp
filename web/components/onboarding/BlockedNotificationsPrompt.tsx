@@ -11,12 +11,14 @@ import { zIndex } from "@/lib/colors";
  */
 export default function BlockedNotificationsPrompt() {
   return (
-    <div className={`animate-fade-in absolute bottom-4 right-4 ${zIndex.fixed} max-w-sm`}>
-      <PromptCard
-        icon={<NoNotificationsIcon className="w-12 h-12 text-warning" />}
-        title="Известията са блокирани"
-        description="Браузърът или устройството ти не позволява известия. Можеш да ги включиш от настройките на браузъра."
-      />
+    <div className={`animate-fade-in fixed inset-0 flex items-center justify-center p-4 ${zIndex.fixed} pointer-events-none`}>
+      <div className="pointer-events-auto w-full max-w-sm">
+        <PromptCard
+          icon={<NoNotificationsIcon className="w-12 h-12 text-warning" />}
+          title="Известията са блокирани"
+          description="Браузърът или устройството ти не позволява известия. Можеш да ги включиш от настройките на браузъра."
+        />
+      </div>
     </div>
   );
 }

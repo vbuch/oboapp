@@ -20,8 +20,8 @@ export default function SubscribePrompt({ onClose }: SubscribePromptProps) {
         onClick={onClose}
         aria-label="Затвори"
       />
-      <div className={`animate-fade-in absolute bottom-4 right-4 ${zIndex.modalContent} max-w-sm`}>
-        <div className="bg-warning-light border-2 border-warning-border rounded-lg shadow-xl p-4">
+      <div className={`animate-fade-in fixed inset-0 flex items-center justify-center p-4 ${zIndex.modalContent} pointer-events-none`}>
+        <div className="pointer-events-auto w-full max-w-sm bg-warning-light border-2 border-warning-border rounded-lg shadow-xl p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 text-2xl">⚠️</div>
             <div className="flex-1">
