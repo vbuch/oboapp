@@ -28,16 +28,54 @@ function recordToInterest(record: Record<string, unknown>): Interest {
   };
 }
 
+function safeRecordToInterest(
+  record: Record<string, unknown>,
+): Interest | null {
+  try {
+    return recordToInterest(record);
+  } catch (error) {
+    console.error("[GET /api/interests] Skipping malformed interest record:", {
+      interestId: record._id,
+      userId: record.userId,
+      error,
+    });
+    return null;
+  }
+}
+
+async function findInterestsForUser(
+  userId: string,
+): Promise<Record<string, unknown>[]> {
+  const db = await getDb();
+
+  try {
+    return await db.interests.findByUserId(userId);
+  } catch (error) {
+    console.error(
+      "[GET /api/interests] Indexed interests query failed, falling back to userId-only query:",
+      {
+        userId,
+        error,
+      },
+    );
+
+    return db.interests.findMany({
+      where: [{ field: "userId", op: "==", value: userId }],
+    });
+  }
+}
+
 // GET - Fetch all interests for the authenticated user
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
     const { userId } = await verifyAuthToken(authHeader);
 
-    const db = await getDb();
-    const docs = await db.interests.findByUserId(userId);
+    const docs = await findInterestsForUser(userId);
 
-    const interests: Interest[] = docs.map(recordToInterest);
+    const interests: Interest[] = docs
+      .map(safeRecordToInterest)
+      .filter((interest): interest is Interest => interest !== null);
 
     // Sort in JavaScript (findByUserId already orders by createdAt desc,
     // but we sort again defensively)
