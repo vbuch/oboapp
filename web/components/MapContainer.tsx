@@ -172,7 +172,16 @@ export default function MapContainer({
     // Auto-center on user location if permission was previously granted
     // Only do this if there's no URL-based initial center (URL params take precedence)
     if (!initialMapCenter) {
-      void autoCenter(centerMapFn);
+      autoCenter(centerMapFn)
+        .then((success) => {
+          if (success) {
+            // Enable location tracking to show the blue dot
+            setIsTrackingLocation(true);
+          }
+        })
+        .catch(() => {
+          // Silently handle errors - autoCenter already logs them
+        });
     }
   };
 
