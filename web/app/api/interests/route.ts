@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { Interest } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
+import { toRequiredISOString } from "@/lib/date-serialization";
 
 // Constants
 const MIN_RADIUS = 100; // meters
@@ -16,20 +17,14 @@ function validateRadius(radius: number): number {
   return Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, radius));
 }
 
-function toISOString(value: unknown): string {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === "string") return value;
-  return new Date().toISOString();
-}
-
 function recordToInterest(record: Record<string, unknown>): Interest {
   return {
     id: record._id as string,
     userId: record.userId as string,
     coordinates: record.coordinates as Interest["coordinates"],
     radius: record.radius as number,
-    createdAt: toISOString(record.createdAt),
-    updatedAt: toISOString(record.updatedAt),
+    createdAt: toRequiredISOString(record.createdAt, "createdAt"),
+    updatedAt: toRequiredISOString(record.updatedAt, "updatedAt"),
   };
 }
 

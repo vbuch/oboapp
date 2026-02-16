@@ -10,6 +10,11 @@ import {
 const PAGE_SIZE = 12;
 const FETCH_LIMIT = 500;
 
+function toTimestamp(value: unknown): number | null {
+  const timestamp = new Date(value as string | Date).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
 function recordToInternalMessage(
   record: Record<string, unknown>,
 ): InternalMessage {
@@ -88,7 +93,7 @@ export async function GET(request: Request) {
       if (typeof value === "object") {
         const fc = value as Record<string, unknown>;
         const features = fc.features;
-        if (!features) return true;
+        if (!Array.isArray(features) || features.length === 0) return true;
       }
       return false;
     };
@@ -138,10 +143,8 @@ export async function GET(request: Request) {
 
     while (index < fetchedDocs.length && candidateDocs.length < targetCount) {
       const bucketStart = fetchedDocs[index];
-      const bucketTime = new Date(
-        bucketStart.finalizedAt as string | Date,
-      ).getTime();
-      if (Number.isNaN(bucketTime)) {
+      const bucketTime = toTimestamp(bucketStart.finalizedAt);
+      if (bucketTime === null) {
         index += 1;
         continue;
       }
@@ -149,10 +152,8 @@ export async function GET(request: Request) {
 
       while (index < fetchedDocs.length) {
         const current = fetchedDocs[index];
-        const currentTime = new Date(
-          current.finalizedAt as string | Date,
-        ).getTime();
-        if (Number.isNaN(currentTime)) {
+        const currentTime = toTimestamp(current.finalizedAt);
+        if (currentTime === null) {
           index += 1;
           continue;
         }
@@ -186,17 +187,24 @@ export async function GET(request: Request) {
 
     const pageDocs = candidateDocs.slice(0, PAGE_SIZE);
     const messages = pageDocs.map(recordToInternalMessage);
-    const hasMore = candidateDocs.length > PAGE_SIZE;
+    const hasMoreCandidates = candidateDocs.length > PAGE_SIZE;
+    const hitFetchLimit = fetchedDocs.length === FETCH_LIMIT;
+    const hasMore = hasMoreCandidates || hitFetchLimit;
     const lastDoc = pageDocs.at(-1);
+    const boundaryDoc = hasMoreCandidates
+      ? lastDoc
+      : [...fetchedDocs]
+          .reverse()
+          .find((doc) => toTimestamp(doc.finalizedAt) !== null);
 
     const nextCursor =
-      lastDoc && hasMore
+      boundaryDoc && hasMore
         ? {
             finalizedAt: toRequiredISOString(
-              lastDoc.finalizedAt,
+              boundaryDoc.finalizedAt,
               "finalizedAt",
             ),
-            id: String(lastDoc._id),
+            id: String(boundaryDoc._id),
           }
         : undefined;
 

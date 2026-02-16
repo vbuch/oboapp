@@ -6,6 +6,7 @@
  */
 
 import type { OboDb } from "@oboapp/db";
+import type { Firestore } from "firebase-admin/firestore";
 
 let _db: OboDb | null = null;
 
@@ -23,7 +24,7 @@ export async function getDb(): Promise<OboDb> {
     !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY ||
     process.env.USE_FIREBASE_EMULATORS === "true" ||
     !!process.env.FIRESTORE_EMULATOR_HOST;
-  let firestoreDb: FirebaseFirestore.Firestore | undefined;
+  let firestoreDb: Firestore | undefined;
 
   if (hasFirestore) {
     const { adminDb } = await import("@/lib/firebase-admin");

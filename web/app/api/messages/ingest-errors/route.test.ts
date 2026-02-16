@@ -558,4 +558,73 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
       orderBy: [{ field: "finalizedAt", direction: "desc" }],
     });
   });
+
+  it("should treat empty FeatureCollection as missing geoJson", async () => {
+    const now = new Date("2026-01-10T10:00:00.000Z");
+
+    mockMessagesData = [
+      {
+        _id: "msg-empty-geojson",
+        text: "Empty geojson",
+        plainText: "Empty geojson",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        categories: [],
+        geoJson: { type: "FeatureCollection", features: [] },
+      },
+    ];
+
+    const request = new Request("http://localhost/api/messages/ingest-errors");
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.messages).toHaveLength(1);
+    expect(data.messages[0].id).toBe("msg-empty-geojson");
+  });
+
+  it("should return nextCursor when fetch limit is reached even with sparse candidates", async () => {
+    const start = new Date("2026-01-10T10:00:00.000Z").getTime();
+
+    mockMessagesData = Array.from({ length: 510 }, (_, index) => {
+      const finalizedAt = new Date(start - index * 60_000);
+      const base = {
+        _id: `msg-${String(index).padStart(3, "0")}`,
+        text: `Message ${index}`,
+        plainText: `Message ${index}`,
+        finalizedAt,
+        createdAt: finalizedAt,
+        source: "test-source",
+        categories: [],
+      };
+
+      if (index === 100 || index === 200) {
+        return base;
+      }
+
+      return {
+        ...base,
+        geoJson: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [23.3, 42.7] },
+              properties: {},
+            },
+          ],
+        },
+      };
+    });
+
+    const request = new Request("http://localhost/api/messages/ingest-errors");
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.messages).toHaveLength(2);
+    expect(data.nextCursor).toBeDefined();
+    expect(data.nextCursor.id).toBe("msg-499");
+  });
 });
