@@ -251,7 +251,7 @@ export default function FilterBox({
           {...handlers}
           className={[
             "drag-handle absolute right-0 top-1/2",
-            "-translate-y-1/2 translate-x-full rounded-r-lg px-2 py-3 hover:px-3 transition-all duration-200 border border-l-0 border-primary-hover bg-primary text-background cursor-grab active:cursor-grabbing shadow-lg",
+            "-translate-y-1/2 translate-x-full rounded-r-lg px-2 py-3 hover:px-3 transition-all duration-200 border border-l-0 border-primary-hover bg-primary text-white cursor-grab active:cursor-grabbing shadow-lg",
           ].join(" ")}
           aria-label={isOpen ? "Затвори филтрите" : "Отвори филтрите"}
         >
