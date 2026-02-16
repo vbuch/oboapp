@@ -474,13 +474,13 @@ describe("useCategoryFilter hook", () => {
   });
 
   describe("isInitialLoad", () => {
-    it("starts as true and becomes false after initial render", async () => {
+    it("becomes false after 300ms even with empty viewport messages (zero results scenario)", async () => {
       const onCategorySelectionChange = vi.fn();
 
       const { result } = renderHook(() =>
         useCategoryFilter(
           availableCategories,
-          [], // Empty messages (zero results scenario)
+          [], // Empty messages - simulates filters resulting in zero records
           onCategorySelectionChange,
         ),
       );
@@ -493,29 +493,7 @@ describe("useCategoryFilter hook", () => {
         await new Promise((resolve) => setTimeout(resolve, 350));
       });
 
-      // Should now be false, even with zero messages
-      expect(result.current.isInitialLoad).toBe(false);
-    });
-
-    it("becomes false even with empty viewport messages", async () => {
-      const onCategorySelectionChange = vi.fn();
-
-      const { result } = renderHook(() =>
-        useCategoryFilter(
-          availableCategories,
-          [], // Zero messages
-          onCategorySelectionChange,
-        ),
-      );
-
-      // Initially true
-      expect(result.current.isInitialLoad).toBe(true);
-
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 350));
-      });
-
-      // Now false (categories are static, don't need to wait for messages)
+      // Should now be false - categories are static and don't need messages to display
       expect(result.current.isInitialLoad).toBe(false);
     });
   });
