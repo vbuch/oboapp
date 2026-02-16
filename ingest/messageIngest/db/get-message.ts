@@ -51,5 +51,6 @@ export async function getMessageById(
         : data.ingestErrors,
     sourceDocumentId: data.sourceDocumentId,
     isRelevant: data.isRelevant,
+    retryCount: data.retryCount,
   };
 }
