@@ -36,11 +36,15 @@ export type AnalyticsEvent =
   | { name: "geolocation_permission_denied"; params: {} }
   | {
       name: "geolocation_location_centered";
-      params: { had_cached_permission: boolean };
+      params: { had_cached_permission: boolean; auto_centered?: boolean };
     }
   | {
       name: "geolocation_error";
-      params: { error_type: string; had_cached_permission: boolean };
+      params: {
+        error_type: string;
+        had_cached_permission: boolean;
+        auto_centered?: boolean;
+      };
     }
   // Onboarding
   | { name: "onboarding_notification_clicked"; params: {} }
