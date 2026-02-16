@@ -25,6 +25,7 @@ import { useSourceFilter } from "@/lib/hooks/useSourceFilter";
 import { classifyMessage } from "@/lib/message-classification";
 import { createMessageUrl } from "@/lib/url-utils";
 import { zIndex } from "@/lib/colors";
+import { navigateBackOrReplace } from "@/lib/navigation-utils";
 import type { Message } from "@/lib/types";
 import type { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
 import { isValidMessageId } from "@oboapp/shared";
@@ -165,8 +166,7 @@ export default function HomeContent() {
 
   // Handle closing detail view
   const handleCloseDetail = useCallback(() => {
-    // Remove query parameter from URL - this will trigger selectedMessage derivation
-    router.push("/", { scroll: false });
+    navigateBackOrReplace(router, "/");
   }, [router]);
 
   // Derive selected message from URL parameter

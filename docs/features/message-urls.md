@@ -81,11 +81,27 @@ All message details render as an overlay on the homepage map:
    - `HomeContent` looks up the message in viewport messages by ID
    - If not found in viewport (e.g., message outside current map bounds), fetches via `/api/messages/by-id`
    - Renders `MessageDetailView` as a slide-in panel over the map
+   - Uses `router.push()` to add history entry when opening (enables browser back to close)
+   - Uses `router.back()` when explicitly closing, with a `router.replace()` fallback if there is no prior history entry (avoids duplicate history entries)
 
 2. **`/m/[slug]/page.tsx`** — External URL redirect
    - Redirects to `/?messageId={id}`
    - Exists to support clean shareable URLs from push notifications and social sharing
    - Note: The file is named `[slug]` for Next.js dynamic routing, but the parameter represents the message ID
+
+### Browser History Behavior
+
+The message detail overlay manages history to provide natural navigation:
+
+- **Opening a detail**: Uses `router.push()` to add a history entry with `?messageId={id}`
+- **Browser back button**: Navigates back in history, which closes the detail
+- **Explicit close** (X button, ESC, backdrop): Uses `router.back()` to navigate to previous history entry (avoids polluting history with duplicate entries)
+
+This provides intuitive PWA navigation:
+- Users can press back to close details
+- Explicitly closing details goes back in history (same as pressing back button)
+- No duplicate entries are created when opening and closing multiple details
+- Fallback to `router.replace()` if no history is available (e.g., direct link to detail)
 
 ## API Endpoints
 

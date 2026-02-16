@@ -14,6 +14,7 @@ import MessagesGrid from "@/components/MessagesGrid";
 import MessageDetailView from "@/components/MessageDetailView/MessageDetailView";
 import sourcesData from "@/lib/sources.json";
 import { extractHostname } from "@/lib/url-utils";
+import { navigateBackOrReplace } from "@/lib/navigation-utils";
 
 export default function SourcePage() {
   const params = useParams();
@@ -87,7 +88,7 @@ export default function SourcePage() {
 
   // Handle closing detail view
   const handleCloseDetail = useCallback(() => {
-    router.push(`/sources/${sourceId}`, { scroll: false });
+    navigateBackOrReplace(router, `/sources/${sourceId}`);
   }, [router, sourceId]);
 
   // Handle address click - navigate to homepage with message and location
