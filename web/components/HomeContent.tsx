@@ -285,10 +285,13 @@ export default function HomeContent() {
           onCancelTargetMode={handleCancelTargetMode}
           onStartAddInterest={handleStartAddInterest}
           onGeolocationPromptChange={setGeolocationPrompt}
-          onOnboardingStateChange={(state, callbacks) => {
-            setOnboardingState(state);
-            setOnboardingCallbacks(callbacks);
-          }}
+          onOnboardingStateChange={useCallback(
+            (state, callbacks) => {
+              setOnboardingState(state);
+              setOnboardingCallbacks(callbacks);
+            },
+            [],
+          )}
         />
         {isLoading && (
           <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-lg shadow-md ${zIndex.nav}`}>
