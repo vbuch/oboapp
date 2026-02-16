@@ -157,7 +157,8 @@ export default function HomeContent() {
       const message = messages.find((m) => m.id === messageId);
       if (message?.id) {
         // Update URL for the selected message using its canonical URL
-        router.push(createMessageUrl(message), { scroll: false });
+        // Use replace() instead of push() to avoid adding history entries for modal state
+        router.replace(createMessageUrl(message), { scroll: false });
       }
     },
     [messages, router],
@@ -166,7 +167,8 @@ export default function HomeContent() {
   // Handle closing detail view
   const handleCloseDetail = useCallback(() => {
     // Remove query parameter from URL - this will trigger selectedMessage derivation
-    router.push("/", { scroll: false });
+    // Use replace() instead of push() to avoid adding history entries for modal state
+    router.replace("/", { scroll: false });
   }, [router]);
 
   // Derive selected message from URL parameter
@@ -319,7 +321,8 @@ export default function HomeContent() {
             messages={filteredMessages}
             isLoading={isLoading}
             onMessageClick={(message) => {
-              router.push(createMessageUrl(message), { scroll: false });
+              // Use replace() instead of push() to avoid adding history entries for modal state
+              router.replace(createMessageUrl(message), { scroll: false });
             }}
             variant="list"
           />
