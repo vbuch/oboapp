@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import type {
-  InternalMessage,
-  IngestError,
-} from "@/lib/types";
+import type { InternalMessage, IngestError } from "@/lib/types";
 import type { WhereClause } from "@oboapp/db";
 import {
   toOptionalISOString,
@@ -12,7 +9,9 @@ import {
 
 const PAGE_SIZE = 12;
 
-function recordToInternalMessage(record: Record<string, unknown>): InternalMessage {
+function recordToInternalMessage(
+  record: Record<string, unknown>,
+): InternalMessage {
   return {
     id: record._id as string,
     text: record.text as string,
@@ -33,7 +32,9 @@ function recordToInternalMessage(record: Record<string, unknown>): InternalMessa
     responsibleEntity: record.responsibleEntity as string | undefined,
     pins: Array.isArray(record.pins) ? record.pins : undefined,
     streets: Array.isArray(record.streets) ? record.streets : undefined,
-    cadastralProperties: Array.isArray(record.cadastralProperties) ? record.cadastralProperties : undefined,
+    cadastralProperties: Array.isArray(record.cadastralProperties)
+      ? record.cadastralProperties
+      : undefined,
     busStops: Array.isArray(record.busStops) ? record.busStops : undefined,
     // Internal-only fields
     process: Array.isArray(record.process) ? record.process : undefined,
@@ -87,7 +88,9 @@ export async function GET(request: Request) {
 
     if (currentCursorDate) {
       whereClause.push({
-        field: "finalizedAt", op: "<=", value: currentCursorDate,
+        field: "finalizedAt",
+        op: "<=",
+        value: currentCursorDate,
       });
     }
 
@@ -96,47 +99,91 @@ export async function GET(request: Request) {
       orderBy: [{ field: "finalizedAt", direction: "desc" }],
     });
 
-    const sortedDocs = [...fetchedDocs].sort((left, right) => {
-      const leftDate = new Date(left.finalizedAt as string | Date).getTime();
-      const rightDate = new Date(right.finalizedAt as string | Date).getTime();
-      if (leftDate !== rightDate) {
-        return rightDate - leftDate;
+    const shouldIncludeByCursor = (doc: Record<string, unknown>): boolean => {
+      if (!currentCursorDate || !currentCursorId) {
+        return true;
       }
-      return String(right._id).localeCompare(String(left._id));
-    });
 
-    const cursorFilteredDocs =
-      currentCursorDate && currentCursorId
-        ? sortedDocs.filter((doc) => {
-            const docFinalizedAt = new Date(doc.finalizedAt as string | Date).getTime();
-            const cursorFinalizedAtTime = currentCursorDate.getTime();
+      const docFinalizedAt = new Date(
+        doc.finalizedAt as string | Date,
+      ).getTime();
+      const cursorFinalizedAtTime = currentCursorDate.getTime();
 
-            if (docFinalizedAt < cursorFinalizedAtTime) {
-              return true;
-            }
+      if (docFinalizedAt < cursorFinalizedAtTime) {
+        return true;
+      }
 
-            if (docFinalizedAt > cursorFinalizedAtTime) {
-              return false;
-            }
+      if (docFinalizedAt > cursorFinalizedAtTime) {
+        return false;
+      }
 
-            return String(doc._id).localeCompare(currentCursorId) < 0;
-          })
-        : sortedDocs;
+      return String(doc._id).localeCompare(currentCursorId) < 0;
+    };
 
-    const ingestErrorDocs = cursorFilteredDocs.filter((doc) => {
-      const hasGeoJsonField = Object.hasOwn(doc, "geoJson");
-      return !hasGeoJsonField || isGeoJsonMissing(doc.geoJson);
-    });
+    const candidateDocs: Record<string, unknown>[] = [];
+    const targetCount = PAGE_SIZE + 1;
+    let index = 0;
 
-    const pageDocs = ingestErrorDocs.slice(0, PAGE_SIZE);
+    while (index < fetchedDocs.length && candidateDocs.length < targetCount) {
+      const bucketStart = fetchedDocs[index];
+      const bucketTime = new Date(
+        bucketStart.finalizedAt as string | Date,
+      ).getTime();
+      if (Number.isNaN(bucketTime)) {
+        index += 1;
+        continue;
+      }
+      const bucket: Record<string, unknown>[] = [];
+
+      while (index < fetchedDocs.length) {
+        const current = fetchedDocs[index];
+        const currentTime = new Date(
+          current.finalizedAt as string | Date,
+        ).getTime();
+        if (Number.isNaN(currentTime)) {
+          index += 1;
+          continue;
+        }
+        if (currentTime !== bucketTime) {
+          break;
+        }
+        bucket.push(current);
+        index += 1;
+      }
+
+      bucket.sort((left, right) =>
+        String(right._id).localeCompare(String(left._id)),
+      );
+
+      for (const doc of bucket) {
+        if (!shouldIncludeByCursor(doc)) {
+          continue;
+        }
+
+        const hasGeoJsonField = Object.hasOwn(doc, "geoJson");
+        if (hasGeoJsonField && !isGeoJsonMissing(doc.geoJson)) {
+          continue;
+        }
+
+        candidateDocs.push(doc);
+        if (candidateDocs.length >= targetCount) {
+          break;
+        }
+      }
+    }
+
+    const pageDocs = candidateDocs.slice(0, PAGE_SIZE);
     const messages = pageDocs.map(recordToInternalMessage);
-    const hasMore = ingestErrorDocs.length > PAGE_SIZE;
+    const hasMore = candidateDocs.length > PAGE_SIZE;
     const lastDoc = pageDocs.at(-1);
 
     const nextCursor =
       lastDoc && hasMore
         ? {
-            finalizedAt: toRequiredISOString(lastDoc.finalizedAt, "finalizedAt"),
+            finalizedAt: toRequiredISOString(
+              lastDoc.finalizedAt,
+              "finalizedAt",
+            ),
             id: String(lastDoc._id),
           }
         : undefined;

@@ -20,7 +20,8 @@ export async function DELETE(request: NextRequest) {
       await db.notificationSubscriptions.deleteAllByUserId(userId);
 
     // 3. Count and delete all notification matches
-    const matchesDeleted = await db.notificationMatches.deleteAllByUserId(userId);
+    const matchesDeleted =
+      await db.notificationMatches.deleteAllByUserId(userId);
 
     // 4. Delete the Firebase Auth user
     // This requires recent re-authentication on the client side (which we enforce in the UI)
@@ -44,7 +45,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting user data:", error);
     return NextResponse.json(
       { error: "Failed to delete user data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

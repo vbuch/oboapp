@@ -102,14 +102,18 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     expect(response.status).toBe(200);
     expect(data.messages).toHaveLength(3);
 
-    const msg1 = data.messages.find((message: { id: string }) => message.id === "msg-1");
-    const msg2 = data.messages.find((message: { id: string }) => message.id === "msg-2");
-    const msg3 = data.messages.find((message: { id: string }) => message.id === "msg-3");
+    const msg1 = data.messages.find(
+      (message: { id: string }) => message.id === "msg-1",
+    );
+    const msg2 = data.messages.find(
+      (message: { id: string }) => message.id === "msg-2",
+    );
+    const msg3 = data.messages.find(
+      (message: { id: string }) => message.id === "msg-3",
+    );
 
     // msg-1: Valid array should be preserved
-    expect(msg1?.pins).toEqual([
-      { latitude: 42.7, longitude: 23.3 },
-    ]);
+    expect(msg1?.pins).toEqual([{ latitude: 42.7, longitude: 23.3 }]);
 
     // msg-2: String should become undefined
     expect(msg2?.pins).toBeUndefined();
@@ -155,8 +159,12 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     expect(response.status).toBe(200);
     expect(data.messages).toHaveLength(2);
 
-    const msg1 = data.messages.find((message: { id: string }) => message.id === "msg-1");
-    const msg2 = data.messages.find((message: { id: string }) => message.id === "msg-2");
+    const msg1 = data.messages.find(
+      (message: { id: string }) => message.id === "msg-1",
+    );
+    const msg2 = data.messages.find(
+      (message: { id: string }) => message.id === "msg-2",
+    );
 
     // msg-1: Valid array should be preserved
     expect(msg1?.streets).toEqual([{ name: "Test Street" }]);
@@ -202,13 +210,15 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     expect(response.status).toBe(200);
     expect(data.messages).toHaveLength(2);
 
-    const msg1 = data.messages.find((message: { id: string }) => message.id === "msg-1");
-    const msg2 = data.messages.find((message: { id: string }) => message.id === "msg-2");
+    const msg1 = data.messages.find(
+      (message: { id: string }) => message.id === "msg-1",
+    );
+    const msg2 = data.messages.find(
+      (message: { id: string }) => message.id === "msg-2",
+    );
 
     // msg-1: Valid array should be preserved
-    expect(msg1?.cadastralProperties).toEqual([
-      { identifier: "УПИ-123" },
-    ]);
+    expect(msg1?.cadastralProperties).toEqual([{ identifier: "УПИ-123" }]);
 
     // msg-2: Number should become undefined
     expect(msg2?.cadastralProperties).toBeUndefined();
@@ -251,8 +261,12 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     expect(response.status).toBe(200);
     expect(data.messages).toHaveLength(2);
 
-    const msg1 = data.messages.find((message: { id: string }) => message.id === "msg-1");
-    const msg2 = data.messages.find((message: { id: string }) => message.id === "msg-2");
+    const msg1 = data.messages.find(
+      (message: { id: string }) => message.id === "msg-1",
+    );
+    const msg2 = data.messages.find(
+      (message: { id: string }) => message.id === "msg-2",
+    );
 
     // msg-1: Valid array should be preserved
     expect(msg1?.busStops).toEqual([{ name: "Stop 1" }]);
@@ -464,5 +478,39 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
       finalizedAt: "2026-01-10T10:00:00.000Z",
       id: "msg-028",
     });
+  });
+
+  it("should skip records with invalid finalizedAt values", async () => {
+    const validDate = new Date("2026-01-10T10:00:00.000Z");
+
+    mockMessagesData = [
+      {
+        _id: "msg-invalid",
+        text: "Invalid",
+        plainText: "Invalid",
+        finalizedAt: "not-a-date",
+        createdAt: validDate,
+        source: "test-source",
+        categories: [],
+      },
+      {
+        _id: "msg-valid",
+        text: "Valid",
+        plainText: "Valid",
+        finalizedAt: validDate,
+        createdAt: validDate,
+        source: "test-source",
+        categories: [],
+      },
+    ];
+
+    const request = new Request("http://localhost/api/messages/ingest-errors");
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.messages).toHaveLength(1);
+    expect(data.messages[0].id).toBe("msg-valid");
   });
 });

@@ -11,14 +11,15 @@ export async function GET(request: NextRequest) {
     const { userId } = await verifyAuthToken(authHeader);
 
     const db = await getDb();
-    const hasSubscription = await db.notificationSubscriptions.hasSubscription(userId);
+    const hasSubscription =
+      await db.notificationSubscriptions.hasSubscription(userId);
 
     return NextResponse.json({ hasSubscription });
   } catch (error) {
     console.error("Error checking subscription:", error);
     return NextResponse.json(
       { error: "Failed to check subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     if (!token || !endpoint) {
       return NextResponse.json(
         { error: "Token and endpoint are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,7 +44,10 @@ export async function POST(request: NextRequest) {
     const now = new Date();
 
     // Check if subscription already exists for this user
-    const existing = await db.notificationSubscriptions.findByUserAndToken(userId, token);
+    const existing = await db.notificationSubscriptions.findByUserAndToken(
+      userId,
+      token,
+    );
 
     if (existing) {
       // Update existing subscription
@@ -99,7 +103,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating subscription:", error);
     return NextResponse.json(
       { error: "Failed to create subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -117,17 +121,20 @@ export async function DELETE(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Token parameter is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const db = await getDb();
-    const existing = await db.notificationSubscriptions.findByUserAndToken(userId, token);
+    const existing = await db.notificationSubscriptions.findByUserAndToken(
+      userId,
+      token,
+    );
 
     if (!existing) {
       return NextResponse.json(
         { error: "Subscription not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -139,7 +146,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting subscription:", error);
     return NextResponse.json(
       { error: "Failed to delete subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

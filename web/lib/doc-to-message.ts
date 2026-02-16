@@ -31,7 +31,8 @@ export function recordToMessage(record: Record<string, unknown>): Message {
     responsibleEntity: record.responsibleEntity as string | undefined,
     pins: record.pins as Message["pins"],
     streets: record.streets as Message["streets"],
-    cadastralProperties: record.cadastralProperties as Message["cadastralProperties"],
+    cadastralProperties:
+      record.cadastralProperties as Message["cadastralProperties"],
     busStops: record.busStops as Message["busStops"],
   };
 }

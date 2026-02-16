@@ -10,7 +10,9 @@ export function toRequiredISOString(value: unknown, fieldName: string): string {
   if (typeof value === "string") {
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
-      throw new TypeError(`Invalid date string for required field: ${fieldName}`);
+      throw new TypeError(
+        `Invalid date string for required field: ${fieldName}`,
+      );
     }
     return value;
   }
