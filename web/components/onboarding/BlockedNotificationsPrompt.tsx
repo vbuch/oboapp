@@ -2,6 +2,7 @@
 
 import PromptCard from "../PromptCard";
 import NoNotificationsIcon from "@/components/icons/NoNotificationsIcon";
+import { zIndex } from "@/lib/colors";
 
 /**
  * Shown when browser/OS has notifications disabled (issue #32).
@@ -10,7 +11,7 @@ import NoNotificationsIcon from "@/components/icons/NoNotificationsIcon";
  */
 export default function BlockedNotificationsPrompt() {
   return (
-    <div className="animate-fade-in absolute bottom-4 right-4 z-10 max-w-sm">
+    <div className={`animate-fade-in absolute bottom-4 right-4 ${zIndex.fixed} max-w-sm`}>
       <PromptCard
         icon={<NoNotificationsIcon className="w-12 h-12 text-warning" />}
         title="Известията са блокирани"

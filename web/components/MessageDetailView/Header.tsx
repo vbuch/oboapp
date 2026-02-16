@@ -2,6 +2,7 @@ import React from "react";
 import { trackEvent } from "@/lib/analytics";
 import { MessageClassification } from "@/lib/message-classification";
 import type { DragHandlers } from "@/lib/hooks/useDragPanel";
+import { zIndex } from "@/lib/colors";
 
 interface HeaderProps {
   handlers: DragHandlers;
@@ -30,7 +31,7 @@ export default function Header({
   const isActive = classification === "active";
 
   return (
-    <div className="sticky top-0 bg-white border-b border-neutral-border px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm z-10">
+    <div className={`sticky top-0 bg-white border-b border-neutral-border px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm ${zIndex.fixed}`}>
       <button
         type="button"
         className="drag-handle absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-neutral-border rounded-full sm:hidden cursor-grab active:cursor-grabbing"

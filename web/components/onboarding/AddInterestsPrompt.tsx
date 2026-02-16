@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
-import { borderRadius } from "@/lib/colors";
+import { borderRadius, zIndex } from "@/lib/colors";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import LocationPinIcon from "@/components/icons/LocationPinIcon";
 import PlusIcon from "@/components/icons/PlusIcon";
@@ -43,11 +43,11 @@ export default function AddInterestsPrompt({
       {/* Backdrop */}
       <button
         type="button"
-        className="fixed inset-0 z-[9] bg-black/20 backdrop-blur-sm pointer-events-auto"
+        className={`fixed inset-0 ${zIndex.modalBackdrop} bg-black/20 backdrop-blur-sm pointer-events-auto`}
         onClick={handleDismiss}
         aria-label="Затвори"
       />
-      <div className="animate-fade-in fixed sm:absolute bottom-2 sm:bottom-4 right-2 sm:right-4 left-2 sm:left-auto z-10 bg-white rounded-lg shadow-xl p-4 sm:p-6 sm:pb-4 sm:pr-4 sm:max-w-sm">
+      <div className={`animate-fade-in fixed sm:absolute bottom-2 sm:bottom-4 right-2 sm:right-4 left-2 sm:left-auto ${zIndex.modalContent} bg-white rounded-lg shadow-xl p-4 sm:p-6 sm:pb-4 sm:pr-4 sm:max-w-sm`}>
         <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
           <div className="flex-shrink-0">
             <LocationPinIcon className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />

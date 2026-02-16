@@ -1,6 +1,7 @@
 "use client";
 
 import { trackEvent } from "@/lib/analytics";
+import { zIndex } from "@/lib/colors";
 import PromptCard from "./PromptCard";
 
 interface GeolocationPromptProps {
@@ -29,7 +30,7 @@ export default function GeolocationPrompt({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto flex items-center justify-center z-[9999] p-4">
+    <div className={`fixed inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto flex items-center justify-center ${zIndex.modalBackdrop} p-4`}>
       <PromptCard
         icon={
           <svg
