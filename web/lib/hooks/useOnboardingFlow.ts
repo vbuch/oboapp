@@ -390,7 +390,7 @@ export function useOnboardingFlow(
   // Callback handlers
   const handlePermissionResult = useCallback(
     (permission: NotificationPermission) => {
-      // Use fresh permission for accurate context
+      // Include the new permission value in context to ensure consistency
       const freshContext = {
         ...context,
         permission,
