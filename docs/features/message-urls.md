@@ -82,7 +82,7 @@ All message details render as an overlay on the homepage map:
    - If not found in viewport (e.g., message outside current map bounds), fetches via `/api/messages/by-id`
    - Renders `MessageDetailView` as a slide-in panel over the map
    - Uses `router.push()` to add history entry when opening (enables browser back to close)
-   - Uses `router.replace()` when explicitly closing (avoids duplicate history entries)
+   - Uses `router.back()` when explicitly closing, with a `router.replace()` fallback if there is no prior history entry (avoids duplicate history entries)
 
 2. **`/m/[slug]/page.tsx`** — External URL redirect
    - Redirects to `/?messageId={id}`
