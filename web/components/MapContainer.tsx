@@ -151,6 +151,23 @@ export default function MapContainer({
   const { showPrompt, onAccept, onDecline, requestGeolocation, isLocating } =
     useGeolocationPrompt();
 
+  // Handle add interest button click in idle state
+  // If logged in, go directly to creation mode (skip showing AddInterestsPrompt again)
+  // If not logged in, restart the onboarding flow
+  const handleAddInterestClick = useCallback(() => {
+    if (onboardingState === "idle") {
+      if (authUser) {
+        // User already dismissed AddInterestsPrompt, go straight to creation
+        onStartAddInterest();
+      } else {
+        // Not logged in, restart onboarding flow
+        handleRestart();
+      }
+    } else {
+      onStartAddInterest();
+    }
+  }, [onboardingState, authUser, handleRestart, onStartAddInterest]);
+
   // Sync geolocation prompt state to parent for proper DOM ordering
   React.useEffect(() => {
     if (showPrompt) {
@@ -215,23 +232,6 @@ export default function MapContainer({
     },
     [],
   );
-
-  // Handle add interest button click in idle state
-  // If logged in, go directly to creation mode (skip showing AddInterestsPrompt again)
-  // If not logged in, restart the onboarding flow
-  const handleAddInterestClick = useCallback(() => {
-    if (onboardingState === "idle") {
-      if (authUser) {
-        // User already dismissed AddInterestsPrompt, go straight to creation
-        onStartAddInterest();
-      } else {
-        // Not logged in, restart onboarding flow
-        handleRestart();
-      }
-    } else {
-      onStartAddInterest();
-    }
-  }, [onboardingState, authUser, handleRestart, onStartAddInterest]);
 
   return (
     <div className="absolute inset-0">
