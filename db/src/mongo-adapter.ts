@@ -28,43 +28,51 @@ const DUPLICATE_KEY_ERROR = 11000;
 function buildFilter(clauses?: WhereClause[]): Filter<Document> {
   if (!clauses || clauses.length === 0) return {};
 
-  const filter: Record<string, unknown> = {};
+  const filters: Filter<Document>[] = [];
+
+  const addFilter = (filter: Filter<Document>) => {
+    filters.push(filter);
+  };
+
   for (const clause of clauses) {
     const field = clause.field === "_id" ? "_id" : clause.field;
     switch (clause.op) {
       case "==":
-        filter[field] = clause.value;
+        addFilter({ [field]: clause.value });
         break;
       case "!=":
-        filter[field] = { $ne: clause.value };
+        addFilter({ [field]: { $ne: clause.value } });
         break;
       case "<":
-        filter[field] = { $lt: clause.value };
+        addFilter({ [field]: { $lt: clause.value } });
         break;
       case "<=":
-        filter[field] = { $lte: clause.value };
+        addFilter({ [field]: { $lte: clause.value } });
         break;
       case ">":
-        filter[field] = { $gt: clause.value };
+        addFilter({ [field]: { $gt: clause.value } });
         break;
       case ">=":
-        filter[field] = { $gte: clause.value };
+        addFilter({ [field]: { $gte: clause.value } });
         break;
       case "in":
-        filter[field] = { $in: clause.value };
+        addFilter({ [field]: { $in: clause.value } });
         break;
       case "not-in":
-        filter[field] = { $nin: clause.value };
+        addFilter({ [field]: { $nin: clause.value } });
         break;
       case "array-contains":
-        filter[field] = clause.value;
+        addFilter({ [field]: clause.value });
         break;
       case "array-contains-any":
-        filter[field] = { $in: clause.value };
+        addFilter({ [field]: { $in: clause.value } });
         break;
     }
   }
-  return filter;
+
+  if (filters.length === 0) return {};
+  if (filters.length === 1) return filters[0];
+  return { $and: filters } as Filter<Document>;
 }
 
 function buildSort(
@@ -220,10 +228,7 @@ export class MongoAdapter implements DbClient {
       .deleteOne({ _id: id as unknown as Document["_id"] });
   }
 
-  async deleteMany(
-    collection: string,
-    where: WhereClause[],
-  ): Promise<number> {
+  async deleteMany(collection: string, where: WhereClause[]): Promise<number> {
     const filter = buildFilter(where);
     const result = await this.db.collection(collection).deleteMany(filter);
     return result.deletedCount;
@@ -233,7 +238,12 @@ export class MongoAdapter implements DbClient {
     // Group operations by collection for efficient bulk writes
     const byCollection = new Map<
       string,
-      { type: string; id: string; data?: Record<string, unknown>; merge?: boolean }[]
+      {
+        type: string;
+        id: string;
+        data?: Record<string, unknown>;
+        merge?: boolean;
+      }[]
     >();
 
     for (const op of operations) {
@@ -248,10 +258,19 @@ export class MongoAdapter implements DbClient {
         const filter = { _id: op.id as unknown as Document["_id"] };
         switch (op.type) {
           case "set":
+            if (op.merge) {
+              return {
+                updateOne: {
+                  filter,
+                  update: { $set: { ...op.data, _id: op.id } },
+                  upsert: true,
+                },
+              };
+            }
             return {
-              updateOne: {
+              replaceOne: {
                 filter,
-                update: { $set: { ...op.data, _id: op.id } },
+                replacement: { ...(op.data ?? {}), _id: op.id },
                 upsert: true,
               },
             };
@@ -275,10 +294,7 @@ export class MongoAdapter implements DbClient {
     }
   }
 
-  async count(
-    collection: string,
-    where?: WhereClause[],
-  ): Promise<number> {
+  async count(collection: string, where?: WhereClause[]): Promise<number> {
     const filter = buildFilter(where);
     return this.db.collection(collection).countDocuments(filter);
   }

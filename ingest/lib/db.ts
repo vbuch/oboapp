@@ -19,7 +19,10 @@ export async function getDb(): Promise<OboDb> {
   const { createDb } = await import("@oboapp/db");
 
   // Only load Firestore if configured
-  const hasFirestore = !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  const hasFirestore =
+    !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY ||
+    process.env.USE_FIREBASE_EMULATORS === "true" ||
+    !!process.env.FIRESTORE_EMULATOR_HOST;
   let firestoreDb: FirebaseFirestore.Firestore | undefined;
 
   if (hasFirestore) {

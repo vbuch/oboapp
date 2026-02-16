@@ -3,12 +3,14 @@ import { GET } from "./route";
 
 // Mock data store — tests set this before each test
 let mockMessagesData: Record<string, unknown>[] = [];
+let lastFindManyOptions: unknown = null;
 
 // Mock the db module (replaces the old firebase-admin mock)
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn().mockImplementation(async () => ({
     messages: {
       findMany: vi.fn().mockImplementation(async (options?: any) => {
+        lastFindManyOptions = options ?? null;
         let filtered = [...mockMessagesData];
 
         if (options?.where) {
@@ -52,6 +54,7 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockMessagesData = [];
+    lastFindManyOptions = null;
   });
 
   it("should validate pins field as array and fallback to undefined for non-arrays", async () => {
@@ -348,7 +351,7 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     expect(data.messages[0].busStops).toEqual([{ name: "Stop 1" }]);
   });
 
-  it("should include same-timestamp docs when cursorId is not provided", async () => {
+  it("should return 400 when cursorFinalizedAt is provided without cursorId", async () => {
     const boundaryDate = new Date("2026-01-10T10:00:00.000Z");
     const olderDate = new Date("2026-01-09T10:00:00.000Z");
 
@@ -389,8 +392,24 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     const response = await GET(request);
     const data = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(data.messages).toHaveLength(3);
+    expect(response.status).toBe(400);
+    expect(data.error).toContain(
+      "Both cursorFinalizedAt and cursorId must be provided together",
+    );
+  });
+
+  it("should return 400 when cursorId is provided without cursorFinalizedAt", async () => {
+    const request = new Request(
+      "http://localhost/api/messages/ingest-errors?cursorId=msg-b",
+    );
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain(
+      "Both cursorFinalizedAt and cursorId must be provided together",
+    );
   });
 
   it("should use cursorId as tie-breaker for same finalizedAt", async () => {
@@ -512,5 +531,31 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     expect(response.status).toBe(200);
     expect(data.messages).toHaveLength(1);
     expect(data.messages[0].id).toBe("msg-valid");
+  });
+
+  it("should apply a DB-side read limit", async () => {
+    const now = new Date();
+
+    mockMessagesData = [
+      {
+        _id: "msg-1",
+        text: "Test message 1",
+        plainText: "Test message 1",
+        finalizedAt: now,
+        createdAt: now,
+        source: "test-source",
+        categories: [],
+      },
+    ];
+
+    const request = new Request("http://localhost/api/messages/ingest-errors");
+
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    expect(lastFindManyOptions).toMatchObject({
+      limit: 500,
+      orderBy: [{ field: "finalizedAt", direction: "desc" }],
+    });
   });
 });

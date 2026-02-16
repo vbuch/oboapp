@@ -8,6 +8,7 @@ import {
 } from "@/lib/date-serialization";
 
 const PAGE_SIZE = 12;
+const FETCH_LIMIT = 500;
 
 function recordToInternalMessage(
   record: Record<string, unknown>,
@@ -49,6 +50,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const cursorFinalizedAt = searchParams.get("cursorFinalizedAt");
     const cursorId = searchParams.get("cursorId");
+
+    if ((cursorFinalizedAt && !cursorId) || (!cursorFinalizedAt && cursorId)) {
+      return NextResponse.json(
+        {
+          error:
+            "Both cursorFinalizedAt and cursorId must be provided together",
+        },
+        { status: 400 },
+      );
+    }
 
     const db = await getDb();
     let currentCursorDate: Date | null = null;
@@ -97,6 +108,7 @@ export async function GET(request: Request) {
     const fetchedDocs = await db.messages.findMany({
       where: whereClause,
       orderBy: [{ field: "finalizedAt", direction: "desc" }],
+      limit: FETCH_LIMIT,
     });
 
     const shouldIncludeByCursor = (doc: Record<string, unknown>): boolean => {
