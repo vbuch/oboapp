@@ -9,8 +9,9 @@ WORKDIR /app
 # Copy workspace root config files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Copy shared and ingest package files
+# Copy shared, db and ingest package files
 COPY shared ./shared
+COPY db ./db
 COPY ingest ./ingest
 
 # Install workspace dependencies (triggers postinstall → builds shared)
@@ -54,8 +55,9 @@ RUN apt-get update && apt-get install -y \
 # Copy workspace root config files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Copy shared package
+# Copy shared and db packages
 COPY shared ./shared
+COPY db ./db
 
 # Copy ingest package files
 COPY ingest/package.json ./ingest/
@@ -68,6 +70,9 @@ COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
 
 # Copy built shared package dist folder
 COPY --from=builder /app/shared/dist ./shared/dist
+
+# Copy built db package dist folder
+COPY --from=builder /app/db/dist ./db/dist
 
 # Copy only the built JavaScript files and necessary runtime files
 COPY --from=builder /app/ingest/dist ./ingest/dist
