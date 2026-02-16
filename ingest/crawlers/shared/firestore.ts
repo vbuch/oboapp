@@ -1,11 +1,11 @@
-import type { Firestore } from "firebase-admin/firestore";
+import type { OboDb } from "@oboapp/db";
 import { normalizeCategoriesInput } from "@/lib/category-utils";
 import { validateLocality } from "@oboapp/shared";
 import type { BaseSourceDocument } from "./types";
 import { logger } from "@/lib/logger";
 
 /**
- * Encode URL to a safe Firestore document ID
+ * Encode URL to a safe document ID (Base64 with safe characters)
  */
 export function encodeDocumentId(url: string): string {
   return Buffer.from(url).toString("base64").replaceAll(/[/+=]/g, "_");
@@ -13,25 +13,24 @@ export function encodeDocumentId(url: string): string {
 
 /**
  * Check if a URL has already been processed
- * @throws Error if Firestore operation fails
+ * @throws Error if database operation fails
  */
 export async function isUrlProcessed(
   url: string,
-  adminDb: Firestore,
+  db: OboDb,
 ): Promise<boolean> {
   const docId = encodeDocumentId(url);
-  const docRef = adminDb.collection("sources").doc(docId);
-  const doc = await docRef.get();
-  return doc.exists;
+  const doc = await db.sources.findById(docId);
+  return doc !== null;
 }
 
 /**
- * Save source document to Firestore
+ * Save source document to database
  * @throws Error if save operation fails or target is invalid
  */
 export async function saveSourceDocument<T extends BaseSourceDocument>(
   doc: T,
-  adminDb: Firestore,
+  db: OboDb,
   options?: {
     transformData?: (doc: T) => Record<string, unknown>;
     logSuccess?: boolean;
@@ -41,7 +40,6 @@ export async function saveSourceDocument<T extends BaseSourceDocument>(
   validateLocality(doc.locality);
 
   const docId = encodeDocumentId(doc.url);
-  const docRef = adminDb.collection("sources").doc(docId);
 
   const data = options?.transformData
     ? options.transformData(doc)
@@ -51,7 +49,7 @@ export async function saveSourceDocument<T extends BaseSourceDocument>(
     data.categories = normalizeCategoriesInput(data.categories);
   }
 
-  await docRef.set(data);
+  await db.sources.setOne(docId, data as Record<string, unknown>);
 
   if (options?.logSuccess !== false) {
     logger.info("Saved document", { title: doc.title.substring(0, 50) });
@@ -59,19 +57,19 @@ export async function saveSourceDocument<T extends BaseSourceDocument>(
 }
 
 /**
- * Save source document to Firestore only if it doesn't already exist
+ * Save source document only if it doesn't already exist
  * @returns true if saved, false if already exists
- * @throws Error if Firestore operations fail
+ * @throws Error if database operations fail
  */
 export async function saveSourceDocumentIfNew<T extends BaseSourceDocument>(
   doc: T,
-  adminDb: Firestore,
+  db: OboDb,
   options?: Parameters<typeof saveSourceDocument<T>>[2],
 ): Promise<boolean> {
-  const exists = await isUrlProcessed(doc.url, adminDb);
+  const exists = await isUrlProcessed(doc.url, db);
   if (exists) {
     return false;
   }
-  await saveSourceDocument(doc, adminDb, options);
+  await saveSourceDocument(doc, db, options);
   return true;
 }

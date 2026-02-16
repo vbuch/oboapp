@@ -1,5 +1,4 @@
-import { adminDb } from "@/lib/firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { getDb } from "@/lib/db";
 import { generateMessageId } from "@/lib/message-id-utils";
 
 /**
@@ -9,18 +8,17 @@ import { generateMessageId } from "@/lib/message-id-utils";
 const MAX_MESSAGE_ID_GENERATION_ATTEMPTS = 5;
 
 /**
- * Firestore error codes for document already exists.
- * Different Firestore SDK versions may use different formats.
- * Includes both string codes and numeric code 6.
+ * Error codes indicating a document already exists.
+ * Used across both Firestore and MongoDB adapters.
  */
-const FIRESTORE_ALREADY_EXISTS_CODES = new Set([
+const ALREADY_EXISTS_CODES = new Set<string | number>([
   "already-exists",
   "ALREADY_EXISTS",
-  6, // Numeric code for ALREADY_EXISTS
+  6, // Numeric code for Firestore ALREADY_EXISTS
 ]);
 
 /**
- * Step 1: Store the incoming message in the database
+ * Step 1: Store the incoming message in the database.
  * Always uses an 8-character alphanumeric ID as the document ID.
  * The document ID is used in URLs (e.g., /m/aB3xYz12).
  */
@@ -32,13 +30,14 @@ export async function storeIncomingMessage(
   crawledAt?: Date,
   sourceDocumentId?: string,
 ): Promise<string> {
-  const messagesRef = adminDb.collection("messages");
+  const db = await getDb();
+
   const docData: Record<string, unknown> = {
     text,
     locality,
     source,
-    createdAt: FieldValue.serverTimestamp(),
-    crawledAt: crawledAt || FieldValue.serverTimestamp(),
+    createdAt: new Date(),
+    crawledAt: crawledAt ?? new Date(),
   };
 
   if (sourceUrl) {
@@ -57,16 +56,15 @@ export async function storeIncomingMessage(
   ) {
     const messageId = generateMessageId();
     try {
-      await messagesRef.doc(messageId).create(docData);
+      await db.messages.createOne(messageId, docData);
       return messageId;
     } catch (err: unknown) {
-      // If the document already exists, retry with a new ID
       if (
         err &&
         typeof err === "object" &&
         "code" in err &&
         (typeof err.code === "string" || typeof err.code === "number") &&
-        FIRESTORE_ALREADY_EXISTS_CODES.has(err.code)
+        ALREADY_EXISTS_CODES.has(err.code)
       ) {
         continue;
       }

@@ -2,17 +2,29 @@
 
 /**
  * Migration script to backfill locality field for existing sources and messages
- * Run with: npx tsx migrate/2026-02-10-add-locality-field.ts
+ * Run with: cd db && npx tsx migrate/2026-02-10-add-locality-field.ts
  */
 
 import dotenv from "dotenv";
 import { resolve } from "node:path";
 
-// Load environment variables before importing firebase-admin
-dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+// Load environment variables from ingest/.env.local
+dotenv.config({ path: resolve(process.cwd(), "../ingest/.env.local") });
 
 async function main() {
-  const { adminDb } = await import("../lib/firebase-admin");
+  const { initializeApp, getApps, cert } = await import("firebase-admin/app");
+  const { getFirestore } = await import("firebase-admin/firestore");
+
+  let adminDb: FirebaseFirestore.Firestore;
+  if (!getApps().length) {
+    const serviceAccount = JSON.parse(
+      process.env.FIREBASE_SERVICE_ACCOUNT_KEY!,
+    );
+    const app = initializeApp({ credential: cert(serviceAccount) });
+    adminDb = getFirestore(app);
+  } else {
+    adminDb = getFirestore(getApps()[0]);
+  }
 
   console.log("Starting migration to add locality field...");
 

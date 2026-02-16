@@ -3,12 +3,22 @@ import { CategoryEnum, UNCATEGORIZED } from "@oboapp/shared/schema";
 
 const commaDelimitedCategories = z
   .string()
-  .transform((s) => s.split(",").map((c) => c.trim()).filter(Boolean))
-  .pipe(z.array(z.union([CategoryEnum, z.literal(UNCATEGORIZED)])));
+  .transform((s) =>
+    s
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean),
+  )
+  .pipe(z.array(z.union([CategoryEnum, z.literal(UNCATEGORIZED)])).max(10));
 
 const commaDelimitedSources = z
   .string()
-  .transform((s) => s.split(",").map((c) => c.trim()).filter(Boolean))
+  .transform((s) =>
+    s
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean),
+  )
   .pipe(z.array(z.string()).max(20)); // Limit to max 20 sources per request
 
 const finiteNumber = z.coerce.number().finite();

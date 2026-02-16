@@ -3,7 +3,7 @@
 import { Command } from "commander";
 import { resolve } from "node:path";
 import dotenv from "dotenv";
-import { verifyEnvSet } from "@/lib/verify-env";
+import { verifyEnvSet, verifyDbEnv } from "@/lib/verify-env";
 import { logger } from "@/lib/logger";
 
 const program = new Command();
@@ -11,7 +11,7 @@ const program = new Command();
 program
   .name("notify")
   .description(
-    "Match unprocessed messages with user interests and send notifications"
+    "Match unprocessed messages with user interests and send notifications",
   )
   .addHelpText(
     "after",
@@ -25,16 +25,13 @@ This command:
 
 Examples:
   $ npx tsx notify
-`
+`,
   )
   .action(async () => {
     // Ensure environment variables are loaded and required keys are present
     dotenv.config({ path: resolve(process.cwd(), ".env.local") });
-    verifyEnvSet([
-      "FIREBASE_SERVICE_ACCOUNT_KEY",
-      "FIREBASE_PROJECT_ID",
-      "APP_URL",
-    ]);
+    verifyDbEnv();
+    verifyEnvSet(["APP_URL"]);
 
     try {
       // Dynamically import to avoid loading dependencies at parse time
@@ -44,9 +41,12 @@ Examples:
 
       process.exit(0);
     } catch (error) {
-      logger.error(`Notification matching failed: ${error instanceof Error ? error.message : String(error)}`, {
-        step: "notify",
-      });
+      logger.error(
+        `Notification matching failed: ${error instanceof Error ? error.message : String(error)}`,
+        {
+          step: "notify",
+        },
+      );
       process.exit(1);
     }
   });

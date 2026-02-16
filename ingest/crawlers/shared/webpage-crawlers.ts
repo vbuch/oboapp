@@ -1,7 +1,7 @@
 import { parseBulgarianDate } from "./date-utils";
 import { createTurndownService } from "./markdown";
 import { Browser, Page } from "playwright";
-import type { Firestore } from "firebase-admin/firestore";
+import type { OboDb } from "@oboapp/db";
 import { PostLink } from "./types";
 import { launchBrowser } from "./browser";
 import { isUrlProcessed, saveSourceDocument } from "./firestore";
@@ -68,7 +68,7 @@ export async function processWordpressPost<
 >(
   browser: Browser,
   postLink: TPostLink,
-  adminDb: Firestore,
+  db: OboDb,
   sourceType: string,
   locality: string,
   delayMs: number,
@@ -102,7 +102,7 @@ export async function processWordpressPost<
       crawledAt: new Date(),
     };
 
-    await saveSourceDocument(sourceDoc, adminDb);
+    await saveSourceDocument(sourceDoc, db);
 
     logger.info("Successfully processed post", { title: title.substring(0, 60) });
   } catch (error) {
@@ -126,7 +126,7 @@ export async function crawlWordpressPage(options: {
   processPost: (
     browser: Browser,
     postLink: PostLink,
-    adminDb: Firestore,
+    db: OboDb,
   ) => Promise<void>;
   delayBetweenRequests?: number;
 }): Promise<void> {
@@ -140,7 +140,8 @@ export async function crawlWordpressPage(options: {
 
   logger.info("Starting crawler", { sourceType, indexUrl });
 
-  const { adminDb } = await import("@/lib/firebase-admin");
+  const { getDb } = await import("@/lib/db");
+  const db = await getDb();
 
   let browser: Browser | null = null;
 
@@ -167,13 +168,13 @@ export async function crawlWordpressPage(options: {
 
     for (const postLink of postLinks) {
       try {
-        const wasProcessed = await isUrlProcessed(postLink.url, adminDb);
+        const wasProcessed = await isUrlProcessed(postLink.url, db);
 
         if (wasProcessed) {
           skippedCount++;
           logger.info("Skipped already processed post", { title: postLink.title.substring(0, 60) });
         } else {
-          await processPost(browser, postLink, adminDb);
+          await processPost(browser, postLink, db);
           processedCount++;
         }
       } catch (error) {

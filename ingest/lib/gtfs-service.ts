@@ -1,13 +1,11 @@
 import AdmZip from "adm-zip";
 import { parse } from "csv-parse/sync";
-import { adminDb } from "./firebase-admin";
 import { isWithinBounds } from "@oboapp/shared";
 import { getLocality } from "./target-locality";
 import { roundCoordinate } from "@/lib/coordinate-utils";
 import { logger } from "@/lib/logger";
 
 const GTFS_URL = "https://gtfs.sofiatraffic.bg/api/v1/static";
-const BATCH_SIZE = 100;
 
 export interface GTFSStop {
   stopCode: string;
@@ -109,7 +107,7 @@ export function parseStopsFile(csvContent: string): GTFSStop[] {
 }
 
 /**
- * Sync GTFS stops to Firestore in batches
+ * Sync GTFS stops to database in batches
  * Uses upsert (set with merge) to update existing records
  */
 export async function syncGTFSStopsToFirestore(): Promise<void> {
@@ -120,40 +118,25 @@ export async function syncGTFSStopsToFirestore(): Promise<void> {
 
   logger.info("Parsed valid stops", { count: stops.length });
 
-  // Batch write to Firestore
-  const db = adminDb;
-  const stopsCollection = db.collection("gtfsStops");
+  const { getDb } = await import("@/lib/db");
+  const db = await getDb();
 
-  let written = 0;
-  for (let i = 0; i < stops.length; i += BATCH_SIZE) {
-    const batch = db.batch();
-    const chunk = stops.slice(i, i + BATCH_SIZE);
+  const stopBatch = stops.map((stop) => ({
+    stopCode: stop.stopCode,
+    data: {
+      stopCode: stop.stopCode,
+      stopName: stop.stopName,
+      coordinates: {
+        latitude: stop.lat,
+        longitude: stop.lng,
+      },
+      lastUpdated: new Date(),
+    },
+  }));
 
-    for (const stop of chunk) {
-      const docRef = stopsCollection.doc(stop.stopCode);
-      batch.set(
-        docRef,
-        {
-          stopCode: stop.stopCode,
-          stopName: stop.stopName,
-          coordinates: {
-            latitude: stop.lat,
-            longitude: stop.lng,
-          },
-          lastUpdated: new Date(),
-        },
-        { merge: true },
-      );
-    }
+  await db.gtfsStops.upsertBatch(stopBatch);
 
-    await batch.commit();
-    written += chunk.length;
-    logger.info("Wrote GTFS batch", {
-      batch: Math.floor(i / BATCH_SIZE) + 1,
-      written,
-      total: stops.length,
-    });
-  }
-
-  logger.info("Successfully synced bus stops to Firestore", { count: written });
+  logger.info("Successfully synced bus stops to database", {
+    count: stops.length,
+  });
 }

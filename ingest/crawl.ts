@@ -4,7 +4,7 @@ import { Command } from "commander";
 import { readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import dotenv from "dotenv";
-import { verifyEnvSet } from "@/lib/verify-env";
+import { verifyDbEnv } from "@/lib/verify-env";
 import { logger } from "@/lib/logger";
 
 const program = new Command();
@@ -39,36 +39,48 @@ ${getAvailableSources()
 Examples:
   $ npx tsx crawl --source rayon-oborishte-bg
   $ npx tsx crawl --source sofia-bg
-`
+`,
   )
   .action(async (options) => {
     // Ensure environment variables are loaded and required keys are present
     dotenv.config({ path: resolve(process.cwd(), ".env.local") });
-    verifyEnvSet(["FIREBASE_SERVICE_ACCOUNT_KEY"]);
+    verifyDbEnv();
 
     const availableSources = getAvailableSources();
 
     // Validate source
     if (!availableSources.includes(options.source)) {
-      logger.error("Unknown source", { source: options.source, availableSources });
+      logger.error("Unknown source", {
+        source: options.source,
+        availableSources,
+      });
       process.exit(1);
     }
 
     // Dynamically import and run the crawler
     try {
       const crawlerPath = `./crawlers/${options.source}/index.js`;
-      logger.info(`Running crawler: ${options.source}`, { step: "crawl", source: options.source });
+      logger.info(`Running crawler: ${options.source}`, {
+        step: "crawl",
+        source: options.source,
+      });
 
       const crawler = await import(crawlerPath);
       await crawler.crawl();
 
-      logger.info(`Crawler ${options.source} completed`, { step: "crawl", source: options.source });
-      process.exit(0);
-    } catch (error) {
-      logger.error(`Crawler ${options.source} failed: ${error instanceof Error ? error.message : String(error)}`, {
+      logger.info(`Crawler ${options.source} completed`, {
         step: "crawl",
         source: options.source,
       });
+      process.exit(0);
+    } catch (error) {
+      logger.error(
+        `Crawler ${options.source} failed: ${error instanceof Error ? error.message : String(error)}`,
+        {
+          step: "crawl",
+          source: options.source,
+        },
+      );
       process.exit(1);
     }
   });

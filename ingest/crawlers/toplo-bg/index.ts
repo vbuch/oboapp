@@ -51,10 +51,10 @@ export async function crawl(dryRun = false): Promise<void> {
 
   logger.info("Found incidents", { count: incidents.length });
 
-  // Load Firebase Admin (lazy)
-  const adminDb = dryRun
+  // Load database (lazy)
+  const db = dryRun
     ? null
-    : (await import("@/lib/firebase-admin")).adminDb;
+    : await (await import("@/lib/db")).getDb();
 
   // Process each incident
   for (const incident of incidents) {
@@ -122,8 +122,8 @@ export async function crawl(dryRun = false): Promise<void> {
       if (dryRun) {
         logger.info("Dry-run incident", { title: doc.title });
         summary.saved++;
-      } else if (adminDb) {
-        const saved = await saveSourceDocumentIfNew(doc, adminDb, {
+      } else if (db) {
+        const saved = await saveSourceDocumentIfNew(doc, db, {
           transformData: (d) => ({
             ...d,
             geoJson: JSON.stringify(d.geoJson),

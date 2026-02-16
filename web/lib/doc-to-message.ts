@@ -1,53 +1,38 @@
-import type { Message, GeoJSONFeatureCollection, Address } from "@/lib/types";
-import { convertTimestamp, safeJsonParse } from "@/lib/firestore-utils";
+import type { Message } from "@/lib/types";
+import {
+  toOptionalISOString,
+  toRequiredISOString,
+} from "@/lib/date-serialization";
 
 /**
- * Convert Firestore document to public Message object
- * Shared helper to avoid duplication between API routes
- * Returns only public MessageSchema fields
+ * Convert a database record to a public Message object.
+ * The @oboapp/db adapter handles JSON parsing and Timestamp→Date conversion,
+ * so this function only needs to map fields and convert Dates to ISO strings.
  */
-export function docToMessage(doc: FirebaseFirestore.DocumentSnapshot): Message {
-  const data = doc.data();
-  if (!data) {
-    throw new Error(`Document ${doc.id} has no data`);
-  }
 
+export function recordToMessage(record: Record<string, unknown>): Message {
   return {
-    id: doc.id,
-    text: data.text,
-    locality: data.locality,
-    plainText: data.plainText,
-    addresses: data.addresses
-      ? safeJsonParse<Address[]>(data.addresses, [], "addresses")
-      : [],
-    geoJson: data.geoJson
-      ? safeJsonParse<GeoJSONFeatureCollection>(
-          data.geoJson,
-          undefined,
-          "geoJson",
-        )
-      : undefined,
-    crawledAt: data.crawledAt ? convertTimestamp(data.crawledAt) : undefined,
-    createdAt: convertTimestamp(data.createdAt),
-    finalizedAt: data.finalizedAt
-      ? convertTimestamp(data.finalizedAt)
-      : undefined,
-    source: data.source,
-    sourceUrl: data.sourceUrl,
-    markdownText: data.markdownText,
-    categories: Array.isArray(data.categories) ? data.categories : [],
-    timespanStart: data.timespanStart
-      ? convertTimestamp(data.timespanStart)
-      : undefined,
-    timespanEnd: data.timespanEnd
-      ? convertTimestamp(data.timespanEnd)
-      : undefined,
-    cityWide: data.cityWide || false,
-    // Denormalized fields (native Firestore types, no parsing needed)
-    responsibleEntity: data.responsibleEntity,
-    pins: data.pins,
-    streets: data.streets,
-    cadastralProperties: data.cadastralProperties,
-    busStops: data.busStops,
+    id: record._id as string,
+    text: record.text as string,
+    locality: (record.locality as string) ?? "",
+    plainText: record.plainText as string | undefined,
+    addresses: (record.addresses as Message["addresses"]) ?? [],
+    geoJson: record.geoJson as Message["geoJson"],
+    crawledAt: toOptionalISOString(record.crawledAt, "crawledAt"),
+    createdAt: toRequiredISOString(record.createdAt, "createdAt"),
+    finalizedAt: toOptionalISOString(record.finalizedAt, "finalizedAt"),
+    source: record.source as string | undefined,
+    sourceUrl: record.sourceUrl as string | undefined,
+    markdownText: record.markdownText as string | undefined,
+    categories: Array.isArray(record.categories) ? record.categories : [],
+    timespanStart: toOptionalISOString(record.timespanStart, "timespanStart"),
+    timespanEnd: toOptionalISOString(record.timespanEnd, "timespanEnd"),
+    cityWide: (record.cityWide as boolean) || false,
+    responsibleEntity: record.responsibleEntity as string | undefined,
+    pins: record.pins as Message["pins"],
+    streets: record.streets as Message["streets"],
+    cadastralProperties:
+      record.cadastralProperties as Message["cadastralProperties"],
+    busStops: record.busStops as Message["busStops"],
   };
 }

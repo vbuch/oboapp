@@ -2,7 +2,7 @@
 
 import dotenv from "dotenv";
 import { resolve } from "node:path";
-import type { Firestore } from "firebase-admin/firestore";
+import type { OboDb } from "@oboapp/db";
 import type { Messaging } from "firebase-admin/messaging";
 import { Message, NotificationMatch } from "@/lib/types";
 import {
@@ -21,8 +21,13 @@ import {
   updateMatchWithResults,
   markMatchesAsNotified,
 } from "./notification-sender";
-import { convertTimestamp } from "./utils";
 import { logger } from "@/lib/logger";
+
+function toISOString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") return value;
+  return new Date().toISOString();
+}
 
 // Load environment variables
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -31,13 +36,11 @@ dotenv.config({ path: resolve(process.cwd(), ".env.local") });
  * Send notifications for matches
  */
 async function sendNotifications(
-  adminDb: Firestore,
+  db: OboDb,
   messaging: Messaging,
   matches: NotificationMatch[],
 ): Promise<void> {
   logger.info("Sending notifications");
-
-  const messagesRef = adminDb.collection("messages");
 
   let successCount = 0;
   let errorCount = 0;
@@ -74,35 +77,33 @@ async function sendNotifications(
     }
 
     // Get message details
-    const messageDoc = await messagesRef.doc(match.messageId).get();
-    if (!messageDoc.exists) {
+    const messageData = await db.messages.findById(match.messageId);
+    if (!messageData) {
       logger.warn("Message not found for notification", {
         messageId: match.messageId,
       });
       continue;
     }
 
-    const messageData = messageDoc.data();
-    
     // Validate required locality field
     if (!messageData?.locality) {
-      console.error(`Message ${messageDoc.id} missing required locality field`);
+      console.error(
+        `Message ${match.messageId} missing required locality field`,
+      );
       continue;
     }
-    
+
     const message: Message = {
-      id: messageDoc.id,
-      text: messageData.text || "",
-      locality: messageData.locality,
-      geoJson: messageData.geoJson
-        ? JSON.parse(messageData.geoJson)
-        : undefined,
-      createdAt: convertTimestamp(messageData.createdAt),
+      id: match.messageId,
+      text: (messageData.text as string) || "",
+      locality: messageData.locality as string,
+      geoJson: messageData.geoJson as Message["geoJson"],
+      createdAt: toISOString(messageData.createdAt),
     };
 
     // Send to all user devices
     const { successCount: deviceSuccessCount, notifications } =
-      await sendToUserDevices(adminDb, messaging, match.userId, message, match);
+      await sendToUserDevices(db, messaging, match.userId, message, match);
 
     if (deviceSuccessCount > 0) {
       successCount++;
@@ -120,35 +121,30 @@ async function sendNotifications(
       });
     }
 
-    // Update match document with results
     if (messageData) {
-      await updateMatchWithResults(
-        adminDb,
-        match.id,
-        messageData,
-        notifications,
-      );
+      await updateMatchWithResults(db, match.id, messageData, notifications);
     }
   }
 
   // Mark all related matches as notified
-  await markMatchesAsNotified(adminDb, allMatchIds);
+  await markMatchesAsNotified(db, allMatchIds);
 
   logger.info("Notification sending complete", { successCount, errorCount });
 }
 
 /**
- * Initialize Firebase Admin
+ * Initialize database and Firebase services
  */
-async function initFirebase(): Promise<{
-  adminDb: Firestore;
+async function initServices(): Promise<{
+  db: OboDb;
   messaging: Messaging;
 }> {
+  const { getDb } = await import("@/lib/db");
   const firebaseAdmin = await import("@/lib/firebase-admin");
   const { getMessaging } = await import("firebase-admin/messaging");
 
   return {
-    adminDb: firebaseAdmin.adminDb,
+    db: await getDb(),
     messaging: getMessaging(firebaseAdmin.adminApp),
   };
 }
@@ -159,10 +155,10 @@ async function initFirebase(): Promise<{
 export async function main(): Promise<void> {
   logger.info("Starting notification matching and sending");
 
-  const { adminDb, messaging } = await initFirebase();
+  const { db, messaging } = await initServices();
 
   // Step 1: Get unprocessed messages (messages without notificationsSent flag)
-  const unprocessedMessages = await getUnprocessedMessages(adminDb);
+  const unprocessedMessages = await getUnprocessedMessages(db);
 
   if (unprocessedMessages.length === 0) {
     logger.info("No new messages to process");
@@ -170,7 +166,7 @@ export async function main(): Promise<void> {
   }
 
   // Step 2: Get all user interests
-  const interests = await getAllInterests(adminDb);
+  const interests = await getAllInterests(db);
 
   if (interests.length === 0) {
     logger.info("No user interests configured");
@@ -178,7 +174,7 @@ export async function main(): Promise<void> {
     const messageIds = unprocessedMessages
       .map((m) => m.id)
       .filter((id): id is string => !!id);
-    await markMessagesAsNotified(adminDb, messageIds);
+    await markMessagesAsNotified(db, messageIds);
     return;
   }
 
@@ -194,18 +190,18 @@ export async function main(): Promise<void> {
     const messageIds = unprocessedMessages
       .map((m) => m.id)
       .filter((id): id is string => !!id);
-    await markMessagesAsNotified(adminDb, messageIds);
+    await markMessagesAsNotified(db, messageIds);
     return;
   }
 
   // Step 4: Deduplicate matches
   const dedupedMatches = deduplicateMatches(matches);
 
-  // Step 5: Store matches in Firestore
-  await storeNotificationMatches(adminDb, dedupedMatches);
+  // Step 5: Store matches in database
+  await storeNotificationMatches(db, dedupedMatches);
 
   // Step 6: Get all unnotified matches (including ones we just stored)
-  const unnotifiedMatches = await getUnnotifiedMatches(adminDb);
+  const unnotifiedMatches = await getUnnotifiedMatches(db);
 
   if (unnotifiedMatches.length === 0) {
     logger.info("No unnotified matches to send");
@@ -213,18 +209,18 @@ export async function main(): Promise<void> {
     const messageIds = unprocessedMessages
       .map((m) => m.id)
       .filter((id): id is string => !!id);
-    await markMessagesAsNotified(adminDb, messageIds);
+    await markMessagesAsNotified(db, messageIds);
     return;
   }
 
   // Step 7: Send notifications
-  await sendNotifications(adminDb, messaging, unnotifiedMatches);
+  await sendNotifications(db, messaging, unnotifiedMatches);
 
   // Step 8: Mark messages as having notifications sent
   const messageIds = unprocessedMessages
     .map((m) => m.id)
     .filter((id): id is string => !!id);
-  await markMessagesAsNotified(adminDb, messageIds);
+  await markMessagesAsNotified(db, messageIds);
 
   logger.info("Notification processing complete");
 }

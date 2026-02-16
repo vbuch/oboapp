@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/db";
 import { NotificationSubscription } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
-import { convertTimestamp } from "@/lib/firestore-utils";
+import { toRequiredISOString } from "@/lib/date-serialization";
 
 // GET - Check if user has a valid subscription
 export async function GET(request: NextRequest) {
@@ -10,20 +10,16 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
     const { userId } = await verifyAuthToken(authHeader);
 
-    const subscriptionsRef = adminDb.collection("notificationSubscriptions");
-    const snapshot = await subscriptionsRef
-      .where("userId", "==", userId)
-      .limit(1)
-      .get();
-
-    const hasSubscription = !snapshot.empty;
+    const db = await getDb();
+    const hasSubscription =
+      await db.notificationSubscriptions.hasSubscription(userId);
 
     return NextResponse.json({ hasSubscription });
   } catch (error) {
     console.error("Error checking subscription:", error);
     return NextResponse.json(
       { error: "Failed to check subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -40,48 +36,50 @@ export async function POST(request: NextRequest) {
     if (!token || !endpoint) {
       return NextResponse.json(
         { error: "Token and endpoint are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const subscriptionsRef = adminDb.collection("notificationSubscriptions");
-
-    // Check if subscription already exists for this user
-    const existingSnapshot = await subscriptionsRef
-      .where("userId", "==", userId)
-      .where("token", "==", token)
-      .limit(1)
-      .get();
-
+    const db = await getDb();
     const now = new Date();
 
-    if (!existingSnapshot.empty) {
+    // Check if subscription already exists for this user
+    const existing = await db.notificationSubscriptions.findByUserAndToken(
+      userId,
+      token,
+    );
+
+    if (existing) {
       // Update existing subscription
-      const docId = existingSnapshot.docs[0].id;
-      await subscriptionsRef.doc(docId).update({
+      const docId = existing._id as string;
+      await db.notificationSubscriptions.updateOne(docId, {
         endpoint,
         deviceInfo: deviceInfo || {},
         updatedAt: now,
       });
 
-      const updatedDoc = await subscriptionsRef.doc(docId).get();
-      const data = updatedDoc.data();
+      const updatedDoc = await db.notificationSubscriptions.findById(docId);
+      if (!updatedDoc) {
+        throw new Error(
+          "Subscription update succeeded but updated record was not found",
+        );
+      }
 
       const subscription: NotificationSubscription = {
-        id: updatedDoc.id,
-        userId: data?.userId,
-        token: data?.token,
-        endpoint: data?.endpoint,
-        createdAt: convertTimestamp(data?.createdAt),
-        updatedAt: convertTimestamp(data?.updatedAt),
-        deviceInfo: data?.deviceInfo,
+        id: docId,
+        userId: updatedDoc.userId as string,
+        token: updatedDoc.token as string,
+        endpoint: updatedDoc.endpoint as string,
+        createdAt: toRequiredISOString(updatedDoc.createdAt, "createdAt"),
+        updatedAt: toRequiredISOString(updatedDoc.updatedAt, "updatedAt"),
+        deviceInfo: (updatedDoc.deviceInfo as Record<string, unknown>) || {},
       };
 
       return NextResponse.json(subscription);
     }
 
     // Create new subscription
-    const docRef = await subscriptionsRef.add({
+    const docId = await db.notificationSubscriptions.insertOne({
       userId,
       token,
       endpoint,
@@ -91,7 +89,7 @@ export async function POST(request: NextRequest) {
     });
 
     const subscription: NotificationSubscription = {
-      id: docRef.id,
+      id: docId,
       userId,
       token,
       endpoint,
@@ -105,7 +103,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating subscription:", error);
     return NextResponse.json(
       { error: "Failed to create subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -123,33 +121,32 @@ export async function DELETE(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Token parameter is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const subscriptionsRef = adminDb.collection("notificationSubscriptions");
-    const snapshot = await subscriptionsRef
-      .where("userId", "==", userId)
-      .where("token", "==", token)
-      .limit(1)
-      .get();
+    const db = await getDb();
+    const existing = await db.notificationSubscriptions.findByUserAndToken(
+      userId,
+      token,
+    );
 
-    if (snapshot.empty) {
+    if (!existing) {
       return NextResponse.json(
         { error: "Subscription not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Delete the subscription
-    await snapshot.docs[0].ref.delete();
+    await db.notificationSubscriptions.deleteOne(existing._id as string);
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting subscription:", error);
     return NextResponse.json(
       { error: "Failed to delete subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

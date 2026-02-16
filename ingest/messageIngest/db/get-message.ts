@@ -1,55 +1,58 @@
-import type { Firestore } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/db";
 import type { InternalMessage } from "@/lib/types";
 
+function toISOString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") return value;
+  return new Date().toISOString();
+}
+
+function toOptionalISOString(value: unknown): string | undefined {
+  if (!value) return undefined;
+  return toISOString(value);
+}
+
 /**
- * Get a message by ID
- * Returns InternalMessage with all internal fields
+ * Get a message by ID.
+ * Returns InternalMessage with all internal fields.
+ * The db adapter handles deserialization (parses JSON strings from Firestore,
+ * native objects from MongoDB).
  */
 export async function getMessageById(
   messageId: string,
-  db: Firestore = adminDb,
 ): Promise<InternalMessage | null> {
-  const messageRef = db.collection("messages").doc(messageId);
-  const messageSnapshot = await messageRef.get();
+  const db = await getDb();
+  const data = await db.messages.findById(messageId);
 
-  if (!messageSnapshot.exists) {
-    return null;
-  }
-
-  const data = messageSnapshot.data();
   if (!data) {
     return null;
   }
 
   return {
-    id: messageSnapshot.id,
-    text: data.text,
-    locality: data.locality,
-    addresses: data.addresses ? JSON.parse(data.addresses) : [],
-    geoJson: data.geoJson ? JSON.parse(data.geoJson) : undefined,
-    crawledAt: data.crawledAt?.toDate?.() || data.crawledAt,
-    createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
-    finalizedAt: data.finalizedAt?.toDate?.() || data.finalizedAt,
-    source: data.source,
-    sourceUrl: data.sourceUrl,
-    markdownText: data.markdownText,
+    id: data._id as string,
+    text: data.text as string,
+    locality: (data.locality as string) ?? "",
+    addresses: Array.isArray(data.addresses) ? data.addresses : [],
+    geoJson: data.geoJson as InternalMessage["geoJson"],
+    crawledAt: toOptionalISOString(data.crawledAt),
+    createdAt: toISOString(data.createdAt),
+    finalizedAt: toOptionalISOString(data.finalizedAt),
+    source: data.source as string,
+    sourceUrl: data.sourceUrl as string | undefined,
+    markdownText: data.markdownText as string | undefined,
     categories: Array.isArray(data.categories) ? data.categories : [],
-    timespanStart: data.timespanStart?.toDate?.() || data.timespanStart,
-    timespanEnd: data.timespanEnd?.toDate?.() || data.timespanEnd,
-    cityWide: data.cityWide || false,
-    responsibleEntity: data.responsibleEntity,
-    pins: data.pins,
-    streets: data.streets,
-    cadastralProperties: data.cadastralProperties,
-    busStops: data.busStops,
+    timespanStart: toOptionalISOString(data.timespanStart),
+    timespanEnd: toOptionalISOString(data.timespanEnd),
+    cityWide: (data.cityWide as boolean) || false,
+    responsibleEntity: data.responsibleEntity as string | undefined,
+    pins: data.pins as InternalMessage["pins"],
+    streets: data.streets as InternalMessage["streets"],
+    cadastralProperties: data.cadastralProperties as InternalMessage["cadastralProperties"],
+    busStops: data.busStops as InternalMessage["busStops"],
     // Internal-only fields
     process: Array.isArray(data.process) ? data.process : undefined,
-    ingestErrors:
-      typeof data.ingestErrors === "string"
-        ? JSON.parse(data.ingestErrors)
-        : data.ingestErrors,
-    sourceDocumentId: data.sourceDocumentId,
-    isRelevant: data.isRelevant,
+    ingestErrors: Array.isArray(data.ingestErrors) ? data.ingestErrors : undefined,
+    sourceDocumentId: data.sourceDocumentId as string | undefined,
+    isRelevant: data.isRelevant as boolean | undefined,
   };
 }

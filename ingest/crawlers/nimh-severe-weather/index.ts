@@ -109,10 +109,11 @@ export async function crawl(): Promise<void> {
       cityWide: true,
     };
 
-    // Load Firebase Admin (lazy)
-    const { adminDb } = await import("@/lib/firebase-admin");
+    // Load database (lazy)
+    const { getDb } = await import("@/lib/db");
+    const db = await getDb();
 
-    const saved = await saveSourceDocumentIfNew(doc, adminDb, {
+    const saved = await saveSourceDocumentIfNew(doc, db, {
       transformData: (d) => ({
         ...d,
         geoJson: JSON.stringify(d.geoJson),
