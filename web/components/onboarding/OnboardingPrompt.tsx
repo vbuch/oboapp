@@ -14,14 +14,13 @@ interface OnboardingPromptProps {
   readonly onPermissionResult: (permission: NotificationPermission) => void;
   readonly onDismiss: () => void;
   readonly onAddInterests: () => void;
-  readonly onAddInterestClick: () => void;
 }
 
 /**
- * Renders the appropriate onboarding UI based on state machine state.
+ * Renders the appropriate onboarding modal prompts based on state machine state.
  * Hidden during target mode (zone creation/editing).
  * 
- * NOTE: Only renders modal prompts with backdrops (notificationPrompt, loginPrompt, etc.).
+ * NOTE: Only renders modal/overlay prompts (notificationPrompt, loginPrompt, zoneCreation, blocked).
  * Button-only states (idle, complete, loading) are rendered in MapContainer for proper positioning.
  */
 export default function OnboardingPrompt({
@@ -31,7 +30,6 @@ export default function OnboardingPrompt({
   onPermissionResult,
   onDismiss,
   onAddInterests,
-  onAddInterestClick,
 }: OnboardingPromptProps) {
   // Hide all prompts during target mode
   if (targetModeActive) {

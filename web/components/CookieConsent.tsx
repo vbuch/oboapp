@@ -30,7 +30,7 @@ export default function CookieConsent() {
   }
 
   return (
-    <div className={`fixed bottom-2 left-1/2 -translate-x-1/2 ${zIndex.modalContent} w-[calc(100%-1rem)] sm:w-auto sm:max-w-4xl`}>
+    <div className={`fixed bottom-2 left-1/2 -translate-x-1/2 ${zIndex.overlay} w-[calc(100%-1rem)] sm:w-auto sm:max-w-4xl`}>
       <div className="bg-white rounded-lg shadow-md py-1.5 px-3 sm:py-2 sm:px-4 sm:opacity-70 sm:hover:opacity-100 transition-opacity duration-200">
         {/* Mobile compact view with icon buttons */}
         <div className="flex sm:hidden items-center gap-2">

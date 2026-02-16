@@ -141,7 +141,7 @@ export default function FilterBox({
 
       {/* Filter Container - Box and Handle together */}
       <div
-        className={`absolute left-0 top-1/2 ${zIndex.nav} transition-transform duration-300`}
+        className={`absolute left-0 top-1/2 ${zIndex.overlayContent} transition-transform duration-300`}
         style={transformStyle}
       >
         {/* Filter Panel */}

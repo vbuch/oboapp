@@ -337,7 +337,6 @@ export default function HomeContent() {
           onPermissionResult={onboardingCallbacks.onPermissionResult}
           onDismiss={onboardingCallbacks.onDismiss}
           onAddInterests={onboardingCallbacks.onAddInterests}
-          onAddInterestClick={onboardingCallbacks.onAddInterestClick}
         />
       )}
 
