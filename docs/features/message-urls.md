@@ -81,11 +81,22 @@ All message details render as an overlay on the homepage map:
    - `HomeContent` looks up the message in viewport messages by ID
    - If not found in viewport (e.g., message outside current map bounds), fetches via `/api/messages/by-id`
    - Renders `MessageDetailView` as a slide-in panel over the map
+   - Uses `router.replace()` to update URL without adding browser history entries (modal overlay behavior)
 
 2. **`/m/[slug]/page.tsx`** — External URL redirect
    - Redirects to `/?messageId={id}`
    - Exists to support clean shareable URLs from push notifications and social sharing
    - Note: The file is named `[slug]` for Next.js dynamic routing, but the parameter represents the message ID
+
+### Browser History Behavior
+
+The message detail overlay uses `router.replace()` instead of `router.push()` to avoid polluting browser history:
+
+- **Opening a detail**: Updates URL to `/?messageId={id}` without creating a history entry
+- **Closing a detail**: Updates URL to `/` without creating a history entry
+- **Browser back button**: Takes user to the actual previous page they navigated from (not through detail states)
+
+This makes the modal feel like an overlay rather than a navigation, providing a natural user experience in PWA installations.
 
 ## API Endpoints
 
