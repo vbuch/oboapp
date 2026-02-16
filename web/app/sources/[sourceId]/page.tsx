@@ -87,8 +87,13 @@ export default function SourcePage() {
 
   // Handle closing detail view
   const handleCloseDetail = useCallback(() => {
-    // Use replace() to avoid adding history entry when explicitly closing
-    router.replace(`/sources/${sourceId}`, { scroll: false });
+    // Use back() to avoid polluting history with multiple entries
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      // Fallback for cases where there's no history
+      router.replace(`/sources/${sourceId}`, { scroll: false });
+    }
   }, [router, sourceId]);
 
   // Handle address click - navigate to homepage with message and location

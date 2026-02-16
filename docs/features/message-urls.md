@@ -94,13 +94,14 @@ All message details render as an overlay on the homepage map:
 The message detail overlay manages history to provide natural navigation:
 
 - **Opening a detail**: Uses `router.push()` to add a history entry with `?messageId={id}`
-- **Browser back button**: Removes the `?messageId` query param, which closes the detail
-- **Explicit close** (X button, ESC, backdrop): Uses `router.replace()` to update URL to `/` without adding history entry
+- **Browser back button**: Navigates back in history, which closes the detail
+- **Explicit close** (X button, ESC, backdrop): Uses `router.back()` to navigate to previous history entry (avoids polluting history with duplicate entries)
 
 This provides intuitive PWA navigation:
 - Users can press back to close details
-- Explicitly closing details doesn't create redundant history entries
-- The modal overlay is tracked in history, but closing it doesn't pollute the stack
+- Explicitly closing details goes back in history (same as pressing back button)
+- No duplicate entries are created when opening and closing multiple details
+- Fallback to `router.replace()` if no history is available (e.g., direct link to detail)
 
 ## API Endpoints
 

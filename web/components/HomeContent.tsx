@@ -165,9 +165,14 @@ export default function HomeContent() {
 
   // Handle closing detail view
   const handleCloseDetail = useCallback(() => {
-    // Remove query parameter from URL - this will trigger selectedMessage derivation
-    // Use replace() instead of push() to avoid adding history entries for modal state
-    router.replace("/", { scroll: false });
+    // Use back() to avoid polluting history with multiple "/" entries
+    // Check if we can go back (history.length > 1 means there's a previous entry)
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      // Fallback for cases where there's no history (e.g., direct link to detail)
+      router.replace("/", { scroll: false });
+    }
   }, [router]);
 
   // Derive selected message from URL parameter

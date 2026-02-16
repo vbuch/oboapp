@@ -84,8 +84,13 @@ export default function IngestErrorsPage() {
   );
 
   const handleCloseDetail = useCallback(() => {
-    // Use replace() to avoid adding history entry when explicitly closing
-    router.replace("/ingest-errors", { scroll: false });
+    // Use back() to avoid polluting history with multiple entries
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      // Fallback for cases where there's no history
+      router.replace("/ingest-errors", { scroll: false });
+    }
   }, [router]);
 
   const isEmpty = !isLoading && messages.length === 0;
