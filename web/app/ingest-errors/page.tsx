@@ -6,6 +6,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import MessageCard, { MessageCardSkeleton } from "@/components/MessageCard";
 import MessageDetailView from "@/components/MessageDetailView/MessageDetailView";
 import type { InternalMessage } from "@/lib/types";
+import { navigateBackOrReplace } from "@/lib/navigation-utils";
 
 const PAGE_SIZE = 12;
 
@@ -84,13 +85,7 @@ export default function IngestErrorsPage() {
   );
 
   const handleCloseDetail = useCallback(() => {
-    // Use back() to avoid polluting history with multiple entries
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      // Fallback for cases where there's no history
-      router.replace("/ingest-errors", { scroll: false });
-    }
+    navigateBackOrReplace(router, "/ingest-errors");
   }, [router]);
 
   const isEmpty = !isLoading && messages.length === 0;

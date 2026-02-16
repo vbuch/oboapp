@@ -25,6 +25,7 @@ import { useSourceFilter } from "@/lib/hooks/useSourceFilter";
 import { classifyMessage } from "@/lib/message-classification";
 import { createMessageUrl } from "@/lib/url-utils";
 import { zIndex } from "@/lib/colors";
+import { navigateBackOrReplace } from "@/lib/navigation-utils";
 import type { Message } from "@/lib/types";
 import type { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
 import { isValidMessageId } from "@oboapp/shared";
@@ -165,14 +166,7 @@ export default function HomeContent() {
 
   // Handle closing detail view
   const handleCloseDetail = useCallback(() => {
-    // Use back() to avoid polluting history with multiple "/" entries
-    // Check if we can go back (history.length > 1 means there's a previous entry)
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      // Fallback for cases where there's no history (e.g., direct link to detail)
-      router.replace("/", { scroll: false });
-    }
+    navigateBackOrReplace(router, "/");
   }, [router]);
 
   // Derive selected message from URL parameter
