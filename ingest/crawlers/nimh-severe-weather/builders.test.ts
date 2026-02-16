@@ -172,9 +172,9 @@ describe("buildMarkdownText", () => {
 
     const markdown = buildMarkdownText(data);
 
-    // Should have heading with date
-    expect(markdown).toContain("**Оранжев код за опасно време за 01.02.2026 (неделя)**");
-    // Orange (more severe) should come first
+    // Should have heading with date (at the start)
+    expect(markdown).toMatch(/^\*\*Оранжев код за опасно време за 01\.02\.2026 \(неделя\)\*\*/);
+    // Orange (more severe) should come first in the list
     expect(markdown).toContain("**Оранжев код за сняг**");
     expect(markdown).toContain("**Жълт код за температура**");
     expect(markdown).toContain("- Минимални температури от -14 до -9°С");

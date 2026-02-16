@@ -144,8 +144,11 @@ function getDayOfWeek(isoDate: string): string {
     "събота",
   ];
 
-  const date = new Date(isoDate);
-  return days[date.getDay()];
+  // Parse ISO date string explicitly to avoid timezone issues
+  const [year, month, day] = isoDate.split("-").map(Number);
+  // Create date in UTC to ensure consistent day calculation
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return days[date.getUTCDay()];
 }
 
 /**
