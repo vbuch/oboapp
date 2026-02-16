@@ -1,9 +1,6 @@
 "use client";
 
-import AddInterestButton from "./AddInterestButton";
 import AddInterestsPrompt from "./AddInterestsPrompt";
-import LoadingButton from "./LoadingButton";
-import NotificationButton from "./NotificationButton";
 import NotificationPrompt from "./NotificationPrompt";
 import BlockedNotificationsPrompt from "./BlockedNotificationsPrompt";
 import LoginPrompt from "./LoginPrompt";
@@ -23,6 +20,9 @@ interface OnboardingPromptProps {
 /**
  * Renders the appropriate onboarding UI based on state machine state.
  * Hidden during target mode (zone creation/editing).
+ * 
+ * NOTE: Only renders modal prompts with backdrops (notificationPrompt, loginPrompt, etc.).
+ * Button-only states (idle, complete, loading) are rendered in MapContainer for proper positioning.
  */
 export default function OnboardingPrompt({
   state,
@@ -39,9 +39,7 @@ export default function OnboardingPrompt({
   }
 
   switch (state) {
-    case "loading":
-      return <LoadingButton visible={true} />;
-
+    // Modal states with backdrops - rendered at root level
     case "notificationPrompt":
       return (
         <NotificationPrompt
@@ -64,17 +62,11 @@ export default function OnboardingPrompt({
         />
       );
 
+    // Button-only states - rendered in MapContainer, not here
+    case "loading":
     case "idle":
-      return <NotificationButton onClick={onAddInterestClick} visible={true} />;
-
     case "complete":
-      return (
-        <AddInterestButton
-          onClick={onAddInterestClick}
-          isUserAuthenticated={!!user}
-          visible={true}
-        />
-      );
+      return null;
 
     default:
       return null;

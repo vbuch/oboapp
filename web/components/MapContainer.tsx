@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import MapComponent from "@/components/MapComponent";
 import GeolocationButton from "@/components/GeolocationButton";
+import NotificationButton from "@/components/onboarding/NotificationButton";
+import AddInterestButton from "@/components/onboarding/AddInterestButton";
+import LoadingButton from "@/components/onboarding/LoadingButton";
 import { useGeolocationPrompt } from "@/lib/hooks/useGeolocationPrompt";
 import { useOnboardingFlow } from "@/lib/hooks/useOnboardingFlow";
 import { useAuth } from "@/lib/auth-context";
@@ -256,6 +259,26 @@ export default function MapContainer({
             : undefined
         }
       />
+
+      {/* Onboarding buttons (without backdrops) - positioned relative to map */}
+      {!targetMode.active && (
+        <>
+          {onboardingState === "loading" && <LoadingButton visible={true} />}
+          {onboardingState === "idle" && (
+            <NotificationButton
+              onClick={handleAddInterestClick}
+              visible={true}
+            />
+          )}
+          {onboardingState === "complete" && (
+            <AddInterestButton
+              onClick={handleAddInterestClick}
+              isUserAuthenticated={!!authUser}
+              visible={true}
+            />
+          )}
+        </>
+      )}
 
       {/* Geolocation button - always visible */}
       <GeolocationButton
