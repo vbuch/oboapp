@@ -60,7 +60,6 @@ interface MapContainerProps {
       onPermissionResult: (permission: NotificationPermission) => void;
       onDismiss: () => void;
       onAddInterests: () => void;
-      onAddInterestClick: () => void;
     },
   ) => void;
 }
@@ -186,14 +185,8 @@ export default function MapContainer({
       onPermissionResult: handlePermissionResult,
       onDismiss: handleDismiss,
       onAddInterests: onStartAddInterest,
-      onAddInterestClick: handleAddInterestClick,
     }),
-    [
-      handlePermissionResult,
-      handleDismiss,
-      onStartAddInterest,
-      handleAddInterestClick,
-    ],
+    [handlePermissionResult, handleDismiss, onStartAddInterest],
   );
 
   // Sync onboarding state to parent for proper DOM ordering

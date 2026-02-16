@@ -131,7 +131,7 @@ export const zIndex = {
   base: "z-0",
   /** Fixed UI elements - geolocation button, onboarding buttons */
   fixed: "z-10",
-  /** Navigation - header, filter box */
+  /** Navigation and top loading indicators */
   nav: "z-20",
   /** Overlays - slide-out panels, dropdowns */
   overlay: "z-30",

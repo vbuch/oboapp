@@ -114,8 +114,22 @@ export default function HomeContent() {
     onPermissionResult: (permission: NotificationPermission) => void;
     onDismiss: () => void;
     onAddInterests: () => void;
-    onAddInterestClick: () => void;
   } | null>(null);
+
+  const handleOnboardingStateChange = useCallback(
+    (
+      state: OnboardingState,
+      callbacks: {
+        onPermissionResult: (permission: NotificationPermission) => void;
+        onDismiss: () => void;
+        onAddInterests: () => void;
+      },
+    ) => {
+      setOnboardingState(state);
+      setOnboardingCallbacks(callbacks);
+    },
+    [],
+  );
 
   // Interest/zone management
   const {
@@ -229,7 +243,9 @@ export default function HomeContent() {
     >
       {/* Error messages */}
       {error && (
-        <div className={`bg-white border-b shadow-sm ${zIndex.fixed} [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:absolute [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:left-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:right-0`}>
+        <div
+          className={`bg-white border-b shadow-sm ${zIndex.fixed} [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:absolute [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:left-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:right-0`}
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="p-4 bg-error-light text-error rounded-md">
               {error}
@@ -285,16 +301,12 @@ export default function HomeContent() {
           onCancelTargetMode={handleCancelTargetMode}
           onStartAddInterest={handleStartAddInterest}
           onGeolocationPromptChange={setGeolocationPrompt}
-          onOnboardingStateChange={useCallback(
-            (state, callbacks) => {
-              setOnboardingState(state);
-              setOnboardingCallbacks(callbacks);
-            },
-            [],
-          )}
+          onOnboardingStateChange={handleOnboardingStateChange}
         />
         {isLoading && (
-          <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-lg shadow-md ${zIndex.nav}`}>
+          <div
+            className={`absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-lg shadow-md ${zIndex.nav}`}
+          >
             <p className="text-sm text-neutral">Зареждане...</p>
           </div>
         )}
