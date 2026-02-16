@@ -139,8 +139,14 @@ export default function MapContainer({
 
   const [isTrackingLocation, setIsTrackingLocation] = useState(false);
 
-  const { showPrompt, onAccept, onDecline, requestGeolocation, isLocating } =
-    useGeolocationPrompt();
+  const {
+    showPrompt,
+    onAccept,
+    onDecline,
+    requestGeolocation,
+    autoCenter,
+    isLocating,
+  } = useGeolocationPrompt();
 
   // Sync geolocation prompt state to parent for proper DOM ordering
   React.useEffect(() => {
@@ -162,6 +168,12 @@ export default function MapContainer({
   ) => {
     setCenterMap(() => centerMapFn);
     onMapReady(centerMapFn, mapInstance);
+
+    // Auto-center on user location if permission was previously granted
+    // Only do this if there's no URL-based initial center (URL params take precedence)
+    if (!initialMapCenter) {
+      void autoCenter(centerMapFn);
+    }
   };
 
   const handleGeolocationClick = () => {

@@ -188,11 +188,58 @@ export function useGeolocationPrompt() {
     setPromptState(null);
   }, []);
 
+  const autoCenter = useCallback(
+    async (
+      centerMap: (
+        lat: number,
+        lng: number,
+        zoom?: number,
+        options?: { animate?: boolean },
+      ) => void,
+    ): Promise<boolean> => {
+      const hasPermission = getStoredPermissionState();
+
+      if (!hasPermission) {
+        // No cached permission, don't auto-center
+        return false;
+      }
+
+      // Permission already granted, directly get location
+      setIsLocating(true);
+      try {
+        const position = await getCurrentPosition();
+        centerMap(position.lat, position.lng, 17, { animate: false });
+
+        trackEvent({
+          name: "geolocation_location_centered",
+          params: { had_cached_permission: true, auto_centered: true },
+        });
+        return true;
+      } catch (error) {
+        console.error("Geolocation error during auto-center:", error);
+        // Don't show alert for auto-center failures - this is a background operation
+        trackEvent({
+          name: "geolocation_error",
+          params: {
+            error_type: "location_failed",
+            had_cached_permission: true,
+            auto_centered: true,
+          },
+        });
+        return false;
+      } finally {
+        setIsLocating(false);
+      }
+    },
+    [getCurrentPosition, getStoredPermissionState],
+  );
+
   return {
     showPrompt: promptState?.show || false,
     onAccept: promptState?.onAccept || (() => {}),
     onDecline: promptState?.onDecline || (() => {}),
     requestGeolocation,
+    autoCenter,
     hidePrompt,
     isLocating,
   };

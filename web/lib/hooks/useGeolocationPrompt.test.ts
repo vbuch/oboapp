@@ -47,6 +47,7 @@ describe("useGeolocationPrompt", () => {
     expect(result.current.showPrompt).toBe(false);
     expect(result.current.isLocating).toBe(false);
     expect(typeof result.current.requestGeolocation).toBe("function");
+    expect(typeof result.current.autoCenter).toBe("function");
     expect(typeof result.current.hidePrompt).toBe("function");
   });
 
@@ -125,5 +126,71 @@ describe("useGeolocationPrompt", () => {
     });
 
     expect(result.current.showPrompt).toBe(false);
+  });
+
+  it("should auto-center when permission is cached", async () => {
+    const { result } = renderHook(() => useGeolocationPrompt());
+    const mockCenterMap = vi.fn();
+
+    localStorageMock.getItem.mockReturnValue("true");
+    mockGetCurrentPosition.mockImplementation((success) => {
+      success({
+        coords: {
+          latitude: 42.6977,
+          longitude: 23.3219,
+        },
+      });
+    });
+
+    await act(async () => {
+      const centered = await result.current.autoCenter(mockCenterMap);
+      expect(centered).toBe(true);
+    });
+
+    expect(mockCenterMap).toHaveBeenCalledWith(42.6977, 23.3219, 17, {
+      animate: false,
+    });
+    expect(result.current.showPrompt).toBe(false);
+  });
+
+  it("should not auto-center when permission is not cached", async () => {
+    const { result } = renderHook(() => useGeolocationPrompt());
+    const mockCenterMap = vi.fn();
+
+    localStorageMock.getItem.mockReturnValue("false");
+
+    await act(async () => {
+      const centered = await result.current.autoCenter(mockCenterMap);
+      expect(centered).toBe(false);
+    });
+
+    expect(mockCenterMap).not.toHaveBeenCalled();
+    expect(result.current.showPrompt).toBe(false);
+  });
+
+  it("should handle auto-center geolocation errors silently", async () => {
+    const { result } = renderHook(() => useGeolocationPrompt());
+    const mockCenterMap = vi.fn();
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    localStorageMock.getItem.mockReturnValue("true");
+    mockGetCurrentPosition.mockImplementation((success, error) => {
+      error({
+        code: 1, // PERMISSION_DENIED
+        message: "Permission denied",
+      });
+    });
+
+    await act(async () => {
+      const centered = await result.current.autoCenter(mockCenterMap);
+      expect(centered).toBe(false);
+    });
+
+    expect(consoleSpy).toHaveBeenCalled();
+    expect(mockCenterMap).not.toHaveBeenCalled();
+    // No alert should be shown for auto-center
+    expect(window.alert).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
   });
 });
