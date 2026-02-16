@@ -20,6 +20,9 @@ vi.mock("@/lib/db", () => ({
                 case ">":
                   if (fieldValue == null) return false;
                   return fieldValue > clause.value;
+                case "<":
+                  if (fieldValue == null) return false;
+                  return fieldValue < clause.value;
                 case ">=":
                   if (fieldValue == null) return false;
                   return fieldValue >= clause.value;
@@ -99,16 +102,20 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     expect(response.status).toBe(200);
     expect(data.messages).toHaveLength(3);
 
+    const msg1 = data.messages.find((message: { id: string }) => message.id === "msg-1");
+    const msg2 = data.messages.find((message: { id: string }) => message.id === "msg-2");
+    const msg3 = data.messages.find((message: { id: string }) => message.id === "msg-3");
+
     // msg-1: Valid array should be preserved
-    expect(data.messages[0].pins).toEqual([
+    expect(msg1?.pins).toEqual([
       { latitude: 42.7, longitude: 23.3 },
     ]);
 
     // msg-2: String should become undefined
-    expect(data.messages[1].pins).toBeUndefined();
+    expect(msg2?.pins).toBeUndefined();
 
     // msg-3: Null should become undefined
-    expect(data.messages[2].pins).toBeUndefined();
+    expect(msg3?.pins).toBeUndefined();
   });
 
   it("should validate streets field as array and fallback to undefined for non-arrays", async () => {
@@ -148,11 +155,14 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     expect(response.status).toBe(200);
     expect(data.messages).toHaveLength(2);
 
+    const msg1 = data.messages.find((message: { id: string }) => message.id === "msg-1");
+    const msg2 = data.messages.find((message: { id: string }) => message.id === "msg-2");
+
     // msg-1: Valid array should be preserved
-    expect(data.messages[0].streets).toEqual([{ name: "Test Street" }]);
+    expect(msg1?.streets).toEqual([{ name: "Test Street" }]);
 
     // msg-2: Object should become undefined
-    expect(data.messages[1].streets).toBeUndefined();
+    expect(msg2?.streets).toBeUndefined();
   });
 
   it("should validate cadastralProperties field as array and fallback to undefined for non-arrays", async () => {
@@ -192,13 +202,16 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     expect(response.status).toBe(200);
     expect(data.messages).toHaveLength(2);
 
+    const msg1 = data.messages.find((message: { id: string }) => message.id === "msg-1");
+    const msg2 = data.messages.find((message: { id: string }) => message.id === "msg-2");
+
     // msg-1: Valid array should be preserved
-    expect(data.messages[0].cadastralProperties).toEqual([
+    expect(msg1?.cadastralProperties).toEqual([
       { identifier: "УПИ-123" },
     ]);
 
     // msg-2: Number should become undefined
-    expect(data.messages[1].cadastralProperties).toBeUndefined();
+    expect(msg2?.cadastralProperties).toBeUndefined();
   });
 
   it("should validate busStops field as array and fallback to undefined for non-arrays", async () => {
@@ -238,11 +251,14 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
     expect(response.status).toBe(200);
     expect(data.messages).toHaveLength(2);
 
+    const msg1 = data.messages.find((message: { id: string }) => message.id === "msg-1");
+    const msg2 = data.messages.find((message: { id: string }) => message.id === "msg-2");
+
     // msg-1: Valid array should be preserved
-    expect(data.messages[0].busStops).toEqual([{ name: "Stop 1" }]);
+    expect(msg1?.busStops).toEqual([{ name: "Stop 1" }]);
 
     // msg-2: Undefined should remain undefined
-    expect(data.messages[1].busStops).toBeUndefined();
+    expect(msg2?.busStops).toBeUndefined();
   });
 
   it("should handle messages with missing geoJson and no location fields", async () => {
@@ -316,5 +332,137 @@ describe("GET /api/messages/ingest-errors - Array Field Validation", () => {
       { identifier: "УПИ-123" },
     ]);
     expect(data.messages[0].busStops).toEqual([{ name: "Stop 1" }]);
+  });
+
+  it("should include same-timestamp docs when cursorId is not provided", async () => {
+    const boundaryDate = new Date("2026-01-10T10:00:00.000Z");
+    const olderDate = new Date("2026-01-09T10:00:00.000Z");
+
+    mockMessagesData = [
+      {
+        _id: "msg-1",
+        text: "Boundary A",
+        plainText: "Boundary A",
+        finalizedAt: boundaryDate,
+        createdAt: boundaryDate,
+        source: "test-source",
+        categories: [],
+      },
+      {
+        _id: "msg-2",
+        text: "Boundary B",
+        plainText: "Boundary B",
+        finalizedAt: boundaryDate,
+        createdAt: boundaryDate,
+        source: "test-source",
+        categories: [],
+      },
+      {
+        _id: "msg-3",
+        text: "Older",
+        plainText: "Older",
+        finalizedAt: olderDate,
+        createdAt: olderDate,
+        source: "test-source",
+        categories: [],
+      },
+    ];
+
+    const request = new Request(
+      "http://localhost/api/messages/ingest-errors?cursorFinalizedAt=2026-01-10T10:00:00.000Z",
+    );
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.messages).toHaveLength(3);
+  });
+
+  it("should use cursorId as tie-breaker for same finalizedAt", async () => {
+    const boundaryDate = new Date("2026-01-10T10:00:00.000Z");
+    const olderDate = new Date("2026-01-09T10:00:00.000Z");
+
+    mockMessagesData = [
+      {
+        _id: "msg-c",
+        text: "Boundary C",
+        plainText: "Boundary C",
+        finalizedAt: boundaryDate,
+        createdAt: boundaryDate,
+        source: "test-source",
+        categories: [],
+      },
+      {
+        _id: "msg-b",
+        text: "Boundary B",
+        plainText: "Boundary B",
+        finalizedAt: boundaryDate,
+        createdAt: boundaryDate,
+        source: "test-source",
+        categories: [],
+      },
+      {
+        _id: "msg-a",
+        text: "Boundary A",
+        plainText: "Boundary A",
+        finalizedAt: boundaryDate,
+        createdAt: boundaryDate,
+        source: "test-source",
+        categories: [],
+      },
+      {
+        _id: "msg-older",
+        text: "Older",
+        plainText: "Older",
+        finalizedAt: olderDate,
+        createdAt: olderDate,
+        source: "test-source",
+        categories: [],
+      },
+    ];
+
+    const request = new Request(
+      "http://localhost/api/messages/ingest-errors?cursorFinalizedAt=2026-01-10T10:00:00.000Z&cursorId=msg-b",
+    );
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.messages.map((m: { id: string }) => m.id)).toEqual([
+      "msg-a",
+      "msg-older",
+    ]);
+  });
+
+  it("should paginate correctly when many docs share the same finalizedAt", async () => {
+    const boundaryDate = new Date("2026-01-10T10:00:00.000Z");
+
+    mockMessagesData = Array.from({ length: 60 }, (_, index) => ({
+      _id: `msg-${String(index).padStart(3, "0")}`,
+      text: `Boundary ${index}`,
+      plainText: `Boundary ${index}`,
+      finalizedAt: boundaryDate,
+      createdAt: boundaryDate,
+      source: "test-source",
+      categories: [],
+    }));
+
+    const request = new Request(
+      "http://localhost/api/messages/ingest-errors?cursorFinalizedAt=2026-01-10T10:00:00.000Z&cursorId=msg-040",
+    );
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.messages).toHaveLength(12);
+    expect(data.messages[0].id).toBe("msg-039");
+    expect(data.messages[11].id).toBe("msg-028");
+    expect(data.nextCursor).toEqual({
+      finalizedAt: "2026-01-10T10:00:00.000Z",
+      id: "msg-028",
+    });
   });
 });

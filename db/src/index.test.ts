@@ -4,9 +4,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("./firestore-adapter", () => {
   const MockFirestoreAdapter = vi.fn().mockImplementation(function (this: any) {
     Object.assign(this, {
-      findOne: vi.fn(), findMany: vi.fn(), insertOne: vi.fn(),
-      createOne: vi.fn(), updateOne: vi.fn(), deleteOne: vi.fn(),
-      deleteMany: vi.fn(), batchWrite: vi.fn(), count: vi.fn(), close: vi.fn(),
+      findOne: vi.fn(),
+      findMany: vi.fn(),
+      insertOne: vi.fn(),
+      createOne: vi.fn(),
+      updateOne: vi.fn(),
+      deleteOne: vi.fn(),
+      deleteMany: vi.fn(),
+      batchWrite: vi.fn(),
+      count: vi.fn(),
+      close: vi.fn(),
     });
   });
   return { FirestoreAdapter: MockFirestoreAdapter };
@@ -15,9 +22,16 @@ vi.mock("./firestore-adapter", () => {
 vi.mock("./mongo-adapter", () => ({
   MongoAdapter: {
     connect: vi.fn().mockResolvedValue({
-      findOne: vi.fn(), findMany: vi.fn(), insertOne: vi.fn(),
-      createOne: vi.fn(), updateOne: vi.fn(), deleteOne: vi.fn(),
-      deleteMany: vi.fn(), batchWrite: vi.fn(), count: vi.fn(), close: vi.fn(),
+      findOne: vi.fn(),
+      findMany: vi.fn(),
+      insertOne: vi.fn(),
+      createOne: vi.fn(),
+      updateOne: vi.fn(),
+      deleteOne: vi.fn(),
+      deleteMany: vi.fn(),
+      batchWrite: vi.fn(),
+      count: vi.fn(),
+      close: vi.fn(),
     }),
   },
 }));
@@ -25,9 +39,16 @@ vi.mock("./mongo-adapter", () => ({
 vi.mock("./dual-write", () => {
   const MockDualWriteAdapter = vi.fn().mockImplementation(function (this: any) {
     Object.assign(this, {
-      findOne: vi.fn(), findMany: vi.fn(), insertOne: vi.fn(),
-      createOne: vi.fn(), updateOne: vi.fn(), deleteOne: vi.fn(),
-      deleteMany: vi.fn(), batchWrite: vi.fn(), count: vi.fn(), close: vi.fn(),
+      findOne: vi.fn(),
+      findMany: vi.fn(),
+      insertOne: vi.fn(),
+      createOne: vi.fn(),
+      updateOne: vi.fn(),
+      deleteOne: vi.fn(),
+      deleteMany: vi.fn(),
+      batchWrite: vi.fn(),
+      count: vi.fn(),
+      close: vi.fn(),
     });
   });
   return { DualWriteAdapter: MockDualWriteAdapter };
@@ -170,5 +191,10 @@ describe("createDb", () => {
   it("throws when no database is configured", async () => {
     delete process.env.MONGODB_URI;
     await expect(createDb()).rejects.toThrow("No database configured");
+  });
+
+  it("throws on invalid DB_READ_SOURCE value", async () => {
+    process.env.DB_READ_SOURCE = "invalid-source";
+    await expect(createDb()).rejects.toThrow("Invalid DB_READ_SOURCE");
   });
 });

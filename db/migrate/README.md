@@ -1,9 +1,9 @@
 # Migration Scripts
 
-One-off migration scripts. Run from the `ingest/` directory:
+One-off migration scripts. Run from the `db/` directory:
 
 ```bash
-cd ingest
+cd db
 npx tsx migrate/<script-name>.ts
 ```
 

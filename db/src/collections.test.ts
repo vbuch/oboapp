@@ -181,24 +181,21 @@ describe("InterestsRepository", () => {
   });
 
   describe("deleteAllByUserId", () => {
-    it("deletes all docs for a user via batchWrite", async () => {
-      vi.mocked(db.findMany).mockResolvedValue([
-        { _id: "int-1", userId: "user-1" },
-        { _id: "int-2", userId: "user-1" },
-      ]);
+    it("deletes all docs for a user via deleteMany and returns count", async () => {
+      vi.mocked(db.deleteMany).mockResolvedValue(2);
 
-      await repo.deleteAllByUserId("user-1");
+      const deleted = await repo.deleteAllByUserId("user-1");
 
-      expect(db.batchWrite).toHaveBeenCalledWith([
-        { type: "delete", collection: "interests", id: "int-1" },
-        { type: "delete", collection: "interests", id: "int-2" },
+      expect(deleted).toBe(2);
+      expect(db.deleteMany).toHaveBeenCalledWith("interests", [
+        { field: "userId", op: "==", value: "user-1" },
       ]);
     });
 
-    it("skips batchWrite when user has no docs", async () => {
-      vi.mocked(db.findMany).mockResolvedValue([]);
-      await repo.deleteAllByUserId("user-1");
-      expect(db.batchWrite).not.toHaveBeenCalled();
+    it("returns 0 when user has no docs", async () => {
+      vi.mocked(db.deleteMany).mockResolvedValue(0);
+      const deleted = await repo.deleteAllByUserId("user-1");
+      expect(deleted).toBe(0);
     });
   });
 });
@@ -246,22 +243,21 @@ describe("NotificationMatchesRepository", () => {
   });
 
   describe("deleteAllByUserId", () => {
-    it("deletes all matches for a user", async () => {
-      vi.mocked(db.findMany).mockResolvedValue([
-        { _id: "match-1", userId: "user-1" },
-      ]);
+    it("deletes all matches for a user via deleteMany and returns count", async () => {
+      vi.mocked(db.deleteMany).mockResolvedValue(1);
 
-      await repo.deleteAllByUserId("user-1");
+      const deleted = await repo.deleteAllByUserId("user-1");
 
-      expect(db.batchWrite).toHaveBeenCalledWith([
-        { type: "delete", collection: "notificationMatches", id: "match-1" },
+      expect(deleted).toBe(1);
+      expect(db.deleteMany).toHaveBeenCalledWith("notificationMatches", [
+        { field: "userId", op: "==", value: "user-1" },
       ]);
     });
 
-    it("skips batchWrite when no matches exist", async () => {
-      vi.mocked(db.findMany).mockResolvedValue([]);
-      await repo.deleteAllByUserId("user-1");
-      expect(db.batchWrite).not.toHaveBeenCalled();
+    it("returns 0 when no matches exist", async () => {
+      vi.mocked(db.deleteMany).mockResolvedValue(0);
+      const deleted = await repo.deleteAllByUserId("user-1");
+      expect(deleted).toBe(0);
     });
   });
 });
@@ -325,32 +321,21 @@ describe("NotificationSubscriptionsRepository", () => {
   });
 
   describe("deleteAllByUserId", () => {
-    it("deletes all subscriptions for a user", async () => {
-      vi.mocked(db.findMany).mockResolvedValue([
-        { _id: "sub-1", userId: "user-1" },
-        { _id: "sub-2", userId: "user-1" },
-      ]);
+    it("deletes all subscriptions for a user via deleteMany and returns count", async () => {
+      vi.mocked(db.deleteMany).mockResolvedValue(2);
 
-      await repo.deleteAllByUserId("user-1");
+      const deleted = await repo.deleteAllByUserId("user-1");
 
-      expect(db.batchWrite).toHaveBeenCalledWith([
-        {
-          type: "delete",
-          collection: "notificationSubscriptions",
-          id: "sub-1",
-        },
-        {
-          type: "delete",
-          collection: "notificationSubscriptions",
-          id: "sub-2",
-        },
+      expect(deleted).toBe(2);
+      expect(db.deleteMany).toHaveBeenCalledWith("notificationSubscriptions", [
+        { field: "userId", op: "==", value: "user-1" },
       ]);
     });
 
-    it("skips batchWrite when no subscriptions exist", async () => {
-      vi.mocked(db.findMany).mockResolvedValue([]);
-      await repo.deleteAllByUserId("user-1");
-      expect(db.batchWrite).not.toHaveBeenCalled();
+    it("returns 0 when no subscriptions exist", async () => {
+      vi.mocked(db.deleteMany).mockResolvedValue(0);
+      const deleted = await repo.deleteAllByUserId("user-1");
+      expect(deleted).toBe(0);
     });
   });
 });
@@ -404,9 +389,7 @@ describe("GtfsStopsRepository", () => {
     });
 
     it("uses merge: true on all set operations", async () => {
-      await repo.upsertBatch([
-        { stopCode: "S1", data: { name: "Stop 1" } },
-      ]);
+      await repo.upsertBatch([{ stopCode: "S1", data: { name: "Stop 1" } }]);
 
       const ops = vi.mocked(db.batchWrite).mock.calls[0][0];
       expect(ops[0].merge).toBe(true);

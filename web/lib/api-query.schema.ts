@@ -4,7 +4,7 @@ import { CategoryEnum, UNCATEGORIZED } from "@oboapp/shared/schema";
 const commaDelimitedCategories = z
   .string()
   .transform((s) => s.split(",").map((c) => c.trim()).filter(Boolean))
-  .pipe(z.array(z.union([CategoryEnum, z.literal(UNCATEGORIZED)])));
+  .pipe(z.array(z.union([CategoryEnum, z.literal(UNCATEGORIZED)])).max(10));
 
 const commaDelimitedSources = z
   .string()

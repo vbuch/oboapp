@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { NotificationSubscription } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
-
-function toISOString(value: unknown): string {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === "string") return value;
-  return new Date().toISOString();
-}
+import { toRequiredISOString } from "@/lib/date-serialization";
 
 // GET - Fetch all subscriptions for the user
 export async function GET(request: NextRequest) {
@@ -24,8 +19,8 @@ export async function GET(request: NextRequest) {
         userId: doc.userId as string,
         token: doc.token as string,
         endpoint: doc.endpoint as string,
-        createdAt: toISOString(doc.createdAt),
-        updatedAt: toISOString(doc.updatedAt),
+        createdAt: toRequiredISOString(doc.createdAt, "createdAt"),
+        updatedAt: toRequiredISOString(doc.updatedAt, "updatedAt"),
         deviceInfo:
           (doc.deviceInfo as NotificationSubscription["deviceInfo"]) || {},
       }))
@@ -53,10 +48,7 @@ export async function DELETE(request: NextRequest) {
     const { userId } = await verifyAuthToken(authHeader);
 
     const db = await getDb();
-    const docs = await db.notificationSubscriptions.findByUserId(userId);
-    const count = docs.length;
-
-    await db.notificationSubscriptions.deleteAllByUserId(userId);
+    const count = await db.notificationSubscriptions.deleteAllByUserId(userId);
 
     return NextResponse.json({ success: true, deleted: count });
   } catch (error) {

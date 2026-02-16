@@ -13,16 +13,14 @@ export async function DELETE(request: NextRequest) {
     // Delete all user data from multiple collections
 
     // 1. Count and delete all interests
-    const interestsDocs = await db.interests.findByUserId(userId);
-    await db.interests.deleteAllByUserId(userId);
+    const interestsDeleted = await db.interests.deleteAllByUserId(userId);
 
     // 2. Count and delete all notification subscriptions
-    const subscriptionsDocs = await db.notificationSubscriptions.findByUserId(userId);
-    await db.notificationSubscriptions.deleteAllByUserId(userId);
+    const subscriptionsDeleted =
+      await db.notificationSubscriptions.deleteAllByUserId(userId);
 
     // 3. Count and delete all notification matches
-    const matchesDocs = await db.notificationMatches.findByUserId(userId, {});
-    await db.notificationMatches.deleteAllByUserId(userId);
+    const matchesDeleted = await db.notificationMatches.deleteAllByUserId(userId);
 
     // 4. Delete the Firebase Auth user
     // This requires recent re-authentication on the client side (which we enforce in the UI)
@@ -37,9 +35,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       success: true,
       deleted: {
-        interests: interestsDocs.length,
-        subscriptions: subscriptionsDocs.length,
-        matches: matchesDocs.length,
+        interests: interestsDeleted,
+        subscriptions: subscriptionsDeleted,
+        matches: matchesDeleted,
       },
     });
   } catch (error) {

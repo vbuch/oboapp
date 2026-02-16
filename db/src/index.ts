@@ -40,6 +40,20 @@ export interface OboDb {
   close(): Promise<void>;
 }
 
+function isDbBackend(value: string): value is DbBackend {
+  return value === "firestore" || value === "mongodb";
+}
+
+function resolveReadSource(value = "firestore"): DbBackend {
+  const readSource = value;
+  if (!isDbBackend(readSource)) {
+    throw new Error(
+      `Invalid DB_READ_SOURCE: ${readSource}. Expected 'firestore' or 'mongodb'.`,
+    );
+  }
+  return readSource;
+}
+
 function buildRepositories(client: DbClient): OboDb {
   return {
     client,
@@ -59,18 +73,21 @@ function buildRepositories(client: DbClient): OboDb {
  * For most callers, use `createDb()` which reads from environment variables.
  */
 export async function createDbFromConfig(config: DbConfig): Promise<OboDb> {
+  const readSource = resolveReadSource(config.readSource as string);
   const hasFirestore = !!config.firestoreDb;
   const hasMongo = !!config.mongoUri;
 
   // Dual-write: both backends available
   if (hasFirestore && hasMongo) {
-    const firestoreAdapter = new FirestoreAdapter(config.firestoreDb!);
+    const firestoreAdapter = new FirestoreAdapter(
+      config.firestoreDb as FirebaseFirestore.Firestore,
+    );
     const mongoAdapter = await MongoAdapter.connect(
       config.mongoUri!,
       config.mongoDatabase ?? "oboapp",
     );
     const dualWrite = new DualWriteAdapter(
-      config.readSource,
+      readSource,
       firestoreAdapter,
       mongoAdapter,
     );
@@ -79,7 +96,9 @@ export async function createDbFromConfig(config: DbConfig): Promise<OboDb> {
 
   // Firestore only
   if (hasFirestore) {
-    const firestoreAdapter = new FirestoreAdapter(config.firestoreDb!);
+    const firestoreAdapter = new FirestoreAdapter(
+      config.firestoreDb as FirebaseFirestore.Firestore,
+    );
     return buildRepositories(firestoreAdapter);
   }
 
@@ -109,9 +128,9 @@ export async function createDbFromConfig(config: DbConfig): Promise<OboDb> {
  * dynamic import of firebase-admin (dotenv must load first).
  */
 export async function createDb(options?: {
-  firestoreDb?: FirebaseFirestore.Firestore;
+  firestoreDb?: unknown;
 }): Promise<OboDb> {
-  const readSource = (process.env.DB_READ_SOURCE ?? "firestore") as DbBackend;
+  const readSource = resolveReadSource(process.env.DB_READ_SOURCE);
   const mongoUri = process.env.MONGODB_URI;
   const mongoDatabase = process.env.MONGODB_DATABASE ?? "oboapp";
 
@@ -132,7 +151,6 @@ export type {
   BatchOperation,
   UpdateOperators,
 } from "./types";
-export { FirestoreAdapter } from "./firestore-adapter";
 export { MongoAdapter } from "./mongo-adapter";
 export { DualWriteAdapter } from "./dual-write";
 export {

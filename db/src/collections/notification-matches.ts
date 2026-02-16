@@ -2,19 +2,21 @@
  * Notification matches collection repository.
  */
 
-import type { DbClient, FindManyOptions, WhereClause, BatchOperation } from "../types";
+import type { DbClient, FindManyOptions, WhereClause } from "../types";
 
 /** Collection name constant */
 export const NOTIFICATION_MATCHES_COLLECTION = "notificationMatches";
 
 export class NotificationMatchesRepository {
-  constructor(private db: DbClient) {}
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: string): Promise<Record<string, unknown> | null> {
     return this.db.findOne(NOTIFICATION_MATCHES_COLLECTION, id);
   }
 
-  async findMany(options?: FindManyOptions): Promise<Record<string, unknown>[]> {
+  async findMany(
+    options?: FindManyOptions,
+  ): Promise<Record<string, unknown>[]> {
     return this.db.findMany(NOTIFICATION_MATCHES_COLLECTION, options);
   }
 
@@ -55,18 +57,10 @@ export class NotificationMatchesRepository {
   /**
    * Delete all matches for a user (used in user deletion cascade).
    */
-  async deleteAllByUserId(userId: string): Promise<void> {
-    const docs = await this.db.findMany(NOTIFICATION_MATCHES_COLLECTION, {
-      where: [{ field: "userId", op: "==", value: userId }],
-    });
-    if (docs.length === 0) return;
-
-    const ops: BatchOperation[] = docs.map((doc) => ({
-      type: "delete" as const,
-      collection: NOTIFICATION_MATCHES_COLLECTION,
-      id: doc._id as string,
-    }));
-    await this.db.batchWrite(ops);
+  async deleteAllByUserId(userId: string): Promise<number> {
+    return this.db.deleteMany(NOTIFICATION_MATCHES_COLLECTION, [
+      { field: "userId", op: "==", value: userId },
+    ]);
   }
 
   async count(where?: WhereClause[]): Promise<number> {

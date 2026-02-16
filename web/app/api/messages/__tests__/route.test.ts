@@ -151,6 +151,33 @@ describe("GET /api/messages - Query Parameter Validation", () => {
     expect(parsed.data?.categories).toEqual(["uncategorized"]);
   });
 
+  it("should accept up to 10 category values", async () => {
+    const categories = Array.from({ length: 10 }, () => "water").join(",");
+    const mockRequest = new Request(
+      `http://localhost/api/messages?categories=${categories}`,
+    );
+    const { searchParams } = new URL(mockRequest.url);
+    const { messagesQuerySchema } = await import("@/lib/api-query.schema");
+    const parsed = messagesQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries()),
+    );
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.categories).toHaveLength(10);
+  });
+
+  it("should reject more than 10 category values", async () => {
+    const categories = Array.from({ length: 11 }, () => "water").join(",");
+    const mockRequest = new Request(
+      `http://localhost/api/messages?categories=${categories}`,
+    );
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid query parameters");
+  });
+
   it("should accept valid coordinate bounds", async () => {
     // This test validates that valid coordinates are accepted by the schema
     const mockRequest = new Request(

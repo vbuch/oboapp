@@ -18,7 +18,10 @@ export function verifyEnvSet(keys: string[]): void {
  * Requires FIREBASE_SERVICE_ACCOUNT_KEY and/or MONGODB_URI.
  */
 export function verifyDbEnv(): void {
-  const hasFirestore = !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  const hasFirestore =
+    !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY ||
+    process.env.USE_FIREBASE_EMULATORS === "true" ||
+    !!process.env.FIRESTORE_EMULATOR_HOST;
   const hasMongo = !!process.env.MONGODB_URI;
 
   if (!hasFirestore && !hasMongo) {

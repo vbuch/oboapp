@@ -8,7 +8,7 @@ let mockSubscriptionsData: Record<string, unknown>[] = [];
 const findByUserIdMock = vi
   .fn()
   .mockImplementation(async () => [...mockSubscriptionsData]);
-const deleteAllByUserIdMock = vi.fn().mockResolvedValue(undefined);
+const deleteAllByUserIdMock = vi.fn().mockResolvedValue(0);
 
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn().mockImplementation(async () => ({
@@ -146,6 +146,7 @@ describe("DELETE /api/notifications/subscription/all", () => {
       { _id: "sub-2", userId: "user-123", token: "t2", endpoint: "e2" },
       { _id: "sub-3", userId: "user-123", token: "t3", endpoint: "e3" },
     ];
+    deleteAllByUserIdMock.mockResolvedValueOnce(3);
 
     const response = await DELETE(createRequest("DELETE") as any);
     const data = await response.json();
@@ -157,6 +158,7 @@ describe("DELETE /api/notifications/subscription/all", () => {
 
   it("returns deleted: 0 when user has no subscriptions", async () => {
     mockSubscriptionsData = [];
+    deleteAllByUserIdMock.mockResolvedValueOnce(0);
 
     const response = await DELETE(createRequest("DELETE") as any);
     const data = await response.json();

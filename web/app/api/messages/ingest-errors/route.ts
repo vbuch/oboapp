@@ -5,21 +5,12 @@ import type {
   IngestError,
 } from "@/lib/types";
 import type { WhereClause } from "@oboapp/db";
+import {
+  toOptionalISOString,
+  toRequiredISOString,
+} from "@/lib/date-serialization";
 
 const PAGE_SIZE = 12;
-const QUERY_BATCH_SIZE = 50;
-const MAX_QUERY_BATCHES = 5;
-
-function toISOString(value: unknown): string {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === "string") return value;
-  return new Date().toISOString();
-}
-
-function toOptionalISOString(value: unknown): string | undefined {
-  if (!value) return undefined;
-  return toISOString(value);
-}
 
 function recordToInternalMessage(record: Record<string, unknown>): InternalMessage {
   return {
@@ -30,14 +21,14 @@ function recordToInternalMessage(record: Record<string, unknown>): InternalMessa
     markdownText: record.markdownText as string | undefined,
     addresses: (record.addresses as InternalMessage["addresses"]) ?? [],
     geoJson: record.geoJson as InternalMessage["geoJson"],
-    crawledAt: toOptionalISOString(record.crawledAt),
-    createdAt: toISOString(record.createdAt),
-    finalizedAt: toOptionalISOString(record.finalizedAt),
+    crawledAt: toOptionalISOString(record.crawledAt, "crawledAt"),
+    createdAt: toRequiredISOString(record.createdAt, "createdAt"),
+    finalizedAt: toOptionalISOString(record.finalizedAt, "finalizedAt"),
     source: record.source as string | undefined,
     sourceUrl: record.sourceUrl as string | undefined,
     categories: Array.isArray(record.categories) ? record.categories : [],
-    timespanStart: toOptionalISOString(record.timespanStart),
-    timespanEnd: toOptionalISOString(record.timespanEnd),
+    timespanStart: toOptionalISOString(record.timespanStart, "timespanStart"),
+    timespanEnd: toOptionalISOString(record.timespanEnd, "timespanEnd"),
     cityWide: (record.cityWide as boolean) || false,
     responsibleEntity: record.responsibleEntity as string | undefined,
     pins: Array.isArray(record.pins) ? record.pins : undefined,
@@ -56,13 +47,11 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const cursorFinalizedAt = searchParams.get("cursorFinalizedAt");
+    const cursorId = searchParams.get("cursorId");
 
     const db = await getDb();
-
-    const messages: InternalMessage[] = [];
-    let batchCount = 0;
-    let hasMore = false;
     let currentCursorDate: Date | null = null;
+    let currentCursorId: string | null = null;
 
     if (cursorFinalizedAt) {
       const parsedDate = new Date(cursorFinalizedAt);
@@ -73,6 +62,7 @@ export async function GET(request: Request) {
         );
       }
       currentCursorDate = parsedDate;
+      currentCursorId = cursorId;
     }
 
     const isGeoJsonMissing = (value: unknown): boolean => {
@@ -91,67 +81,63 @@ export async function GET(request: Request) {
       return false;
     };
 
-    let lastDoc: Record<string, unknown> | undefined;
+    const whereClause: WhereClause[] = [
+      { field: "finalizedAt", op: ">", value: new Date(0) },
+    ];
 
-    while (messages.length < PAGE_SIZE && batchCount < MAX_QUERY_BATCHES) {
-      const whereClause: WhereClause[] = [
-        { field: "finalizedAt", op: ">", value: new Date(0) },
-      ];
-
-      // For cursor pagination, filter out already-seen documents
-      if (currentCursorDate) {
-        whereClause.push({
-          field: "finalizedAt", op: "<=", value: currentCursorDate,
-        });
-      }
-
-      const docs = await db.messages.findMany({
-        where: whereClause,
-        orderBy: [{ field: "finalizedAt", direction: "desc" }],
-        limit: QUERY_BATCH_SIZE,
+    if (currentCursorDate) {
+      whereClause.push({
+        field: "finalizedAt", op: "<=", value: currentCursorDate,
       });
-
-      batchCount += 1;
-
-      if (docs.length === 0) {
-        hasMore = false;
-        break;
-      }
-
-      for (const doc of docs) {
-        const hasGeoJsonField = Object.prototype.hasOwnProperty.call(
-          doc,
-          "geoJson",
-        );
-        if (!hasGeoJsonField || isGeoJsonMissing(doc.geoJson)) {
-          messages.push(recordToInternalMessage(doc));
-        }
-      }
-
-      lastDoc = docs.at(-1);
-      hasMore = docs.length === QUERY_BATCH_SIZE;
-
-      if (!hasMore || messages.length >= PAGE_SIZE) {
-        break;
-      }
-
-      if (!lastDoc) {
-        hasMore = false;
-        break;
-      }
-
-      // Advance cursor to the finalizedAt of the last document in this batch
-      const lastFinalizedAt = lastDoc.finalizedAt;
-      currentCursorDate = lastFinalizedAt instanceof Date
-        ? lastFinalizedAt
-        : new Date(lastFinalizedAt as string);
     }
+
+    const fetchedDocs = await db.messages.findMany({
+      where: whereClause,
+      orderBy: [{ field: "finalizedAt", direction: "desc" }],
+    });
+
+    const sortedDocs = [...fetchedDocs].sort((left, right) => {
+      const leftDate = new Date(left.finalizedAt as string | Date).getTime();
+      const rightDate = new Date(right.finalizedAt as string | Date).getTime();
+      if (leftDate !== rightDate) {
+        return rightDate - leftDate;
+      }
+      return String(right._id).localeCompare(String(left._id));
+    });
+
+    const cursorFilteredDocs =
+      currentCursorDate && currentCursorId
+        ? sortedDocs.filter((doc) => {
+            const docFinalizedAt = new Date(doc.finalizedAt as string | Date).getTime();
+            const cursorFinalizedAtTime = currentCursorDate.getTime();
+
+            if (docFinalizedAt < cursorFinalizedAtTime) {
+              return true;
+            }
+
+            if (docFinalizedAt > cursorFinalizedAtTime) {
+              return false;
+            }
+
+            return String(doc._id).localeCompare(currentCursorId) < 0;
+          })
+        : sortedDocs;
+
+    const ingestErrorDocs = cursorFilteredDocs.filter((doc) => {
+      const hasGeoJsonField = Object.hasOwn(doc, "geoJson");
+      return !hasGeoJsonField || isGeoJsonMissing(doc.geoJson);
+    });
+
+    const pageDocs = ingestErrorDocs.slice(0, PAGE_SIZE);
+    const messages = pageDocs.map(recordToInternalMessage);
+    const hasMore = ingestErrorDocs.length > PAGE_SIZE;
+    const lastDoc = pageDocs.at(-1);
 
     const nextCursor =
       lastDoc && hasMore
         ? {
-            finalizedAt: toISOString(lastDoc.finalizedAt),
-            id: lastDoc._id as string,
+            finalizedAt: toRequiredISOString(lastDoc.finalizedAt, "finalizedAt"),
+            id: String(lastDoc._id),
           }
         : undefined;
 

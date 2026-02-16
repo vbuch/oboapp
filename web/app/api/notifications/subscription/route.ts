@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { NotificationSubscription } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
-
-function toISOString(value: unknown): string {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === "string") return value;
-  return new Date().toISOString();
-}
+import { toRequiredISOString } from "@/lib/date-serialization";
 
 // GET - Check if user has a valid subscription
 export async function GET(request: NextRequest) {
@@ -60,15 +55,20 @@ export async function POST(request: NextRequest) {
       });
 
       const updatedDoc = await db.notificationSubscriptions.findById(docId);
+      if (!updatedDoc) {
+        throw new Error(
+          "Subscription update succeeded but updated record was not found",
+        );
+      }
 
       const subscription: NotificationSubscription = {
         id: docId,
-        userId: updatedDoc?.userId as string,
-        token: updatedDoc?.token as string,
-        endpoint: updatedDoc?.endpoint as string,
-        createdAt: toISOString(updatedDoc?.createdAt),
-        updatedAt: toISOString(updatedDoc?.updatedAt),
-        deviceInfo: updatedDoc?.deviceInfo as Record<string, unknown>,
+        userId: updatedDoc.userId as string,
+        token: updatedDoc.token as string,
+        endpoint: updatedDoc.endpoint as string,
+        createdAt: toRequiredISOString(updatedDoc.createdAt, "createdAt"),
+        updatedAt: toRequiredISOString(updatedDoc.updatedAt, "updatedAt"),
+        deviceInfo: (updatedDoc.deviceInfo as Record<string, unknown>) || {},
       };
 
       return NextResponse.json(subscription);

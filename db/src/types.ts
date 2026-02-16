@@ -17,13 +17,23 @@ export interface DbConfig {
   /** MongoDB database name */
   mongoDatabase?: string;
   /** Firestore instance (required when Firestore is enabled) */
-  firestoreDb?: FirebaseFirestore.Firestore;
+  firestoreDb?: unknown;
 }
 
 /** Filter operators for queries */
 export interface WhereClause {
   field: string;
-  op: "==" | "!=" | "<" | "<=" | ">" | ">=" | "in" | "array-contains" | "array-contains-any" | "not-in";
+  op:
+    | "=="
+    | "!="
+    | "<"
+    | "<="
+    | ">"
+    | ">="
+    | "in"
+    | "array-contains"
+    | "array-contains-any"
+    | "not-in";
   value: unknown;
 }
 
@@ -74,27 +84,41 @@ export interface DbClient {
    * Get a single document by ID.
    * Returns null if not found.
    */
-  findOne(collection: string, id: string): Promise<Record<string, unknown> | null>;
+  findOne(
+    collection: string,
+    id: string,
+  ): Promise<Record<string, unknown> | null>;
 
   /**
    * Query documents with optional filtering, sorting, and limiting.
    * Each returned document includes an `_id` field with the document ID.
    */
-  findMany(collection: string, options?: FindManyOptions): Promise<Record<string, unknown>[]>;
+  findMany(
+    collection: string,
+    options?: FindManyOptions,
+  ): Promise<Record<string, unknown>[]>;
 
   /**
    * Insert a new document. If `id` is provided, uses it as the document ID.
    * Otherwise, auto-generates an ID.
    * Returns the document ID.
    */
-  insertOne(collection: string, data: Record<string, unknown>, id?: string): Promise<string>;
+  insertOne(
+    collection: string,
+    data: Record<string, unknown>,
+    id?: string,
+  ): Promise<string>;
 
   /**
    * Atomically create a document — fails if it already exists.
    * Returns the document ID.
    * Throws if the document already exists.
    */
-  createOne(collection: string, data: Record<string, unknown>, id: string): Promise<string>;
+  createOne(
+    collection: string,
+    data: Record<string, unknown>,
+    id: string,
+  ): Promise<string>;
 
   /**
    * Update an existing document by ID.

@@ -2,19 +2,22 @@
  * Notification subscriptions collection repository.
  */
 
-import type { DbClient, FindManyOptions, WhereClause, BatchOperation } from "../types";
+import type { DbClient, FindManyOptions, WhereClause } from "../types";
 
 /** Collection name constant */
-export const NOTIFICATION_SUBSCRIPTIONS_COLLECTION = "notificationSubscriptions";
+export const NOTIFICATION_SUBSCRIPTIONS_COLLECTION =
+  "notificationSubscriptions";
 
 export class NotificationSubscriptionsRepository {
-  constructor(private db: DbClient) {}
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: string): Promise<Record<string, unknown> | null> {
     return this.db.findOne(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, id);
   }
 
-  async findMany(options?: FindManyOptions): Promise<Record<string, unknown>[]> {
+  async findMany(
+    options?: FindManyOptions,
+  ): Promise<Record<string, unknown>[]> {
     return this.db.findMany(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, options);
   }
 
@@ -42,40 +45,38 @@ export class NotificationSubscriptionsRepository {
     userId: string,
     token: string,
   ): Promise<Record<string, unknown> | null> {
-    const results = await this.db.findMany(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, {
-      where: [
-        { field: "userId", op: "==", value: userId },
-        { field: "token", op: "==", value: token },
-      ],
-      limit: 1,
-    });
+    const results = await this.db.findMany(
+      NOTIFICATION_SUBSCRIPTIONS_COLLECTION,
+      {
+        where: [
+          { field: "userId", op: "==", value: userId },
+          { field: "token", op: "==", value: token },
+        ],
+        limit: 1,
+      },
+    );
     return results[0] ?? null;
   }
 
   /** Check if a user has any subscription */
   async hasSubscription(userId: string): Promise<boolean> {
-    const results = await this.db.findMany(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, {
-      where: [{ field: "userId", op: "==", value: userId }],
-      limit: 1,
-    });
+    const results = await this.db.findMany(
+      NOTIFICATION_SUBSCRIPTIONS_COLLECTION,
+      {
+        where: [{ field: "userId", op: "==", value: userId }],
+        limit: 1,
+      },
+    );
     return results.length > 0;
   }
 
   /**
    * Delete all subscriptions for a user (used in user deletion cascade).
    */
-  async deleteAllByUserId(userId: string): Promise<void> {
-    const docs = await this.db.findMany(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, {
-      where: [{ field: "userId", op: "==", value: userId }],
-    });
-    if (docs.length === 0) return;
-
-    const ops: BatchOperation[] = docs.map((doc) => ({
-      type: "delete" as const,
-      collection: NOTIFICATION_SUBSCRIPTIONS_COLLECTION,
-      id: doc._id as string,
-    }));
-    await this.db.batchWrite(ops);
+  async deleteAllByUserId(userId: string): Promise<number> {
+    return this.db.deleteMany(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, [
+      { field: "userId", op: "==", value: userId },
+    ]);
   }
 
   async count(where?: WhereClause[]): Promise<number> {
