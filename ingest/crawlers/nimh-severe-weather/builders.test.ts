@@ -143,6 +143,7 @@ describe("buildMarkdownText", () => {
 
     const markdown = buildMarkdownText(data);
 
+    expect(markdown).toContain("**Жълт код за опасно време за 01.02.2026 (неделя)**");
     expect(markdown).toContain("**Жълт код за сняг**");
     expect(markdown).toContain("Снеговалежи и образуване на снежна покривка");
   });
@@ -171,6 +172,8 @@ describe("buildMarkdownText", () => {
 
     const markdown = buildMarkdownText(data);
 
+    // Should have heading with date
+    expect(markdown).toContain("**Оранжев код за опасно време за 01.02.2026 (неделя)**");
     // Orange (more severe) should come first
     expect(markdown).toContain("**Оранжев код за сняг**");
     expect(markdown).toContain("**Жълт код за температура**");
@@ -179,8 +182,8 @@ describe("buildMarkdownText", () => {
     expect(markdown).toContain("- Образуване на снежна покривка до 10 см");
 
     // Verify orange comes before yellow in output
-    const orangeIndex = markdown.indexOf("Оранжев");
-    const yellowIndex = markdown.indexOf("Жълт");
+    const orangeIndex = markdown.indexOf("Оранжев код за сняг");
+    const yellowIndex = markdown.indexOf("Жълт код за температура");
     expect(orangeIndex).toBeLessThan(yellowIndex);
   });
 
@@ -203,7 +206,7 @@ describe("buildMarkdownText", () => {
 });
 
 describe("buildMessageText", () => {
-  it("builds plain text message", () => {
+  it("builds plain text message with date", () => {
     const data: WeatherPageData = {
       forecastDate: "2026-02-01",
       issuedAt: "2026-01-31T11:02:45",
@@ -219,6 +222,7 @@ describe("buildMessageText", () => {
 
     const text = buildMessageText(data);
 
+    expect(text).toContain("Жълт код за опасно време за 01.02.2026 (неделя)");
     expect(text).toContain("Снеговалежи");
     expect(text).toContain("Образуване на снежна покривка; Заледяване");
   });

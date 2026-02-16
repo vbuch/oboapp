@@ -59,11 +59,6 @@ const WARNING_LEVEL_LABELS: Record<string, string> = {
 export function buildMarkdownText(data: WeatherPageData): string {
   const parts: string[] = [];
 
-  // Add recommendation if present
-  if (data.recommendation) {
-    parts.push(data.recommendation, "");
-  }
-
   // Filter out green warnings and sort by severity (red > orange > yellow)
   const activeWarnings = data.sofiaWarnings
     .filter((w) => w.level !== "green")
@@ -71,6 +66,20 @@ export function buildMarkdownText(data: WeatherPageData): string {
       const levels = ["yellow", "orange", "red"];
       return levels.indexOf(b.level) - levels.indexOf(a.level);
     });
+
+  if (activeWarnings.length > 0) {
+    // Add heading with date and highest warning level
+    const maxLevel = getMaxWarningLevel(activeWarnings);
+    const levelLabel =
+      WARNING_LEVEL_LABELS[maxLevel] || WARNING_LEVEL_LABELS.yellow;
+    const dateWithDay = formatDateWithDayOfWeek(data.forecastDate);
+    parts.push(`**${levelLabel} за опасно време за ${dateWithDay}**`, "");
+  }
+
+  // Add recommendation if present
+  if (data.recommendation) {
+    parts.push(data.recommendation, "");
+  }
 
   // Group warnings by level and type
   for (const warning of activeWarnings) {
@@ -101,11 +110,12 @@ export function buildMessageText(data: WeatherPageData): string {
     return data.recommendation || "";
   }
 
-  // Build heading from highest level
+  // Build heading from highest level with date
   const maxLevel = getMaxWarningLevel(activeWarnings);
   const levelLabel =
     WARNING_LEVEL_LABELS[maxLevel] || WARNING_LEVEL_LABELS.yellow;
-  parts.push(`${levelLabel} за опасно време`);
+  const dateWithDay = formatDateWithDayOfWeek(data.forecastDate);
+  parts.push(`${levelLabel} за опасно време за ${dateWithDay}`);
 
   if (data.recommendation) {
     parts.push("", data.recommendation);
@@ -118,6 +128,24 @@ export function buildMessageText(data: WeatherPageData): string {
   }
 
   return parts.join("\n").trim();
+}
+
+/**
+ * Get day of week in Bulgarian
+ */
+function getDayOfWeek(isoDate: string): string {
+  const days = [
+    "неделя",
+    "понеделник",
+    "вторник",
+    "сряда",
+    "четвъртък",
+    "петък",
+    "събота",
+  ];
+
+  const date = new Date(isoDate);
+  return days[date.getDay()];
 }
 
 /**
@@ -141,6 +169,15 @@ function formatDateBulgarian(isoDate: string): string {
 
   const [year, month, day] = isoDate.split("-");
   return `${Number.parseInt(day, 10)} ${months[Number.parseInt(month, 10) - 1]} ${year}`;
+}
+
+/**
+ * Format date with day of week in short format (e.g., "17.02.2026 (вторник)")
+ */
+function formatDateWithDayOfWeek(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-");
+  const dayOfWeek = getDayOfWeek(isoDate);
+  return `${day}.${month}.${year} (${dayOfWeek})`;
 }
 
 /**
