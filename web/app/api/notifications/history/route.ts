@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
         distance: doc.distance as number,
         interestId: doc.interestId as string,
         successfulDevicesCount,
+        readAt: toOptionalISOString(doc.readAt, "readAt"),
       };
     });
 

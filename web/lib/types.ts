@@ -112,6 +112,7 @@ export interface NotificationMatch {
   distance?: number; // Distance in meters from interest center to closest point
   deviceNotifications?: DeviceNotification[]; // Array of device-specific sends
   messageSnapshot?: MessageSnapshot; // Denormalized message data
+  readAt?: Date | string; // When the notification was read by the user
 }
 
 // Notification History Item (for API response)

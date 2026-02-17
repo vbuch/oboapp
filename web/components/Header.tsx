@@ -8,6 +8,7 @@ import { trackEvent } from "@/lib/analytics";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { borderRadius, zIndex } from "@/lib/colors";
 import UserMenu from "@/components/UserMenu";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function Header() {
   const { user, signInWithGoogle } = useAuth();
@@ -60,7 +61,8 @@ export default function Header() {
             </div>
 
             {/* Right side - User Info */}
-            <div>
+            <div className="flex items-center gap-4">
+              {user && <NotificationBell />}
               {user ? (
                 <button
                   type="button"

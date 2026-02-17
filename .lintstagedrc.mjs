@@ -39,5 +39,6 @@ function createLintTask(dir, filenames) {
 export default {
   "web/**/*.{js,jsx,ts,tsx}": (filenames) => createLintTask("web", filenames),
   "ingest/**/*.{js,ts}": (filenames) => createLintTask("ingest", filenames),
-  "shared/**/*.{js,ts}": (filenames) => createLintTask("shared", filenames),
+  // Skip linting for shared package as it doesn't have eslint configured yet
+  // "shared/**/*.{js,ts}": (filenames) => createLintTask("shared", filenames),
 };

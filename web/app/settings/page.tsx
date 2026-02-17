@@ -13,7 +13,6 @@ import {
 import { getMessaging, getToken } from "firebase/messaging";
 import { app } from "@/lib/firebase";
 import NotificationsSection from "./NotificationsSection";
-import NotificationHistorySection from "./NotificationHistorySection";
 import ZonesSection from "./ZonesSection";
 import DeleteAccountSection from "./DeleteAccountSection";
 import DeleteSuccessMessage from "./DeleteSuccessMessage";
@@ -34,7 +33,6 @@ export default function SettingsPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notificationCount, setNotificationCount] = useState<number>(0);
 
   // Delete account state
   const [isDeleting, setIsDeleting] = useState(false);
@@ -51,26 +49,22 @@ export default function SettingsPage() {
       const authHeader = `Bearer ${token}`;
 
       // Fetch interests and subscriptions in parallel
-      const [interestsRes, subscriptionsRes, countRes] = await Promise.all([
+      const [interestsRes, subscriptionsRes] = await Promise.all([
         fetch("/api/interests", {
           headers: { Authorization: authHeader },
         }),
         fetch("/api/notifications/subscription/all", {
           headers: { Authorization: authHeader },
         }),
-        fetch("/api/notifications/history/count", {
-          headers: { Authorization: authHeader },
-        }),
       ]);
 
-      if (!interestsRes.ok || !subscriptionsRes.ok || !countRes.ok) {
+      if (!interestsRes.ok || !subscriptionsRes.ok) {
         throw new Error("Failed to fetch data");
       }
 
-      const [interestsData, subscriptionsData, countData] = await Promise.all([
+      const [interestsData, subscriptionsData] = await Promise.all([
         interestsRes.json(),
         subscriptionsRes.json(),
-        countRes.json(),
       ]);
 
       setInterests(
@@ -78,9 +72,6 @@ export default function SettingsPage() {
       );
       setSubscriptions(
         Array.isArray(subscriptionsData) ? subscriptionsData : []
-      );
-      setNotificationCount(
-        typeof countData?.count === "number" ? countData.count : 0
       );
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -305,8 +296,6 @@ export default function SettingsPage() {
         <SettingsHeader />
 
         {error && <ErrorBanner message={error} />}
-
-        <NotificationHistorySection count={notificationCount} />
 
         <NotificationsSection
           subscriptions={subscriptions}
