@@ -62,6 +62,7 @@ export default function NotificationDropdown({
   const [nextOffset, setNextOffset] = useState<number | null>(null);
   const [isCurrentDeviceSubscribed, setIsCurrentDeviceSubscribed] =
     useState(true);
+  const [hasAnySubscriptions, setHasAnySubscriptions] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = useCallback(async (offset = 0, append = false) => {
@@ -171,10 +172,12 @@ export default function NotificationDropdown({
         subscriptions.some((sub) => sub.token === currentToken);
       
       setIsCurrentDeviceSubscribed(hasCurrentDevice);
+      setHasAnySubscriptions(Array.isArray(subscriptions) && subscriptions.length > 0);
     } catch (err) {
       console.error("Error checking subscription status:", err);
       // On error, assume not subscribed to show the prompt
       setIsCurrentDeviceSubscribed(false);
+      setHasAnySubscriptions(false);
     }
   }, [user]);
 
@@ -343,7 +346,7 @@ export default function NotificationDropdown({
           <div className="p-4 border-b border-neutral-border">
             <SubscribeDevicePrompt
               onSubscribe={handleSubscribeCurrentDevice}
-              hasAnySubscriptions={false}
+              hasAnySubscriptions={hasAnySubscriptions}
             />
           </div>
         )}

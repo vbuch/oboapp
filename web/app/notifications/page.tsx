@@ -47,6 +47,7 @@ export default function NotificationsPage() {
   const [nextOffset, setNextOffset] = useState<number | null>(null);
   const [isCurrentDeviceSubscribed, setIsCurrentDeviceSubscribed] =
     useState(true);
+  const [hasAnySubscriptions, setHasAnySubscriptions] = useState(false);
 
   const fetchNotifications = useCallback(async (offset = 0, append = false) => {
     if (!user) return;
@@ -151,9 +152,11 @@ export default function NotificationsPage() {
         subscriptions.some((sub) => sub.token === currentToken);
       
       setIsCurrentDeviceSubscribed(hasCurrentDevice);
+      setHasAnySubscriptions(Array.isArray(subscriptions) && subscriptions.length > 0);
     } catch (err) {
       console.error("Error checking subscription status:", err);
       setIsCurrentDeviceSubscribed(false);
+      setHasAnySubscriptions(false);
     }
   }, [user]);
 
@@ -314,7 +317,7 @@ export default function NotificationsPage() {
           <div className="mb-6">
             <SubscribeDevicePrompt
               onSubscribe={handleSubscribeCurrentDevice}
-              hasAnySubscriptions={false}
+              hasAnySubscriptions={hasAnySubscriptions}
             />
           </div>
         )}

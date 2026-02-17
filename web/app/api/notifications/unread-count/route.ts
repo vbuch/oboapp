@@ -10,17 +10,13 @@ export async function GET(request: NextRequest) {
 
     const db = await getDb();
     
-    // Fetch all notified notifications and filter client-side
-    // This handles both readAt: null and missing readAt field
-    const docs = await db.notificationMatches.findByUserId(userId, {
-      limit: 1000, // Reasonable limit for counting
-    });
-    
-    const unreadCount = docs.filter((doc) => {
-      // A notification is unread if readAt is null, undefined, or empty string
-      const readAt = doc.readAt;
-      return !readAt || readAt === null || readAt === "";
-    }).length;
+    // Use DB-side count query to avoid fetching unnecessary data
+    // Count notifications where readAt is null (unread)
+    const unreadCount = await db.notificationMatches.count([
+      { field: "userId", op: "==", value: userId },
+      { field: "notified", op: "==", value: true },
+      { field: "readAt", op: "==", value: null },
+    ]);
 
     return NextResponse.json({ count: unreadCount });
   } catch (error) {
