@@ -314,9 +314,20 @@ export const handlers = [
     return HttpResponse.json({ success: true, deleted });
   }),
 
-  // GET /api/notifications/history - Fetch notification history
-  http.get("/api/notifications/history", () => {
-    return HttpResponse.json(notificationHistory);
+  // GET /api/notifications/history - Fetch notification history with pagination
+  http.get("/api/notifications/history", ({ request }) => {
+    const url = new URL(request.url);
+    const limit = Math.min(
+      Number.parseInt(url.searchParams.get("limit") || "20", 10),
+      100,
+    );
+    const offset = Number.parseInt(url.searchParams.get("offset") || "0", 10);
+
+    const items = notificationHistory.slice(offset, offset + limit);
+    const hasMore = offset + limit < notificationHistory.length;
+    const nextOffset = hasMore ? offset + limit : null;
+
+    return HttpResponse.json({ items, hasMore, nextOffset });
   }),
 
   // GET /api/notifications/history/count - Get notification count

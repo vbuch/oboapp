@@ -14,23 +14,24 @@ import {
   getNotificationPermission,
 } from "@/lib/notification-service";
 
-// Maximum characters to show in notification preview (same as MessageCard)
-const MESSAGE_PREVIEW_MAX_LENGTH = 150;
+// Maximum characters to show in notification preview (half of MessageCard length)
+const MESSAGE_PREVIEW_MAX_LENGTH = 75;
 
 /**
- * Create text snippet with word boundary truncation (same logic as MessageCard).
- * Tries to cut at a word boundary near 150 chars for better readability.
+ * Create text snippet with word boundary truncation.
+ * Tries to cut at a word boundary near 75 chars for better readability in dropdown.
  */
 function createSnippet(text: string): string {
   const maxLength = MESSAGE_PREVIEW_MAX_LENGTH;
   
   if (text.length <= maxLength) return text;
 
-  // Try to cut at a word boundary near 150 chars
+  // Try to cut at a word boundary near 75 chars
   const truncated = text.substring(0, maxLength);
   const lastSpace = truncated.lastIndexOf(" ");
 
-  if (lastSpace > 120) {
+  // Look for word boundary between 60-75 chars
+  if (lastSpace > 60) {
     return truncated.substring(0, lastSpace) + "...";
   }
 
@@ -55,21 +56,28 @@ export default function NotificationDropdown({
     [],
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
   const [isCurrentDeviceSubscribed, setIsCurrentDeviceSubscribed] =
     useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (offset = 0, append = false) => {
     if (!user) return;
 
     try {
-      setIsLoading(true);
-      setError(null);
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+        setError(null);
+      }
 
       const token = await user.getIdToken();
-      const response = await fetch("/api/notifications/history", {
+      const url = `/api/notifications/history?limit=20&offset=${offset}`;
+      const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -78,16 +86,32 @@ export default function NotificationDropdown({
       }
 
       const data = await response.json();
-      setNotifications(Array.isArray(data) ? data : []);
-      setHasMore(false); // TODO: Implement pagination
+      
+      if (append) {
+        setNotifications((prev) => [...prev, ...(data.items || [])]);
+      } else {
+        setNotifications(data.items || []);
+      }
+      
+      setHasMore(data.hasMore || false);
+      setNextOffset(data.nextOffset);
     } catch (err) {
       console.error("Error fetching notifications:", err);
       setError("Неуспешно зареждане на известията");
-      setNotifications([]);
+      if (!append) {
+        setNotifications([]);
+      }
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [user]);
+
+  const handleLoadMore = useCallback(() => {
+    if (nextOffset !== null && !isLoadingMore) {
+      fetchNotifications(nextOffset, true);
+    }
+  }, [nextOffset, isLoadingMore, fetchNotifications]);
 
   const checkSubscriptionStatus = useCallback(async () => {
     if (!user) return;
@@ -312,18 +336,18 @@ export default function NotificationDropdown({
         )}
       </div>
 
-      {/* Subscription warning */}
-      {!isCurrentDeviceSubscribed && (
-        <div className="p-4 border-b border-neutral-border">
-          <SubscribeDevicePrompt
-            onSubscribe={handleSubscribeCurrentDevice}
-            hasAnySubscriptions={false}
-          />
-        </div>
-      )}
-
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
+        {/* Subscription warning - first item in scrollable container */}
+        {!isCurrentDeviceSubscribed && (
+          <div className="p-4 border-b border-neutral-border">
+            <SubscribeDevicePrompt
+              onSubscribe={handleSubscribeCurrentDevice}
+              hasAnySubscriptions={false}
+            />
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -348,9 +372,11 @@ export default function NotificationDropdown({
               <div className="p-4 text-center">
                 <button
                   type="button"
-                  className={`${buttonStyles.secondary} ${buttonSizes.md} ${borderRadius.md}`}
+                  onClick={handleLoadMore}
+                  disabled={isLoadingMore}
+                  className={`${buttonStyles.secondary} ${buttonSizes.md} ${borderRadius.md} ${isLoadingMore ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
-                  Зареди още
+                  {isLoadingMore ? "Зареждане..." : "Зареди още"}
                 </button>
               </div>
             )}

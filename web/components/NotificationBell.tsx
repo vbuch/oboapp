@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import NotificationDropdown from "./NotificationDropdown";
@@ -10,6 +11,7 @@ const UNREAD_COUNT_POLL_INTERVAL_MS = 60000;
 
 export default function NotificationBell() {
   const { user } = useAuth();
+  const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
@@ -48,7 +50,12 @@ export default function NotificationBell() {
   }, [user, fetchUnreadCount]);
 
   const handleToggle = () => {
-    setIsOpen(!isOpen);
+    // On mobile (screen width < 640px), navigate to notifications page instead of showing dropdown
+    if (typeof window !== "undefined" && window.innerWidth < 640) {
+      router.push("/notifications");
+    } else {
+      setIsOpen(!isOpen);
+    }
   };
 
   const handleClose = () => {

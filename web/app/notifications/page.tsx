@@ -34,7 +34,7 @@ export default function NotificationsPage() {
       }
 
       const data = await response.json();
-      setHistoryItems(Array.isArray(data) ? data : []);
+      setHistoryItems(data.items || []);
     } catch (err) {
       console.error("Error fetching notification history:", err);
       setError("Неуспешно зареждане на историята на известията");
