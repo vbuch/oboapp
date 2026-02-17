@@ -61,7 +61,7 @@ export default function NotificationBell() {
   }
 
   return (
-    <>
+    <div className="relative">
       <button
         ref={bellRef}
         type="button"
@@ -81,6 +81,6 @@ export default function NotificationBell() {
         onCountUpdate={handleCountUpdate}
         anchorRef={bellRef}
       />
-    </>
+    </div>
   );
 }

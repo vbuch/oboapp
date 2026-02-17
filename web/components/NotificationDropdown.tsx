@@ -229,7 +229,7 @@ export default function NotificationDropdown({
   return (
     <div
       ref={dropdownRef}
-      className={`absolute top-full right-0 mt-2 w-96 bg-white border border-neutral-border rounded-lg shadow-lg ${zIndex.dropdown}`}
+      className={`absolute top-full right-0 mt-2 w-screen max-w-96 bg-white border border-neutral-border rounded-lg shadow-lg ${zIndex.dropdown}`}
       style={{ maxHeight: "80vh", display: "flex", flexDirection: "column" }}
     >
       {/* Header */}

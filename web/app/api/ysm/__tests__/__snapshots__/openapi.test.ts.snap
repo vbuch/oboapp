@@ -946,6 +946,9 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
             "notifiedAt": {
               "type": "string",
             },
+            "readAt": {
+              "type": "string",
+            },
             "successfulDevicesCount": {
               "type": "number",
             },
