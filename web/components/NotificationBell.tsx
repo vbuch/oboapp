@@ -5,6 +5,9 @@ import { Bell } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import NotificationDropdown from "./NotificationDropdown";
 
+// Poll for unread count every 60 seconds
+const UNREAD_COUNT_POLL_INTERVAL_MS = 60000;
+
 export default function NotificationBell() {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -40,7 +43,7 @@ export default function NotificationBell() {
     fetchUnreadCount();
 
     // Poll for updates every 60 seconds
-    const interval = setInterval(fetchUnreadCount, 60000);
+    const interval = setInterval(fetchUnreadCount, UNREAD_COUNT_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [user, fetchUnreadCount]);
 

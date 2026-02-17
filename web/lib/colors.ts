@@ -135,7 +135,7 @@ export const zIndex = {
   nav: "z-20",
   /** Overlays - slide-out panels */
   overlay: "z-30",
-  /** Dropdown menus - notification dropdown, user menu (use z-30 as dropdowns need same level as overlays) */
+  /** Dropdown menus - notification dropdown, user menu (shares z-30 to stack alongside overlays without blocking them) */
   dropdown: "z-30",
   /** Overlay content - panel content that should be above overlay backdrops */
   overlayContent: "z-40",

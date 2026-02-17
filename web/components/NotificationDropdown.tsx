@@ -14,6 +14,9 @@ import {
   getNotificationPermission,
 } from "@/lib/notification-service";
 
+// Maximum characters to show in notification preview
+const MESSAGE_PREVIEW_MAX_LENGTH = 150;
+
 interface NotificationDropdownProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
@@ -308,8 +311,11 @@ function NotificationItem({
 }: NotificationItemProps) {
   const isUnread = !notification.readAt;
   const messagePreview =
-    notification.messageSnapshot.text.length > 100
-      ? notification.messageSnapshot.text.substring(0, 100) + "..."
+    notification.messageSnapshot.text.length > MESSAGE_PREVIEW_MAX_LENGTH
+      ? notification.messageSnapshot.text.substring(
+          0,
+          MESSAGE_PREVIEW_MAX_LENGTH,
+        ) + "..."
       : notification.messageSnapshot.text;
 
   const notifiedDate = new Date(notification.notifiedAt);
@@ -348,7 +354,7 @@ function NotificationItem({
               </span>
             )}
           </div>
-          <p className="text-sm text-foreground line-clamp-3">
+          <p className="text-sm text-foreground whitespace-pre-wrap">
             {messagePreview}
           </p>
         </div>
