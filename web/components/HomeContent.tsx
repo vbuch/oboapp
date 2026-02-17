@@ -274,11 +274,10 @@ export default function HomeContent() {
   }, [selectedMessage]);
 
   return (
-    <div
-      className="flex-1 flex flex-col [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-row"
-      ref={containerRef}
-    >
-      {/* Error messages */}
+    <div className="flex-1 flex flex-col" ref={containerRef}>
+      {/* Map and Messages Container - becomes flex-row on wide desktop */}
+      <div className="flex-1 flex flex-col [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-row">
+        {/* Error messages */}
       {error && (
         <div
           className={`bg-white border-b shadow-sm ${zIndex.fixed} [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:absolute [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:left-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:right-0`}
@@ -292,7 +291,7 @@ export default function HomeContent() {
       )}
 
       {/* Map Section - Left side on desktop, top on mobile */}
-      <div className={`relative [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-3/5 ${selectedMessage ? 'h-[calc(100vh-64px)]' : 'h-[calc(66vh-64px)]'} sm:h-[calc(100vh-80px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:sticky [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:self-start`}>
+      <div className={`relative [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-3/5 ${selectedMessage ? 'h-[calc(100vh-64px)]' : 'h-[calc(66vh-64px)]'} sm:h-[calc(66vh-64px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:h-[calc(100vh-80px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:sticky [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:self-start`}>
         {/* Filter Box */}
         <FilterBox
           isOpen={categoryFilter.isOpen}
@@ -352,7 +351,7 @@ export default function HomeContent() {
       </div>
 
       {/* Events Sidebar - Right side on desktop, bottom on mobile */}
-      <div className={`${selectedMessage ? 'hidden' : 'flex-1'} sm:flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-none [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white overflow-y-auto`}>
+      <div className={`flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-none [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white overflow-y-auto ${selectedMessage ? 'hidden sm:block' : ''}`}>
         <div className="p-6 @container">
           <MessagesGrid
             messages={filteredMessages}
@@ -364,6 +363,9 @@ export default function HomeContent() {
             variant="list"
           />
         </div>
+      </div>
+
+      {/* End of Map and Messages Container */}
       </div>
 
       {/* Message Detail View */}
