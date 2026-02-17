@@ -17,6 +17,15 @@ import {
 // Maximum characters to show in notification preview
 const MESSAGE_PREVIEW_MAX_LENGTH = 150;
 
+/**
+ * Safely truncate text at a maximum length, adding ellipsis if needed.
+ * Works correctly with multi-byte characters (e.g., Bulgarian Cyrillic).
+ */
+function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + "...";
+}
+
 interface NotificationDropdownProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
@@ -310,13 +319,10 @@ function NotificationItem({
   onClose,
 }: NotificationItemProps) {
   const isUnread = !notification.readAt;
-  const messagePreview =
-    notification.messageSnapshot.text.length > MESSAGE_PREVIEW_MAX_LENGTH
-      ? notification.messageSnapshot.text.substring(
-          0,
-          MESSAGE_PREVIEW_MAX_LENGTH,
-        ) + "..."
-      : notification.messageSnapshot.text;
+  const messagePreview = truncateText(
+    notification.messageSnapshot.text,
+    MESSAGE_PREVIEW_MAX_LENGTH,
+  );
 
   const notifiedDate = new Date(notification.notifiedAt);
   const formattedDate = notifiedDate.toLocaleDateString("bg-BG", {
