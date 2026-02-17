@@ -1,17 +1,12 @@
 /**
  * Reusable red dot indicator for showing unread/active states.
  * Used on notification bell and filter handle.
+ * Always uses white border as specified in design requirements.
  */
-interface UnreadIndicatorProps {
-  readonly borderColor?: string;
-}
-
-export default function UnreadIndicator({
-  borderColor = "border-white",
-}: UnreadIndicatorProps) {
+export default function UnreadIndicator() {
   return (
     <span
-      className={`absolute -top-1 -right-1 w-2.5 h-2.5 bg-error rounded-full border-2 ${borderColor}`}
+      className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-error rounded-full border-2 border-white"
       aria-hidden="true"
     />
   );

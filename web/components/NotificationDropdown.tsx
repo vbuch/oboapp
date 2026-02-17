@@ -329,7 +329,7 @@ export default function NotificationDropdown({
           <button
             type="button"
             onClick={handleMarkAllRead}
-            className="text-sm text-primary hover:text-primary-hover cursor-pointer transition-colors"
+            className="text-sm text-primary hover:text-primary-hover hover:underline cursor-pointer transition-colors"
           >
             Маркирай всички прочетени
           </button>

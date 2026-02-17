@@ -8,6 +8,7 @@ import Link from "next/link";
 import { createMessageUrlFromId } from "@/lib/url-utils";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { borderRadius } from "@/lib/colors";
+import BackButton from "@/components/BackButton";
 import SubscribeDevicePrompt from "@/app/settings/SubscribeDevicePrompt";
 import {
   subscribeToPushNotifications,
@@ -269,14 +270,7 @@ export default function NotificationsPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Back button */}
           <div className="mb-6">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="text-primary hover:text-primary-hover inline-flex items-center gap-2 transition-colors"
-            >
-              <span>←</span>
-              <span>Назад</span>
-            </button>
+            <BackButton />
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900 mb-8">Известия</h1>
@@ -293,14 +287,7 @@ export default function NotificationsPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Back button */}
         <div className="mb-6">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="text-primary hover:text-primary-hover inline-flex items-center gap-2 transition-colors"
-          >
-            <span>←</span>
-            <span>Назад</span>
-          </button>
+          <BackButton />
         </div>
 
         <div className="flex items-center justify-between mb-8">
@@ -309,7 +296,7 @@ export default function NotificationsPage() {
             <button
               type="button"
               onClick={handleMarkAllRead}
-              className="text-sm text-primary hover:text-primary-hover cursor-pointer transition-colors"
+              className="text-sm text-primary hover:text-primary-hover hover:underline cursor-pointer transition-colors"
             >
               Маркирай всички прочетени
             </button>

@@ -81,7 +81,7 @@ export default function NotificationBell() {
         aria-label="Notifications"
       >
         <Bell className="w-6 h-6 text-white" />
-        {unreadCount > 0 && <UnreadIndicator borderColor="border-header-bg" />}
+        {unreadCount > 0 && <UnreadIndicator />}
       </button>
 
       <NotificationDropdown
