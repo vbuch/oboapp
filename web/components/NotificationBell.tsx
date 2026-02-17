@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import NotificationDropdown from "./NotificationDropdown";
+import UnreadIndicator from "./UnreadIndicator";
 
 // Poll for unread count every 60 seconds
 const UNREAD_COUNT_POLL_INTERVAL_MS = 60000;
@@ -80,9 +81,7 @@ export default function NotificationBell() {
         aria-label="Notifications"
       >
         <Bell className="w-6 h-6 text-white" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-error rounded-full border-2 border-header-bg" />
-        )}
+        {unreadCount > 0 && <UnreadIndicator borderColor="border-header-bg" />}
       </button>
 
       <NotificationDropdown

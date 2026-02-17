@@ -267,6 +267,18 @@ export default function NotificationsPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Back button */}
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="text-primary hover:text-primary-hover inline-flex items-center gap-2 transition-colors"
+            >
+              <span>←</span>
+              <span>Назад</span>
+            </button>
+          </div>
+
           <h1 className="text-3xl font-bold text-gray-900 mb-8">Известия</h1>
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -279,6 +291,18 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Back button */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-primary hover:text-primary-hover inline-flex items-center gap-2 transition-colors"
+          >
+            <span>←</span>
+            <span>Назад</span>
+          </button>
+        </div>
+
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Известия</h1>
           {notifications.length > 0 && (
