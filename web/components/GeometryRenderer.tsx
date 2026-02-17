@@ -14,6 +14,8 @@ export interface GeometryRendererProps {
   readonly features: FeatureData[];
   readonly selectedFeature: string | null;
   readonly hoveredFeature: string | null;
+  readonly hoveredMessageId?: string | null;
+  readonly selectedMessageId?: string | null;
   readonly shouldShowFullGeometry: boolean;
   readonly unclusteredActiveFeatures: Set<string>;
   readonly unclusteredArchivedFeatures: Set<string>;
@@ -33,6 +35,8 @@ export default function GeometryRenderer({
   features,
   selectedFeature,
   hoveredFeature,
+  hoveredMessageId,
+  selectedMessageId,
   shouldShowFullGeometry,
   unclusteredActiveFeatures,
   unclusteredArchivedFeatures,
@@ -105,7 +109,7 @@ export default function GeometryRenderer({
         .filter((f) => f.classification === "archived")
         .map((feature) => {
           const key = createFeatureKey(feature.messageId, feature.featureIndex);
-          const isHovered = hoveredFeature === key;
+          const isHovered = hoveredFeature === key || hoveredMessageId === feature.messageId || selectedMessageId === feature.messageId;
           const isSelected = selectedFeature === key;
 
           if (feature.geometry.type === "LineString") {
@@ -158,7 +162,7 @@ export default function GeometryRenderer({
         .filter((f) => f.classification === "active")
         .map((feature) => {
           const key = createFeatureKey(feature.messageId, feature.featureIndex);
-          const isHovered = hoveredFeature === key;
+          const isHovered = hoveredFeature === key || hoveredMessageId === feature.messageId || selectedMessageId === feature.messageId;
           const isSelected = selectedFeature === key;
 
           if (feature.geometry.type === "LineString") {

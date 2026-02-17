@@ -8,6 +8,7 @@ interface MessagesGridProps {
   readonly messages: Message[];
   readonly isLoading: boolean;
   readonly onMessageClick: (message: Message) => void;
+  readonly onMessageHover?: (messageId: string | null) => void;
   readonly limit?: number;
   readonly showHeading?: boolean;
   readonly variant?: "grid" | "list";
@@ -19,6 +20,7 @@ interface GridContentProps {
   readonly skeletonKeys: readonly string[];
   readonly finalizedMessages: Message[];
   readonly onMessageClick: (message: Message) => void;
+  readonly onMessageHover?: (messageId: string | null) => void;
   readonly remainingCount: number;
   readonly variant: "grid" | "list";
 }
@@ -29,6 +31,7 @@ function GridContent({
   skeletonKeys,
   finalizedMessages,
   onMessageClick,
+  onMessageHover,
   remainingCount,
   variant,
 }: GridContentProps) {
@@ -44,6 +47,7 @@ function GridContent({
               key={message.id}
               message={message}
               onClick={onMessageClick}
+              onHover={onMessageHover}
             />
           ))}
         {!isLoading && finalizedMessages.length === 0 && (
@@ -71,6 +75,7 @@ export default function MessagesGrid({
   messages,
   isLoading,
   onMessageClick,
+  onMessageHover,
   limit = 6,
   showHeading = true,
   variant = "grid",
@@ -119,6 +124,7 @@ export default function MessagesGrid({
       skeletonKeys={skeletonKeys}
       finalizedMessages={finalizedMessages}
       onMessageClick={onMessageClick}
+      onMessageHover={onMessageHover}
       remainingCount={remainingCount}
       variant={variant}
     />

@@ -24,6 +24,8 @@ interface GeoJSONLayerProps {
   readonly onFeatureClick?: (_messageId: string) => void;
   readonly map?: google.maps.Map | null;
   readonly currentZoom: number;
+  readonly hoveredMessageId?: string | null;
+  readonly selectedMessageId?: string | null;
 }
 
 export default function GeoJSONLayer({
@@ -31,6 +33,8 @@ export default function GeoJSONLayer({
   onFeatureClick,
   map,
   currentZoom,
+  hoveredMessageId,
+  selectedMessageId,
 }: GeoJSONLayerProps) {
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [hoveredFeature, setHoveredFeature] = useState<string | null>(null);
@@ -73,10 +77,13 @@ export default function GeoJSONLayer({
     featuresList.forEach((feature, index) => {
       const key = createFeatureKey(feature.messageId, feature.featureIndex);
 
+      // Check if this marker should be highlighted (hovered or selected)
+      const isHighlighted = feature.messageId === hoveredMessageId || feature.messageId === selectedMessageId;
+
       const marker = new google.maps.Marker({
         position: jitteredCentroids[index], // Use jittered position
         map: null, // Will be managed by clusterer
-        icon: createMarkerIcon(false, classification),
+        icon: createMarkerIcon(isHighlighted, classification),
         title:
           (feature.properties?.["address"] as string | undefined) ||
           (feature.properties?.["street_name"] as string | undefined) ||
@@ -316,6 +323,31 @@ export default function GeoJSONLayer({
     };
   }, [messages, onFeatureClick, map]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Update marker icons when hoveredMessageId or selectedMessageId changes
+  useEffect(() => {
+    // Update active markers
+    activeMarkersRef.current.forEach((marker, key) => {
+      const extMarker = marker as ExtendedMarker;
+      const isHighlighted = extMarker.featureData?.messageId === hoveredMessageId ||
+                           extMarker.featureData?.messageId === selectedMessageId;
+      // Only update icon if not currently hovered by mouse (hoveredFeature takes precedence)
+      if (hoveredFeature !== key) {
+        marker.setIcon(createMarkerIcon(isHighlighted, "active"));
+      }
+    });
+
+    // Update archived markers
+    archivedMarkersRef.current.forEach((marker, key) => {
+      const extMarker = marker as ExtendedMarker;
+      const isHighlighted = extMarker.featureData?.messageId === hoveredMessageId ||
+                           extMarker.featureData?.messageId === selectedMessageId;
+      // Only update icon if not currently hovered by mouse (hoveredFeature takes precedence)
+      if (hoveredFeature !== key) {
+        marker.setIcon(createMarkerIcon(isHighlighted, "archived"));
+      }
+    });
+  }, [hoveredMessageId, selectedMessageId, hoveredFeature]);
+
   // Only show full geometry at high zoom levels (>=15) to avoid visual clutter
   const shouldShowFullGeometry = currentZoom >= 15;
 
@@ -324,6 +356,8 @@ export default function GeoJSONLayer({
       features={features}
       selectedFeature={selectedFeature}
       hoveredFeature={hoveredFeature}
+      hoveredMessageId={hoveredMessageId}
+      selectedMessageId={selectedMessageId}
       shouldShowFullGeometry={shouldShowFullGeometry}
       unclusteredActiveFeatures={unclusteredActiveFeatures}
       unclusteredArchivedFeatures={unclusteredArchivedFeatures}

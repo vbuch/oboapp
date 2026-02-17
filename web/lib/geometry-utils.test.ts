@@ -4,6 +4,7 @@ import {
   getCentroid,
   createFeatureKey,
   jitterDuplicatePositions,
+  getFeaturesCentroid,
 } from "./geometry-utils";
 
 describe("geometry-utils", () => {
@@ -611,6 +612,259 @@ describe("geometry-utils", () => {
       expect(() => createFeatureKey("msg123", "0" as any)).toThrow(
         "Invalid featureIndex: must be a non-negative integer",
       );
+    });
+  });
+
+  describe("getFeaturesCentroid", () => {
+    it("should calculate centroid for FeatureCollection with multiple features", () => {
+      const geoJson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [23.3219, 42.6977], // Sofia center
+            },
+            properties: {},
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [23.3419, 42.7177], // North-east
+            },
+            properties: {},
+          },
+        ],
+      } as any;
+
+      const result = getFeaturesCentroid(geoJson);
+
+      expect(result).toBeDefined();
+      // Average of the two points
+      expect(result!.lat).toBeCloseTo((42.6977 + 42.7177) / 2, 4);
+      expect(result!.lng).toBeCloseTo((23.3219 + 23.3419) / 2, 4);
+    });
+
+    it("should calculate centroid for FeatureCollection with single feature", () => {
+      const geoJson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [23.3219, 42.6977],
+            },
+            properties: {},
+          },
+        ],
+      } as any;
+
+      const result = getFeaturesCentroid(geoJson);
+
+      expect(result).toEqual({
+        lat: 42.6977,
+        lng: 23.3219,
+      });
+    });
+
+    it("should handle FeatureCollection with mixed geometry types", () => {
+      const geoJson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [23.3219, 42.6977],
+            },
+            properties: {},
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [23.3319, 42.7077],
+                [23.3419, 42.7177],
+              ],
+            },
+            properties: {},
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [23.3519, 42.7277],
+                  [23.3619, 42.7277],
+                  [23.3619, 42.7377],
+                  [23.3519, 42.7377],
+                  [23.3519, 42.7277],
+                ],
+              ],
+            },
+            properties: {},
+          },
+        ],
+      } as any;
+
+      const result = getFeaturesCentroid(geoJson);
+
+      expect(result).toBeDefined();
+      expect(typeof result!.lat).toBe("number");
+      expect(typeof result!.lng).toBe("number");
+      // Should be somewhere in the middle of all features
+      expect(result!.lat).toBeGreaterThan(42.69);
+      expect(result!.lat).toBeLessThan(42.75);
+      expect(result!.lng).toBeGreaterThan(23.32);
+      expect(result!.lng).toBeLessThan(23.37);
+    });
+
+    it("should return null for empty FeatureCollection", () => {
+      const geoJson = {
+        type: "FeatureCollection",
+        features: [],
+      } as any;
+
+      const result = getFeaturesCentroid(geoJson);
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null for null input", () => {
+      const result = getFeaturesCentroid(null);
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null for undefined input", () => {
+      const result = getFeaturesCentroid(undefined);
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null when features property is missing", () => {
+      const geoJson = {
+        type: "FeatureCollection",
+      } as any;
+
+      const result = getFeaturesCentroid(geoJson);
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null when all geometries return null centroids", () => {
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      const geoJson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "MultiPoint", // Unsupported type
+              coordinates: [[23.3219, 42.6977]],
+            },
+            properties: {},
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: null, // Invalid coordinates
+            },
+            properties: {},
+          },
+        ],
+      } as any;
+
+      const result = getFeaturesCentroid(geoJson);
+
+      expect(result).toBeNull();
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should calculate centroid from valid geometries while ignoring invalid ones", () => {
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      const geoJson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [23.3219, 42.6977], // Valid
+            },
+            properties: {},
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "MultiPoint", // Unsupported - will return null
+              coordinates: [[23.5, 42.8]],
+            },
+            properties: {},
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [23.3419, 42.7177], // Valid
+            },
+            properties: {},
+          },
+        ],
+      } as any;
+
+      const result = getFeaturesCentroid(geoJson);
+
+      expect(result).toBeDefined();
+      // Should only average the two valid Point geometries
+      expect(result!.lat).toBeCloseTo((42.6977 + 42.7177) / 2, 4);
+      expect(result!.lng).toBeCloseTo((23.3219 + 23.3419) / 2, 4);
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should handle features with missing geometry", () => {
+      const geoJson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [23.3219, 42.6977],
+            },
+            properties: {},
+          },
+          {
+            type: "Feature",
+            geometry: null,
+            properties: {},
+          },
+          {
+            type: "Feature",
+            properties: {},
+          },
+        ],
+      } as any;
+
+      const result = getFeaturesCentroid(geoJson);
+
+      expect(result).toBeDefined();
+      expect(result!.lat).toBeCloseTo(42.6977, 4);
+      expect(result!.lng).toBeCloseTo(23.3219, 4);
     });
   });
 });

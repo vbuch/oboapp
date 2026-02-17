@@ -44,6 +44,8 @@ interface MapComponentProps {
   };
   readonly initialCenter?: { lat: number; lng: number };
   readonly shouldTrackLocation?: boolean;
+  readonly hoveredMessageId?: string | null;
+  readonly selectedMessageId?: string | null;
 }
 
 // Oborishte District center coordinates
@@ -110,6 +112,8 @@ export default function MapComponent({
   targetMode,
   initialCenter,
   shouldTrackLocation = false,
+  hoveredMessageId,
+  selectedMessageId,
 }: MapComponentProps) {
   // Get locality bounds and center
   const localityBounds = getLocalityBounds();
@@ -285,6 +289,8 @@ export default function MapComponent({
             onFeatureClick={onFeatureClick}
             map={mapInstance}
             currentZoom={currentZoom}
+            hoveredMessageId={hoveredMessageId}
+            selectedMessageId={selectedMessageId}
           />
 
           {/* Render interest circles */}

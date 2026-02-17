@@ -24,6 +24,7 @@ import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
 import { useSourceFilter } from "@/lib/hooks/useSourceFilter";
 import { classifyMessage } from "@/lib/message-classification";
 import { createMessageUrl } from "@/lib/url-utils";
+import { getFeaturesCentroid } from "@/lib/geometry-utils";
 import { zIndex } from "@/lib/colors";
 import { navigateBackOrReplace } from "@/lib/navigation-utils";
 import type { Message } from "@/lib/types";
@@ -108,6 +109,8 @@ export default function HomeContent() {
     onDecline: () => void;
   } | null>(null);
 
+  // Message hover state for map highlight
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   // Onboarding state (lifted from MapContainer for proper DOM ordering)
   const [onboardingState, setOnboardingState] =
     React.useState<OnboardingState | null>(null);
@@ -236,6 +239,39 @@ export default function HomeContent() {
     return null;
   }, [messageId, viewportMatch, fetchedMessage]);
 
+  // Track the last message we centered on to avoid re-centering loops
+  const lastCenteredMessageIdRef = useRef<string | null>(null);
+
+  // Center map on selected message's geometry when detail view opens (only once per message)
+  useEffect(() => {
+    // Require a selected message with valid id, geometry and a ready map/navigation handler
+    if (
+      !selectedMessage?.id ||
+      !selectedMessage.geoJson ||
+      !handleAddressClick ||
+      !centerMapFn ||
+      !mapInstance
+    ) {
+      return;
+    }
+
+    // Skip if we've already centered on this message
+    if (lastCenteredMessageIdRef.current === selectedMessage.id) return;
+
+    const centroid = getFeaturesCentroid(selectedMessage.geoJson);
+    if (centroid) {
+      handleAddressClick(centroid.lat, centroid.lng);
+      lastCenteredMessageIdRef.current = selectedMessage.id;
+    }
+  }, [selectedMessage, handleAddressClick, centerMapFn, mapInstance]);
+
+  // Reset centered message tracking when selection is cleared
+  useEffect(() => {
+    if (!selectedMessage) {
+      lastCenteredMessageIdRef.current = null;
+    }
+  }, [selectedMessage]);
+
   return (
     <div
       className="flex-1 flex flex-col [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-row"
@@ -293,6 +329,8 @@ export default function HomeContent() {
           user={user}
           targetMode={targetMode}
           initialMapCenter={initialMapCenter}
+          hoveredMessageId={hoveredMessageId}
+          selectedMessageId={selectedMessage?.id}
           onFeatureClick={handleFeatureClick}
           onMapReady={handleMapReady}
           onBoundsChanged={handleBoundsChanged}
@@ -321,6 +359,7 @@ export default function HomeContent() {
             onMessageClick={(message) => {
               router.push(createMessageUrl(message), { scroll: false });
             }}
+            onMessageHover={setHoveredMessageId}
             variant="list"
           />
         </div>
