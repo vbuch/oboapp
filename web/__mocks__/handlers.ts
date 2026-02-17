@@ -14,6 +14,7 @@ import type { Message } from "@oboapp/shared";
 // In-memory state for CRUD operations
 let interests: Interest[] = [...MOCK_INTERESTS];
 let subscriptions: NotificationSubscription[] = [...MOCK_SUBSCRIPTIONS];
+let notificationHistory = [...MOCK_NOTIFICATION_HISTORY];
 
 /**
  * Helper: Filter messages by viewport bounds
@@ -315,12 +316,50 @@ export const handlers = [
 
   // GET /api/notifications/history - Fetch notification history
   http.get("/api/notifications/history", () => {
-    return HttpResponse.json(MOCK_NOTIFICATION_HISTORY);
+    return HttpResponse.json(notificationHistory);
   }),
 
   // GET /api/notifications/history/count - Get notification count
   http.get("/api/notifications/history/count", () => {
-    return HttpResponse.json({ count: MOCK_NOTIFICATION_HISTORY.length });
+    return HttpResponse.json({ count: notificationHistory.length });
+  }),
+
+  // GET /api/notifications/unread-count - Get unread notification count
+  http.get("/api/notifications/unread-count", () => {
+    const unreadCount = notificationHistory.filter((n) => !n.readAt).length;
+    return HttpResponse.json({ count: unreadCount });
+  }),
+
+  // POST /api/notifications/mark-read - Mark a notification as read
+  http.post("/api/notifications/mark-read", async ({ request }) => {
+    const body = (await request.json()) as { notificationId: string };
+    const notification = notificationHistory.find(
+      (n) => n.id === body.notificationId,
+    );
+
+    if (!notification) {
+      return HttpResponse.json(
+        { error: "Notification not found" },
+        { status: 404 },
+      );
+    }
+
+    notification.readAt = new Date().toISOString();
+    return HttpResponse.json({ success: true });
+  }),
+
+  // POST /api/notifications/mark-all-read - Mark all notifications as read
+  http.post("/api/notifications/mark-all-read", () => {
+    const readAt = new Date().toISOString();
+    const unreadCount = notificationHistory.filter((n) => !n.readAt).length;
+
+    notificationHistory.forEach((notification) => {
+      if (!notification.readAt) {
+        notification.readAt = readAt;
+      }
+    });
+
+    return HttpResponse.json({ success: true, count: unreadCount });
   }),
 
   // DELETE /api/user - Delete user account (mock - just clear data)
@@ -328,6 +367,7 @@ export const handlers = [
     // Reset to empty state
     interests = [];
     subscriptions = [];
+    notificationHistory = [];
     return new HttpResponse(null, { status: 204 });
   }),
 ];
