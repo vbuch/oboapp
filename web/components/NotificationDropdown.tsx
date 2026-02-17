@@ -14,16 +14,27 @@ import {
   getNotificationPermission,
 } from "@/lib/notification-service";
 
-// Maximum characters to show in notification preview
+// Maximum characters to show in notification preview (same as MessageCard)
 const MESSAGE_PREVIEW_MAX_LENGTH = 150;
 
 /**
- * Safely truncate text at a maximum length, adding ellipsis if needed.
- * Works correctly with multi-byte characters (e.g., Bulgarian Cyrillic).
+ * Create text snippet with word boundary truncation (same logic as MessageCard).
+ * Tries to cut at a word boundary near 150 chars for better readability.
  */
-function truncateText(text: string, maxLength: number): string {
+function createSnippet(text: string): string {
+  const maxLength = MESSAGE_PREVIEW_MAX_LENGTH;
+  
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + "...";
+
+  // Try to cut at a word boundary near 150 chars
+  const truncated = text.substring(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(" ");
+
+  if (lastSpace > 120) {
+    return truncated.substring(0, lastSpace) + "...";
+  }
+
+  return truncated + "...";
 }
 
 interface NotificationDropdownProps {
@@ -82,21 +93,64 @@ export default function NotificationDropdown({
     if (!user) return;
 
     try {
+      // Check if Firebase Messaging is supported
+      const { isMessagingSupported } = await import(
+        "@/lib/notification-service"
+      );
+      const supported = await isMessagingSupported();
+
+      if (!supported) {
+        setIsCurrentDeviceSubscribed(false);
+        return;
+      }
+
+      // Check notification permission
+      const permission =
+        "Notification" in globalThis ? Notification.permission : "denied";
+      
+      if (permission !== "granted") {
+        setIsCurrentDeviceSubscribed(false);
+        return;
+      }
+
+      // Get current device's FCM token
+      const { getMessaging, getToken } = await import("firebase/messaging");
+      const { app } = await import("@/lib/firebase");
+      const messaging = getMessaging(app);
+      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      
+      if (!vapidKey) {
+        setIsCurrentDeviceSubscribed(false);
+        return;
+      }
+
+      const currentToken = await getToken(messaging, { vapidKey });
+      
+      if (!currentToken) {
+        setIsCurrentDeviceSubscribed(false);
+        return;
+      }
+
+      // Check if this token is in the backend
       const token = await user.getIdToken();
       const response = await fetch("/api/notifications/subscription/all", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch subscriptions");
+        setIsCurrentDeviceSubscribed(false);
+        return;
       }
 
       const subscriptions = await response.json();
-      setIsCurrentDeviceSubscribed(
-        Array.isArray(subscriptions) && subscriptions.length > 0,
-      );
+      const hasCurrentDevice = Array.isArray(subscriptions) && 
+        subscriptions.some((sub) => sub.token === currentToken);
+      
+      setIsCurrentDeviceSubscribed(hasCurrentDevice);
     } catch (err) {
       console.error("Error checking subscription status:", err);
+      // On error, assume not subscribed to show the prompt
+      setIsCurrentDeviceSubscribed(false);
     }
   }, [user]);
 
@@ -241,7 +295,7 @@ export default function NotificationDropdown({
   return (
     <div
       ref={dropdownRef}
-      className={`absolute top-full right-0 mt-2 w-screen max-w-96 bg-white border border-neutral-border rounded-lg shadow-lg ${zIndex.dropdown}`}
+      className={`absolute top-full right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-white border border-neutral-border rounded-lg shadow-lg ${zIndex.dropdown}`}
       style={{ maxHeight: "80vh", display: "flex", flexDirection: "column" }}
     >
       {/* Header */}
@@ -251,7 +305,7 @@ export default function NotificationDropdown({
           <button
             type="button"
             onClick={handleMarkAllRead}
-            className="text-sm text-primary hover:text-primary-hover"
+            className="text-sm text-primary hover:text-primary-hover cursor-pointer transition-colors"
           >
             Маркирай всички прочетени
           </button>
@@ -319,10 +373,7 @@ function NotificationItem({
   onClose,
 }: NotificationItemProps) {
   const isUnread = !notification.readAt;
-  const messagePreview = truncateText(
-    notification.messageSnapshot.text,
-    MESSAGE_PREVIEW_MAX_LENGTH,
-  );
+  const messagePreview = createSnippet(notification.messageSnapshot.text);
 
   const notifiedDate = new Date(notification.notifiedAt);
   const formattedDate = notifiedDate.toLocaleDateString("bg-BG", {
