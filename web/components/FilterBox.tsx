@@ -239,7 +239,7 @@ export default function FilterBox({
               onClick={onTogglePanel}
               className={`${buttonSizes.md} ${buttonStyles.primary} ${borderRadius.md}`}
             >
-              Покажи
+              {hasActiveFilters ? "Покажи" : "Покажи всички"}
             </button>
           </div>
         </div>
