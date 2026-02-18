@@ -10,9 +10,11 @@ const sofiaSans = Sofia_Sans({
   display: "swap",
 });
 
+const description = "Следи събитията в София"
+
 export const metadata: Metadata = {
   title: "OboApp",
-  description: "Следи събитията в район Оборище",
+  description,
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_BASE_URL || "https://oboapp.online",
   ),
@@ -37,7 +39,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "OboApp",
-    description: "Следи събитията в район Оборище",
+    description,
     images: ["/icon-512x512.png"],
     locale: "bg_BG",
     type: "website",
@@ -46,7 +48,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary",
     title: "OboApp",
-    description: "Следи събитията в район Оборище",
+    description,
     images: ["/icon-512x512.png"],
   },
 };
