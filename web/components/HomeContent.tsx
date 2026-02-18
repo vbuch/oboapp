@@ -291,7 +291,7 @@ export default function HomeContent() {
       )}
 
       {/* Map Section - Left side on desktop, top on mobile */}
-      <div className={`relative [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-3/5 ${selectedMessage ? 'h-[calc(100vh-64px)]' : 'h-[calc(66vh-64px)]'} sm:h-[calc(66vh-64px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:h-[calc(100vh-80px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:sticky [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:self-start`}>
+      <div className={`relative [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-3/5 h-[calc(66vh-64px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:h-[calc(100vh-80px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:sticky [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:self-start`}>
         {/* Filter Box */}
         <FilterBox
           isOpen={categoryFilter.isOpen}
