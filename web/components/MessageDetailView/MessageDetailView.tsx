@@ -97,6 +97,7 @@ export default function MessageDetailView({
     direction: "vertical",
     isOpen: true,
     onAction: () => handleClose("drag"),
+    threshold: 60, // Lower threshold for more responsive mobile swipe-to-close
   });
 
   // Track scroll position for dynamic height expansion
@@ -228,6 +229,7 @@ export default function MessageDetailView({
         transform: isAnyDragging ? `translateY(${activeDragOffset}px)` : undefined,
         transition: isAnyDragging ? "none" : undefined,
         maxHeight: isMobile ? `${expandedHeight}vh` : undefined,
+        overscrollBehaviorY: "contain", // Prevent pull-to-refresh on mobile
       }}
     >
         <Header
