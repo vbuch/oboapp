@@ -34,6 +34,54 @@ export const CENTERS: Record<string, CenterDefinition> = {
   "bg.sofia": { lat: 42.6977, lng: 23.3219 },
 };
 
+export interface LocalityMetadata {
+  name: string; // Display name in the local language
+  nameEn?: string; // English display name (optional)
+  country: string; // Country code (e.g., "bg")
+  description?: string; // Description text for manifest/meta tags
+}
+
+/**
+ * Locality metadata registry - display names and descriptions
+ */
+export const LOCALITY_METADATA: Record<string, LocalityMetadata> = {
+  "bg.sofia": {
+    name: "София",
+    nameEn: "Sofia",
+    country: "bg",
+    description: "Следи събитията в София",
+  },
+};
+
+/**
+ * Get metadata for a locality
+ * @throws Error if locality is not found
+ */
+export function getLocalityMetadata(locality: string): LocalityMetadata {
+  const metadata = LOCALITY_METADATA[locality];
+  if (!metadata) {
+    throw new Error(`Unknown locality: ${locality}. Valid localities: ${Object.keys(LOCALITY_METADATA).join(", ")}`);
+  }
+  return metadata;
+}
+
+/**
+ * Get display name for a locality
+ * @throws Error if locality is not found
+ */
+export function getLocalityName(locality: string): string {
+  return getLocalityMetadata(locality).name;
+}
+
+/**
+ * Get description for a locality (fallback to generic if not defined)
+ * @throws Error if locality is not found
+ */
+export function getLocalityDescription(locality: string): string {
+  const metadata = getLocalityMetadata(locality);
+  return metadata.description || `Следи събитията в ${metadata.name}`;
+}
+
 /**
  * Get bounds for a locality
  * @throws Error if locality is not found
