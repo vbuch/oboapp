@@ -1,7 +1,7 @@
 "use client";
 
+import React, { useMemo } from "react";
 import { Message } from "@/lib/types";
-import { useMemo } from "react";
 import MessageCard, { MessageCardSkeleton } from "./MessageCard";
 
 interface MessagesGridProps {
@@ -12,6 +12,8 @@ interface MessagesGridProps {
   readonly limit?: number;
   readonly showHeading?: boolean;
   readonly variant?: "grid" | "list";
+  /** Optional custom header content. When provided, replaces the default heading. */
+  readonly headerContent?: React.ReactNode;
 }
 
 interface GridContentProps {
@@ -79,6 +81,7 @@ export default function MessagesGrid({
   limit = 6,
   showHeading = true,
   variant = "grid",
+  headerContent,
 }: MessagesGridProps) {
   // Helper to parse date
   const parseDate = (dateValue: Date | string | undefined): Date => {
@@ -130,22 +133,26 @@ export default function MessagesGrid({
     />
   );
 
-  return showHeading ? (
+  return showHeading || headerContent ? (
     <div className={variant === "list" ? "" : "bg-gray-50 py-12"}>
       <div
         className={
           variant === "list" ? "" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
         }
       >
-        <h2
-          className={
-            variant === "list"
-              ? "text-lg font-medium text-gray-700 mb-4"
-              : "text-3xl font-bold text-gray-900 mb-8"
-          }
-        >
-          {headingText}
-        </h2>
+        {headerContent ? (
+          <div className="mb-4">{headerContent}</div>
+        ) : (
+          <h2
+            className={
+              variant === "list"
+                ? "text-lg font-medium text-gray-700 mb-4"
+                : "text-3xl font-bold text-gray-900 mb-8"
+            }
+          >
+            {headingText}
+          </h2>
+        )}
         {gridContent}
       </div>
     </div>

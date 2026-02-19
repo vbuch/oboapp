@@ -104,6 +104,28 @@ describe("computeStateFromContext", () => {
       expect(computeStateFromContext(context)).toBe("zoneCreation");
     });
 
+    it("returns complete when user has no zones but has already seen the zone creation prompt", () => {
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 0,
+        hasSubscriptions: false,
+        hasSeenZoneCreationPrompt: true,
+      };
+      expect(computeStateFromContext(context)).toBe("complete");
+    });
+
+    it("returns zoneCreation when user has no zones and hasSeenZoneCreationPrompt is false", () => {
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: true,
+        zonesCount: 0,
+        hasSubscriptions: false,
+        hasSeenZoneCreationPrompt: false,
+      };
+      expect(computeStateFromContext(context)).toBe("zoneCreation");
+    });
+
     it("returns notificationPrompt when user has zones but permission is default", () => {
       const context: OnboardingContext = {
         permission: "default",

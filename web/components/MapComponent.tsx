@@ -39,6 +39,7 @@ interface MapComponentProps {
     active: boolean;
     initialRadius?: number;
     editingInterestId?: string | null;
+    pendingColor?: string;
     onSave: (coordinates: { lat: number; lng: number }, radius: number) => void;
     onCancel: () => void;
   };
@@ -296,6 +297,7 @@ export default function MapComponent({
           {/* Render interest circles */}
           {interests && interests.length > 0 && onInterestClick && (
             <InterestCircles
+              map={mapInstance}
               interests={interests}
               onInterestClick={onInterestClick}
               editingInterestId={targetMode?.editingInterestId}
@@ -308,6 +310,7 @@ export default function MapComponent({
             <InterestTargetMode
               map={mapInstance}
               initialRadius={targetMode.initialRadius}
+              pendingColor={targetMode.pendingColor}
               onSave={targetMode.onSave}
               onCancel={targetMode.onCancel}
             />

@@ -23,6 +23,8 @@ function recordToInterest(record: Record<string, unknown>): Interest {
     userId: record.userId as string,
     coordinates: record.coordinates as Interest["coordinates"],
     radius: record.radius as number,
+    label: record.label as string | undefined,
+    color: record.color as string | undefined,
     createdAt: toRequiredISOString(record.createdAt, "createdAt"),
     updatedAt: toRequiredISOString(record.updatedAt, "updatedAt"),
   };
@@ -114,7 +116,7 @@ export async function POST(request: NextRequest) {
     const { userId } = await verifyAuthToken(authHeader);
 
     const body = await request.json();
-    const { coordinates, radius } = body;
+    const { coordinates, radius, label, color } = body;
 
     // Validate coordinates
     if (
@@ -132,7 +134,7 @@ export async function POST(request: NextRequest) {
     const validatedRadius = validateRadius(radius);
 
     const now = new Date();
-    const interestData = {
+    const interestData: Record<string, unknown> = {
       userId,
       coordinates: {
         lat: coordinates.lat,
@@ -143,12 +145,23 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     };
 
+    if (typeof label === "string" && label.length > 0) {
+      interestData.label = label;
+    }
+    if (typeof color === "string" && color.length > 0) {
+      interestData.color = color;
+    }
+
     const db = await getDb();
     const docId = await db.interests.insertOne(interestData);
 
     const newInterest: Interest = {
       id: docId,
-      ...interestData,
+      userId,
+      coordinates: { lat: coordinates.lat, lng: coordinates.lng },
+      radius: validatedRadius,
+      ...(typeof label === "string" && label.length > 0 ? { label } : {}),
+      ...(typeof color === "string" && color.length > 0 ? { color } : {}),
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     };
@@ -289,6 +302,16 @@ export async function PATCH(request: NextRequest) {
     // Update radius if provided
     if (radius !== undefined) {
       updates.radius = validateRadius(radius);
+    }
+
+    // Update label if provided
+    if (typeof body.label === "string") {
+      updates.label = body.label;
+    }
+
+    // Update color if provided
+    if (typeof body.color === "string") {
+      updates.color = body.color;
     }
 
     await db.interests.updateOne(id, updates);

@@ -13,6 +13,8 @@ interface TargetMode {
   active: boolean;
   initialRadius?: number;
   editingInterestId?: string | null;
+  pendingLabel?: string;
+  pendingColor?: string;
 }
 
 /**
@@ -29,6 +31,7 @@ export function useInterestManagement(
   addInterest: (
     coordinates: { lat: number; lng: number },
     radius: number,
+    metadata?: { label?: string; color?: string },
   ) => Promise<void>,
   updateInterest: (
     id: string,
@@ -114,6 +117,8 @@ export function useInterestManagement(
       active: true,
       initialRadius: selectedInterest.radius,
       editingInterestId: selectedInterest.id,
+      pendingColor: selectedInterest.color,
+      pendingLabel: selectedInterest.label,
     });
 
     // Close menu
@@ -155,13 +160,18 @@ export function useInterestManagement(
     }
   }, [selectedInterest, deleteInterest]);
 
-  const handleStartAddInterest = useCallback(() => {
-    setTargetMode({
-      active: true,
-      initialRadius: 500,
-      editingInterestId: null,
-    });
-  }, []);
+  const handleStartAddInterest = useCallback(
+    (config?: { label?: string; color?: string; radius?: number }) => {
+      setTargetMode({
+        active: true,
+        initialRadius: config?.radius ?? 500,
+        editingInterestId: null,
+        pendingLabel: config?.label,
+        pendingColor: config?.color,
+      });
+    },
+    [],
+  );
 
   const handleSaveInterest = useCallback(
     (coordinates: { lat: number; lng: number }, radius: number) => {
@@ -174,8 +184,11 @@ export function useInterestManagement(
               radius,
             });
           } else {
-            // Add new interest
-            await addInterest(coordinates, radius);
+            // Add new interest (with optional label/color from pending zone)
+            await addInterest(coordinates, radius, {
+              label: targetMode.pendingLabel,
+              color: targetMode.pendingColor,
+            });
           }
 
           // Exit target mode
@@ -186,7 +199,7 @@ export function useInterestManagement(
         }
       })();
     },
-    [targetMode.editingInterestId, addInterest, updateInterest],
+    [targetMode.editingInterestId, targetMode.pendingLabel, targetMode.pendingColor, addInterest, updateInterest],
   );
 
   const handleCancelTargetMode = useCallback(() => {

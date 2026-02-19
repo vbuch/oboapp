@@ -21,6 +21,8 @@ export async function getAllInterests(db: OboDb): Promise<Interest[]> {
     userId: data.userId as string,
     coordinates: data.coordinates as Interest["coordinates"],
     radius: data.radius as number,
+    label: (data.label as string | undefined),
+    color: (data.color as string | undefined),
     createdAt: toDateOrString(data.createdAt),
     updatedAt: toDateOrString(data.updatedAt),
   }));

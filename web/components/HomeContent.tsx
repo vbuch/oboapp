@@ -15,6 +15,11 @@ import InterestContextMenu from "@/components/InterestContextMenu";
 import FilterBox from "@/components/FilterBox";
 import GeolocationPrompt from "@/components/GeolocationPrompt";
 import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
+import AddZoneModal from "@/components/onboarding/AddZoneModal";
+import type { PendingZone } from "@/components/onboarding/AddZoneModal";
+import SegmentedControl from "@/components/SegmentedControl";
+import ZoneBadges from "@/components/ZoneBadges";
+import ZoneList from "@/components/ZoneList";
 import { useInterests } from "@/lib/hooks/useInterests";
 import { useAuth } from "@/lib/auth-context";
 import { useMessages } from "@/lib/hooks/useMessages";
@@ -26,10 +31,19 @@ import { classifyMessage } from "@/lib/message-classification";
 import { createMessageUrl } from "@/lib/url-utils";
 import { getFeaturesCentroid } from "@/lib/geometry-utils";
 import { zIndex } from "@/lib/colors";
+import { buttonStyles, buttonSizes, borderRadius } from "@/lib/theme";
+import PlusIcon from "@/components/icons/PlusIcon";
 import { navigateBackOrReplace } from "@/lib/navigation-utils";
-import type { Message } from "@/lib/types";
+import type { Message, Interest } from "@/lib/types";
 import type { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
 import { isValidMessageId } from "@oboapp/shared";
+
+type ViewMode = "zones" | "events";
+
+const VIEW_MODE_OPTIONS = [
+  { value: "zones" as const, label: "Моите зони" },
+  { value: "events" as const, label: "Събития" },
+] as const;
 
 /**
  * HomeContent - Main application component managing map, messages, and user interactions
@@ -111,6 +125,10 @@ export default function HomeContent() {
 
   // Message hover state for map highlight
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+  // View mode for the sidebar: "zones" (my zones) or "events" (all)
+  const [viewMode, setViewMode] = useState<ViewMode>("zones");
+  // Controls the "Добави зона" modal
+  const [showAddZoneModal, setShowAddZoneModal] = useState(false);
   // Onboarding state (lifted from MapContainer for proper DOM ordering)
   const [onboardingState, setOnboardingState] =
     React.useState<OnboardingState | null>(null);
@@ -239,6 +257,54 @@ export default function HomeContent() {
     return null;
   }, [messageId, viewportMatch, fetchedMessage]);
 
+  // Sidebar header for logged-in users
+  const sidebarHeaderContent = useMemo(() => {
+    if (!user) return undefined;
+    return (
+      <div className="flex items-center justify-between gap-3">
+        <SegmentedControl
+          options={VIEW_MODE_OPTIONS}
+          value={viewMode}
+          onChange={(v) => setViewMode(v as ViewMode)}
+        />
+        {viewMode === "zones" && (
+          <button
+            type="button"
+            onClick={() => setShowAddZoneModal(true)}
+            className={`${buttonSizes.sm} ${buttonStyles.primary} ${borderRadius.sm} flex items-center gap-1.5 shrink-0`}
+            aria-label="Добави зона"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Добави зона
+          </button>
+        )}
+      </div>
+    );
+  }, [user, viewMode]);
+
+  const handleAddZoneConfirm = useCallback(
+    (zone: PendingZone) => {
+      setShowAddZoneModal(false);
+      handleStartAddInterest(zone);
+    },
+    [handleStartAddInterest],
+  );
+
+  // Center the map on a zone when clicked in the zone list
+  const handleZoneClick = useCallback(
+    (interest: Interest) => {
+      if (centerMapFn) {
+        centerMapFn(
+          interest.coordinates.lat,
+          interest.coordinates.lng,
+          16,
+          { animate: true },
+        );
+      }
+    },
+    [centerMapFn],
+  );
+
   // Track the last message we centered on to avoid re-centering loops
   const lastCenteredMessageIdRef = useRef<string | null>(null);
 
@@ -353,15 +419,43 @@ export default function HomeContent() {
       {/* Events Sidebar - Right side on desktop, bottom on mobile */}
       <div className="flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-none [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white overflow-y-auto">
         <div className="p-6 @container">
-          <MessagesGrid
-            messages={filteredMessages}
-            isLoading={isLoading}
-            onMessageClick={(message) => {
-              router.push(createMessageUrl(message), { scroll: false });
-            }}
-            onMessageHover={setHoveredMessageId}
-            variant="list"
-          />
+          {/* Mobile: zone badges + always messages */}
+          {user && (
+            <div className="mb-4 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:hidden">
+              <ZoneBadges
+                interests={interests}
+                onAddZone={() => setShowAddZoneModal(true)}
+                onZoneClick={handleZoneClick}
+              />
+            </div>
+          )}
+
+          {/* Desktop: segmented control header */}
+          {sidebarHeaderContent && (
+            <div className="mb-4 hidden [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:block">
+              {sidebarHeaderContent}
+            </div>
+          )}
+
+          {/* Desktop: zone list when in zones view mode */}
+          {user && viewMode === "zones" && (
+            <div className="hidden [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:block">
+              <ZoneList interests={interests} onZoneClick={handleZoneClick} />
+            </div>
+          )}
+
+          {/* Messages: always visible on mobile, conditional on desktop */}
+          <div className={user && viewMode === "zones" ? "[@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:hidden" : ""}>
+            <MessagesGrid
+              messages={filteredMessages}
+              isLoading={isLoading}
+              onMessageClick={(message) => {
+                router.push(createMessageUrl(message), { scroll: false });
+              }}
+              onMessageHover={setHoveredMessageId}
+              variant="list"
+            />
+          </div>
         </div>
       </div>
 
@@ -391,6 +485,14 @@ export default function HomeContent() {
           onPermissionResult={onboardingCallbacks.onPermissionResult}
           onDismiss={onboardingCallbacks.onDismiss}
           onAddInterests={onboardingCallbacks.onAddInterests}
+        />
+      )}
+
+      {/* Add Zone Modal - opened from sidebar header */}
+      {showAddZoneModal && (
+        <AddZoneModal
+          onConfirm={handleAddZoneConfirm}
+          onCancel={() => setShowAddZoneModal(false)}
         />
       )}
 

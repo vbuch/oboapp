@@ -50,6 +50,8 @@ export interface Interest {
     lng: number;
   };
   radius: number; // in meters (min: 100, max: 1000, default: 500)
+  label?: string;
+  color?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
