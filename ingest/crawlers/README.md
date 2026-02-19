@@ -5,6 +5,7 @@ Automated data collectors that fetch public notifications and disruptions from e
 ## Available Crawlers
 
 - **rayon-oborishte-bg** - Scrapes repair/disruption notices from Rayon Oborishte's website
+- **rayon-pancharevo-bg** - Scrapes repair/disruption notices from Rayon Pancharevo's website
 - **sredec-sofia-org** - Scrapes public infrastructure announcements from Rayon Sredec's website
 - **mladost-bg** - Scrapes repair/disruption notices from Rayon Mladost's website
 - **studentski-bg** - Scrapes construction/maintenance schedules from Rayon Studentski's website
@@ -28,7 +29,7 @@ Each crawler:
 
 ### Crawler Architecture
 
-WordPress-style crawlers (rayon-oborishte-bg, sredec-sofia-org, sofia-bg, mladost-bg, studentski-bg, so-slatina-org, lozenets-sofia-bg, raioniskar-bg) use shared utilities from `shared/webpage-crawlers.ts`:
+WordPress-style crawlers (rayon-oborishte-bg, rayon-pancharevo-bg, sredec-sofia-org, sofia-bg, mladost-bg, studentski-bg, so-slatina-org, lozenets-sofia-bg, raioniskar-bg) use shared utilities from `shared/webpage-crawlers.ts`:
 
 - **`crawlWordpressPage`** - Manages browser, extracts post links from index page, handles deduplication, processes each post
 - **`processWordpressPost`** - Fetches post details, builds document via custom builder function, saves to Firestore
@@ -64,7 +65,7 @@ Crawlers handle message formatting differently based on whether they provide pre
 - Can produce markdown (erm-zapad, sofiyska-voda) or plain text (toplo-bg)
 - **City-wide messages** (nimh-severe-weather): Set `cityWide: true` with empty FeatureCollection for alerts applying to the entire city (reusable pattern for city-wide infrastructure alerts)
 
-**Crawlers without GeoJSON** (rayon-oborishte-bg, sredec-sofia-org, sofia-bg, mladost-bg, studentski-bg, so-slatina-org, lozenets-sofia-bg, raioniskar-bg):
+**Crawlers without GeoJSON** (rayon-oborishte-bg, rayon-pancharevo-bg, sredec-sofia-org, sofia-bg, mladost-bg, studentski-bg, so-slatina-org, lozenets-sofia-bg, raioniskar-bg):
 
 - Go through the full AI extraction pipeline
 - Store HTML content converted to markdown in `message` field only
@@ -76,6 +77,7 @@ Crawlers handle message formatting differently based on whether they provide pre
 ```bash
 # Run a specific crawler
 npx tsx crawl --source rayon-oborishte-bg
+npx tsx crawl --source rayon-pancharevo-bg
 npx tsx crawl --source sredec-sofia-org
 npx tsx crawl --source mladost-bg
 npx tsx crawl --source studentski-bg

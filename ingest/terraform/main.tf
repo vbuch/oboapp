@@ -274,6 +274,12 @@ locals {
       timeout      = "1800s"
       description  = "Crawl Raion Iskar website"
     }
+    rayon-pancharevo = {
+      source       = "rayon-pancharevo-bg"
+      memory       = "1Gi"
+      timeout      = "1800s"
+      description  = "Crawl Raion Pancharevo district"
+    }
     nimh-severe-weather = {
       source       = "nimh-severe-weather"
       memory       = "512Mi"
