@@ -392,7 +392,10 @@ describe("useInterestManagement", () => {
       });
 
       await waitFor(() => {
-        expect(addInterest).toHaveBeenCalledWith(coordinates, radius);
+        expect(addInterest).toHaveBeenCalledWith(coordinates, radius, {
+          label: undefined,
+          color: undefined,
+        });
       });
 
       await waitFor(() => {
