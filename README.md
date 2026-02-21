@@ -55,7 +55,7 @@ See [web/](web) for details.
 - [Onboarding Flow](docs/features/onboarding-flow.md) - User onboarding state machine for notifications and zone creation
 - [Database Layer](docs/features/database-layer.md) - Dual-write database abstraction over Firestore and MongoDB
 - [Locality Configuration](docs/features/multi-locality-support.md) - Environment-based locality configuration for hosting in different cities
-- [Your Sofia API](web/app/api/ysm/README.md) - Public API contract for the Your Sofia mobile client
+- [Public API](docs/features/public-api.md) - Read-only `/api/v1` API, API key auth, and client onboarding
 
 ### Pipeline
 

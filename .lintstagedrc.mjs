@@ -24,15 +24,19 @@ function createLintTask(dir, filenames) {
 
   if (files.length === 0) return "";
 
-  // Escape filenames for shell using single quotes
-  // Replace any single quotes in the filename with '\''
-  // This is the standard POSIX shell escaping method that handles all special characters
+  // Escape filenames for shell using double quotes (safe inside the single-quoted bash -c string)
+  // Replace any double quotes and dollar signs that could break the quoting
   const escapedFiles = files
-    .map((f) => `'${f.replace(/'/g, "'\\''")}'`)
+    .map(
+      (f) =>
+        `"${f.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\$/g, "\\$").replace(/`/g, "\\`")}"`,
+    )
     .join(" ");
 
   // Wrap in bash -c to execute cd and eslint as shell commands
   // dir is validated and shell-escaped for defense in depth
+  // Filenames are double-quoted inside the single-quoted bash -c string to avoid
+  // inner single quotes breaking out of the outer single-quoted argument
   return `bash -c 'cd ${dir} && eslint --no-warn-ignored ${escapedFiles}'`;
 }
 
