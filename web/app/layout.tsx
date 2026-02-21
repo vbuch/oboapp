@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Sofia_Sans } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "@/components/ClientLayout";
+import { getLocalityDescription } from "@oboapp/shared";
 
 const sofiaSans = Sofia_Sans({
   subsets: ["latin", "cyrillic"],
@@ -10,13 +11,20 @@ const sofiaSans = Sofia_Sans({
   display: "swap",
 });
 
+// Get locality-specific description
+const locality = process.env.NEXT_PUBLIC_LOCALITY;
+if (!locality) {
+  throw new Error("NEXT_PUBLIC_LOCALITY environment variable is required");
+}
+const description = getLocalityDescription(locality);
+
 export const metadata: Metadata = {
   title: "OboApp",
-  description: "Следи събитията в район Оборище",
+  description,
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_BASE_URL || "https://oboapp.online",
   ),
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -37,7 +45,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "OboApp",
-    description: "Следи събитията в район Оборище",
+    description,
     images: ["/icon-512x512.png"],
     locale: "bg_BG",
     type: "website",
@@ -46,7 +54,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary",
     title: "OboApp",
-    description: "Следи събитията в район Оборище",
+    description,
     images: ["/icon-512x512.png"],
   },
 };

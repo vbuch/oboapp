@@ -37,6 +37,31 @@ export const BOUNDS: Record<string, BoundsDefinition> = {
 };
 ```
 
+### Locality Metadata Registry
+
+Display names and descriptions are stored in the shared package (`@oboapp/shared`):
+
+```typescript
+export const LOCALITY_METADATA: Record<string, LocalityMetadata> = {
+  "bg.sofia": {
+    name: "София",              // Display name in local language
+    nameEn: "Sofia",            // English name (optional)
+    country: "bg",              // Country code
+    description: "Следи събитията в София",  // PWA manifest description
+  },
+};
+```
+
+Functions:
+- `getLocalityMetadata(locality)` - Get full metadata object
+- `getLocalityName(locality)` - Get display name
+- `getLocalityDescription(locality)` - Get description (with fallback)
+
+These are used for:
+- PWA manifest generation (`/manifest.webmanifest`)
+- Page metadata and SEO
+- Future i18n support
+
 ### GeoJSON Files
 
 Each locality requires a corresponding GeoJSON file for locality-wide messages:
@@ -59,11 +84,24 @@ Each locality requires a corresponding GeoJSON file for locality-wide messages:
    };
    ```
 
-2. **Create GeoJSON file** at `ingest/localities/bg.plovdiv.geojson` containing the administrative boundary as a FeatureCollection
+2. **Add locality metadata** in `shared/src/bounds.ts`:
+   ```typescript
+   export const LOCALITY_METADATA: Record<string, LocalityMetadata> = {
+     "bg.sofia": { /* existing */ },
+     "bg.plovdiv": {
+       name: "Пловдив",
+       nameEn: "Plovdiv",
+       country: "bg",
+       description: "Следи събитията в Пловдив",
+     },
+   };
+   ```
 
-3. **Create crawlers** in `ingest/crawlers/` that set `locality: "bg.plovdiv"` when saving sources
+3. **Create GeoJSON file** at `ingest/localities/bg.plovdiv.geojson` containing the administrative boundary as a FeatureCollection
 
-4. **Set environment variables**:
+4. **Create crawlers** in `ingest/crawlers/` that set `locality: "bg.plovdiv"` when saving sources
+
+5. **Set environment variables**:
    ```bash
    LOCALITY=bg.plovdiv                    # Backend/Ingest
    NEXT_PUBLIC_LOCALITY=bg.plovdiv        # Frontend/Web
