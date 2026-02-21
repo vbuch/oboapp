@@ -456,6 +456,454 @@ exports[`V1 OpenAPI > matches snapshot 1`] = `
         ],
         "type": "object",
       },
+      "V1MessageResponse": {
+        "properties": {
+          "message": {
+            "properties": {
+              "addresses": {
+                "items": {
+                  "properties": {
+                    "coordinates": {
+                      "properties": {
+                        "lat": {
+                          "type": "number",
+                        },
+                        "lng": {
+                          "type": "number",
+                        },
+                      },
+                      "required": [
+                        "lat",
+                        "lng",
+                      ],
+                      "type": "object",
+                    },
+                    "formattedAddress": {
+                      "type": "string",
+                    },
+                    "geoJson": {
+                      "properties": {
+                        "coordinates": {
+                          "items": {
+                            "type": "number",
+                          },
+                          "maxItems": 2,
+                          "minItems": 2,
+                          "type": "array",
+                        },
+                        "type": {
+                          "enum": [
+                            "Point",
+                          ],
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "type",
+                        "coordinates",
+                      ],
+                      "type": "object",
+                    },
+                    "originalText": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "originalText",
+                    "formattedAddress",
+                    "coordinates",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "busStops": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+              "cadastralProperties": {
+                "items": {
+                  "properties": {
+                    "identifier": {
+                      "type": "string",
+                    },
+                    "timespans": {
+                      "items": {
+                        "properties": {
+                          "end": {
+                            "type": "string",
+                          },
+                          "start": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "start",
+                          "end",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "identifier",
+                    "timespans",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "categories": {
+                "items": {
+                  "enum": [
+                    "air-quality",
+                    "art",
+                    "bicycles",
+                    "construction-and-repairs",
+                    "culture",
+                    "electricity",
+                    "health",
+                    "heating",
+                    "parking",
+                    "public-transport",
+                    "road-block",
+                    "sports",
+                    "traffic",
+                    "vehicles",
+                    "waste",
+                    "water",
+                    "weather",
+                  ],
+                  "type": "string",
+                },
+                "type": "array",
+              },
+              "cityWide": {
+                "type": "boolean",
+              },
+              "crawledAt": {
+                "type": "string",
+              },
+              "createdAt": {
+                "type": "string",
+              },
+              "finalizedAt": {
+                "type": "string",
+              },
+              "geoJson": {
+                "properties": {
+                  "features": {
+                    "items": {
+                      "properties": {
+                        "geometry": {
+                          "oneOf": [
+                            {
+                              "properties": {
+                                "coordinates": {
+                                  "items": {
+                                    "type": "number",
+                                  },
+                                  "maxItems": 2,
+                                  "minItems": 2,
+                                  "type": "array",
+                                },
+                                "type": {
+                                  "enum": [
+                                    "Point",
+                                  ],
+                                  "type": "string",
+                                },
+                              },
+                              "required": [
+                                "type",
+                                "coordinates",
+                              ],
+                              "type": "object",
+                            },
+                            {
+                              "properties": {
+                                "coordinates": {
+                                  "items": {
+                                    "items": {
+                                      "type": "number",
+                                    },
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": "array",
+                                  },
+                                  "type": "array",
+                                },
+                                "type": {
+                                  "enum": [
+                                    "MultiPoint",
+                                  ],
+                                  "type": "string",
+                                },
+                              },
+                              "required": [
+                                "type",
+                                "coordinates",
+                              ],
+                              "type": "object",
+                            },
+                            {
+                              "properties": {
+                                "coordinates": {
+                                  "items": {
+                                    "items": {
+                                      "type": "number",
+                                    },
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": "array",
+                                  },
+                                  "type": "array",
+                                },
+                                "type": {
+                                  "enum": [
+                                    "LineString",
+                                  ],
+                                  "type": "string",
+                                },
+                              },
+                              "required": [
+                                "type",
+                                "coordinates",
+                              ],
+                              "type": "object",
+                            },
+                            {
+                              "properties": {
+                                "coordinates": {
+                                  "items": {
+                                    "items": {
+                                      "items": {
+                                        "type": "number",
+                                      },
+                                      "maxItems": 2,
+                                      "minItems": 2,
+                                      "type": "array",
+                                    },
+                                    "type": "array",
+                                  },
+                                  "type": "array",
+                                },
+                                "type": {
+                                  "enum": [
+                                    "Polygon",
+                                  ],
+                                  "type": "string",
+                                },
+                              },
+                              "required": [
+                                "type",
+                                "coordinates",
+                              ],
+                              "type": "object",
+                            },
+                          ],
+                        },
+                        "properties": {
+                          "additionalProperties": {
+                            "nullable": true,
+                          },
+                          "type": "object",
+                        },
+                        "type": {
+                          "enum": [
+                            "Feature",
+                          ],
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "type",
+                        "geometry",
+                        "properties",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                  "type": {
+                    "enum": [
+                      "FeatureCollection",
+                    ],
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "type",
+                  "features",
+                ],
+                "type": "object",
+              },
+              "id": {
+                "type": "string",
+              },
+              "locality": {
+                "type": "string",
+              },
+              "markdownText": {
+                "type": "string",
+              },
+              "pins": {
+                "items": {
+                  "properties": {
+                    "address": {
+                      "type": "string",
+                    },
+                    "coordinates": {
+                      "properties": {
+                        "lat": {
+                          "type": "number",
+                        },
+                        "lng": {
+                          "type": "number",
+                        },
+                      },
+                      "required": [
+                        "lat",
+                        "lng",
+                      ],
+                      "type": "object",
+                    },
+                    "timespans": {
+                      "items": {
+                        "properties": {
+                          "end": {
+                            "type": "string",
+                          },
+                          "start": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "start",
+                          "end",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "address",
+                    "timespans",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "plainText": {
+                "type": "string",
+              },
+              "responsibleEntity": {
+                "type": "string",
+              },
+              "source": {
+                "type": "string",
+              },
+              "sourceUrl": {
+                "type": "string",
+              },
+              "streets": {
+                "items": {
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                    },
+                    "fromCoordinates": {
+                      "properties": {
+                        "lat": {
+                          "type": "number",
+                        },
+                        "lng": {
+                          "type": "number",
+                        },
+                      },
+                      "required": [
+                        "lat",
+                        "lng",
+                      ],
+                      "type": "object",
+                    },
+                    "street": {
+                      "type": "string",
+                    },
+                    "timespans": {
+                      "items": {
+                        "properties": {
+                          "end": {
+                            "type": "string",
+                          },
+                          "start": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "start",
+                          "end",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "to": {
+                      "type": "string",
+                    },
+                    "toCoordinates": {
+                      "properties": {
+                        "lat": {
+                          "type": "number",
+                        },
+                        "lng": {
+                          "type": "number",
+                        },
+                      },
+                      "required": [
+                        "lat",
+                        "lng",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "street",
+                    "from",
+                    "to",
+                    "timespans",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "text": {
+                "type": "string",
+              },
+              "timespanEnd": {
+                "type": "string",
+              },
+              "timespanStart": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "text",
+              "createdAt",
+              "locality",
+            ],
+            "type": "object",
+          },
+        },
+        "required": [
+          "message",
+        ],
+        "type": "object",
+      },
       "V1MessagesResponse": {
         "properties": {
           "messages": {
@@ -948,7 +1396,7 @@ exports[`V1 OpenAPI > matches snapshot 1`] = `
     },
     "securitySchemes": {
       "ApiKeyAuth": {
-        "description": "API key issued to registered clients. Contact the OboApp team to register.",
+        "description": "API key created and managed in OboApp Settings. Create an API key in Settings and include it in the X-Api-Key header.",
         "in": "header",
         "name": "X-Api-Key",
         "type": "apiKey",
@@ -956,7 +1404,7 @@ exports[`V1 OpenAPI > matches snapshot 1`] = `
     },
   },
   "info": {
-    "description": "Read-only public API for external consumption of OboApp city-infrastructure data. All endpoints require a registered API key sent via the X-Api-Key header. Contact the OboApp team to register as a client.",
+    "description": "Read-only public API for external consumption of OboApp city-infrastructure data. All endpoints require a registered API key sent via the X-Api-Key header. You can create and manage API keys from the OboApp Settings page.",
     "title": "OboApp Public API",
     "version": "1.0.0",
   },
@@ -1082,7 +1530,7 @@ exports[`V1 OpenAPI > matches snapshot 1`] = `
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/V1Message",
+                  "$ref": "#/components/schemas/V1MessageResponse",
                 },
               },
             },

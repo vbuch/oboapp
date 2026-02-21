@@ -7,8 +7,8 @@ import type { ApiClient } from "@/lib/types";
 
 interface ApiAccessSectionProps {
   readonly apiClient: ApiClient | null;
-  readonly onGenerate: (websiteUrl: string) => Promise<void>;
-  readonly onRevoke: () => Promise<void>;
+  readonly onGenerate: (websiteUrl: string) => Promise<boolean>;
+  readonly onRevoke: () => Promise<boolean>;
   readonly isLoading: boolean;
 }
 
@@ -26,8 +26,8 @@ export default function ApiAccessSection({
 
   const validateUrl = (url: string): boolean => {
     try {
-      new URL(url);
-      return true;
+      const parsed = new URL(url);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
     } catch {
       return false;
     }
@@ -35,25 +35,38 @@ export default function ApiAccessSection({
 
   const handleGenerate = async () => {
     if (!validateUrl(websiteUrl)) {
-      setUrlError("Моля, въведете валиден URL адрес");
+      setUrlError("Моля, въведете валиден http/https URL адрес");
       return;
     }
     setUrlError("");
-    await onGenerate(websiteUrl);
-    setWebsiteUrl("");
+    const success = await onGenerate(websiteUrl);
+    if (success) {
+      setWebsiteUrl("");
+    }
   };
 
   const handleRevoke = async () => {
-    await onRevoke();
-    setShowRevokeConfirm(false);
-    setRevokeText("");
+    const success = await onRevoke();
+    if (success) {
+      setShowRevokeConfirm(false);
+      setRevokeText("");
+    }
   };
 
   const handleCopy = async () => {
     if (!apiClient?.apiKey) return;
-    await navigator.clipboard.writeText(apiClient.apiKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (!navigator.clipboard?.writeText) {
+      alert("Копирането не е поддържано в този браузър. Моля, копирайте ключа ръчно.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(apiClient.apiKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+      alert("Неуспешно копиране. Моля, копирайте ключа ръчно.");
+    }
   };
 
   return (

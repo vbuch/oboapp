@@ -298,8 +298,8 @@ export default function SettingsPage() {
     }
   };
 
-  const handleGenerateApiKey = async (websiteUrl: string) => {
-    if (!user) return;
+  const handleGenerateApiKey = async (websiteUrl: string): Promise<boolean> => {
+    if (!user) return false;
     setIsApiClientLoading(true);
     try {
       const token = await user.getIdToken();
@@ -314,20 +314,22 @@ export default function SettingsPage() {
       if (!response.ok) {
         const data = await response.json();
         alert(data.error ?? "Грешка при генериране на API ключ");
-        return;
+        return false;
       }
       const data = await response.json();
       setApiClient(data);
+      return true;
     } catch (error) {
       console.error("Error generating API key:", error);
       alert("Грешка при генериране на API ключ");
+      return false;
     } finally {
       setIsApiClientLoading(false);
     }
   };
 
-  const handleRevokeApiKey = async () => {
-    if (!user) return;
+  const handleRevokeApiKey = async (): Promise<boolean> => {
+    if (!user) return false;
     setIsApiClientLoading(true);
     try {
       const token = await user.getIdToken();
@@ -337,12 +339,14 @@ export default function SettingsPage() {
       });
       if (!response.ok) {
         alert("Грешка при отмяна на API ключа");
-        return;
+        return false;
       }
       setApiClient(null);
+      return true;
     } catch (error) {
       console.error("Error revoking API key:", error);
       alert("Грешка при отмяна на API ключа");
+      return false;
     } finally {
       setIsApiClientLoading(false);
     }

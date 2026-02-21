@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const { userId } = await verifyAuthToken(authHeader);
 
     const db = await getDb();
+    // userId IS the document ID
     const client = await db.apiClients.findByUserId(userId);
 
     if (!client) {
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      id: client._id,
+      id: userId,
       userId: client.userId,
       apiKey: client.apiKey,
       websiteUrl: client.websiteUrl,
@@ -55,29 +56,41 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb();
 
-    // One API key per user — reject if they already have one
-    const existing = await db.apiClients.findByUserId(userId);
-    if (existing) {
-      return NextResponse.json(
-        { error: "You already have an API key. Revoke it first to generate a new one." },
-        { status: 409 },
-      );
-    }
-
     const now = new Date().toISOString();
     const apiKey = generateApiKey();
 
-    const id = await db.apiClients.insertOne({
-      userId,
-      apiKey,
-      websiteUrl: parsed.data.websiteUrl,
-      createdAt: now,
-      updatedAt: now,
-    });
+    // createForUser uses userId as the document ID — atomic, throws if already exists
+    try {
+      await db.apiClients.createForUser(userId, {
+        userId,
+        apiKey,
+        websiteUrl: parsed.data.websiteUrl,
+        createdAt: now,
+        updatedAt: now,
+      });
+    } catch (createError) {
+      // Distinguish duplicate (409) from other failures (500)
+      const alreadyExists =
+        createError instanceof Error &&
+        (createError.message.includes("already exists") ||
+          createError.message.includes("ALREADY_EXISTS") ||
+          (createError as { code?: number }).code === 6);
+      if (alreadyExists) {
+        return NextResponse.json(
+          { error: "You already have an API key. Revoke it first to generate a new one." },
+          { status: 409 },
+        );
+      }
+      console.error("Error creating API client:", createError);
+      return NextResponse.json(
+        { error: "Failed to create API client" },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json(
       {
-        id,
+        id: userId,
         userId,
         apiKey,
         websiteUrl: parsed.data.websiteUrl,
@@ -102,8 +115,9 @@ export async function DELETE(request: NextRequest) {
     const { userId } = await verifyAuthToken(authHeader);
 
     const db = await getDb();
-    const client = await db.apiClients.findByUserId(userId);
 
+    // Verify the client exists before attempting delete
+    const client = await db.apiClients.findByUserId(userId);
     if (!client) {
       return NextResponse.json(
         { error: "No API client found" },
@@ -111,7 +125,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await db.apiClients.deleteOne(client._id as string);
+    // userId IS the document ID
+    await db.apiClients.deleteOne(userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

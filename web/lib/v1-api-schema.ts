@@ -16,6 +16,7 @@ export const v1Schemas = {
   message: MessageSchema,
   sourcesResponse: z.object({ sources: z.array(SourceSchema) }),
   messagesResponse: z.object({ messages: z.array(MessageSchema) }),
+  messageResponse: z.object({ message: MessageSchema }),
 };
 
 const sortRecord = <T>(record: Record<string, T>): Record<string, T> =>
@@ -47,14 +48,14 @@ export const buildV1OpenApi = (): OpenAPIObject => {
     in: "header",
     name: "X-Api-Key",
     description:
-      "API key issued to registered clients. Contact the OboApp team to register.",
+      "API key created and managed in OboApp Settings. Create an API key in Settings and include it in the X-Api-Key header.",
   });
 
   const errorResponse = registry.register(
     "V1ErrorResponse",
     v1Schemas.errorResponse,
   );
-  const message = registry.register("V1Message", v1Schemas.message);
+  registry.register("V1Message", v1Schemas.message);
   const sourcesResponse = registry.register(
     "V1SourcesResponse",
     v1Schemas.sourcesResponse,
@@ -62,6 +63,10 @@ export const buildV1OpenApi = (): OpenAPIObject => {
   const messagesResponse = registry.register(
     "V1MessagesResponse",
     v1Schemas.messagesResponse,
+  );
+  const messageResponse = registry.register(
+    "V1MessageResponse",
+    v1Schemas.messageResponse,
   );
 
   registry.registerPath({
@@ -164,7 +169,7 @@ export const buildV1OpenApi = (): OpenAPIObject => {
         description: "Message response",
         content: {
           "application/json": {
-            schema: message,
+            schema: messageResponse,
           },
         },
       },
@@ -211,7 +216,7 @@ export const buildV1OpenApi = (): OpenAPIObject => {
       title: "OboApp Public API",
       version: "1.0.0",
       description:
-        "Read-only public API for external consumption of OboApp city-infrastructure data. All endpoints require a registered API key sent via the X-Api-Key header. Contact the OboApp team to register as a client.",
+        "Read-only public API for external consumption of OboApp city-infrastructure data. All endpoints require a registered API key sent via the X-Api-Key header. You can create and manage API keys from the OboApp Settings page.",
     },
     security: [{ ApiKeyAuth: [] }],
   });
