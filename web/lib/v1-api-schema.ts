@@ -216,7 +216,7 @@ export const buildV1OpenApi = (): OpenAPIObject => {
       title: "OboApp Public API",
       version: "1.0.0",
       description:
-        "Read-only public API for external consumption of OboApp city-infrastructure data. All endpoints require a registered API key sent via the X-Api-Key header. You can create and manage API keys from the OboApp Settings page.",
+        "Read-only public API for external consumption of OboApp city-infrastructure data. All data endpoints in this specification require a registered API key sent via the X-Api-Key header. You can create and manage API keys from the OboApp Settings page.",
     },
     security: [{ ApiKeyAuth: [] }],
   });
