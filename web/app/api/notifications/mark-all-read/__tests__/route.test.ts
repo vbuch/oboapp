@@ -98,8 +98,8 @@ describe("POST /api/notifications/mark-all-read", () => {
       where: [
         { field: "userId", op: "==", value: "user-1" },
         { field: "notified", op: "==", value: true },
-        { field: "readAt", op: "==", value: null },
       ],
+      select: ["_id", "readAt"],
     });
     expect(updateOneMock).toHaveBeenCalledTimes(1);
   });

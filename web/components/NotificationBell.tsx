@@ -86,12 +86,14 @@ export default function NotificationBell() {
         {unreadCount > 0 && <UnreadIndicator />}
       </button>
 
-      <NotificationDropdown
-        isOpen={isOpen}
-        onClose={handleClose}
-        onCountUpdate={handleCountUpdate}
-        anchorRef={bellRef}
-      />
+      {!isMobile && isOpen && (
+        <NotificationDropdown
+          isOpen={isOpen}
+          onClose={handleClose}
+          onCountUpdate={handleCountUpdate}
+          anchorRef={bellRef}
+        />
+      )}
     </div>
   );
 }

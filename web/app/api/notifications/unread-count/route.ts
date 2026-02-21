@@ -10,13 +10,24 @@ export async function GET(request: NextRequest) {
 
     const db = await getDb();
     
-    // Use DB-side count query to avoid fetching unnecessary data
-    // Count notifications where readAt is null (unread)
-    const unreadCount = await db.notificationMatches.count([
+    // Use DB-side count queries to avoid fetching unnecessary data
+    // Firestore does not match documents with missing fields on "== null",
+    // so instead:
+    //  - count all notified notifications for the user
+    //  - count all read notifications where readAt is not null
+    //  - derive unreadCount by subtraction
+    const totalNotifiedCount = await db.notificationMatches.count([
       { field: "userId", op: "==", value: userId },
       { field: "notified", op: "==", value: true },
-      { field: "readAt", op: "==", value: null },
     ]);
+
+    const readCount = await db.notificationMatches.count([
+      { field: "userId", op: "==", value: userId },
+      { field: "notified", op: "==", value: true },
+      { field: "readAt", op: "!=", value: null },
+    ]);
+
+    const unreadCount = Math.max(0, totalNotifiedCount - readCount);
 
     return NextResponse.json({ count: unreadCount });
   } catch (error) {

@@ -317,11 +317,23 @@ export const handlers = [
   // GET /api/notifications/history - Fetch notification history with pagination
   http.get("/api/notifications/history", ({ request }) => {
     const url = new URL(request.url);
-    const limit = Math.min(
-      Number.parseInt(url.searchParams.get("limit") || "20", 10),
-      100,
-    );
-    const offset = Number.parseInt(url.searchParams.get("offset") || "0", 10);
+    
+    const rawLimit = url.searchParams.get("limit");
+    let limit = Number.parseInt(rawLimit ?? "", 10);
+    if (!Number.isFinite(limit) || limit <= 0) {
+      // Default page size when missing/invalid
+      limit = 20;
+    } else {
+      // Enforce maximum page size
+      limit = Math.min(limit, 100);
+    }
+
+    const rawOffset = url.searchParams.get("offset");
+    let offset = Number.parseInt(rawOffset ?? "", 10);
+    if (!Number.isFinite(offset) || offset < 0) {
+      // Clamp negative/invalid offsets to 0
+      offset = 0;
+    }
 
     const items = notificationHistory.slice(offset, offset + limit);
     const hasMore = offset + limit < notificationHistory.length;

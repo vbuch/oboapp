@@ -10,15 +10,21 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb();
 
-    // Get all unread notification IDs for the user (only fetch _id to minimize data transfer)
-    const unreadNotifications = await db.notificationMatches.findMany({
+    // Get all notification IDs for the user that have been notified (only fetch _id to minimize data transfer)
+    // Note: Cannot query "readAt == null" reliably in Firestore for missing fields,
+    // so fetch all notified and filter client-side for unread
+    const allNotifications = await db.notificationMatches.findMany({
       where: [
         { field: "userId", op: "==", value: userId },
         { field: "notified", op: "==", value: true },
-        { field: "readAt", op: "==", value: null },
       ],
-      select: ["_id"],
+      select: ["_id", "readAt"],
     });
+    
+    // Filter to only unread notifications (readAt missing, null, or empty)
+    const unreadNotifications = allNotifications.filter(
+      (n) => !n.readAt || n.readAt === null || n.readAt === "",
+    );
 
     // Mark each as read, in batches to avoid unbounded concurrency
     const readAt = new Date().toISOString();
