@@ -108,6 +108,7 @@ async function fetchSources(
     timespanEnd: data.timespanEnd instanceof Date ? data.timespanEnd : (data.timespanEnd ? new Date(data.timespanEnd as string) : undefined),
     cityWide: data.cityWide as boolean | undefined,
     locality: data.locality as string | undefined,
+    deepLinkUrl: data.deepLinkUrl as string | undefined,
   }));
 
   const filterInfo = filters.length > 0 ? ` (${filters.join(", ")})` : "";
@@ -189,14 +190,17 @@ async function ingestSource(
   }
 
   // Use the sourceType as the source identifier for messageIngest
-  // Use deepLinkUrl if set (empty string means no user-facing link), otherwise fall back to url
-  const sourceUrl =
+  // sourceDocumentId always derives from source.url for correct deduplication.
+  // sourceUrl carries the user-facing URL: use deepLinkUrl if explicitly set
+  // (empty string = no user-facing link), otherwise fall back to source.url.
+  const userFacingUrl =
     source.deepLinkUrl !== undefined
       ? source.deepLinkUrl || undefined
       : source.url;
   const result = await messageIngest(source.message, source.sourceType, {
     precomputedGeoJson: geoJson,
-    sourceUrl,
+    sourceUrl: userFacingUrl,
+    sourceDocumentId,
     boundaryFilter: boundaries ?? undefined,
     crawledAt: source.crawledAt,
     markdownText: source.markdownText,

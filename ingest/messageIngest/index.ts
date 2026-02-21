@@ -34,9 +34,15 @@ export interface MessageIngestOptions {
    */
   precomputedGeoJson?: GeoJSONFeatureCollection | null;
   /**
-   * Optional source URL for the message (e.g., original article URL)
+   * Optional source URL for the message (e.g., original article URL).
+   * Used as the user-facing link in message detail view.
    */
   sourceUrl?: string;
+  /**
+   * Optional source document ID for deduplication.
+   * When provided, used directly instead of deriving from sourceUrl.
+   */
+  sourceDocumentId?: string;
   /**
    * Optional boundary filtering - if provided, only features within boundaries are kept
    * If no features are within boundaries, the message is not stored
@@ -99,8 +105,10 @@ export async function messageIngest(
   const hasPrecomputedGeoJson = Boolean(options.precomputedGeoJson);
   let sourceDocumentId: string | undefined;
 
-  // Generate source document ID from URL if available
-  if (options.sourceUrl) {
+  // Use explicitly provided sourceDocumentId, or derive from sourceUrl
+  if (options.sourceDocumentId) {
+    sourceDocumentId = options.sourceDocumentId;
+  } else if (options.sourceUrl) {
     sourceDocumentId = encodeDocumentId(options.sourceUrl);
   }
 
