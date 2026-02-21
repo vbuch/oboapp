@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Firestore does not match documents with missing fields on "== null",
     // so instead:
     //  - count all notified notifications for the user
-    //  - count all read notifications where readAt is not null and not empty string
+    //  - count all read notifications where readAt is not null
     //  - derive unreadCount by subtraction
     
     // Execute queries in parallel for better performance
