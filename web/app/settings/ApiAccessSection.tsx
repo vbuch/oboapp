@@ -34,12 +34,13 @@ export default function ApiAccessSection({
   };
 
   const handleGenerate = async () => {
-    if (!validateUrl(websiteUrl)) {
+    const trimmedUrl = websiteUrl.trim();
+    if (!validateUrl(trimmedUrl)) {
       setUrlError("Моля, въведете валиден http/https URL адрес");
       return;
     }
     setUrlError("");
-    const success = await onGenerate(websiteUrl);
+    const success = await onGenerate(trimmedUrl);
     if (success) {
       setWebsiteUrl("");
     }
@@ -56,7 +57,9 @@ export default function ApiAccessSection({
   const handleCopy = async () => {
     if (!apiClient?.apiKey) return;
     if (!navigator.clipboard?.writeText) {
-      alert("Копирането не е поддържано в този браузър. Моля, копирайте ключа ръчно.");
+      alert(
+        "Копирането не е поддържано в този браузър. Моля, копирайте ключа ръчно.",
+      );
       return;
     }
     try {
@@ -125,8 +128,7 @@ export default function ApiAccessSection({
               </p>
               <p className="text-error text-sm mb-4">
                 Всички приложения, използващи този ключ, ще загубят достъп
-                незабавно. Напишете{" "}
-                <strong>ОТМЕНИ</strong> за потвърждение:
+                незабавно. Напишете <strong>ОТМЕНИ</strong> за потвърждение:
               </p>
               <input
                 type="text"
@@ -185,9 +187,7 @@ export default function ApiAccessSection({
               placeholder="https://example.com/my-project"
               className={`w-full px-3 py-2 border ${urlError ? "border-error-border" : "border-neutral-border"} ${borderRadius.md} focus:outline-none focus:ring-2 focus:ring-primary mb-1`}
             />
-            {urlError && (
-              <p className="text-error text-xs mt-1">{urlError}</p>
-            )}
+            {urlError && <p className="text-error text-xs mt-1">{urlError}</p>}
           </div>
           <button
             type="button"

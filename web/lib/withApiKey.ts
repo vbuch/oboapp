@@ -24,18 +24,23 @@ function getEnvKeys(): Set<string> {
 export async function validateApiKey(request: Request): Promise<boolean> {
   const key = request.headers.get("x-api-key");
   if (!key) return false;
+  const normalizedKey = key.trim();
+  if (!normalizedKey) return false;
 
   // Fast path: check env-var keys (no DB round-trip)
-  if (getEnvKeys().has(key)) return true;
+  if (getEnvKeys().has(normalizedKey)) return true;
 
   // DB path: look up the key in the apiClients collection
   try {
     const { getDb } = await import("@/lib/db");
     const db = await getDb();
-    const client = await db.apiClients.findByApiKey(key);
+    const client = await db.apiClients.findByApiKey(normalizedKey);
     return client !== null;
   } catch (error) {
-    console.error("validateApiKey: failed to validate API key due to an internal error", error);
+    console.error(
+      "validateApiKey: failed to validate API key due to an internal error",
+      error,
+    );
     return false;
   }
 }

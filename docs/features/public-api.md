@@ -6,12 +6,12 @@ OboApp exposes a read-only public REST API at `/api/v1` for external consumption
 
 ## Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/sources` | List all data sources |
-| `GET` | `/api/v1/messages` | Fetch messages filtered by geographic bounds and optional categories |
-| `GET` | `/api/v1/messages/by-id` | Fetch a single message by ID |
-| `GET` | `/api/v1/openapi` | OpenAPI 3.0 specification (no key required) |
+| Method | Path                     | Description                                                          |
+| ------ | ------------------------ | -------------------------------------------------------------------- |
+| `GET`  | `/api/v1/sources`        | List all data sources                                                |
+| `GET`  | `/api/v1/messages`       | Fetch messages filtered by geographic bounds and optional categories |
+| `GET`  | `/api/v1/messages/by-id` | Fetch a single message by ID                                         |
+| `GET`  | `/api/v1/openapi`        | OpenAPI 3.0 specification (no key required)                          |
 
 ## Authentication
 
@@ -30,7 +30,7 @@ Registered OboApp users can generate and revoke their own API key from the **Set
 
 When generating a key, users must provide a URL to a public website, repository, or project page that describes where the data will be used.
 
-Keys have the format `obo_<random>` and are shown once at creation — copy and store them securely.
+Keys have the format `obo_<random>` and can be viewed from the Settings page — treat them as secrets and store them securely.
 
 ## Revoking an API Key
 
@@ -40,23 +40,21 @@ From the Settings page, click **Отмени API ключа**. Revocation requir
 
 ### `GET /api/v1/messages`
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `north` | number | Yes | Northern latitude bound |
-| `south` | number | Yes | Southern latitude bound |
-| `east` | number | Yes | Eastern longitude bound |
-| `west` | number | Yes | Western longitude bound |
-| `categories` | string | No | Filter by category |
-| `zoom` | integer | No | Controls clustering (zoom level, integer 1–22) |
+| Parameter    | Type    | Required | Description                                    |
+| ------------ | ------- | -------- | ---------------------------------------------- |
+| `north`      | number  | No       | Northern latitude bound                        |
+| `south`      | number  | No       | Southern latitude bound                        |
+| `east`       | number  | No       | Eastern longitude bound                        |
+| `west`       | number  | No       | Western longitude bound                        |
+| `categories` | string  | No       | Filter by category                             |
+| `zoom`       | integer | No       | Controls clustering (zoom level, integer 1–22) |
 
 ### `GET /api/v1/messages/by-id`
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `id` | string | Yes | Message document ID |
+| Parameter | Type   | Required | Description         |
+| --------- | ------ | -------- | ------------------- |
+| `id`      | string | Yes      | Message document ID |
 
 ## YSM Mobile App
 
-The Your Sofia (YSM) mobile app is a registered API client of `/api/v1`. It uses the same self-service key management and accesses data through the standard `/api/v1/sources`, `/api/v1/messages`, and `/api/v1/messages/by-id` endpoints.
-
-YSM-specific push notification endpoints (`/api/ysm/notifications/history`, `/api/ysm/notifications/subscription`) remain at `/api/ysm` as they use Firebase Auth and are not part of the public data API.
+The Your Sofia (YSM) mobile app is a registered API client of `/api/v1` and currently consumes the `/api/v1/messages` endpoint.

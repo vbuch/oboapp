@@ -2,69 +2,17 @@ import { describe, it, expect } from "vitest";
 import { buildYsmOpenApi, ysmSchemas } from "@/lib/ysm-api-schema";
 
 describe("YSM OpenAPI", () => {
-  it("matches snapshot", () => {
+  it("exposes only YSM notification endpoints", () => {
     const document = buildYsmOpenApi();
-    expect(document).toMatchSnapshot();
+    const paths = Object.keys(document.paths ?? {});
+
+    expect(paths).toContain("/api/ysm/notifications/history");
+    expect(paths).toContain("/api/ysm/notifications/subscription");
+    expect(paths).not.toContain("/api/ysm/messages");
+    expect(paths).not.toContain("/api/ysm/sources");
   });
 
   it("validates success response shapes", () => {
-    expect(() =>
-      ysmSchemas.sourcesResponse.parse({
-        sources: [
-          {
-            id: "source-1",
-            name: "Source One",
-            url: "https://example.com",
-            logoUrl: "https://example.com/logo.png",
-            locality: "bg.sofia",
-          },
-        ],
-      }),
-    ).not.toThrow();
-
-    expect(() =>
-      ysmSchemas.messagesResponse.parse({
-        messages: [
-          {
-            id: "msg-1",
-            text: "Test message",
-            locality: "bg.sofia",
-            markdownText: "Test",
-            addresses: [
-              {
-                originalText: "ул. Тест 1",
-                formattedAddress: "ул. Тест 1, София",
-                coordinates: { lat: 42.7, lng: 23.3 },
-                geoJson: { type: "Point", coordinates: [23.3, 42.7] },
-              },
-            ],
-            responsibleEntity: "Test",
-            pins: [
-              {
-                address: "ул. Тест 1",
-                timespans: [
-                  { start: "01.01.2025 08:00", end: "01.01.2025 18:00" },
-                ],
-              },
-            ],
-            streets: [],
-            geoJson: {
-              type: "FeatureCollection",
-              features: [
-                {
-                  type: "Feature",
-                  geometry: { type: "Point", coordinates: [23.3, 42.7] },
-                  properties: {},
-                },
-              ],
-            },
-            createdAt: "2025-01-01T00:00:00.000Z",
-            categories: ["traffic"],
-          },
-        ],
-      }),
-    ).not.toThrow();
-
     expect(() =>
       ysmSchemas.notificationHistoryResponse.parse({
         items: [
@@ -74,7 +22,7 @@ describe("YSM OpenAPI", () => {
             messageSnapshot: {
               text: "Test message",
               locality: "bg.sofia",
-              createdAt:"2025-01-01T00:00:00.000Z",
+              createdAt: "2025-01-01T00:00:00.000Z",
             },
             notifiedAt: "2025-01-01T01:00:00.000Z",
             interestId: "interest-1",
