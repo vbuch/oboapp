@@ -74,8 +74,10 @@ export default function NotificationDropdown({
       setNextOffset(data.nextOffset);
     } catch (err) {
       console.error("Error fetching notifications:", err);
-      setError("Неуспешно зареждане на известията");
+      // Only set error state for initial load failures
+      // Keep existing notifications visible if "Load more" fails
       if (!append) {
+        setError("Неуспешно зареждане на известията");
         setNotifications([]);
       }
     } finally {

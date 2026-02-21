@@ -10,29 +10,49 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb();
 
-    // Get all unread notifications for the user
+    // Get all unread notification IDs for the user (only fetch _id to minimize data transfer)
     const unreadNotifications = await db.notificationMatches.findMany({
       where: [
         { field: "userId", op: "==", value: userId },
         { field: "notified", op: "==", value: true },
         { field: "readAt", op: "==", value: null },
       ],
+      select: ["_id"],
     });
 
-    // Mark each as read
+    // Mark each as read, in batches to avoid unbounded concurrency
     const readAt = new Date().toISOString();
-    const updatePromises = unreadNotifications.map((notification) =>
-      db.notificationMatches.updateOne(notification._id as string, { readAt }),
+    const notificationIds = unreadNotifications.map(
+      (notification) => notification._id as string,
     );
 
-    await Promise.all(updatePromises);
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < notificationIds.length; i += BATCH_SIZE) {
+      const batchIds = notificationIds.slice(i, i + BATCH_SIZE);
+      const batchPromises = batchIds.map((id) =>
+        db.notificationMatches.updateOne(id, { readAt }),
+      );
+      await Promise.all(batchPromises);
+    }
 
     return NextResponse.json({
       success: true,
-      count: unreadNotifications.length,
+      count: notificationIds.length,
     });
   } catch (error) {
     console.error("Error marking all notifications as read:", error);
+
+    if (
+      error instanceof Error &&
+      (error.message === "Missing auth token" ||
+        error.message === "Invalid auth token")
+    ) {
+      return NextResponse.json(
+        { error: `Unauthorized - ${error.message}` },
+        { status: 401 },
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to mark all notifications as read" },
       { status: 500 },

@@ -37,6 +37,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error marking notification as read:", error);
+
+    if (
+      error instanceof Error &&
+      (error.message === "Missing auth token" ||
+        error.message === "Invalid auth token")
+    ) {
+      return NextResponse.json(
+        { error: `Unauthorized - ${error.message}` },
+        { status: 401 },
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to mark notification as read" },
       { status: 500 },

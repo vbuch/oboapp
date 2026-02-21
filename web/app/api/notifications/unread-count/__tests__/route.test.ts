@@ -61,7 +61,7 @@ describe("GET /api/notifications/unread-count", () => {
   });
 
   it("returns 401 when authentication fails", async () => {
-    verifyAuthTokenMock.mockRejectedValue(new Error("Unauthorized"));
+    verifyAuthTokenMock.mockRejectedValue(new Error("Missing auth token"));
 
     const request = new Request("http://localhost/api/notifications/unread-count", {
       headers: { authorization: "Bearer invalid-token" },
@@ -70,8 +70,8 @@ describe("GET /api/notifications/unread-count", () => {
     const response = await GET(request as any);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Failed to fetch unread notification count");
+    expect(response.status).toBe(401);
+    expect(data.error).toContain("Unauthorized");
   });
 
   it("returns 500 when database fails", async () => {

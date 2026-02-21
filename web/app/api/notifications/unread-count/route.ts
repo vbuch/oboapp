@@ -21,6 +21,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ count: unreadCount });
   } catch (error) {
     console.error("Error fetching unread notification count:", error);
+
+    if (
+      error instanceof Error &&
+      (error.message === "Missing auth token" ||
+        error.message === "Invalid auth token")
+    ) {
+      return NextResponse.json(
+        { error: `Unauthorized - ${error.message}` },
+        { status: 401 },
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to fetch unread notification count" },
       { status: 500 },
