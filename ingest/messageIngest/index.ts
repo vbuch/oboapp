@@ -146,8 +146,9 @@ async function processSingleMessage(
 
   // Handle precomputed GeoJSON path
   if (precomputedGeoJson) {
-    await handlePrecomputedGeoJsonData(
+    addresses = await handlePrecomputedGeoJsonData(
       messageId,
+      precomputedGeoJson,
       options.markdownText,
       options.timespanStart,
       options.timespanEnd,
@@ -738,17 +739,105 @@ async function finalizeFailedMessage(
 }
 
 /**
+ * Compute the centroid of all features in a GeoJSON FeatureCollection.
+ * Returns an Address with the centroid coordinates, or null if it cannot be computed.
+ * Uses coordinate averaging across all vertices — sufficient precision for map navigation.
+ * For Polygon geometries, only the outer ring is used (holes/inner rings are excluded).
+ * Exported for unit testing.
+ */
+export function computeGeoJsonCentroidAddress(
+  geoJson: GeoJSONFeatureCollection,
+): Address | null {
+  const features = geoJson.features;
+  if (!features || features.length === 0) return null;
+
+  let totalLat = 0;
+  let totalLng = 0;
+  let count = 0;
+
+  for (const feature of features) {
+    const geom = feature.geometry;
+    if (!geom) continue;
+
+    switch (geom.type) {
+      case "Point": {
+        totalLng += geom.coordinates[0];
+        totalLat += geom.coordinates[1];
+        count++;
+        break;
+      }
+      case "MultiPoint": {
+        for (const coord of geom.coordinates) {
+          totalLng += coord[0];
+          totalLat += coord[1];
+          count++;
+        }
+        break;
+      }
+      case "LineString": {
+        for (const coord of geom.coordinates) {
+          totalLng += coord[0];
+          totalLat += coord[1];
+          count++;
+        }
+        break;
+      }
+      case "Polygon": {
+        const ring = geom.coordinates[0];
+        if (ring && ring.length > 0) {
+          // Skip the closing vertex if it duplicates the first (standard GeoJSON rings are closed)
+          const first = ring[0];
+          const last = ring[ring.length - 1];
+          const isClosed =
+            ring.length > 1 &&
+            first[0] === last[0] &&
+            first[1] === last[1];
+          const vertices = isClosed ? ring.slice(0, -1) : ring;
+          for (const coord of vertices) {
+            totalLng += coord[0];
+            totalLat += coord[1];
+            count++;
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  if (count === 0) return null;
+
+  const lat = totalLat / count;
+  const lng = totalLng / count;
+
+  return {
+    originalText: "Местоположение",
+    formattedAddress: "Местоположение",
+    coordinates: { lat, lng },
+  };
+}
+
+/**
  * Handle precomputed GeoJSON data storage
  */
 async function handlePrecomputedGeoJsonData(
   messageId: string,
+  precomputedGeoJson: GeoJSONFeatureCollection,
   markdownText: string | undefined,
   timespanStart: Date | undefined,
   timespanEnd: Date | undefined,
   crawledAt: Date,
-): Promise<void> {
+): Promise<Address[]> {
+  const centroidAddress = computeGeoJsonCentroidAddress(precomputedGeoJson);
+  const addresses = centroidAddress ? [centroidAddress] : [];
+  const pins = centroidAddress
+    ? [{ address: centroidAddress.originalText, timespans: [] }]
+    : [];
+
   if (!markdownText) {
-    return;
+    if (addresses.length > 0) {
+      await updateMessage(messageId, { addresses, pins, streets: [], cadastralProperties: [] });
+    }
+    return addresses;
   }
 
   const { validateAndFallback } = await import("@/lib/timespan-utils");
@@ -757,12 +846,15 @@ async function handlePrecomputedGeoJsonData(
   await updateMessage(messageId, {
     markdownText,
     responsibleEntity: "",
-    pins: [],
+    addresses,
+    pins,
     streets: [],
     cadastralProperties: [],
     timespanStart: validated.timespanStart,
     timespanEnd: validated.timespanEnd,
   });
+
+  return addresses;
 }
 
 /**

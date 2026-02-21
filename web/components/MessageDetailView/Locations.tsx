@@ -74,19 +74,26 @@ export default function Locations({
     }
   };
 
+  const handleClickCoords = (lat: number, lng: number) => {
+    if (!onLocationClick) return;
+    onLocationClick(lat, lng);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <>
       {pins && pins.length > 0 && (
         <DetailItem title="Локации">
           <div className="space-y-3">
             {pins.map((pin, index) => {
-              const coords = findCoordinates(pin.address, addresses);
+              const coords =
+                findCoordinates(pin.address, addresses) ?? pin.coordinates;
               return (
                 <ClickableCard
                   key={`pin-${pin.address}-${index}`}
                   onClick={
                     coords && onLocationClick
-                      ? () => handleClick(pin.address)
+                      ? () => handleClickCoords(coords.lat, coords.lng)
                       : undefined
                   }
                 >
