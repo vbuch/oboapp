@@ -44,6 +44,8 @@ export interface OnboardingContext {
   hasSubscriptions: boolean;
   /** Whether this is a restart (user clicked button) vs initial load */
   isRestart?: boolean;
+  /** Whether the user has already seen the zero-zones creation prompt */
+  hasSeenZoneCreationPrompt?: boolean;
 }
 
 /**
@@ -98,10 +100,11 @@ function computeUnauthenticatedState(
 function computeAuthenticatedState(
   zonesCount: number,
   permission: NotificationPermission | undefined,
+  hasSeenZoneCreationPrompt = false,
 ): OnboardingState {
-  // No zones yet → prompt to create one
+  // No zones yet → prompt to create one (unless already seen)
   if (zonesCount === 0) {
-    return "zoneCreation";
+    return hasSeenZoneCreationPrompt ? "complete" : "zoneCreation";
   }
 
   // Has zones - check notification permission
@@ -130,7 +133,7 @@ export function computeStateFromContext(
   const { permission, isLoggedIn, zonesCount, isRestart = false } = context;
 
   return isLoggedIn
-    ? computeAuthenticatedState(zonesCount, permission)
+    ? computeAuthenticatedState(zonesCount, permission, context.hasSeenZoneCreationPrompt)
     : computeUnauthenticatedState(permission, isRestart);
 }
 
@@ -339,6 +342,8 @@ function getNotificationPermission(): NotificationPermission | undefined {
   return undefined;
 }
 
+const ZONE_CREATION_SEEN_KEY = "obo_seen_zone_prompt";
+
 /**
  * Hook to manage onboarding flow state machine
  *
@@ -365,13 +370,29 @@ export function useOnboardingFlow(
 
   // Build current context
   const context = useMemo((): OnboardingContext => {
+    const hasSeenZoneCreationPrompt =
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem(ZONE_CREATION_SEEN_KEY) === "true"
+        : false;
     return {
       permission: getNotificationPermission(),
       isLoggedIn: user !== null,
       zonesCount: interests.length,
       hasSubscriptions,
+      hasSeenZoneCreationPrompt,
     };
   }, [user, interests.length, hasSubscriptions]);
+
+  // Mark prompt as seen when state enters zoneCreation
+  useEffect(() => {
+    if (reducerState.state === "zoneCreation") {
+      try {
+        localStorage.setItem(ZONE_CREATION_SEEN_KEY, "true");
+      } catch {
+        // Ignore storage errors (private browsing, quota exceeded, etc.)
+      }
+    }
+  }, [reducerState.state]);
 
   // Initial load - dispatch LOADED once subscriptions are checked
   useEffect(() => {

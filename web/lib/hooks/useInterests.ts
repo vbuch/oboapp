@@ -107,7 +107,11 @@ export function useInterests() {
 
   // Add a new interest
   const addInterest = useCallback(
-    async (coordinates: { lat: number; lng: number }, radius: number = 500) => {
+    async (
+      coordinates: { lat: number; lng: number },
+      radius: number = 500,
+      metadata?: { label?: string; color?: string },
+    ) => {
       if (!user) {
         throw new Error("Must be logged in to add interests");
       }
@@ -124,7 +128,7 @@ export function useInterests() {
             "Content-Type": "application/json",
             Authorization: authHeader,
           },
-          body: JSON.stringify({ coordinates, radius }),
+          body: JSON.stringify({ coordinates, radius, ...metadata }),
         });
 
         if (!response.ok) {

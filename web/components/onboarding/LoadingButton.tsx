@@ -9,7 +9,7 @@ interface LoadingButtonProps {
 
 /**
  * Button shown during loading state with a spinning indicator.
- * Matches the styling of NotificationButton/AddInterestButton but is non-interactive.
+ * Matches the styling of NotificationButton but is non-interactive.
  */
 export default function LoadingButton({ visible = true }: LoadingButtonProps) {
   return (

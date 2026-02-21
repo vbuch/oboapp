@@ -16,6 +16,8 @@ export const MOCK_INTERESTS: Interest[] = [
       lng: 23.3219,
     },
     radius: 500, // 500m default
+    label: "Дома",
+    color: "#3B82F6",
     createdAt: new Date("2026-01-15T10:00:00Z").toISOString(),
     updatedAt: new Date("2026-01-15T10:00:00Z").toISOString(),
   },
@@ -27,6 +29,8 @@ export const MOCK_INTERESTS: Interest[] = [
       lng: 23.38,
     },
     radius: 800, // 800m radius
+    label: "Офис",
+    color: "#8B5CF6",
     createdAt: new Date("2026-01-20T14:30:00Z").toISOString(),
     updatedAt: new Date("2026-01-20T14:30:00Z").toISOString(),
   },

@@ -67,6 +67,8 @@ export interface Interest {
     lng: number;
   };
   radius: number; // in meters (min: 100, max: 1000, default: 500)
+  label?: string; // Zone type label (e.g. "Дома", "Офис")
+  color?: string; // Zone color as hex string (e.g. "#3B82F6")
   createdAt: Date | string;
   updatedAt: Date | string;
 }

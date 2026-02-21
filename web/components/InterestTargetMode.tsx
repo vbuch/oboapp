@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Circle } from "@react-google-maps/api";
 import { trackEvent, trackEventDebounced } from "@/lib/analytics";
 import { colors, borderRadius, zIndex } from "@/lib/colors";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
@@ -9,6 +8,7 @@ import { buttonStyles, buttonSizes } from "@/lib/theme";
 interface InterestTargetModeProps {
   readonly map: google.maps.Map | null;
   readonly initialRadius?: number;
+  readonly pendingColor?: string;
   readonly onSave: (
     coordinates: { lat: number; lng: number },
     radius: number,
@@ -26,6 +26,7 @@ const DEFAULT_RADIUS = 500;
 export default function InterestTargetMode({
   map,
   initialRadius = DEFAULT_RADIUS,
+  pendingColor,
   onSave,
   onCancel,
 }: InterestTargetModeProps) {
@@ -36,17 +37,76 @@ export default function InterestTargetMode({
   const [radius, setRadius] = useState(initialRadius);
   const [isSaving, setIsSaving] = useState(false);
   const isEditingRef = useRef(initialRadius !== DEFAULT_RADIUS);
+  const circleRef = useRef<google.maps.Circle | null>(null);
 
-  // Set initial center when map is available
+  const circleColor = pendingColor || colors.interaction.circle;
+
+  // Manage the native Google Maps Circle imperatively to avoid
+  // ghost artifacts from the @react-google-maps/api <Circle> component.
+  useEffect(() => {
+    if (!map || !currentCenter) {
+      // Remove circle if center is cleared
+      if (circleRef.current) {
+        circleRef.current.setMap(null);
+        circleRef.current = null;
+      }
+      return;
+    }
+
+    if (!circleRef.current) {
+      // Create the circle
+      circleRef.current = new google.maps.Circle({
+        map,
+        center: currentCenter,
+        radius,
+        fillColor: circleColor,
+        fillOpacity: CIRCLE_OPACITY,
+        strokeColor: circleColor,
+        strokeOpacity: CIRCLE_OPACITY * 2,
+        strokeWeight: 2,
+        clickable: true,
+        zIndex: 10,
+      });
+
+      // Clicking the circle repositions it
+      circleRef.current.addListener("click", (e: google.maps.MapMouseEvent) => {
+        if (e.latLng) {
+          setCurrentCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+        }
+      });
+    } else {
+      // Update existing circle
+      circleRef.current.setCenter(currentCenter);
+      circleRef.current.setRadius(radius);
+      circleRef.current.setOptions({
+        fillColor: circleColor,
+        strokeColor: circleColor,
+      });
+    }
+
+    // Cleanup: remove the circle from the map when the component unmounts
+    return () => {
+      if (circleRef.current) {
+        circleRef.current.setMap(null);
+        circleRef.current = null;
+      }
+    };
+  }, [map, currentCenter, radius, circleColor]);
+
+  // When editing an existing zone, use the map center as the starting position.
+  // For new zones, start with no circle — the user clicks to place it.
   useEffect(() => {
     if (!map || currentCenter) return;
 
-    const center = map.getCenter();
-    if (center) {
-      setCurrentCenter({
-        lat: center.lat(),
-        lng: center.lng(),
-      });
+    // Only auto-set the center when editing an existing interest
+    if (isEditingRef.current) {
+      const center = map.getCenter();
+      if (center) {
+        setCurrentCenter({
+          lat: center.lat(),
+          lng: center.lng(),
+        });
+      }
     }
   }, [map, currentCenter]);
 
@@ -106,36 +166,15 @@ export default function InterestTargetMode({
 
   return (
     <>
-      {/* Preview Circle */}
-      {currentCenter && (
-        <Circle
-          center={currentCenter}
-          radius={radius}
-          options={{
-            fillColor: colors.interaction.circle,
-            fillOpacity: CIRCLE_OPACITY,
-            strokeColor: colors.interaction.circle,
-            strokeOpacity: CIRCLE_OPACITY * 2,
-            strokeWeight: 2,
-            clickable: true,
-            zIndex: 10,
-          }}
-          onClick={(e) => {
-            if (e.latLng) {
-              setCurrentCenter({
-                lat: e.latLng.lat(),
-                lng: e.latLng.lng(),
-              });
-            }
-          }}
-        />
-      )}
-
       {/* Control Panel */}
       <div className={`fixed sm:absolute bottom-8 left-1/2 -translate-x-1/2 ${zIndex.overlay} pointer-events-auto`}>
         <div className="bg-white rounded-lg shadow-xl border border-neutral-border p-4 min-w-[320px]">
-          {/* Coordinates Display */}
-          {currentCenter && (
+          {/* Placement hint or coordinates */}
+          {!currentCenter ? (
+            <div className="mb-4 text-sm text-neutral text-center">
+              Натиснете на картата, за да поставите зоната
+            </div>
+          ) : (
             <div className="mb-4 text-xs text-neutral font-mono text-center">
               {currentCenter.lat.toFixed(6)}, {currentCenter.lng.toFixed(6)}
             </div>
