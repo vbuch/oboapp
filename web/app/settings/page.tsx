@@ -54,15 +54,12 @@ export default function SettingsPage() {
       const token = await user.getIdToken();
       const authHeader = `Bearer ${token}`;
 
-      // Fetch interests, subscriptions, notification count, and API client in parallel
-      const [interestsRes, subscriptionsRes, countRes, apiClientRes] = await Promise.all([
+      // Fetch interests, subscriptions, and API client in parallel
+      const [interestsRes, subscriptionsRes, apiClientRes] = await Promise.all([
         fetch("/api/interests", {
           headers: { Authorization: authHeader },
         }),
         fetch("/api/notifications/subscription/all", {
-          headers: { Authorization: authHeader },
-        }),
-        fetch("/api/notifications/history/count", {
           headers: { Authorization: authHeader },
         }),
         fetch("/api/api-clients", {
@@ -74,10 +71,9 @@ export default function SettingsPage() {
         throw new Error("Failed to fetch data");
       }
 
-      const [interestsData, subscriptionsData, countData, apiClientData] = await Promise.all([
+      const [interestsData, subscriptionsData, apiClientData] = await Promise.all([
         interestsRes.json(),
         subscriptionsRes.json(),
-        countRes.json(),
         apiClientRes.ok ? apiClientRes.json() : Promise.resolve(null),
       ]);
 
@@ -86,9 +82,6 @@ export default function SettingsPage() {
       );
       setSubscriptions(
         Array.isArray(subscriptionsData) ? subscriptionsData : []
-      );
-      setNotificationCount(
-        typeof countData?.count === "number" ? countData.count : 0
       );
       setApiClient(apiClientData ?? null);
     } catch (err) {

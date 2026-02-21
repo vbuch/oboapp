@@ -238,7 +238,7 @@ describe("GET /api/notifications/history", () => {
     );
 
     const response = await GET(request as any);
-    const data = await response.json();
+    await response.json();
 
     expect(response.status).toBe(200);
     expect(findByUserIdMock).toHaveBeenCalledWith("user-1", {
@@ -271,7 +271,7 @@ describe("GET /api/notifications/history", () => {
     );
 
     const response = await GET(request as any);
-    const data = await response.json();
+    await response.json();
 
     expect(response.status).toBe(200);
     expect(findByUserIdMock).toHaveBeenCalledWith("user-1", {
@@ -304,7 +304,7 @@ describe("GET /api/notifications/history", () => {
     );
 
     const response = await GET(request as any);
-    const data = await response.json();
+    await response.json();
 
     expect(response.status).toBe(200);
     expect(findByUserIdMock).toHaveBeenCalledWith("user-1", {
@@ -337,7 +337,7 @@ describe("GET /api/notifications/history", () => {
     );
 
     const response = await GET(request as any);
-    const data = await response.json();
+    await response.json();
 
     expect(response.status).toBe(200);
     expect(findByUserIdMock).toHaveBeenCalledWith("user-1", {
