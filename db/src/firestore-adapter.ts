@@ -71,6 +71,10 @@ export class FirestoreAdapter implements DbClient {
       }
     }
 
+    if (options?.offset) {
+      query = query.offset(options.offset);
+    }
+
     if (options?.limit) {
       query = query.limit(options.limit);
     }

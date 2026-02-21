@@ -6,6 +6,7 @@ import CategoryFilterItem from "@/components/CategoryFilterItem";
 import SourceFilterItem from "@/components/SourceFilterItem";
 import Accordion from "@/components/Accordion";
 import Checkbox from "@/components/Checkbox";
+import UnreadIndicator from "@/components/UnreadIndicator";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { useDragPanel } from "@/lib/hooks/useDragPanel";
 import { borderRadius, zIndex } from "@/lib/colors";
@@ -258,9 +259,7 @@ export default function FilterBox({
           <div className="relative">
             <FilterIcon className="w-5 h-5 text-white" />
             {/* Active Filter Indicator - Red Dot */}
-            {hasActiveFilters && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-error rounded-full border-2 border-white" />
-            )}
+            {hasActiveFilters && <UnreadIndicator />}
           </div>
         </button>
       </div>

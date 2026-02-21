@@ -66,20 +66,24 @@ describe("YSM OpenAPI", () => {
     ).not.toThrow();
 
     expect(() =>
-      ysmSchemas.notificationHistoryResponse.parse([
-        {
-          id: "history-1",
-          messageId: "msg-1",
-          messageSnapshot: {
-            text: "Test message",
-            locality: "bg.sofia",
-            createdAt:"2025-01-01T00:00:00.000Z",
+      ysmSchemas.notificationHistoryResponse.parse({
+        items: [
+          {
+            id: "history-1",
+            messageId: "msg-1",
+            messageSnapshot: {
+              text: "Test message",
+              locality: "bg.sofia",
+              createdAt:"2025-01-01T00:00:00.000Z",
+            },
+            notifiedAt: "2025-01-01T01:00:00.000Z",
+            interestId: "interest-1",
+            successfulDevicesCount: 1,
           },
-          notifiedAt: "2025-01-01T01:00:00.000Z",
-          interestId: "interest-1",
-          successfulDevicesCount: 1,
-        },
-      ]),
+        ],
+        hasMore: false,
+        nextOffset: null,
+      }),
     ).not.toThrow();
 
     expect(() =>

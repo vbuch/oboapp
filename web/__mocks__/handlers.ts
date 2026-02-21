@@ -16,6 +16,7 @@ import type { Message } from "@oboapp/shared";
 let interests: Interest[] = [...MOCK_INTERESTS];
 let subscriptions: NotificationSubscription[] = [...MOCK_SUBSCRIPTIONS];
 let apiClient: ApiClient | null = null; // Start with no API client
+let notificationHistory = [...MOCK_NOTIFICATION_HISTORY];
 
 /**
  * Helper: Filter messages by viewport bounds
@@ -315,14 +316,75 @@ export const handlers = [
     return HttpResponse.json({ success: true, deleted });
   }),
 
-  // GET /api/notifications/history - Fetch notification history
-  http.get("/api/notifications/history", () => {
-    return HttpResponse.json(MOCK_NOTIFICATION_HISTORY);
+  // GET /api/notifications/history - Fetch notification history with pagination
+  http.get("/api/notifications/history", ({ request }) => {
+    const url = new URL(request.url);
+    
+    const rawLimit = url.searchParams.get("limit");
+    let limit = Number.parseInt(rawLimit ?? "", 10);
+    if (!Number.isFinite(limit) || limit <= 0) {
+      // Default page size when missing/invalid
+      limit = 20;
+    } else {
+      // Enforce maximum page size
+      limit = Math.min(limit, 100);
+    }
+
+    const rawOffset = url.searchParams.get("offset");
+    let offset = Number.parseInt(rawOffset ?? "", 10);
+    if (!Number.isFinite(offset) || offset < 0) {
+      // Clamp negative/invalid offsets to 0
+      offset = 0;
+    }
+
+    const items = notificationHistory.slice(offset, offset + limit);
+    const hasMore = offset + limit < notificationHistory.length;
+    const nextOffset = hasMore ? offset + limit : null;
+
+    return HttpResponse.json({ items, hasMore, nextOffset });
   }),
 
   // GET /api/notifications/history/count - Get notification count
   http.get("/api/notifications/history/count", () => {
-    return HttpResponse.json({ count: MOCK_NOTIFICATION_HISTORY.length });
+    return HttpResponse.json({ count: notificationHistory.length });
+  }),
+
+  // GET /api/notifications/unread-count - Get unread notification count
+  http.get("/api/notifications/unread-count", () => {
+    const unreadCount = notificationHistory.filter((n) => !n.readAt).length;
+    return HttpResponse.json({ count: unreadCount });
+  }),
+
+  // POST /api/notifications/mark-read - Mark a notification as read
+  http.post("/api/notifications/mark-read", async ({ request }) => {
+    const body = (await request.json()) as { notificationId: string };
+    const notification = notificationHistory.find(
+      (n) => n.id === body.notificationId,
+    );
+
+    if (!notification) {
+      return HttpResponse.json(
+        { error: "Notification not found" },
+        { status: 404 },
+      );
+    }
+
+    notification.readAt = new Date().toISOString();
+    return HttpResponse.json({ success: true });
+  }),
+
+  // POST /api/notifications/mark-all-read - Mark all notifications as read
+  http.post("/api/notifications/mark-all-read", () => {
+    const readAt = new Date().toISOString();
+    const unreadCount = notificationHistory.filter((n) => !n.readAt).length;
+
+    notificationHistory.forEach((notification) => {
+      if (!notification.readAt) {
+        notification.readAt = readAt;
+      }
+    });
+
+    return HttpResponse.json({ success: true, count: unreadCount });
   }),
 
   // DELETE /api/user - Delete user account (mock - just clear data)
@@ -331,6 +393,7 @@ export const handlers = [
     interests = [];
     subscriptions = [];
     apiClient = null;
+    notificationHistory = [];
     return new HttpResponse(null, { status: 204 });
   }),
 

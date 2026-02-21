@@ -42,7 +42,7 @@ export class NotificationMatchesRepository {
   /** Find notification history for a user */
   async findByUserId(
     userId: string,
-    options?: { limit?: number },
+    options?: { limit?: number; offset?: number },
   ): Promise<Record<string, unknown>[]> {
     return this.db.findMany(NOTIFICATION_MATCHES_COLLECTION, {
       where: [
@@ -51,6 +51,7 @@ export class NotificationMatchesRepository {
       ],
       orderBy: [{ field: "notifiedAt", direction: "desc" }],
       limit: options?.limit,
+      offset: options?.offset,
     });
   }
 

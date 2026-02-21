@@ -24,7 +24,11 @@ export const ysmSchemas = {
   message: MessageSchema,
   sourcesResponse: z.object({ sources: z.array(SourceSchema) }),
   messagesResponse: z.object({ messages: z.array(MessageSchema) }),
-  notificationHistoryResponse: z.array(NotificationHistoryItemSchema),
+  notificationHistoryResponse: z.object({
+    items: z.array(NotificationHistoryItemSchema),
+    hasMore: z.boolean(),
+    nextOffset: z.number().nullable(),
+  }),
   notificationSubscriptionStatusResponse: NotificationSubscriptionStatusSchema,
   notificationSubscriptionResponse: NotificationSubscriptionSchema,
   notificationSubscriptionRequest: NotificationSubscriptionRequestSchema,

@@ -908,59 +908,79 @@ exports[`YSM OpenAPI > matches snapshot 1`] = `
         "type": "object",
       },
       "YsmNotificationHistoryResponse": {
-        "items": {
-          "properties": {
-            "distance": {
-              "type": "number",
-            },
-            "id": {
-              "type": "string",
-            },
-            "interestId": {
-              "type": "string",
-            },
-            "messageId": {
-              "type": "string",
-            },
-            "messageSnapshot": {
+        "properties": {
+          "hasMore": {
+            "type": "boolean",
+          },
+          "items": {
+            "items": {
               "properties": {
-                "createdAt": {
+                "distance": {
+                  "type": "number",
+                },
+                "id": {
                   "type": "string",
                 },
-                "source": {
+                "interestId": {
                   "type": "string",
                 },
-                "sourceUrl": {
+                "messageId": {
                   "type": "string",
                 },
-                "text": {
+                "messageSnapshot": {
+                  "properties": {
+                    "createdAt": {
+                      "type": "string",
+                    },
+                    "source": {
+                      "type": "string",
+                    },
+                    "sourceUrl": {
+                      "type": "string",
+                    },
+                    "text": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "text",
+                    "createdAt",
+                  ],
+                  "type": "object",
+                },
+                "notifiedAt": {
                   "type": "string",
+                },
+                "readAt": {
+                  "type": "string",
+                },
+                "successfulDevicesCount": {
+                  "type": "number",
                 },
               },
               "required": [
-                "text",
-                "createdAt",
+                "id",
+                "messageId",
+                "messageSnapshot",
+                "notifiedAt",
+                "interestId",
+                "successfulDevicesCount",
               ],
               "type": "object",
             },
-            "notifiedAt": {
-              "type": "string",
-            },
-            "successfulDevicesCount": {
-              "type": "number",
-            },
+            "type": "array",
           },
-          "required": [
-            "id",
-            "messageId",
-            "messageSnapshot",
-            "notifiedAt",
-            "interestId",
-            "successfulDevicesCount",
-          ],
-          "type": "object",
+          "nextOffset": {
+            "nullable": true,
+            "type": "number",
+          },
         },
-        "type": "array",
+        "required": [
+          "items",
+          "hasMore",
+          "nextOffset",
+        ],
+        "type": "object",
       },
       "YsmNotificationSubscriptionDeleteResponse": {
         "properties": {

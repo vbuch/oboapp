@@ -133,8 +133,10 @@ export const zIndex = {
   fixed: "z-10",
   /** Navigation and top loading indicators */
   nav: "z-20",
-  /** Overlays - slide-out panels, dropdowns */
+  /** Overlays - slide-out panels */
   overlay: "z-30",
+  /** Dropdown menus - notification dropdown, user menu (shares z-30 to stack alongside overlays without blocking them) */
+  dropdown: "z-30",
   /** Overlay content - panel content that should be above overlay backdrops */
   overlayContent: "z-40",
   /** Modal backdrops - full-screen overlays for modals and prompts */

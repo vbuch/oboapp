@@ -141,6 +141,10 @@ export class MongoAdapter implements DbClient {
       cursor = cursor.sort(sort);
     }
 
+    if (options?.offset) {
+      cursor = cursor.skip(options.offset);
+    }
+
     if (options?.limit) {
       cursor = cursor.limit(options.limit);
     }

@@ -13,7 +13,6 @@ import {
 import { getMessaging, getToken } from "firebase/messaging";
 import { app } from "@/lib/firebase";
 import NotificationsSection from "./NotificationsSection";
-import NotificationHistorySection from "./NotificationHistorySection";
 import ZonesSection from "./ZonesSection";
 import DeleteAccountSection from "./DeleteAccountSection";
 import DeleteSuccessMessage from "./DeleteSuccessMessage";
@@ -36,7 +35,6 @@ export default function SettingsPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notificationCount, setNotificationCount] = useState<number>(0);
 
   // API client state
   const [apiClient, setApiClient] = useState<ApiClient | null>(null);
@@ -72,7 +70,7 @@ export default function SettingsPage() {
         }),
       ]);
 
-      if (!interestsRes.ok || !subscriptionsRes.ok || !countRes.ok) {
+      if (!interestsRes.ok || !subscriptionsRes.ok) {
         throw new Error("Failed to fetch data");
       }
 
@@ -370,8 +368,6 @@ export default function SettingsPage() {
         <SettingsHeader />
 
         {error && <ErrorBanner message={error} />}
-
-        <NotificationHistorySection count={notificationCount} />
 
         <NotificationsSection
           subscriptions={subscriptions}

@@ -48,6 +48,7 @@ export interface FindManyOptions {
   where?: WhereClause[];
   orderBy?: OrderByClause[];
   limit?: number;
+  offset?: number;
   select?: string[];
 }
 

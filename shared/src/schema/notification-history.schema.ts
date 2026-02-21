@@ -9,6 +9,7 @@ export const NotificationHistoryItemSchema = z.object({
   distance: z.number().optional(),
   interestId: z.string(),
   successfulDevicesCount: z.number(),
+  readAt: z.string().optional(),
 });
 
 export type NotificationHistoryItem = z.infer<
