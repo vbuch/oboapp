@@ -116,8 +116,8 @@ describe("computeGeoJsonCentroidAddress", () => {
     };
     const result = computeGeoJsonCentroidAddress(geoJson);
     expect(result).not.toBeNull();
-    expect(result!.coordinates.lat).toBeCloseTo(42.4);
-    expect(result!.coordinates.lng).toBeCloseTo(23.4);
+    expect(result!.coordinates.lat).toBeCloseTo(42.5);
+    expect(result!.coordinates.lng).toBeCloseTo(23.5);
   });
 
   it("should handle MultiPoint features", () => {

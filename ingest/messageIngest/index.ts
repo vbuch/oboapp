@@ -785,7 +785,15 @@ export function computeGeoJsonCentroidAddress(
       case "Polygon": {
         const ring = geom.coordinates[0];
         if (ring && ring.length > 0) {
-          for (const coord of ring) {
+          // Skip the closing vertex if it duplicates the first (standard GeoJSON rings are closed)
+          const first = ring[0];
+          const last = ring[ring.length - 1];
+          const isClosed =
+            ring.length > 1 &&
+            first[0] === last[0] &&
+            first[1] === last[1];
+          const vertices = isClosed ? ring.slice(0, -1) : ring;
+          for (const coord of vertices) {
             totalLng += coord[0];
             totalLat += coord[1];
             count++;
