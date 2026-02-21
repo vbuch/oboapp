@@ -28,7 +28,10 @@ describe("GET /api/notifications/unread-count", () => {
   });
 
   it("returns unread count for authenticated user", async () => {
-    countMock.mockResolvedValue(5);
+    // Mock: 10 total notified, 3 read = 7 unread
+    countMock
+      .mockResolvedValueOnce(10) // total notified
+      .mockResolvedValueOnce(3);  // read count
 
     const request = new Request("http://localhost/api/notifications/unread-count", {
       headers: { authorization: "Bearer test-token" },
@@ -38,16 +41,26 @@ describe("GET /api/notifications/unread-count", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toEqual({ count: 5 });
-    expect(countMock).toHaveBeenCalledWith([
+    expect(data).toEqual({ count: 7 });
+    
+    // Verify both count queries were made
+    expect(countMock).toHaveBeenCalledTimes(2);
+    expect(countMock).toHaveBeenNthCalledWith(1, [
       { field: "userId", op: "==", value: "user-1" },
       { field: "notified", op: "==", value: true },
-      { field: "readAt", op: "==", value: null },
+    ]);
+    expect(countMock).toHaveBeenNthCalledWith(2, [
+      { field: "userId", op: "==", value: "user-1" },
+      { field: "notified", op: "==", value: true },
+      { field: "readAt", op: "!=", value: null },
     ]);
   });
 
   it("returns 0 when no unread notifications", async () => {
-    countMock.mockResolvedValue(0);
+    // Mock: 5 total, 5 read = 0 unread
+    countMock
+      .mockResolvedValueOnce(5)  // total notified
+      .mockResolvedValueOnce(5); // read count
 
     const request = new Request("http://localhost/api/notifications/unread-count", {
       headers: { authorization: "Bearer test-token" },

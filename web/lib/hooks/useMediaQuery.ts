@@ -6,7 +6,13 @@ import { useEffect, useState } from "react";
  * @returns boolean indicating if the media query matches
  */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
+  // Initialize with correct value on client side to avoid flash
+  const [matches, setMatches] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.matchMedia(query).matches;
+    }
+    return false;
+  });
 
   useEffect(() => {
     // Only run on client side
@@ -14,7 +20,7 @@ export function useMediaQuery(query: string): boolean {
 
     const mediaQuery = window.matchMedia(query);
     
-    // Set initial value
+    // Update state to match current value (may have changed since init)
     setMatches(mediaQuery.matches);
 
     // Create event listener for changes
