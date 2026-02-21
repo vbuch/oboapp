@@ -16,6 +16,7 @@ export interface SourceDocumentWithGeoJson extends BaseSourceDocument {
   markdownText: string; // Required for crawlers with precomputed GeoJSON
   categories: string[];
   isRelevant: boolean;
+  deepLinkUrl?: string; // User-facing URL for the source. Empty string = no deeplink. Omit to use url field.
 }
 
 /**

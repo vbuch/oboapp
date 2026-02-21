@@ -25,6 +25,7 @@ interface SourceDocument {
   timespanEnd?: Date; // Optional timespan end from source
   cityWide?: boolean; // Whether source applies to entire city (hidden from map)
   locality?: string; // Locality identifier (e.g., 'bg.sofia')
+  deepLinkUrl?: string; // User-facing URL override. Empty string = no deeplink. Omit to use url field.
 }
 
 interface IngestOptions {
@@ -188,9 +189,14 @@ async function ingestSource(
   }
 
   // Use the sourceType as the source identifier for messageIngest
+  // Use deepLinkUrl if set (empty string means no user-facing link), otherwise fall back to url
+  const sourceUrl =
+    source.deepLinkUrl !== undefined
+      ? source.deepLinkUrl || undefined
+      : source.url;
   const result = await messageIngest(source.message, source.sourceType, {
     precomputedGeoJson: geoJson,
-    sourceUrl: source.url,
+    sourceUrl,
     boundaryFilter: boundaries ?? undefined,
     crawledAt: source.crawledAt,
     markdownText: source.markdownText,

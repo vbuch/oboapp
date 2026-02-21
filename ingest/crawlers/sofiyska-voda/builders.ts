@@ -211,6 +211,7 @@ export async function buildSourceDocument(
 
   return {
     url,
+    deepLinkUrl: "", // sofiyska-voda URL is an ArcGIS API endpoint, not a user-facing page
     datePublished: lastUpdate.toISOString(),
     title: buildTitle(feature.attributes, layer),
     message,

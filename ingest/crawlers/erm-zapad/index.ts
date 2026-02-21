@@ -191,6 +191,7 @@ function buildSourceDocument(pins: PinRecord[]): ErmZapadSourceDocument | null {
 
   return {
     url,
+    deepLinkUrl: "", // erm-zapad does not have individual incident pages
     datePublished,
     title,
     message,

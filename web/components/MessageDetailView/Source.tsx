@@ -84,7 +84,7 @@ export default function SourceDisplay({ sourceId, sourceUrl }: SourceProps) {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Отвори ${source?.name || sourceId} в нов таб`}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 underline underline-offset-2"
             onClick={() => {
               trackEvent({
                 name: "external_link_clicked",
@@ -98,6 +98,20 @@ export default function SourceDisplay({ sourceId, sourceUrl }: SourceProps) {
             }}
           >
             {content}
+            <svg
+              className="w-3.5 h-3.5 text-gray-400 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
           </a>
         ) : (
           content

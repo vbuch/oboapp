@@ -105,6 +105,7 @@ export async function crawl(dryRun = false): Promise<void> {
 
       const doc: SourceDocument = {
         url: buildUrl(info.ContentItemId),
+        deepLinkUrl: "", // toplo.bg does not have individual incident pages
         datePublished: info.FromDate,
         title: buildTitle(info),
         message,
