@@ -146,4 +146,21 @@ describe("POST /api/notifications/mark-all-read", () => {
     expect(response.status).toBe(500);
     expect(data.error).toBe("Failed to mark all notifications as read");
   });
+
+  it("returns 401 when authentication fails", async () => {
+    verifyAuthTokenMock.mockRejectedValue(new Error("Invalid auth token"));
+
+    const request = new Request("http://localhost/api/notifications/mark-all-read", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+
+    const response = await POST(request as any);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toContain("Unauthorized");
+  });
 });

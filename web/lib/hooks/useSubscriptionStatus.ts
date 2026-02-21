@@ -38,6 +38,7 @@ export function useSubscriptionStatus(user: User | null): SubscriptionStatus {
       if (!supported) {
         setIsCurrentDeviceSubscribed(false);
         setHasAnySubscriptions(false);
+        setIsLoading(false);
         return;
       }
 
@@ -48,6 +49,7 @@ export function useSubscriptionStatus(user: User | null): SubscriptionStatus {
       if (permission !== "granted") {
         setIsCurrentDeviceSubscribed(false);
         setHasAnySubscriptions(false);
+        setIsLoading(false);
         return;
       }
 
@@ -60,6 +62,7 @@ export function useSubscriptionStatus(user: User | null): SubscriptionStatus {
       if (!vapidKey) {
         setIsCurrentDeviceSubscribed(false);
         setHasAnySubscriptions(false);
+        setIsLoading(false);
         return;
       }
 
@@ -68,6 +71,7 @@ export function useSubscriptionStatus(user: User | null): SubscriptionStatus {
       if (!currentToken) {
         setIsCurrentDeviceSubscribed(false);
         setHasAnySubscriptions(false);
+        setIsLoading(false);
         return;
       }
 

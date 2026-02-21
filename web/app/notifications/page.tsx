@@ -144,24 +144,23 @@ export default function NotificationsPage() {
         throw new Error("Failed to mark as read");
       }
 
-      setNotifications((prev) =>
-        prev.map((n) =>
+      setNotifications((prev) => {
+        const updatedNotifications = prev.map((n) =>
           n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n,
-        ),
-      );
+        );
 
-      // Notify other components (e.g., NotificationBell) to refetch unread count
-      if (typeof window !== "undefined") {
-        const updatedNotifications = notifications.map((n) =>
-          n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n,
-        );
-        const newUnreadCount = updatedNotifications.filter((n) => !n.readAt).length;
-        window.dispatchEvent(
-          new CustomEvent("notifications:unread-count-changed", {
-            detail: { count: newUnreadCount },
-          }),
-        );
-      }
+        // Notify other components (e.g., NotificationBell) to refetch unread count
+        if (typeof window !== "undefined") {
+          const newUnreadCount = updatedNotifications.filter((n) => !n.readAt).length;
+          window.dispatchEvent(
+            new CustomEvent("notifications:unread-count-changed", {
+              detail: { count: newUnreadCount },
+            }),
+          );
+        }
+
+        return updatedNotifications;
+      });
     } catch (err) {
       console.error("Error marking notification as read:", err);
     }

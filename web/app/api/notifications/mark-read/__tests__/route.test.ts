@@ -134,4 +134,22 @@ describe("POST /api/notifications/mark-read", () => {
     expect(response.status).toBe(500);
     expect(data.error).toBe("Failed to mark notification as read");
   });
+
+  it("returns 401 when authentication fails", async () => {
+    verifyAuthTokenMock.mockRejectedValue(new Error("Missing auth token"));
+
+    const request = new Request("http://localhost/api/notifications/mark-read", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ notificationId: "notif-1" }),
+    });
+
+    const response = await POST(request as any);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toContain("Unauthorized");
+  });
 });
