@@ -1,38 +1,50 @@
 import { NextResponse } from "next/server";
 
-let cachedKeys: Set<string> | null = null;
+let cachedEnvKeys: Set<string> | null = null;
 
-function getValidKeys(): Set<string> {
-  if (cachedKeys) return cachedKeys;
+function getEnvKeys(): Set<string> {
+  if (cachedEnvKeys) return cachedEnvKeys;
   const apiKeys = process.env.PUBLIC_API_KEYS ?? "";
-  cachedKeys = new Set(
+  cachedEnvKeys = new Set(
     apiKeys
       .split(",")
       .map((k) => k.trim())
       .filter(Boolean),
   );
-  return cachedKeys;
+  return cachedEnvKeys;
+}
+
+function extractKey(request: Request): string | null {
+  const headerKey = request.headers.get("x-api-key");
+  if (headerKey) return headerKey;
+  const { searchParams } = new URL(request.url);
+  return searchParams.get("apiKey");
 }
 
 /**
  * Validates the API key from the request.
  *
  * Checks the `X-Api-Key` header (or the `apiKey` query parameter as a fallback)
- * against the `PUBLIC_API_KEYS` environment variable (comma-separated list of
- * valid keys). Returns `true` when a valid key is present.
+ * first against the `PUBLIC_API_KEYS` environment variable (comma-separated list,
+ * fast path), then against the `apiClients` database collection.
+ * Returns `true` when a valid key is found.
  */
-export function validateApiKey(request: Request): boolean {
-  const validKeys = getValidKeys();
-  if (validKeys.size === 0) return false;
+export async function validateApiKey(request: Request): Promise<boolean> {
+  const key = extractKey(request);
+  if (!key) return false;
 
-  const headerKey = request.headers.get("x-api-key");
-  if (headerKey && validKeys.has(headerKey)) return true;
+  // Fast path: check env-var keys (no DB round-trip)
+  if (getEnvKeys().has(key)) return true;
 
-  const { searchParams } = new URL(request.url);
-  const queryKey = searchParams.get("apiKey");
-  if (queryKey && validKeys.has(queryKey)) return true;
-
-  return false;
+  // DB path: look up the key in the apiClients collection
+  try {
+    const { getDb } = await import("@/lib/db");
+    const db = await getDb();
+    const client = await db.apiClients.findByApiKey(key);
+    return client !== null;
+  } catch {
+    return false;
+  }
 }
 
 export function apiKeyUnauthorizedResponse(): NextResponse {

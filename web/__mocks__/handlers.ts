@@ -3,7 +3,8 @@ import { MOCK_MESSAGES } from "./fixtures/messages";
 import { MOCK_INTERESTS, MOCK_USER_ID } from "./fixtures/interests";
 import { MOCK_SUBSCRIPTIONS } from "./fixtures/subscriptions";
 import { MOCK_NOTIFICATION_HISTORY } from "./fixtures/notification-history";
-import type { Interest, NotificationSubscription } from "@/lib/types";
+import { MOCK_API_CLIENT } from "./fixtures/api-client";
+import type { Interest, NotificationSubscription, ApiClient } from "@/lib/types";
 import type { Message } from "@oboapp/shared";
 
 /**
@@ -14,6 +15,7 @@ import type { Message } from "@oboapp/shared";
 // In-memory state for CRUD operations
 let interests: Interest[] = [...MOCK_INTERESTS];
 let subscriptions: NotificationSubscription[] = [...MOCK_SUBSCRIPTIONS];
+let apiClient: ApiClient | null = null; // Start with no API client
 
 /**
  * Helper: Filter messages by viewport bounds
@@ -328,6 +330,43 @@ export const handlers = [
     // Reset to empty state
     interests = [];
     subscriptions = [];
+    apiClient = null;
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  // GET /api/api-clients - Get current user's API client
+  http.get("/api/api-clients", () => {
+    return HttpResponse.json(apiClient);
+  }),
+
+  // POST /api/api-clients - Generate a new API key
+  http.post("/api/api-clients", async ({ request }) => {
+    if (apiClient) {
+      return HttpResponse.json(
+        { error: "You already have an API key. Revoke it first to generate a new one." },
+        { status: 409 },
+      );
+    }
+    const body = (await request.json()) as { websiteUrl: string };
+    const now = new Date().toISOString();
+    apiClient = {
+      ...MOCK_API_CLIENT,
+      id: `api-client-${Date.now()}`,
+      userId: MOCK_USER_ID,
+      apiKey: `obo_mock${Math.random().toString(36).slice(2)}`,
+      websiteUrl: body.websiteUrl,
+      createdAt: now,
+      updatedAt: now,
+    };
+    return HttpResponse.json(apiClient, { status: 201 });
+  }),
+
+  // DELETE /api/api-clients - Revoke current user's API key
+  http.delete("/api/api-clients", () => {
+    if (!apiClient) {
+      return HttpResponse.json({ error: "No API client found" }, { status: 404 });
+    }
+    apiClient = null;
+    return HttpResponse.json({ success: true });
   }),
 ];

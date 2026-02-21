@@ -20,6 +20,8 @@ import DeleteSuccessMessage from "./DeleteSuccessMessage";
 import LoadingState from "./LoadingState";
 import SettingsHeader from "./SettingsHeader";
 import ErrorBanner from "./ErrorBanner";
+import ApiAccessSection from "./ApiAccessSection";
+import type { ApiClient } from "@/lib/types";
 
 export default function SettingsPage() {
   const { user, signOut, reauthenticateWithGoogle } = useAuth();
@@ -36,6 +38,10 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [notificationCount, setNotificationCount] = useState<number>(0);
 
+  // API client state
+  const [apiClient, setApiClient] = useState<ApiClient | null>(null);
+  const [isApiClientLoading, setIsApiClientLoading] = useState(false);
+
   // Delete account state
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
@@ -50,8 +56,8 @@ export default function SettingsPage() {
       const token = await user.getIdToken();
       const authHeader = `Bearer ${token}`;
 
-      // Fetch interests and subscriptions in parallel
-      const [interestsRes, subscriptionsRes, countRes] = await Promise.all([
+      // Fetch interests, subscriptions, notification count, and API client in parallel
+      const [interestsRes, subscriptionsRes, countRes, apiClientRes] = await Promise.all([
         fetch("/api/interests", {
           headers: { Authorization: authHeader },
         }),
@@ -61,16 +67,20 @@ export default function SettingsPage() {
         fetch("/api/notifications/history/count", {
           headers: { Authorization: authHeader },
         }),
+        fetch("/api/api-clients", {
+          headers: { Authorization: authHeader },
+        }),
       ]);
 
       if (!interestsRes.ok || !subscriptionsRes.ok || !countRes.ok) {
         throw new Error("Failed to fetch data");
       }
 
-      const [interestsData, subscriptionsData, countData] = await Promise.all([
+      const [interestsData, subscriptionsData, countData, apiClientData] = await Promise.all([
         interestsRes.json(),
         subscriptionsRes.json(),
         countRes.json(),
+        apiClientRes.ok ? apiClientRes.json() : Promise.resolve(null),
       ]);
 
       setInterests(
@@ -82,6 +92,7 @@ export default function SettingsPage() {
       setNotificationCount(
         typeof countData?.count === "number" ? countData.count : 0
       );
+      setApiClient(apiClientData ?? null);
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Неуспешно зареждане на данни");
@@ -287,6 +298,56 @@ export default function SettingsPage() {
     }
   };
 
+  const handleGenerateApiKey = async (websiteUrl: string) => {
+    if (!user) return;
+    setIsApiClientLoading(true);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/api-clients", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ websiteUrl }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error ?? "Грешка при генериране на API ключ");
+        return;
+      }
+      const data = await response.json();
+      setApiClient(data);
+    } catch (error) {
+      console.error("Error generating API key:", error);
+      alert("Грешка при генериране на API ключ");
+    } finally {
+      setIsApiClientLoading(false);
+    }
+  };
+
+  const handleRevokeApiKey = async () => {
+    if (!user) return;
+    setIsApiClientLoading(true);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/api-clients", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        alert("Грешка при отмяна на API ключа");
+        return;
+      }
+      setApiClient(null);
+    } catch (error) {
+      console.error("Error revoking API key:", error);
+      alert("Грешка при отмяна на API ключа");
+    } finally {
+      setIsApiClientLoading(false);
+    }
+  };
+
   if (!user) {
     return null;
   }
@@ -317,6 +378,13 @@ export default function SettingsPage() {
         />
 
         <ZonesSection interests={interests} />
+
+        <ApiAccessSection
+          apiClient={apiClient}
+          onGenerate={handleGenerateApiKey}
+          onRevoke={handleRevokeApiKey}
+          isLoading={isApiClientLoading}
+        />
 
         <DeleteAccountSection
           onDeleteAccount={handleDeleteAccount}

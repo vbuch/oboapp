@@ -1,0 +1,35 @@
+import tseslint from "typescript-eslint";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const eslintConfig = [
+  ...tseslint.configs.recommended,
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: __dirname,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+          args: "none",
+        },
+      ],
+      "prefer-const": "error",
+      "no-var": "error",
+    },
+  },
+  {
+    ignores: ["dist/**", "node_modules/**", "**/*.d.ts", "**/*.mjs"],
+  },
+];
+
+export default eslintConfig;
