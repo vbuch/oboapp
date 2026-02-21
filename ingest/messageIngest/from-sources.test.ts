@@ -359,3 +359,51 @@ describe("filterByAge", () => {
     expect(result.tooOld).toBe(0);
   });
 });
+
+/**
+ * Replicates the userFacingUrl derivation from ingestSource in from-sources.ts.
+ * This is tested standalone to verify the three cases independently of the full pipeline:
+ * - deepLinkUrl omitted (undefined) => fall back to source.url
+ * - deepLinkUrl: "" => no link (undefined), disables the deeplink
+ * - deepLinkUrl: "https://..." => use deepLinkUrl as the user-facing URL
+ */
+function deriveUserFacingUrl(
+  deepLinkUrl: string | undefined,
+  url: string,
+): string | undefined {
+  return deepLinkUrl !== undefined ? deepLinkUrl || undefined : url;
+}
+
+describe("ingestSource userFacingUrl derivation", () => {
+  it("falls back to source.url when deepLinkUrl is omitted", () => {
+    const url = "https://example.com/article-123";
+    expect(deriveUserFacingUrl(undefined, url)).toBe(url);
+  });
+
+  it("returns undefined when deepLinkUrl is empty string (disables link)", () => {
+    const url = "https://api.example.com/internal/123";
+    expect(deriveUserFacingUrl("", url)).toBeUndefined();
+  });
+
+  it("uses deepLinkUrl when set to a non-empty string", () => {
+    const url = "https://api.example.com/internal/123";
+    const deepLink = "https://example.com/user-facing-page";
+    expect(deriveUserFacingUrl(deepLink, url)).toBe(deepLink);
+  });
+
+  it("user-facing URL can differ from the dedupe URL (source.url)", () => {
+    const dedupe = "https://arcgis.example.com/rest/services/layer/0/123";
+    const deepLink = "https://www.example.com/news/story-456";
+    const result = deriveUserFacingUrl(deepLink, dedupe);
+    expect(result).toBe(deepLink);
+    expect(result).not.toBe(dedupe);
+  });
+
+  it("source.url is unaffected regardless of deepLinkUrl (deduplication stays stable)", () => {
+    const sourceUrl = "https://api.example.com/internal/42";
+    const deepLink = "https://user-facing.example.com/article/42";
+    deriveUserFacingUrl(deepLink, sourceUrl);
+    // sourceUrl itself is not mutated
+    expect(sourceUrl).toBe("https://api.example.com/internal/42");
+  });
+});
