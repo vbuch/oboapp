@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, POST, DELETE } from "./route";
 
-const { findByUserIdMock, createForUserMock, deleteOneMock } = vi.hoisted(
-  () => ({
+const { findByUserIdMock, createForUserMock, deleteOneMock, verifyAuthTokenMock } =
+  vi.hoisted(() => ({
     findByUserIdMock: vi.fn(),
     createForUserMock: vi.fn(),
     deleteOneMock: vi.fn(),
-  }),
-);
+    verifyAuthTokenMock: vi.fn().mockResolvedValue({ userId: "user-1" }),
+  }));
 
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn().mockResolvedValue({
@@ -20,7 +20,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/verifyAuthToken", () => ({
-  verifyAuthToken: vi.fn().mockResolvedValue({ userId: "user-1" }),
+  verifyAuthToken: verifyAuthTokenMock,
 }));
 
 const makeRequest = (method: string, body?: unknown) =>
@@ -42,7 +42,10 @@ const MOCK_CLIENT = {
 };
 
 describe("GET /api/api-clients", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    verifyAuthTokenMock.mockResolvedValue({ userId: "user-1" });
+  });
 
   it("returns null when no API client exists", async () => {
     findByUserIdMock.mockResolvedValue(null);
@@ -64,6 +67,18 @@ describe("GET /api/api-clients", () => {
     });
   });
 
+  it("returns 401 when auth token is missing", async () => {
+    verifyAuthTokenMock.mockRejectedValue(new Error("Missing auth token"));
+    const response = await GET(makeRequest("GET") as any);
+    expect(response.status).toBe(401);
+  });
+
+  it("returns 401 when auth token is invalid", async () => {
+    verifyAuthTokenMock.mockRejectedValue(new Error("Invalid auth token"));
+    const response = await GET(makeRequest("GET") as any);
+    expect(response.status).toBe(401);
+  });
+
   it("returns 500 when db throws", async () => {
     findByUserIdMock.mockRejectedValue(new Error("db error"));
     const response = await GET(makeRequest("GET") as any);
@@ -72,7 +87,10 @@ describe("GET /api/api-clients", () => {
 });
 
 describe("POST /api/api-clients", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    verifyAuthTokenMock.mockResolvedValue({ userId: "user-1" });
+  });
 
   it("creates an API client and returns 201", async () => {
     createForUserMock.mockResolvedValue("user-1");
@@ -102,6 +120,14 @@ describe("POST /api/api-clients", () => {
       makeRequest("POST", { websiteUrl: "ftp://example.com" }) as any,
     );
     expect(response.status).toBe(400);
+  });
+
+  it("returns 401 when auth token is missing", async () => {
+    verifyAuthTokenMock.mockRejectedValue(new Error("Missing auth token"));
+    const response = await POST(
+      makeRequest("POST", { websiteUrl: "https://example.com" }) as any,
+    );
+    expect(response.status).toBe(401);
   });
 
   it("returns 409 when user already has an API key (ALREADY_EXISTS error)", async () => {
@@ -134,7 +160,10 @@ describe("POST /api/api-clients", () => {
 });
 
 describe("DELETE /api/api-clients", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    verifyAuthTokenMock.mockResolvedValue({ userId: "user-1" });
+  });
 
   it("revokes the API client and returns success", async () => {
     findByUserIdMock.mockResolvedValue(MOCK_CLIENT);
@@ -144,6 +173,12 @@ describe("DELETE /api/api-clients", () => {
     const data = await response.json();
     expect(data.success).toBe(true);
     expect(deleteOneMock).toHaveBeenCalledWith("user-1");
+  });
+
+  it("returns 401 when auth token is invalid", async () => {
+    verifyAuthTokenMock.mockRejectedValue(new Error("Invalid auth token"));
+    const response = await DELETE(makeRequest("DELETE") as any);
+    expect(response.status).toBe(401);
   });
 
   it("returns 404 when no API client exists", async () => {

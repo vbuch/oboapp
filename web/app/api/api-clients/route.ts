@@ -32,6 +32,16 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching API client:", error);
+    if (
+      error instanceof Error &&
+      (error.message === "Missing auth token" ||
+        error.message === "Invalid auth token")
+    ) {
+      return NextResponse.json(
+        { error: `Unauthorized - ${error.message}` },
+        { status: 401 },
+      );
+    }
     return NextResponse.json(
       { error: "Failed to fetch API client" },
       { status: 500 },
@@ -101,6 +111,16 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Error creating API client:", error);
+    if (
+      error instanceof Error &&
+      (error.message === "Missing auth token" ||
+        error.message === "Invalid auth token")
+    ) {
+      return NextResponse.json(
+        { error: `Unauthorized - ${error.message}` },
+        { status: 401 },
+      );
+    }
     return NextResponse.json(
       { error: "Failed to create API client" },
       { status: 500 },
@@ -131,6 +151,16 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error revoking API client:", error);
+    if (
+      error instanceof Error &&
+      (error.message === "Missing auth token" ||
+        error.message === "Invalid auth token")
+    ) {
+      return NextResponse.json(
+        { error: `Unauthorized - ${error.message}` },
+        { status: 401 },
+      );
+    }
     return NextResponse.json(
       { error: "Failed to revoke API client" },
       { status: 500 },
