@@ -1,5 +1,6 @@
 export { MessagesRepository, MESSAGES_COLLECTION } from "./messages";
 export { SourcesRepository, SOURCES_COLLECTION } from "./sources";
+export { ApiClientsRepository, API_CLIENTS_COLLECTION } from "./api-clients";
 export { InterestsRepository, INTERESTS_COLLECTION } from "./interests";
 export {
   NotificationMatchesRepository,

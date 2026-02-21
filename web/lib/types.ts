@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import {
+  ApiClientSchema,
   CoordinatesSchema,
   GeoJsonFeatureCollectionSchema,
   GeoJsonFeatureSchema,
@@ -25,6 +26,8 @@ export type {
   IngestError,
   IngestErrorType,
 } from "@oboapp/shared";
+
+export type ApiClient = z.infer<typeof ApiClientSchema>;
 
 export type Address = z.infer<typeof AddressSchema>;
 

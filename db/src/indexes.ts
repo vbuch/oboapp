@@ -100,6 +100,14 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
     spec: { sourceType: 1 },
     options: { name: "sourceType" },
   },
+
+  // --- apiClients ---
+  // apiKey is looked up on every authenticated API request — needs an index
+  {
+    collection: "apiClients",
+    spec: { apiKey: 1 },
+    options: { name: "apiKey", unique: true },
+  },
 ];
 
 /**

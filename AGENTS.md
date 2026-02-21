@@ -339,6 +339,12 @@ flowchart LR
 - **Props:** Use `readonly` interfaces.
 - **No render functions:** Prefer extracting JSX into separate components instead of `render...()` functions inside components. Components are more idiomatic React and easier to test/reuse.
 
+### Public API Surface
+
+- Public read-only API endpoints are exposed under `/api/v1`.
+- External clients must consume the same `/api/v1` contract with API keys.
+- Keep `docs/features/public-api.md` as the single source of truth for public API behavior.
+
 ### Mock Service Worker (MSW) for Front-End Development
 
 **Purpose**: Enable front-end developers to work without Firebase emulators (no Java/Docker required).

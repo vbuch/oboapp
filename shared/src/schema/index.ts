@@ -1,5 +1,6 @@
 // Re-export all schemas from a single entry point
 export * from "./address.schema";
+export * from "./api-client.schema";
 export * from "./category.schema";
 export * from "./coordinates.schema";
 export * from "./extracted-data.schema";

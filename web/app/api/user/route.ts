@@ -23,7 +23,10 @@ export async function DELETE(request: NextRequest) {
     const matchesDeleted =
       await db.notificationMatches.deleteAllByUserId(userId);
 
-    // 4. Delete the Firebase Auth user
+    // 4. Delete API client (if any)
+    await db.apiClients.deleteByUserId(userId);
+
+    // 5. Delete the Firebase Auth user
     // This requires recent re-authentication on the client side (which we enforce in the UI)
     try {
       const { adminAuth } = await import("@/lib/firebase-admin");

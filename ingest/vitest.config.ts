@@ -21,6 +21,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      "@oboapp/db": path.resolve(__dirname, "../db/src/index.ts"),
     },
   },
 });
