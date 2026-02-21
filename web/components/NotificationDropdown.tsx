@@ -16,9 +16,6 @@ import {
   getNotificationPermission,
 } from "@/lib/notification-service";
 
-// Maximum characters to show in notification preview (half of MessageCard length)
-const MESSAGE_PREVIEW_MAX_LENGTH = 75;
-
 interface NotificationDropdownProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
@@ -137,18 +134,33 @@ export default function NotificationDropdown({
         throw new Error("Failed to mark as read");
       }
 
-      // Update local state
-      setNotifications((prev) => {
-        const updated = prev.map((n) =>
+      // Update local state for the affected notification
+      setNotifications((prev) =>
+        prev.map((n) =>
           n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n,
-        );
-        
-        // Calculate unread count from updated state
-        const unreadCount = updated.filter((n) => !n.readAt).length;
-        onCountUpdate(unreadCount);
-        
-        return updated;
-      });
+        ),
+      );
+
+      // Refetch unread count from server to ensure correctness across pages
+      try {
+        const countResponse = await fetch("/api/notifications/unread-count", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (countResponse.ok) {
+          const data = await countResponse.json();
+          if (typeof data?.count === "number") {
+            onCountUpdate(data.count);
+          }
+        } else {
+          console.error("Failed to fetch unread notification count");
+        }
+      } catch (countErr) {
+        console.error("Error fetching unread notification count:", countErr);
+      }
     } catch (err) {
       console.error("Error marking notification as read:", err);
     }

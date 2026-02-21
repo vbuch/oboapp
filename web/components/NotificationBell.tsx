@@ -80,7 +80,7 @@ export default function NotificationBell() {
         type="button"
         onClick={handleToggle}
         className="relative flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
-        aria-label="Notifications"
+        aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
       >
         <Bell className="w-6 h-6 text-white" />
         {unreadCount > 0 && <UnreadIndicator />}

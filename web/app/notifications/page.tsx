@@ -18,9 +18,6 @@ import {
   getNotificationPermission,
 } from "@/lib/notification-service";
 
-// Use same snippet logic as dropdown
-const MESSAGE_PREVIEW_MAX_LENGTH = 75;
-
 export default function NotificationsPage() {
   const { user } = useAuth();
   const router = useRouter();
