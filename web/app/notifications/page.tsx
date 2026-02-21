@@ -149,6 +149,19 @@ export default function NotificationsPage() {
           n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n,
         ),
       );
+
+      // Notify other components (e.g., NotificationBell) to refetch unread count
+      if (typeof window !== "undefined") {
+        const updatedNotifications = notifications.map((n) =>
+          n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n,
+        );
+        const newUnreadCount = updatedNotifications.filter((n) => !n.readAt).length;
+        window.dispatchEvent(
+          new CustomEvent("notifications:unread-count-changed", {
+            detail: { count: newUnreadCount },
+          }),
+        );
+      }
     } catch (err) {
       console.error("Error marking notification as read:", err);
     }
@@ -173,6 +186,15 @@ export default function NotificationsPage() {
 
       const now = new Date().toISOString();
       setNotifications((prev) => prev.map((n) => ({ ...n, readAt: now })));
+
+      // Notify other components (e.g., NotificationBell) that all are now read
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("notifications:unread-count-changed", {
+            detail: { count: 0 },
+          }),
+        );
+      }
     } catch (err) {
       console.error("Error marking all notifications as read:", err);
     }
