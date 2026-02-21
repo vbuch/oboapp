@@ -13,13 +13,15 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
     const { userId } = await verifyAuthToken(authHeader);
 
-    // Get pagination parameters from query string
+    // Get pagination parameters from query string with validation
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(
-      Number.parseInt(searchParams.get("limit") || "20", 10),
-      100, // Max 100 items per request
-    );
-    const offset = Number.parseInt(searchParams.get("offset") || "0", 10);
+    
+    const rawLimit = Number.parseInt(searchParams.get("limit") ?? "", 10);
+    let limit = Number.isNaN(rawLimit) || rawLimit <= 0 ? 20 : rawLimit;
+    limit = Math.min(limit, 100); // Max 100 items per request
+
+    const rawOffset = Number.parseInt(searchParams.get("offset") ?? "", 10);
+    const offset = Number.isNaN(rawOffset) || rawOffset < 0 ? 0 : rawOffset;
 
     const db = await getDb();
     

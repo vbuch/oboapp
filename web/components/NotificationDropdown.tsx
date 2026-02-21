@@ -7,6 +7,8 @@ import Link from "next/link";
 import { createMessageUrlFromId } from "@/lib/url-utils";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { borderRadius, zIndex } from "@/lib/colors";
+import { createSnippet } from "@/lib/text-utils";
+import { useSubscriptionStatus } from "@/lib/hooks/useSubscriptionStatus";
 import SubscribeDevicePrompt from "@/app/settings/SubscribeDevicePrompt";
 import {
   subscribeToPushNotifications,
@@ -16,27 +18,6 @@ import {
 
 // Maximum characters to show in notification preview (half of MessageCard length)
 const MESSAGE_PREVIEW_MAX_LENGTH = 75;
-
-/**
- * Create text snippet with word boundary truncation.
- * Tries to cut at a word boundary near 75 chars for better readability in dropdown.
- */
-function createSnippet(text: string): string {
-  const maxLength = MESSAGE_PREVIEW_MAX_LENGTH;
-  
-  if (text.length <= maxLength) return text;
-
-  // Try to cut at a word boundary near 75 chars
-  const truncated = text.substring(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(" ");
-
-  // Look for word boundary between 60-75 chars
-  if (lastSpace > 60) {
-    return truncated.substring(0, lastSpace) + "...";
-  }
-
-  return truncated + "...";
-}
 
 interface NotificationDropdownProps {
   readonly isOpen: boolean;
@@ -52,6 +33,7 @@ export default function NotificationDropdown({
   anchorRef,
 }: NotificationDropdownProps) {
   const { user } = useAuth();
+  const subscriptionStatus = useSubscriptionStatus(user);
   const [notifications, setNotifications] = useState<NotificationHistoryItem[]>(
     [],
   );
@@ -60,9 +42,6 @@ export default function NotificationDropdown({
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [nextOffset, setNextOffset] = useState<number | null>(null);
-  const [isCurrentDeviceSubscribed, setIsCurrentDeviceSubscribed] =
-    useState(true);
-  const [hasAnySubscriptions, setHasAnySubscriptions] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = useCallback(async (offset = 0, append = false) => {
@@ -114,79 +93,12 @@ export default function NotificationDropdown({
     }
   }, [nextOffset, isLoadingMore, fetchNotifications]);
 
-  const checkSubscriptionStatus = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      // Check if Firebase Messaging is supported
-      const { isMessagingSupported } = await import(
-        "@/lib/notification-service"
-      );
-      const supported = await isMessagingSupported();
-
-      if (!supported) {
-        setIsCurrentDeviceSubscribed(false);
-        return;
-      }
-
-      // Check notification permission
-      const permission =
-        "Notification" in globalThis ? Notification.permission : "denied";
-      
-      if (permission !== "granted") {
-        setIsCurrentDeviceSubscribed(false);
-        return;
-      }
-
-      // Get current device's FCM token
-      const { getMessaging, getToken } = await import("firebase/messaging");
-      const { app } = await import("@/lib/firebase");
-      const messaging = getMessaging(app);
-      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-      
-      if (!vapidKey) {
-        setIsCurrentDeviceSubscribed(false);
-        return;
-      }
-
-      const currentToken = await getToken(messaging, { vapidKey });
-      
-      if (!currentToken) {
-        setIsCurrentDeviceSubscribed(false);
-        return;
-      }
-
-      // Check if this token is in the backend
-      const token = await user.getIdToken();
-      const response = await fetch("/api/notifications/subscription/all", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        setIsCurrentDeviceSubscribed(false);
-        return;
-      }
-
-      const subscriptions = await response.json();
-      const hasCurrentDevice = Array.isArray(subscriptions) && 
-        subscriptions.some((sub) => sub.token === currentToken);
-      
-      setIsCurrentDeviceSubscribed(hasCurrentDevice);
-      setHasAnySubscriptions(Array.isArray(subscriptions) && subscriptions.length > 0);
-    } catch (err) {
-      console.error("Error checking subscription status:", err);
-      // On error, assume not subscribed to show the prompt
-      setIsCurrentDeviceSubscribed(false);
-      setHasAnySubscriptions(false);
-    }
-  }, [user]);
-
   useEffect(() => {
     if (!isOpen) return;
 
     fetchNotifications();
-    checkSubscriptionStatus();
-  }, [isOpen, fetchNotifications, checkSubscriptionStatus]);
+    // Subscription status is managed by the hook
+  }, [isOpen, fetchNotifications]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -226,17 +138,17 @@ export default function NotificationDropdown({
       }
 
       // Update local state
-      setNotifications((prev) =>
-        prev.map((n) =>
+      setNotifications((prev) => {
+        const updated = prev.map((n) =>
           n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n,
-        ),
-      );
-
-      // Update unread count
-      const unreadCount = notifications.filter(
-        (n) => !n.readAt && n.id !== notificationId,
-      ).length;
-      onCountUpdate(unreadCount);
+        );
+        
+        // Calculate unread count from updated state
+        const unreadCount = updated.filter((n) => !n.readAt).length;
+        onCountUpdate(unreadCount);
+        
+        return updated;
+      });
     } catch (err) {
       console.error("Error marking notification as read:", err);
     }
@@ -310,7 +222,8 @@ export default function NotificationDropdown({
 
       const token = await user.getIdToken();
       await subscribeToPushNotifications(user.uid, token);
-      setIsCurrentDeviceSubscribed(true);
+      // Re-check subscription status after subscribing
+      await subscriptionStatus.checkStatus();
     } catch (error) {
       console.error("Error subscribing:", error);
       alert("Грешка при абонирането");
@@ -342,11 +255,11 @@ export default function NotificationDropdown({
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {/* Subscription warning - first item in scrollable container */}
-        {!isCurrentDeviceSubscribed && (
+        {!subscriptionStatus.isCurrentDeviceSubscribed && (
           <div className="p-4 border-b border-neutral-border">
             <SubscribeDevicePrompt
               onSubscribe={handleSubscribeCurrentDevice}
-              hasAnySubscriptions={hasAnySubscriptions}
+              hasAnySubscriptions={subscriptionStatus.hasAnySubscriptions}
             />
           </div>
         )}

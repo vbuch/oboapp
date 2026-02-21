@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import { NotificationHistoryItem } from "@/lib/types";
 import Link from "next/link";
 import { createMessageUrlFromId } from "@/lib/url-utils";
+import { createSnippet } from "@/lib/text-utils";
+import { useSubscriptionStatus } from "@/lib/hooks/useSubscriptionStatus";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { borderRadius } from "@/lib/colors";
 import BackButton from "@/components/BackButton";
@@ -19,24 +21,10 @@ import {
 // Use same snippet logic as dropdown
 const MESSAGE_PREVIEW_MAX_LENGTH = 75;
 
-function createSnippet(text: string): string {
-  const maxLength = MESSAGE_PREVIEW_MAX_LENGTH;
-  
-  if (text.length <= maxLength) return text;
-
-  const truncated = text.substring(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(" ");
-
-  if (lastSpace > 60) {
-    return truncated.substring(0, lastSpace) + "...";
-  }
-
-  return truncated + "...";
-}
-
 export default function NotificationsPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const subscriptionStatus = useSubscriptionStatus(user);
   const [notifications, setNotifications] = useState<NotificationHistoryItem[]>(
     [],
   );
@@ -45,9 +33,6 @@ export default function NotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [nextOffset, setNextOffset] = useState<number | null>(null);
-  const [isCurrentDeviceSubscribed, setIsCurrentDeviceSubscribed] =
-    useState(true);
-  const [hasAnySubscriptions, setHasAnySubscriptions] = useState(false);
 
   const fetchNotifications = useCallback(async (offset = 0, append = false) => {
     if (!user) return;
@@ -98,68 +83,6 @@ export default function NotificationsPage() {
     }
   }, [nextOffset, isLoadingMore, fetchNotifications]);
 
-  const checkSubscriptionStatus = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const { isMessagingSupported } = await import(
-        "@/lib/notification-service"
-      );
-      const supported = await isMessagingSupported();
-
-      if (!supported) {
-        setIsCurrentDeviceSubscribed(false);
-        return;
-      }
-
-      const permission =
-        "Notification" in globalThis ? Notification.permission : "denied";
-      
-      if (permission !== "granted") {
-        setIsCurrentDeviceSubscribed(false);
-        return;
-      }
-
-      const { getMessaging, getToken } = await import("firebase/messaging");
-      const { app } = await import("@/lib/firebase");
-      const messaging = getMessaging(app);
-      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-      
-      if (!vapidKey) {
-        setIsCurrentDeviceSubscribed(false);
-        return;
-      }
-
-      const currentToken = await getToken(messaging, { vapidKey });
-      
-      if (!currentToken) {
-        setIsCurrentDeviceSubscribed(false);
-        return;
-      }
-
-      const token = await user.getIdToken();
-      const response = await fetch("/api/notifications/subscription/all", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        setIsCurrentDeviceSubscribed(false);
-        return;
-      }
-
-      const subscriptions = await response.json();
-      const hasCurrentDevice = Array.isArray(subscriptions) && 
-        subscriptions.some((sub) => sub.token === currentToken);
-      
-      setIsCurrentDeviceSubscribed(hasCurrentDevice);
-      setHasAnySubscriptions(Array.isArray(subscriptions) && subscriptions.length > 0);
-    } catch (err) {
-      console.error("Error checking subscription status:", err);
-      setIsCurrentDeviceSubscribed(false);
-      setHasAnySubscriptions(false);
-    }
-  }, [user]);
-
   const handleSubscribeCurrentDevice = async () => {
     if (!user) return;
 
@@ -198,7 +121,8 @@ export default function NotificationsPage() {
 
       const token = await user.getIdToken();
       await subscribeToPushNotifications(user.uid, token);
-      setIsCurrentDeviceSubscribed(true);
+      // Re-check subscription status after subscribing
+      await subscriptionStatus.checkStatus();
     } catch (error) {
       console.error("Error subscribing:", error);
       alert("Грешка при абонирането");
@@ -264,8 +188,8 @@ export default function NotificationsPage() {
     }
 
     fetchNotifications();
-    checkSubscriptionStatus();
-  }, [user, router, fetchNotifications, checkSubscriptionStatus]);
+    // Subscription status is managed by the hook
+  }, [user, router, fetchNotifications]);
 
   if (isLoading) {
     return (
@@ -313,11 +237,11 @@ export default function NotificationsPage() {
         )}
 
         {/* Subscription warning - first item */}
-        {!isCurrentDeviceSubscribed && (
+        {!subscriptionStatus.isCurrentDeviceSubscribed && (
           <div className="mb-6">
             <SubscribeDevicePrompt
               onSubscribe={handleSubscribeCurrentDevice}
-              hasAnySubscriptions={hasAnySubscriptions}
+              hasAnySubscriptions={subscriptionStatus.hasAnySubscriptions}
             />
           </div>
         )}
