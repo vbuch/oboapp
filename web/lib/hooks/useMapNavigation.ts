@@ -9,6 +9,10 @@ type CenterMapFn = (
   options?: { animate?: boolean },
 ) => void;
 
+const MOBILE_MAX_WIDTH_PX = 639;
+const MOBILE_PAN_DELAY_MS = 50;
+const MOBILE_PAN_OFFSET_RATIO = 0.2;
+
 /**
  * Custom hook for managing map navigation and centering
  *
@@ -26,7 +30,18 @@ export function useMapNavigation() {
   const [centerMapFn, setCenterMapFn] = useState<CenterMapFn | null>(null);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const hasProcessedUrlRef = useRef(false);
+  const mobilePanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    return () => {
+      if (mobilePanTimeoutRef.current) {
+        clearTimeout(mobilePanTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handle URL-based map centering (from settings page zone clicks)
   useEffect(() => {
@@ -66,9 +81,19 @@ export function useMapNavigation() {
     (lat: number, lng: number) => {
       if (centerMapFn) {
         centerMapFn(lat, lng, 18);
+        // On mobile, offset the center upward so the pin appears above the details panel
+        if (mapInstance && window.innerWidth <= MOBILE_MAX_WIDTH_PX) {
+          if (mobilePanTimeoutRef.current) {
+            clearTimeout(mobilePanTimeoutRef.current);
+          }
+          mobilePanTimeoutRef.current = setTimeout(() => {
+            mapInstance.panBy(0, window.innerHeight * MOBILE_PAN_OFFSET_RATIO);
+            mobilePanTimeoutRef.current = null;
+          }, MOBILE_PAN_DELAY_MS);
+        }
       }
     },
-    [centerMapFn],
+    [centerMapFn, mapInstance],
   );
 
   return {

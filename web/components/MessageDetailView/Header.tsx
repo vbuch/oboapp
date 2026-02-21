@@ -31,13 +31,13 @@ export default function Header({
   const isActive = classification === "active";
 
   return (
-    <div className={`sticky top-0 bg-white border-b border-neutral-border px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm ${zIndex.fixed}`}>
-      <button
-        type="button"
-        className="drag-handle absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-neutral-border rounded-full sm:hidden cursor-grab active:cursor-grabbing"
-        {...handlers}
-        onClick={handleClose}
-        aria-label="Плъзни, за да затвориш, или натисни, за да затвориш"
+    <div
+      className={`sticky top-0 bg-white border-b border-neutral-border px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm ${zIndex.fixed} sm:cursor-default cursor-grab active:cursor-grabbing`}
+      {...handlers}
+    >
+      <div
+        className="drag-handle absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-neutral-border rounded-full sm:hidden"
+        aria-label="Плъзни заглавието, за да затвориш"
       />
 
       <h2 className="text-lg sm:text-xl font-semibold text-foreground pt-3 sm:pt-0 flex items-center gap-2">

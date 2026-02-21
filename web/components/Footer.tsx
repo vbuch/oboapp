@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
 
-export default function Footer() {
+interface FooterProps {
+  readonly className?: string;
+}
+
+export default function Footer({ className = "" }: FooterProps) {
   return (
-    <footer className="border-t border-neutral-border">
+    <footer className={`border-t border-neutral-border ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* About Section */}

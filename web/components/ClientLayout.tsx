@@ -1,6 +1,7 @@
 "use client";
 
 import { LoadScript } from "@react-google-maps/api";
+import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
@@ -15,6 +16,13 @@ export default function ClientLayout({
   children: React.ReactNode;
 }>) {
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  const pathname = usePathname();
+  const isClient = typeof window !== "undefined";
+
+  const hideFooterOnMobile =
+    pathname === "/" &&
+    isClient &&
+    new URLSearchParams(window.location.search).has("messageId");
 
   return (
     <MSWProvider>
@@ -29,7 +37,9 @@ export default function ClientLayout({
               <Header />
               <div className="flex-1 flex flex-col overflow-y-auto">
                 <main className="flex-1 flex flex-col">{children}</main>
-                <Footer />
+                <Footer
+                  className={hideFooterOnMobile ? "hidden sm:block" : undefined}
+                />
               </div>
               <CookieConsent />
             </AuthProvider>

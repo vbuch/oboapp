@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { Message } from "@/lib/types";
 import { classifyMessage } from "@/lib/message-classification";
@@ -15,6 +15,7 @@ import DetailItem from "./DetailItem";
 import MessageText from "./MessageText";
 import CategoryChips from "@/components/CategoryChips";
 import { getFeaturesCentroid } from "@/lib/geometry-utils";
+import { DragHandlers } from "@/lib/hooks/useDragPanel";
 
 type CloseMethod = "drag" | "esc";
 
@@ -28,6 +29,35 @@ function formatDate(date: Date | string): string {
     minute: "2-digit",
   });
 }
+
+// Mobile viewport detection via useSyncExternalStore
+const mobileQuery = "(max-width: 639px)";
+function subscribeMobile(callback: () => void) {
+  const mql = window.matchMedia(mobileQuery);
+  mql.addEventListener("change", callback);
+  return () => mql.removeEventListener("change", callback);
+}
+function getIsMobile() {
+  return window.matchMedia(mobileQuery).matches;
+}
+function getIsMobileServer() {
+  return false;
+}
+
+const INITIAL_PANEL_HEIGHT_VH = 50;
+const EXPANDED_PANEL_HEIGHT_VH = 90;
+const DRAG_CLOSE_THRESHOLD = 60;
+const PULL_DOWN_RESISTANCE = 0.6;
+const SWIPE_UP_THRESHOLD = -20;
+const HEADER_DRAG_UP_THRESHOLD = -30;
+const PULL_DOWN_CLOSE_THRESHOLD = 40;
+
+const NOOP_DRAG_HANDLERS: DragHandlers = {
+  onTouchStart: () => {},
+  onTouchMove: () => {},
+  onTouchEnd: () => {},
+  onMouseDown: () => {},
+};
 
 interface MessageDetailViewProps {
   readonly message: Message | null;
@@ -57,12 +87,129 @@ export default function MessageDetailView({
     [message, onClose],
   );
 
-  // Drag to close functionality
+  // Refs for scroll tracking and overscroll-to-close
+  const scrollContainerRef = useRef<HTMLElement>(null);
+  const [expandedHeight, setExpandedHeight] = useState(INITIAL_PANEL_HEIGHT_VH);
+  const isMobile = useSyncExternalStore(
+    subscribeMobile,
+    getIsMobile,
+    getIsMobileServer,
+  );
+
+  // Overscroll-to-close state
+  const [pullDownOffset, setPullDownOffset] = useState(0);
+  const isPullingDown = useRef(false);
+  const pullTouchStartY = useRef<number | null>(null);
+
+  // Track header drag for expansion
+  const headerTouchStartY = useRef<number | null>(null);
+
+  // Drag to close functionality (header/handle)
   const { isDragging, dragOffset, handlers } = useDragPanel({
     direction: "vertical",
     isOpen: true,
     onAction: () => handleClose("drag"),
+    threshold: DRAG_CLOSE_THRESHOLD,
   });
+
+  // Track scroll position for dynamic height expansion
+  const handleScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
+
+    // Expand to 90vh on any downward scroll, reset to 50vh at top
+    if (scrollTop > 0) {
+      setExpandedHeight(EXPANDED_PANEL_HEIGHT_VH);
+    } else {
+      setExpandedHeight(INITIAL_PANEL_HEIGHT_VH);
+    }
+  }, []);
+
+  // Overscroll-to-close: pull down when at top of content
+  const handleContainerTouchStart = useCallback((e: React.TouchEvent) => {
+    pullTouchStartY.current = e.touches[0].clientY;
+    isPullingDown.current = false;
+  }, []);
+
+  const handleContainerTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (pullTouchStartY.current === null) return;
+
+      const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
+      const deltaY = e.touches[0].clientY - pullTouchStartY.current;
+
+      // If at top and pulling down, enter overscroll mode
+      if (scrollTop <= 0 && deltaY > 0) {
+        isPullingDown.current = true;
+        e.preventDefault(); // Prevent native scroll/bounce
+        setPullDownOffset(deltaY * PULL_DOWN_RESISTANCE);
+      } else if (isPullingDown.current && deltaY <= 0) {
+        // User reversed direction back up, cancel pull
+        isPullingDown.current = false;
+        setPullDownOffset(0);
+      }
+
+      // If swiping up (negative deltaY) and on mobile, expand to 90vh
+      if (isMobile && deltaY < SWIPE_UP_THRESHOLD) {
+        setExpandedHeight(EXPANDED_PANEL_HEIGHT_VH);
+      }
+    },
+    [isMobile],
+  );
+
+  const handleContainerTouchEnd = useCallback(() => {
+    pullTouchStartY.current = null;
+    if (isPullingDown.current) {
+      isPullingDown.current = false;
+      if (pullDownOffset > PULL_DOWN_CLOSE_THRESHOLD) {
+        // Threshold met — close
+        handleClose("drag");
+      }
+      setPullDownOffset(0);
+    }
+  }, [pullDownOffset, handleClose]);
+
+  // Header drag handlers for expansion (drag up to expand to 90vh)
+  const handleHeaderTouchStart = useCallback((e: React.TouchEvent) => {
+    headerTouchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleHeaderTouchMove = useCallback((e: React.TouchEvent) => {
+    if (headerTouchStartY.current === null) return;
+
+    const touchCurrentY = e.touches[0].clientY;
+    const deltaY = touchCurrentY - headerTouchStartY.current;
+
+    // If user is dragging UP (negative deltaY) by at least 30px, expand to 90vh
+    if (deltaY < HEADER_DRAG_UP_THRESHOLD) {
+      setExpandedHeight(EXPANDED_PANEL_HEIGHT_VH);
+    }
+  }, []);
+
+  const handleHeaderTouchEnd = useCallback(() => {
+    headerTouchStartY.current = null;
+  }, []);
+
+  // Combined header handlers (expansion + close)
+  const combinedHeaderHandlers = {
+    ...handlers,
+    onTouchStart: (e: React.TouchEvent) => {
+      e.stopPropagation();
+      handleHeaderTouchStart(e);
+      handlers.onTouchStart(e);
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      e.stopPropagation();
+      handleHeaderTouchMove(e);
+      handlers.onTouchMove(e);
+    },
+    onTouchEnd: (e?: React.TouchEvent) => {
+      e?.stopPropagation();
+      handleHeaderTouchEnd();
+      handlers.onTouchEnd();
+    },
+  };
+
+  const headerHandlers = isMobile ? combinedHeaderHandlers : NOOP_DRAG_HANDLERS;
 
   // Handle animation state
   const isVisible = useMessageAnimation(message);
@@ -72,11 +219,17 @@ export default function MessageDetailView({
 
   if (!message) return null;
 
+  // Determine which drag is active
+  const activeDragOffset =
+    pullDownOffset > 0 ? pullDownOffset : isDragging ? dragOffset : 0;
+  const isAnyDragging = isDragging || pullDownOffset > 0;
+
   return (
     <aside
+      ref={scrollContainerRef}
       aria-label="Детайли за сигнала"
       className={`fixed ${zIndex.overlayContent} bg-white shadow-2xl overflow-y-auto transition-all duration-300 ease-out
-        bottom-0 left-0 right-0 max-h-[85vh] rounded-t-2xl
+        bottom-0 left-0 right-0 rounded-t-2xl
         sm:inset-y-0 sm:left-auto sm:right-0 sm:w-96 sm:max-h-none sm:rounded-none
         ${
           isVisible
@@ -84,109 +237,117 @@ export default function MessageDetailView({
             : "translate-y-full sm:translate-y-0 sm:translate-x-full"
         }
       `}
+      onScroll={handleScroll}
+      onTouchStart={isMobile ? handleContainerTouchStart : undefined}
+      onTouchMove={isMobile ? handleContainerTouchMove : undefined}
+      onTouchEnd={isMobile ? handleContainerTouchEnd : undefined}
       style={{
-        transform: isDragging ? `translateY(${dragOffset}px)` : undefined,
-        transition: isDragging ? "none" : undefined,
+        transform: isAnyDragging
+          ? `translateY(${activeDragOffset}px)`
+          : undefined,
+        transition: isAnyDragging ? "none" : undefined,
+        maxHeight: isMobile ? `${expandedHeight}vh` : undefined,
+        overscrollBehaviorY: "contain", // Prevent pull-to-refresh on mobile
       }}
     >
-        <Header
-          handlers={handlers}
-          onClose={onClose}
-          messageId={message.id}
-          classification={classifyMessage(message)}
+      <Header
+        handlers={headerHandlers}
+        onClose={onClose}
+        messageId={message.id}
+        classification={classifyMessage(message)}
+      />
+
+      <div
+        className={`px-4 sm:px-6 py-4 pb-6 sm:pb-4 space-y-6 transition-opacity duration-500 delay-100 ${
+          isVisible ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        {message.finalizedAt && (
+          <DetailItem title="Публикувано тук">
+            <p className="text-base text-gray-900">
+              {formatDate(message.finalizedAt)}
+            </p>
+          </DetailItem>
+        )}
+
+        {message.source && (
+          <SourceDisplay
+            sourceId={message.source}
+            sourceUrl={message.sourceUrl}
+          />
+        )}
+
+        {message.categories && message.categories.length > 0 && (
+          <DetailItem title="Категории">
+            <CategoryChips categories={message.categories} />
+          </DetailItem>
+        )}
+
+        <DetailItem title="Текст">
+          <MessageText
+            text={message.text}
+            markdownText={message.markdownText}
+          />
+        </DetailItem>
+
+        {message.responsibleEntity && (
+          <DetailItem title="Отговорна институция">
+            <p className="text-base text-gray-900">
+              {message.responsibleEntity}
+            </p>
+          </DetailItem>
+        )}
+
+        <Locations
+          pins={message.pins}
+          streets={message.streets}
+          busStops={message.busStops}
+          cadastralProperties={message.cadastralProperties}
+          addresses={message.addresses}
+          onLocationClick={onAddressClick}
         />
 
-        <div
-          className={`px-4 sm:px-6 py-4 pb-6 sm:pb-4 space-y-6 transition-opacity duration-500 delay-100 ${
-            isVisible ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          {message.finalizedAt && (
-            <DetailItem title="Публикувано тук">
-              <p className="text-base text-gray-900">
-                {formatDate(message.finalizedAt)}
-              </p>
-            </DetailItem>
-          )}
-
-          {message.source && (
-            <SourceDisplay
-              sourceId={message.source}
-              sourceUrl={message.sourceUrl}
-            />
-          )}
-
-          {message.categories && message.categories.length > 0 && (
-            <DetailItem title="Категории">
-              <CategoryChips categories={message.categories} />
-            </DetailItem>
-          )}
-
-          <DetailItem title="Текст">
-            <MessageText
-              text={message.text}
-              markdownText={message.markdownText}
-            />
-          </DetailItem>
-
-          {message.responsibleEntity && (
-            <DetailItem title="Отговорна институция">
-              <p className="text-base text-gray-900">
-                {message.responsibleEntity}
-              </p>
-            </DetailItem>
-          )}
-
-          <Locations
-            pins={message.pins}
-            streets={message.streets}
-            busStops={message.busStops}
-            cadastralProperties={message.cadastralProperties}
-            addresses={message.addresses}
-            onLocationClick={onAddressClick}
-          />
-
-          {message.geoJson?.features &&
-            message.geoJson.features.length > 0 &&
-            (() => {
-              const centroid = getFeaturesCentroid(message.geoJson);
-              const isClickable = centroid && onAddressClick;
-              const handleGeoClick = () => {
-                if (centroid && onAddressClick) {
-                  onAddressClick(centroid.lat, centroid.lng);
-                  // Scroll body to bring the map into view (especially on mobile)
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }
-              };
-              return (
-                <DetailItem title="Обекти на картата">
-                  {isClickable ? (
-                    <button
-                      type="button"
-                      onClick={handleGeoClick}
-                      className="w-full text-left bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
-                    >
-                      <p className="text-sm text-foreground">
-                        {message.geoJson!.features.length}{" "}
-                        {message.geoJson!.features.length === 1
-                          ? "обект"
-                          : "обекта"}{" "}
-                        на картата
-                      </p>
-                    </button>
-                  ) : (
-                    <p className="text-sm text-gray-900">
+        {message.geoJson?.features &&
+          message.geoJson.features.length > 0 &&
+          (() => {
+            const centroid = getFeaturesCentroid(message.geoJson);
+            const isClickable = centroid && onAddressClick;
+            const handleGeoClick = () => {
+              if (centroid && onAddressClick) {
+                onAddressClick(centroid.lat, centroid.lng);
+                // Scroll body to bring the map into view (especially on mobile)
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            };
+            return (
+              <DetailItem title="Обекти на картата">
+                {isClickable ? (
+                  <button
+                    type="button"
+                    onClick={handleGeoClick}
+                    className="w-full text-left bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
+                  >
+                    <p className="text-sm text-foreground">
                       {message.geoJson!.features.length}{" "}
                       {message.geoJson!.features.length === 1
                         ? "обект"
                         : "обекта"}{" "}
                       на картата
                     </p>
-                  )}
-                </DetailItem>
-              );
-            })()}
-        </div>
-      </aside>
+                  </button>
+                ) : (
+                  <p className="text-sm text-gray-900">
+                    {message.geoJson!.features.length}{" "}
+                    {message.geoJson!.features.length === 1
+                      ? "обект"
+                      : "обекта"}{" "}
+                    на картата
+                  </p>
+                )}
+              </DetailItem>
+            );
+          })()}
+      </div>
+    </aside>
   );
 }

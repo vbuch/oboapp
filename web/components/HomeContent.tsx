@@ -273,100 +273,107 @@ export default function HomeContent() {
   }, [selectedMessage]);
 
   return (
-    <div
-      className="flex-1 flex flex-col [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-row"
-      ref={containerRef}
-    >
-      {/* Error messages */}
-      {error && (
-        <div
-          className={`bg-white border-b shadow-sm ${zIndex.fixed} [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:absolute [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:left-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:right-0`}
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="p-4 bg-error-light text-error rounded-md">
-              {error}
+    <div className="flex-1 flex flex-col" ref={containerRef}>
+      {/* Map and Messages Container - becomes flex-row on wide desktop */}
+      <div className="flex-1 flex flex-col [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-row">
+        {/* Error messages */}
+        {error && (
+          <div
+            className={`bg-white border-b shadow-sm ${zIndex.fixed} [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:absolute [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:left-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:right-0`}
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <div className="p-4 bg-error-light text-error rounded-md">
+                {error}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Map Section - Left side on desktop, top on mobile */}
-      <div className="relative [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-3/5 h-[calc(66vh-64px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:h-[calc(100vh-80px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:sticky [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:self-start">
-        {/* Filter Box */}
-        <FilterBox
-          isOpen={categoryFilter.isOpen}
-          selectedCategories={categoryFilter.selectedCategories}
-          selectedSources={sourceFilter.selectedSources}
-          categoryCounts={categoryFilter.categoryCounts}
-          sourceCounts={sourceFilter.sourceCounts}
-          hasActiveFilters={
-            categoryFilter.hasActiveFilters || sourceFilter.hasActiveFilters
-          }
-          hasActiveCategoryFilters={
-            categoryFilter.selectedCategories &&
-            categoryFilter.selectedCategories.size > 0
-          }
-          hasActiveSourceFilters={sourceFilter.hasActiveFilters}
-          isInitialLoad={categoryFilter.isInitialLoad}
-          isLoadingCounts={
-            categoryFilter.isLoadingCounts || sourceFilter.isLoadingCounts
-          }
-          showArchived={categoryFilter.showArchived}
-          onTogglePanel={categoryFilter.togglePanel}
-          onToggleCategory={categoryFilter.toggleCategory}
-          onToggleSource={sourceFilter.toggleSource}
-          onToggleShowArchived={categoryFilter.toggleShowArchived}
-          onClearAllFilters={() => {
-            categoryFilter.clearAllCategories();
-            sourceFilter.clearAllSources();
-          }}
-        />
-
-        <MapContainer
-          messages={filteredMessages}
-          interests={interests}
-          interestsLoaded={interestsLoaded}
-          user={user}
-          targetMode={targetMode}
-          initialMapCenter={initialMapCenter}
-          hoveredMessageId={hoveredMessageId}
-          selectedMessageId={selectedMessage?.id}
-          onFeatureClick={handleFeatureClick}
-          onMapReady={handleMapReady}
-          onBoundsChanged={handleBoundsChanged}
-          onInterestClick={handleInterestClick}
-          onSaveInterest={handleSaveInterest}
-          onCancelTargetMode={handleCancelTargetMode}
-          onStartAddInterest={handleStartAddInterest}
-          onGeolocationPromptChange={setGeolocationPrompt}
-          onOnboardingStateChange={handleOnboardingStateChange}
-        />
-        {isLoading && (
-          <div
-            className={`absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-lg shadow-md ${zIndex.nav}`}
-          >
-            <p className="text-sm text-neutral">Зареждане...</p>
-          </div>
         )}
-      </div>
 
-      {/* Events Sidebar - Right side on desktop, bottom on mobile */}
-      <div className="flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-none [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white overflow-y-auto">
-        <div className="p-6 @container">
-          <MessagesGrid
-            messages={filteredMessages}
-            isLoading={isLoading}
-            onMessageClick={(message) => {
-              router.push(createMessageUrl(message), { scroll: false });
+        {/* Map Section - Left side on desktop, top on mobile */}
+        <div
+          className={`relative [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-3/5 h-[calc(66vh-64px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:h-[calc(100vh-80px)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:sticky [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:self-start`}
+        >
+          {/* Filter Box */}
+          <FilterBox
+            isOpen={categoryFilter.isOpen}
+            selectedCategories={categoryFilter.selectedCategories}
+            selectedSources={sourceFilter.selectedSources}
+            categoryCounts={categoryFilter.categoryCounts}
+            sourceCounts={sourceFilter.sourceCounts}
+            hasActiveFilters={
+              categoryFilter.hasActiveFilters || sourceFilter.hasActiveFilters
+            }
+            hasActiveCategoryFilters={
+              categoryFilter.selectedCategories &&
+              categoryFilter.selectedCategories.size > 0
+            }
+            hasActiveSourceFilters={sourceFilter.hasActiveFilters}
+            isInitialLoad={categoryFilter.isInitialLoad}
+            isLoadingCounts={
+              categoryFilter.isLoadingCounts || sourceFilter.isLoadingCounts
+            }
+            showArchived={categoryFilter.showArchived}
+            onTogglePanel={categoryFilter.togglePanel}
+            onToggleCategory={categoryFilter.toggleCategory}
+            onToggleSource={sourceFilter.toggleSource}
+            onToggleShowArchived={categoryFilter.toggleShowArchived}
+            onClearAllFilters={() => {
+              categoryFilter.clearAllCategories();
+              sourceFilter.clearAllSources();
             }}
-            onMessageHover={setHoveredMessageId}
-            variant="list"
           />
+
+          <MapContainer
+            messages={filteredMessages}
+            interests={interests}
+            interestsLoaded={interestsLoaded}
+            user={user}
+            targetMode={targetMode}
+            initialMapCenter={initialMapCenter}
+            hoveredMessageId={hoveredMessageId}
+            selectedMessageId={selectedMessage?.id}
+            onFeatureClick={handleFeatureClick}
+            onMapReady={handleMapReady}
+            onBoundsChanged={handleBoundsChanged}
+            onInterestClick={handleInterestClick}
+            onSaveInterest={handleSaveInterest}
+            onCancelTargetMode={handleCancelTargetMode}
+            onStartAddInterest={handleStartAddInterest}
+            onGeolocationPromptChange={setGeolocationPrompt}
+            onOnboardingStateChange={handleOnboardingStateChange}
+          />
+          {isLoading && (
+            <div
+              className={`absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-lg shadow-md ${zIndex.nav}`}
+            >
+              <p className="text-sm text-neutral">Зареждане...</p>
+            </div>
+          )}
         </div>
+
+        {/* Events Sidebar - Right side on desktop, bottom on mobile */}
+        <div
+          className={`flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-none [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white overflow-y-auto ${selectedMessage ? "hidden sm:block" : ""}`}
+        >
+          <div className="p-6 @container">
+            <MessagesGrid
+              messages={filteredMessages}
+              isLoading={isLoading}
+              onMessageClick={(message) => {
+                router.push(createMessageUrl(message), { scroll: false });
+              }}
+              onMessageHover={setHoveredMessageId}
+              variant="list"
+            />
+          </div>
+        </div>
+
+        {/* End of Map and Messages Container */}
       </div>
 
       {/* Message Detail View */}
       <MessageDetailView
+        key={selectedMessage?.id ?? "no-message"}
         message={selectedMessage}
         onClose={handleCloseDetail}
         onAddressClick={handleAddressClick}
