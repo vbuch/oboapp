@@ -9,7 +9,7 @@ OboApp exposes a read-only public REST API at `/api/v1` for external consumption
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/v1/sources` | List all data sources |
-| `GET` | `/api/v1/messages` | Fetch messages filtered by geographic bounds and optional category |
+| `GET` | `/api/v1/messages` | Fetch messages filtered by geographic bounds and optional categories |
 | `GET` | `/api/v1/messages/by-id` | Fetch a single message by ID |
 | `GET` | `/api/v1/openapi` | OpenAPI 3.0 specification (no key required) |
 
@@ -46,8 +46,8 @@ From the Settings page, click **Отмени API ключа**. Revocation requir
 | `south` | number | Yes | Southern latitude bound |
 | `east` | number | Yes | Eastern longitude bound |
 | `west` | number | Yes | Western longitude bound |
-| `category` | string | No | Filter by category |
-| `limit` | integer | No | Maximum number of results |
+| `categories` | string | No | Filter by category |
+| `zoom` | integer | No | Controls clustering (zoom level, integer 1–22) |
 
 ### `GET /api/v1/messages/by-id`
 
