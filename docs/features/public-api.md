@@ -36,15 +36,6 @@ Keys have the format `obo_<random>` and are shown once at creation — copy and 
 
 From the Settings page, click **Отмени API ключа**. Revocation requires typing **ОТМЕНИ** in the confirmation dialog. This is permanent.
 
-## Static Keys (Pre-configured)
-
-The `PUBLIC_API_KEYS` environment variable accepts a comma-separated list of static API keys that bypass the database lookup (fast path). Useful for internal or pre-provisioned clients (e.g., the YSM mobile app):
-
-```bash
-# web/.env.local
-PUBLIC_API_KEYS=key-ysm-abc123
-```
-
 ## Query Parameters
 
 ### `GET /api/v1/messages`
@@ -64,6 +55,8 @@ PUBLIC_API_KEYS=key-ysm-abc123
 |-----------|------|----------|-------------|
 | `id` | string | Yes | Message document ID |
 
-## Backward Compatibility
+## YSM Mobile App
 
-The `/api/ysm` routes remain unchanged and continue to serve the YSM mobile app.
+The Your Sofia (YSM) mobile app is a registered API client of `/api/v1`. It uses the same self-service key management and accesses data through the standard `/api/v1/sources`, `/api/v1/messages`, and `/api/v1/messages/by-id` endpoints.
+
+YSM-specific push notification endpoints (`/api/ysm/notifications/history`, `/api/ysm/notifications/subscription`) remain at `/api/ysm` as they use Firebase Auth and are not part of the public data API.
