@@ -46,6 +46,43 @@ vi.mock("@/lib/db", () => ({
           }
         }
 
+        if (options?.orderBy && Array.isArray(options.orderBy)) {
+          filtered.sort((a, b) => {
+            for (const order of options.orderBy) {
+              const aValue = a[order.field];
+              const bValue = b[order.field];
+
+              if (aValue === bValue) continue;
+
+              const aTime =
+                aValue instanceof Date
+                  ? aValue.getTime()
+                  : typeof aValue === "string"
+                    ? new Date(aValue).getTime()
+                    : null;
+              const bTime =
+                bValue instanceof Date
+                  ? bValue.getTime()
+                  : typeof bValue === "string"
+                    ? new Date(bValue).getTime()
+                    : null;
+
+              if (aTime !== null && bTime !== null) {
+                return order.direction === "desc"
+                  ? bTime - aTime
+                  : aTime - bTime;
+              }
+
+              const aString = String(aValue ?? "");
+              const bString = String(bValue ?? "");
+              const compare = aString.localeCompare(bString);
+              return order.direction === "desc" ? -compare : compare;
+            }
+
+            return 0;
+          });
+        }
+
         return filtered;
       }),
     },
@@ -331,33 +368,34 @@ describe("GET /api/messages - Date Filtering", () => {
     expect(data.messages).toHaveLength(1);
   });
 
-  it("should return messages sorted newest first by finalizedAt then createdAt", async () => {
+  it("should return messages sorted by timespanEnd descending", async () => {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
     const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     mockMessagesData = [
       {
-        _id: "msg-created-older",
-        text: "Older by createdAt",
+        _id: "msg-end-middle",
+        text: "Middle by timespanEnd",
         geoJson: createMockGeoJson(),
         createdAt: twoHoursAgo,
         timespanEnd: now,
       },
       {
-        _id: "msg-finalized-newest",
-        text: "Newest by finalizedAt",
+        _id: "msg-end-earliest",
+        text: "Earliest by timespanEnd",
         geoJson: createMockGeoJson(),
-        createdAt: twoHoursAgo,
+        createdAt: now,
         finalizedAt: now,
-        timespanEnd: now,
+        timespanEnd: oneHourAgo,
       },
       {
-        _id: "msg-created-newer",
-        text: "Newer by createdAt",
+        _id: "msg-end-latest",
+        text: "Latest by timespanEnd",
         geoJson: createMockGeoJson(),
         createdAt: oneHourAgo,
-        timespanEnd: now,
+        timespanEnd: oneDayLater,
       },
     ];
 
@@ -367,9 +405,9 @@ describe("GET /api/messages - Date Filtering", () => {
 
     expect(data.messages).toHaveLength(3);
     expect(data.messages.map((m: any) => m.id)).toEqual([
-      "msg-finalized-newest",
-      "msg-created-newer",
-      "msg-created-older",
+      "msg-end-latest",
+      "msg-end-middle",
+      "msg-end-earliest",
     ]);
   });
 });

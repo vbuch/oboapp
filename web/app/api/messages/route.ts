@@ -18,44 +18,11 @@ const FIRESTORE_IN_OPERATOR_LIMIT = 10;
 type DbClient = Awaited<ReturnType<typeof getDb>>;
 type MessageRecord = Record<string, unknown>;
 
-function toTimestamp(value?: string): number | null {
-  if (!value) return null;
-  const timestamp = new Date(value).getTime();
-  return Number.isNaN(timestamp) ? null : timestamp;
-}
-
-function getMessageSortTimestamp(message: Message): number | null {
-  return (
-    toTimestamp(message.finalizedAt) ??
-    toTimestamp(message.createdAt) ??
-    toTimestamp(message.timespanEnd)
-  );
-}
-
-function sortMessagesNewestFirst(messages: Message[]): Message[] {
-  return [...messages].sort((a, b) => {
-    const aTimestamp = getMessageSortTimestamp(a);
-    const bTimestamp = getMessageSortTimestamp(b);
-
-    if (aTimestamp !== bTimestamp) {
-      return (bTimestamp ?? 0) - (aTimestamp ?? 0);
-    }
-
-    const aTimespanEnd = toTimestamp(a.timespanEnd) ?? 0;
-    const bTimespanEnd = toTimestamp(b.timespanEnd) ?? 0;
-    return bTimespanEnd - aTimespanEnd;
-  });
-}
-
-function sortMessagesByTimespanAndCreated(messages: Message[]): Message[] {
+function sortMessagesByTimespanEnd(messages: Message[]): Message[] {
   return [...messages].sort((a, b) => {
     const aEnd = a.timespanEnd ?? "";
     const bEnd = b.timespanEnd ?? "";
-    if (aEnd !== bEnd) return bEnd.localeCompare(aEnd);
-
-    const aCreated = a.createdAt ?? "";
-    const bCreated = b.createdAt ?? "";
-    return bCreated.localeCompare(aCreated);
+    return bEnd.localeCompare(aEnd);
   });
 }
 
@@ -85,7 +52,11 @@ function toViewportBounds(params: {
   return addBuffer(clampedBounds, 0.2);
 }
 
-function getCutoffDate(): Date {
+function getCutoffDate(override?: Date): Date {
+  if (override) {
+    return override;
+  }
+
   const relevanceDays = process.env.MESSAGE_RELEVANCE_DAYS
     ? Number.parseInt(process.env.MESSAGE_RELEVANCE_DAYS, 10)
     : DEFAULT_RELEVANCE_DAYS;
@@ -152,7 +123,7 @@ async function findMessagesBySources(
     }
   }
 
-  return sortMessagesByTimespanAndCreated(Array.from(messagesMap.values()));
+  return sortMessagesByTimespanEnd(Array.from(messagesMap.values()));
 }
 
 function toSourceList(sourceSet?: Set<string>): string[] {
@@ -193,7 +164,9 @@ function applyOptionalSourceSet(
     return docs;
   }
 
-  return docs.filter((doc) => doc.source && sourceSet.has(doc.source as string));
+  return docs.filter(
+    (doc) => doc.source && sourceSet.has(doc.source as string),
+  );
 }
 
 function isInvalidSourceForFilter(
@@ -214,7 +187,9 @@ async function buildCategoryQueryPlans(
   includeUncategorized: boolean,
   sourceSet?: Set<string>,
 ): Promise<Array<{ uncategorizedOnly: boolean; docs: MessageRecord[] }>> {
-  const plans: Array<Promise<{ uncategorizedOnly: boolean; docs: MessageRecord[] }>> = [];
+  const plans: Array<
+    Promise<{ uncategorizedOnly: boolean; docs: MessageRecord[] }>
+  > = [];
 
   if (realCategories.length > 0) {
     plans.push(
@@ -294,7 +269,7 @@ async function findMessagesByCategoryFilters(
     }
   }
 
-  return sortMessagesByTimespanAndCreated(Array.from(messagesMap.values()));
+  return sortMessagesByTimespanEnd(Array.from(messagesMap.values()));
 }
 
 function filterMessagesByGeoAndViewport(
@@ -405,10 +380,11 @@ export async function GET(request: Request) {
       zoom,
       categories: selectedCategories,
       sources: selectedSources,
+      timespanEndGte,
     } = parsed.data;
 
     const viewportBounds = toViewportBounds({ north, south, east, west });
-    const cutoffDate = getCutoffDate();
+    const cutoffDate = getCutoffDate(timespanEndGte);
 
     // If categories param was provided but resulted in empty array, return empty result
     if (selectedCategories && selectedCategories.length === 0) {
@@ -447,10 +423,7 @@ export async function GET(request: Request) {
     } else {
       const docs = await db.messages.findMany({
         where: [{ field: "timespanEnd", op: ">=", value: cutoffDate }],
-        orderBy: [
-          { field: "timespanEnd", direction: "desc" },
-          { field: "createdAt", direction: "desc" },
-        ],
+        orderBy: [{ field: "timespanEnd", direction: "desc" }],
       });
 
       allMessages = docs.map(recordToMessage);
@@ -458,8 +431,6 @@ export async function GET(request: Request) {
 
     let messages = filterMessagesByGeoAndViewport(allMessages, viewportBounds);
     messages = simplifyMessagesForClusterZoom(messages, zoom);
-
-    messages = sortMessagesNewestFirst(messages);
 
     return NextResponse.json({ messages });
   } catch (error) {
