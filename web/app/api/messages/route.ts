@@ -14,6 +14,292 @@ import { recordToMessage } from "@/lib/doc-to-message";
 const DEFAULT_RELEVANCE_DAYS = 7;
 const CLUSTER_ZOOM_THRESHOLD = 15;
 
+type DbClient = Awaited<ReturnType<typeof getDb>>;
+type MessageRecord = Record<string, unknown>;
+
+function toTimestamp(value?: string): number | null {
+  if (!value) return null;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function getMessageSortTimestamp(message: Message): number | null {
+  return (
+    toTimestamp(message.finalizedAt) ??
+    toTimestamp(message.createdAt) ??
+    toTimestamp(message.timespanEnd)
+  );
+}
+
+function sortMessagesNewestFirst(messages: Message[]): Message[] {
+  return [...messages].sort((a, b) => {
+    const aTimestamp = getMessageSortTimestamp(a);
+    const bTimestamp = getMessageSortTimestamp(b);
+
+    if (aTimestamp !== bTimestamp) {
+      return (bTimestamp ?? 0) - (aTimestamp ?? 0);
+    }
+
+    const aTimespanEnd = toTimestamp(a.timespanEnd) ?? 0;
+    const bTimespanEnd = toTimestamp(b.timespanEnd) ?? 0;
+    return bTimespanEnd - aTimespanEnd;
+  });
+}
+
+function sortMessagesByTimespanAndCreated(messages: Message[]): Message[] {
+  return [...messages].sort((a, b) => {
+    const aEnd = a.timespanEnd ?? "";
+    const bEnd = b.timespanEnd ?? "";
+    if (aEnd !== bEnd) return bEnd.localeCompare(aEnd);
+
+    const aCreated = a.createdAt ?? "";
+    const bCreated = b.createdAt ?? "";
+    return bCreated.localeCompare(aCreated);
+  });
+}
+
+function isUncategorizedDoc(doc: MessageRecord): boolean {
+  const categories = doc.categories as string[] | undefined;
+  return !categories || (Array.isArray(categories) && categories.length === 0);
+}
+
+function toViewportBounds(params: {
+  north?: number;
+  south?: number;
+  east?: number;
+  west?: number;
+}): ViewportBounds | null {
+  const { north, south, east, west } = params;
+  if (
+    north === undefined ||
+    south === undefined ||
+    east === undefined ||
+    west === undefined
+  ) {
+    return null;
+  }
+
+  const rawBounds: ViewportBounds = { north, south, east, west };
+  const clampedBounds = clampBounds(rawBounds);
+  return addBuffer(clampedBounds, 0.2);
+}
+
+function getCutoffDate(): Date {
+  const relevanceDays = process.env.MESSAGE_RELEVANCE_DAYS
+    ? Number.parseInt(process.env.MESSAGE_RELEVANCE_DAYS, 10)
+    : DEFAULT_RELEVANCE_DAYS;
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - relevanceDays);
+  return cutoffDate;
+}
+
+async function findRecentMessageDocs(
+  db: DbClient,
+  cutoffDate: Date,
+): Promise<MessageRecord[]> {
+  return db.messages.findMany({
+    where: [{ field: "timespanEnd", op: ">=", value: cutoffDate }],
+    orderBy: [{ field: "timespanEnd", direction: "desc" }],
+  });
+}
+
+async function findMessagesBySources(
+  db: DbClient,
+  cutoffDate: Date,
+  sources: string[],
+): Promise<Message[]> {
+  const queryPromises: Promise<MessageRecord[]>[] = [];
+
+  for (const source of sources) {
+    queryPromises.push(
+      db.messages.findMany({
+        where: [
+          { field: "source", op: "==", value: source },
+          { field: "timespanEnd", op: ">=", value: cutoffDate },
+        ],
+        orderBy: [{ field: "timespanEnd", direction: "desc" }],
+      }),
+    );
+  }
+
+  const results = await Promise.all(queryPromises);
+  const messagesMap = new Map<string, Message>();
+
+  for (const docs of results) {
+    for (const doc of docs) {
+      const docId = doc._id as string;
+      if (!messagesMap.has(docId)) {
+        messagesMap.set(docId, recordToMessage(doc));
+      }
+    }
+  }
+
+  return sortMessagesByTimespanAndCreated(Array.from(messagesMap.values()));
+}
+
+async function findMessagesByCategoryFilters(
+  db: DbClient,
+  cutoffDate: Date,
+  selectedCategories: string[],
+  sourceSet?: Set<string>,
+): Promise<Message[]> {
+  const realCategories = selectedCategories.filter(
+    (c) => c !== "uncategorized",
+  );
+  const includeUncategorized = selectedCategories.includes("uncategorized");
+
+  if (includeUncategorized && realCategories.length === 0) {
+    const docs = await findRecentMessageDocs(db, cutoffDate);
+
+    return docs
+      .filter((doc) => {
+        if (!isUncategorizedDoc(doc)) return false;
+        if (!sourceSet) return true;
+        return doc.source && sourceSet.has(doc.source as string);
+      })
+      .map(recordToMessage);
+  }
+
+  const queryPlans: Array<{
+    uncategorizedOnly: boolean;
+    query: Promise<MessageRecord[]>;
+  }> = [];
+
+  if (realCategories.length > 0) {
+    queryPlans.push({
+      uncategorizedOnly: false,
+      query: db.messages.findMany({
+        where: [
+          {
+            field: "categories",
+            op: "array-contains-any",
+            value: realCategories,
+          },
+          { field: "timespanEnd", op: ">=", value: cutoffDate },
+        ],
+        orderBy: [{ field: "timespanEnd", direction: "desc" }],
+      }),
+    });
+  }
+
+  if (includeUncategorized) {
+    queryPlans.push({
+      uncategorizedOnly: true,
+      query: findRecentMessageDocs(db, cutoffDate),
+    });
+  }
+
+  const results = await Promise.all(queryPlans.map((plan) => plan.query));
+  const messagesMap = new Map<string, Message>();
+
+  for (let i = 0; i < results.length; i++) {
+    const docs = results[i];
+    const { uncategorizedOnly } = queryPlans[i];
+
+    for (const doc of docs) {
+      if (uncategorizedOnly && !isUncategorizedDoc(doc)) {
+        continue;
+      }
+
+      if (sourceSet && (!doc.source || !sourceSet.has(doc.source as string))) {
+        continue;
+      }
+
+      const docId = doc._id as string;
+      if (!messagesMap.has(docId)) {
+        messagesMap.set(docId, recordToMessage(doc));
+      }
+    }
+  }
+
+  return sortMessagesByTimespanAndCreated(Array.from(messagesMap.values()));
+}
+
+function filterMessagesByGeoAndViewport(
+  messages: Message[],
+  viewportBounds: ViewportBounds | null,
+): Message[] {
+  let filtered = messages.filter(
+    (message) => message.geoJson !== null && message.geoJson !== undefined,
+  );
+
+  if (!viewportBounds) {
+    return filtered;
+  }
+
+  filtered = filtered.filter((message) => {
+    if (message.cityWide) return true;
+    if (!message.geoJson?.features) return false;
+
+    return message.geoJson.features.some((feature) =>
+      featureIntersectsBounds(feature, viewportBounds),
+    );
+  });
+
+  return filtered;
+}
+
+function simplifyMessagesForClusterZoom(
+  messages: Message[],
+  zoom?: number,
+): Message[] {
+  if (zoom === undefined || zoom >= CLUSTER_ZOOM_THRESHOLD) {
+    return messages;
+  }
+
+  return messages.map((message) => {
+    if (!message.geoJson?.features) return message;
+
+    const simplifiedFeatures = message.geoJson.features.map((feature) => {
+      if (
+        feature.geometry.type === "LineString" ||
+        feature.geometry.type === "Polygon"
+      ) {
+        const centroid = getCentroid(feature.geometry);
+        if (!centroid) return feature;
+
+        return {
+          ...feature,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [centroid.lng, centroid.lat] as [number, number],
+          },
+          properties: {
+            ...feature.properties,
+            _originalGeometryType: feature.geometry.type,
+          },
+        } as typeof feature;
+      }
+
+      return feature;
+    });
+
+    return {
+      ...message,
+      geoJson: {
+        ...message.geoJson,
+        features: simplifiedFeatures,
+      },
+    };
+  });
+}
+
+async function validateSources(
+  selectedSources?: string[],
+): Promise<string[] | undefined> {
+  if (!selectedSources || selectedSources.length === 0) {
+    return undefined;
+  }
+
+  const { getCurrentLocalitySources } = await import("@/lib/source-utils");
+  const localitySources = getCurrentLocalitySources();
+  const validSourceIds = new Set(localitySources.map((s) => s.id));
+
+  const uniqueSources = Array.from(new Set(selectedSources));
+  return uniqueSources.filter((sourceId) => validSourceIds.has(sourceId));
+}
+
 export async function GET(request: Request) {
   try {
     const db = await getDb();
@@ -40,278 +326,46 @@ export async function GET(request: Request) {
       sources: selectedSources,
     } = parsed.data;
 
-    let viewportBounds: ViewportBounds | null = null;
-    if (
-      north !== undefined &&
-      south !== undefined &&
-      east !== undefined &&
-      west !== undefined
-    ) {
-      const rawBounds: ViewportBounds = { north, south, east, west };
-
-      // Clamp to Sofia bounds
-      const clampedBounds = clampBounds(rawBounds);
-      // Add 20% buffer
-      viewportBounds = addBuffer(clampedBounds, 0.2);
-    }
-
-    // Get relevance period from environment
-    const relevanceDays = process.env.MESSAGE_RELEVANCE_DAYS
-      ? Number.parseInt(process.env.MESSAGE_RELEVANCE_DAYS, 10)
-      : DEFAULT_RELEVANCE_DAYS;
-
-    // Calculate cutoff date for timespan filtering
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - relevanceDays);
+    const viewportBounds = toViewportBounds({ north, south, east, west });
+    const cutoffDate = getCutoffDate();
 
     // If categories param was provided but resulted in empty array, return empty result
     if (selectedCategories && selectedCategories.length === 0) {
       return NextResponse.json({ messages: [] });
     }
 
-    // Validate and deduplicate sources
-    // Note: Unlike categories, empty sources param (?sources=) is treated as "no filter"
-    // to maintain backwards compatibility and allow flexible querying
-    let validatedSources: string[] | undefined;
-    if (selectedSources && selectedSources.length > 0) {
-      const { getCurrentLocalitySources } = await import("@/lib/source-utils");
-      const localitySources = getCurrentLocalitySources();
-      const validSourceIds = new Set(localitySources.map((s) => s.id));
-      
-      // Deduplicate and filter to only valid sources for this locality
-      const uniqueSources = Array.from(new Set(selectedSources));
-      validatedSources = uniqueSources.filter((sourceId) =>
-        validSourceIds.has(sourceId),
-      );
+    const validatedSources = await validateSources(selectedSources);
 
-      // If no valid sources remain after validation, return empty result
-      if (validatedSources.length === 0) {
-        return NextResponse.json({ messages: [] });
-      }
+    if (
+      selectedSources &&
+      selectedSources.length > 0 &&
+      validatedSources?.length === 0
+    ) {
+      return NextResponse.json({ messages: [] });
     }
 
-    // Query messages using database abstraction
     let allMessages: Message[] = [];
-
-    // Determine if we need source filtering
     const hasSourceFilter = validatedSources && validatedSources.length > 0;
-    const hasCategoryFilter = selectedCategories && selectedCategories.length > 0;
+    const hasCategoryFilter =
+      selectedCategories && selectedCategories.length > 0;
 
-    // Apply filtering based on what's selected
-    if (hasCategoryFilter && hasSourceFilter) {
-      // Both category and source filters
-      const realCategories = selectedCategories.filter(
-        (c) => c !== "uncategorized",
+    if (hasCategoryFilter) {
+      const sourceSet = hasSourceFilter ? new Set(validatedSources) : undefined;
+      allMessages = await findMessagesByCategoryFilters(
+        db,
+        cutoffDate,
+        selectedCategories,
+        sourceSet,
       );
-      const includeUncategorized = selectedCategories.includes("uncategorized");
-
-      if (includeUncategorized && realCategories.length === 0) {
-        // Only uncategorized + source filter
-        const docs = await db.messages.findMany({
-          where: [
-            { field: "timespanEnd", op: ">=", value: cutoffDate },
-          ],
-          orderBy: [{ field: "timespanEnd", direction: "desc" }],
-        });
-
-        const sourceSet = new Set(validatedSources);
-        allMessages = docs
-          .filter((doc) => {
-            const categories = doc.categories as string[] | undefined;
-            const isUncategorized =
-              !categories ||
-              (Array.isArray(categories) && categories.length === 0);
-            return isUncategorized && doc.source && sourceSet.has(doc.source as string);
-          })
-          .map(recordToMessage);
-      } else {
-        const queryPromises: Promise<Record<string, unknown>[]>[] = [];
-
-        if (realCategories.length > 0) {
-          queryPromises.push(
-            db.messages.findMany({
-              where: [
-                { field: "categories", op: "array-contains-any", value: realCategories },
-                { field: "timespanEnd", op: ">=", value: cutoffDate },
-              ],
-              orderBy: [{ field: "timespanEnd", direction: "desc" }],
-            }),
-          );
-        }
-
-        if (includeUncategorized) {
-          queryPromises.push(
-            db.messages.findMany({
-              where: [
-                { field: "timespanEnd", op: ">=", value: cutoffDate },
-              ],
-              orderBy: [{ field: "timespanEnd", direction: "desc" }],
-            }),
-          );
-        }
-
-        const results = await Promise.all(queryPromises);
-        const messagesMap = new Map<string, Message>();
-        const sourceSet = new Set(validatedSources);
-
-        for (let i = 0; i < results.length; i++) {
-          const docs = results[i];
-          const isUncategorizedQuery =
-            includeUncategorized && i === results.length - 1;
-
-          for (const doc of docs) {
-            if (isUncategorizedQuery) {
-              const categories = doc.categories as string[] | undefined;
-              const isUncategorized =
-                !categories ||
-                (Array.isArray(categories) && categories.length === 0);
-              if (!isUncategorized) continue;
-            }
-
-            // Apply source filter
-            const docId = doc._id as string;
-            if (doc.source && sourceSet.has(doc.source as string)) {
-              if (!messagesMap.has(docId)) {
-                messagesMap.set(docId, recordToMessage(doc));
-              }
-            }
-          }
-        }
-
-        allMessages = Array.from(messagesMap.values()).sort((a, b) => {
-          const aEnd = a.timespanEnd ?? "";
-          const bEnd = b.timespanEnd ?? "";
-          if (aEnd !== bEnd) return bEnd.localeCompare(aEnd);
-          const aCreated = a.createdAt ?? "";
-          const bCreated = b.createdAt ?? "";
-          return bCreated.localeCompare(aCreated);
-        });
-      }
-    } else if (hasCategoryFilter) {
-      // Only category filter
-      const realCategories = selectedCategories.filter(
-        (c) => c !== "uncategorized",
-      );
-      const includeUncategorized = selectedCategories.includes("uncategorized");
-
-      if (includeUncategorized && realCategories.length === 0) {
-        const docs = await db.messages.findMany({
-          where: [
-            { field: "timespanEnd", op: ">=", value: cutoffDate },
-          ],
-          orderBy: [{ field: "timespanEnd", direction: "desc" }],
-        });
-
-        allMessages = docs
-          .filter((doc) => {
-            const categories = doc.categories as string[] | undefined;
-            return (
-              !categories ||
-              (Array.isArray(categories) && categories.length === 0)
-            );
-          })
-          .map(recordToMessage);
-      } else {
-        const queryPromises: Promise<Record<string, unknown>[]>[] = [];
-
-        if (realCategories.length > 0) {
-          queryPromises.push(
-            db.messages.findMany({
-              where: [
-                { field: "categories", op: "array-contains-any", value: realCategories },
-                { field: "timespanEnd", op: ">=", value: cutoffDate },
-              ],
-              orderBy: [{ field: "timespanEnd", direction: "desc" }],
-            }),
-          );
-        }
-
-        if (includeUncategorized) {
-          queryPromises.push(
-            db.messages.findMany({
-              where: [
-                { field: "timespanEnd", op: ">=", value: cutoffDate },
-              ],
-              orderBy: [{ field: "timespanEnd", direction: "desc" }],
-            }),
-          );
-        }
-
-        const results = await Promise.all(queryPromises);
-        const messagesMap = new Map<string, Message>();
-
-        for (let i = 0; i < results.length; i++) {
-          const docs = results[i];
-          const isUncategorizedQuery =
-            includeUncategorized && i === results.length - 1;
-
-          for (const doc of docs) {
-            if (isUncategorizedQuery) {
-              const categories = doc.categories as string[] | undefined;
-              const isUncategorized =
-                !categories ||
-                (Array.isArray(categories) && categories.length === 0);
-              if (!isUncategorized) continue;
-            }
-
-            const docId = doc._id as string;
-            if (!messagesMap.has(docId)) {
-              messagesMap.set(docId, recordToMessage(doc));
-            }
-          }
-        }
-
-        allMessages = Array.from(messagesMap.values()).sort((a, b) => {
-          const aEnd = a.timespanEnd ?? "";
-          const bEnd = b.timespanEnd ?? "";
-          if (aEnd !== bEnd) return bEnd.localeCompare(aEnd);
-          const aCreated = a.createdAt ?? "";
-          const bCreated = b.createdAt ?? "";
-          return bCreated.localeCompare(aCreated);
-        });
-      }
     } else if (hasSourceFilter) {
-      // Only source filter - use database-level filtering
-      const queryPromises: Promise<Record<string, unknown>[]>[] = [];
-
-      for (const source of validatedSources!) {
-        queryPromises.push(
-          db.messages.findMany({
-            where: [
-              { field: "source", op: "==", value: source },
-              { field: "timespanEnd", op: ">=", value: cutoffDate },
-            ],
-            orderBy: [{ field: "timespanEnd", direction: "desc" }],
-          }),
-        );
-      }
-
-      const results = await Promise.all(queryPromises);
-      const messagesMap = new Map<string, Message>();
-
-      for (const docs of results) {
-        for (const doc of docs) {
-          const docId = doc._id as string;
-          if (!messagesMap.has(docId)) {
-            messagesMap.set(docId, recordToMessage(doc));
-          }
-        }
-      }
-
-      allMessages = Array.from(messagesMap.values()).sort((a, b) => {
-        const aEnd = a.timespanEnd ?? "";
-        const bEnd = b.timespanEnd ?? "";
-        if (aEnd !== bEnd) return bEnd.localeCompare(aEnd);
-        const aCreated = a.createdAt ?? "";
-        const bCreated = b.createdAt ?? "";
-        return bCreated.localeCompare(aCreated);
-      });
+      allMessages = await findMessagesBySources(
+        db,
+        cutoffDate,
+        validatedSources,
+      );
     } else {
-      // No filters - fetch all messages with timespan filter
       const docs = await db.messages.findMany({
-        where: [
-          { field: "timespanEnd", op: ">=", value: cutoffDate },
-        ],
+        where: [{ field: "timespanEnd", op: ">=", value: cutoffDate }],
         orderBy: [
           { field: "timespanEnd", direction: "desc" },
           { field: "createdAt", direction: "desc" },
@@ -321,66 +375,10 @@ export async function GET(request: Request) {
       allMessages = docs.map(recordToMessage);
     }
 
-    // Include all messages with valid GeoJSON (no relevance filter needed - done in DB)
-    let messages = allMessages.filter((message) => {
-      return message.geoJson !== null && message.geoJson !== undefined;
-    });
+    let messages = filterMessagesByGeoAndViewport(allMessages, viewportBounds);
+    messages = simplifyMessagesForClusterZoom(messages, zoom);
 
-    // Filter by viewport bounds if provided (skip cityWide messages - they're always visible)
-    if (viewportBounds) {
-      messages = messages.filter((message) => {
-        // City-wide messages bypass viewport filtering
-        if (message.cityWide) return true;
-
-        if (!message.geoJson?.features) return false;
-
-        // Check if any feature intersects with viewport bounds
-        return message.geoJson.features.some((feature) =>
-          featureIntersectsBounds(feature, viewportBounds),
-        );
-      });
-    }
-
-    // Source filtering is now done at database level (above)
-    // No need for in-memory filtering
-
-    // Simplify geometry to centroids for low zoom levels (for clustering)
-    if (zoom !== undefined && zoom < CLUSTER_ZOOM_THRESHOLD) {
-      messages = messages.map((message) => {
-        if (!message.geoJson?.features) return message;
-
-        const simplifiedFeatures = message.geoJson.features.map((feature) => {
-          // Only simplify LineString and Polygon to Points
-          if (
-            feature.geometry.type === "LineString" ||
-            feature.geometry.type === "Polygon"
-          ) {
-            const centroid = getCentroid(feature.geometry);
-            if (!centroid) return feature;
-            return {
-              ...feature,
-              geometry: {
-                type: "Point" as const,
-                coordinates: [centroid.lng, centroid.lat] as [number, number],
-              },
-              properties: {
-                ...feature.properties,
-                _originalGeometryType: feature.geometry.type,
-              },
-            } as typeof feature;
-          }
-          return feature;
-        });
-
-        return {
-          ...message,
-          geoJson: {
-            ...message.geoJson,
-            features: simplifiedFeatures,
-          },
-        };
-      });
-    }
+    messages = sortMessagesNewestFirst(messages);
 
     return NextResponse.json({ messages });
   } catch (error) {

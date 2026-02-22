@@ -320,6 +320,48 @@ describe("GET /api/messages - Date Filtering", () => {
     // Should be included because it's within 7 days
     expect(data.messages).toHaveLength(1);
   });
+
+  it("should return messages sorted newest first by finalizedAt then createdAt", async () => {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+
+    mockMessagesData = [
+      {
+        _id: "msg-created-older",
+        text: "Older by createdAt",
+        geoJson: createMockGeoJson(),
+        createdAt: twoHoursAgo,
+        timespanEnd: now,
+      },
+      {
+        _id: "msg-finalized-newest",
+        text: "Newest by finalizedAt",
+        geoJson: createMockGeoJson(),
+        createdAt: twoHoursAgo,
+        finalizedAt: now,
+        timespanEnd: now,
+      },
+      {
+        _id: "msg-created-newer",
+        text: "Newer by createdAt",
+        geoJson: createMockGeoJson(),
+        createdAt: oneHourAgo,
+        timespanEnd: now,
+      },
+    ];
+
+    const mockRequest = new Request("http://localhost/api/messages");
+    const response = await GET(mockRequest);
+    const data = await response.json();
+
+    expect(data.messages).toHaveLength(3);
+    expect(data.messages.map((m: any) => m.id)).toEqual([
+      "msg-finalized-newest",
+      "msg-created-newer",
+      "msg-created-older",
+    ]);
+  });
 });
 
 describe("GET /api/messages - Source Filtering", () => {
