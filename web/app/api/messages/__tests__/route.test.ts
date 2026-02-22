@@ -382,31 +382,33 @@ describe("GET /api/messages - Date Filtering", () => {
     expect(data.messages).toHaveLength(1);
   });
 
-  it("should return messages sorted by timespanEnd descending", async () => {
+  it("should return messages sorted by finalizedAt first, then timespanEnd", async () => {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
     const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
     const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const twoDaysLater = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
 
     mockMessagesData = [
       {
-        _id: "msg-end-middle",
-        text: "Middle by timespanEnd",
+        _id: "msg-finalized-newest",
+        text: "Newest by finalizedAt",
         geoJson: createMockGeoJson(),
         createdAt: twoHoursAgo,
-        timespanEnd: now,
-      },
-      {
-        _id: "msg-end-earliest",
-        text: "Earliest by timespanEnd",
-        geoJson: createMockGeoJson(),
-        createdAt: now,
         finalizedAt: now,
         timespanEnd: oneHourAgo,
       },
       {
-        _id: "msg-end-latest",
-        text: "Latest by timespanEnd",
+        _id: "msg-finalized-middle",
+        text: "Middle by finalizedAt",
+        geoJson: createMockGeoJson(),
+        createdAt: now,
+        finalizedAt: oneHourAgo,
+        timespanEnd: twoDaysLater,
+      },
+      {
+        _id: "msg-no-finalized-latest-end",
+        text: "No finalizedAt but latest timespanEnd",
         geoJson: createMockGeoJson(),
         createdAt: oneHourAgo,
         timespanEnd: oneDayLater,
@@ -419,9 +421,9 @@ describe("GET /api/messages - Date Filtering", () => {
 
     expect(data.messages).toHaveLength(3);
     expect(data.messages.map((m: any) => m.id)).toEqual([
-      "msg-end-latest",
-      "msg-end-middle",
-      "msg-end-earliest",
+      "msg-finalized-newest",
+      "msg-finalized-middle",
+      "msg-no-finalized-latest-end",
     ]);
   });
 

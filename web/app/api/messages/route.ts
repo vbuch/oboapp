@@ -18,8 +18,14 @@ const FIRESTORE_IN_OPERATOR_LIMIT = 10;
 type DbClient = Awaited<ReturnType<typeof getDb>>;
 type MessageRecord = Record<string, unknown>;
 
-function sortMessagesByTimespanEnd(messages: Message[]): Message[] {
+function sortMessagesByRelevance(messages: Message[]): Message[] {
   return [...messages].sort((a, b) => {
+    const aFinalizedAt = a.finalizedAt ?? "";
+    const bFinalizedAt = b.finalizedAt ?? "";
+    if (aFinalizedAt !== bFinalizedAt) {
+      return bFinalizedAt.localeCompare(aFinalizedAt);
+    }
+
     const aEnd = a.timespanEnd ?? "";
     const bEnd = b.timespanEnd ?? "";
     return bEnd.localeCompare(aEnd);
@@ -123,7 +129,7 @@ async function findMessagesBySources(
     }
   }
 
-  return sortMessagesByTimespanEnd(Array.from(messagesMap.values()));
+  return sortMessagesByRelevance(Array.from(messagesMap.values()));
 }
 
 function toSourceList(sourceSet?: Set<string>): string[] {
@@ -269,7 +275,7 @@ async function findMessagesByCategoryFilters(
     }
   }
 
-  return sortMessagesByTimespanEnd(Array.from(messagesMap.values()));
+  return sortMessagesByRelevance(Array.from(messagesMap.values()));
 }
 
 function filterMessagesByGeoAndViewport(
@@ -431,6 +437,7 @@ export async function GET(request: Request) {
 
     let messages = filterMessagesByGeoAndViewport(allMessages, viewportBounds);
     messages = simplifyMessagesForClusterZoom(messages, zoom);
+    messages = sortMessagesByRelevance(messages);
 
     return NextResponse.json({ messages });
   } catch (error) {
