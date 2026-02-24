@@ -58,7 +58,7 @@ describe("rayon-pancharevo-bg extractors", () => {
 
       expect(urlFilter("https://www.pancharevo.org/21862-2/")).toBe(true);
       expect(urlFilter("https://www.pancharevo.org/21862/")).toBe(true);
-      expect(urlFilter("https://www.pancharevo.org/article-123/")).toBe(true);
+      expect(urlFilter("https://www.pancharevo.org/12345/")).toBe(true);
     });
 
     it("should exclude URLs without repair-related keywords or numeric IDs", async () => {
