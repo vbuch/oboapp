@@ -6,8 +6,8 @@ export const SELECTORS = {
   INDEX: {
     // Each post card/article on the listing page
     POST_CONTAINER: 'article, .post, [class*="post"]',
-    // Link to individual post
-    POST_LINK: 'a[href*="pancharevo.org"]',
+    // Link to individual post - accept itemprop/url, read-more links, or relative hrefs
+    POST_LINK: 'a[itemprop="url"], a.readM, a[href^="/"], a[href^="http"]',
     // Date on listing
     POST_DATE: 'time, .date, [class*="date"]',
     // Title on listing
