@@ -1,5 +1,5 @@
 # Cloud Workflow for All Crawlers Pipeline
-# Runs all 13 crawlers in two parallel batches (11 + 2 due to GCP 10-branch limit),
+# Runs all 13 crawlers in two parallel batches (10 + 3 due to GCP 10-branch limit),
 # then runs ingest and notify sequentially.
 # Always continues to ingest/notify even if some crawlers fail.
 
@@ -182,6 +182,9 @@ main:
                               args:
                                 text: '${"Crawler raioniskar failed: " + string(e)}'
                                 severity: "ERROR"
+    - batch2:
+        parallel:
+          branches:
             - rayonPancharevo:
                 steps:
                   - callRayonPancharevo:
@@ -199,9 +202,6 @@ main:
                               args:
                                 text: '${"Crawler rayon-pancharevo failed: " + string(e)}'
                                 severity: "ERROR"
-    - batch2:
-        parallel:
-          branches:
             - sofiyskaVoda:
                 steps:
                   - callSofiyskaVoda:
