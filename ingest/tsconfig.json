@@ -19,6 +19,6 @@
       "zod": ["./node_modules/zod"]
     }
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "vitest.config.mts"],
   "exclude": ["node_modules", "dist"]
 }

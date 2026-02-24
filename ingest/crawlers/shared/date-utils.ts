@@ -33,6 +33,93 @@ export function parseBulgarianDate(dateStr: string): string {
 }
 
 /**
+ * Parses a Bulgarian date string or date range into UTC-based `Date` objects.
+ *
+ * Supports:
+ * - Single dates with Bulgarian month names: `27 януари 2026` or `27 януари`
+ * - Ranges with same month: `15-19.03.2021`
+ * - Ranges with different months: `15.02-19.03.2021`
+ * - Full dot-form ranges: `15.02.2021-19.03.2021`
+ *
+ * If the year is omitted for a single date, the current year is assumed.
+ * Returns `null` when the input is empty or no known pattern matches.
+ *
+ * @param dateStr - Input date string to parse.
+ * @returns An object with `start` and `end` dates (both in UTC), or `null` if parsing fails.
+ */
+export function parseBulgarianDateOrRangeLocal(dateStr?: string): { start?: Date; end?: Date } | null {
+  if (!dateStr) return null;
+  const t = dateStr.trim();
+  // Bulgarian month names
+  const months: Record<string, number> = {
+    януари: 0,
+    февруари: 1,
+    март: 2,
+    април: 3,
+    май: 4,
+    юни: 5,
+    юли: 6,
+    август: 7,
+    септември: 8,
+    октомври: 9,
+    ноември: 10,
+    декември: 11,
+  };
+
+  // Normalize - replace multiple spaces and remove day-of-week in parentheses
+  const normalized = t.replace(/\s+/g, " ").replace(/\([^)]*\)/g, "").trim();
+
+  // 1) Pattern: 27 януари 2026 or 27 януари
+  const singleMonthRe = /(\d{1,2})\s+([\p{L}]+)\s*(\d{4})?/u;
+  const m1 = normalized.match(singleMonthRe);
+  if (m1) {
+    const [, dayText, monthText, yearText] = m1;
+    const day = Number(dayText);
+    const monthName = monthText.toLowerCase();
+    const year = yearText ? Number(yearText) : new Date().getFullYear();
+    const month = months[monthName];
+    if (month !== undefined) {
+      const start = new Date(Date.UTC(year, month, day));
+      return { start, end: start };
+    }
+  }
+
+  // 2) Range pattern: 15-19.03.2021  -> startDay-endDay.month.year
+  const rangeA = normalized.match(/(\d{1,2})-(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (rangeA) {
+    const [, startDay, endDay, monthText, yearText] = rangeA;
+    const year = Number(yearText);
+    const month = Number(monthText) - 1;
+    const start = new Date(Date.UTC(year, month, Number(startDay)));
+    const end = new Date(Date.UTC(year, month, Number(endDay)));
+    return { start, end };
+  }
+
+  // 3) Range pattern: 15.02-19.03.2021 -> startDay.startMonth - endDay.endMonth.year
+  const rangeB = normalized.match(/(\d{1,2})\.(\d{1,2})-(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (rangeB) {
+    const [, startDay, startMonth, endDay, endMonth, yearText] = rangeB;
+    const year = Number(yearText);
+    const start = new Date(Date.UTC(year, Number(startMonth) - 1, Number(startDay)));
+    const end = new Date(Date.UTC(year, Number(endMonth) - 1, Number(endDay)));
+    return { start, end };
+  }
+
+  // 4) Try numeric dates with dots: 15.03.2021 or 15.02.2021-19.03.2021
+  const simpleDotRange = normalized.match(/(\d{1,2}\.\d{1,2}\.\d{4})\s*-\s*(\d{1,2}\.\d{1,2}\.\d{4})/);
+  if (simpleDotRange) {
+    const parseDot = (v: string) => {
+      const [d, m, y] = v.split(".").map(Number);
+      return new Date(Date.UTC(y, m - 1, d));
+    };
+    return { start: parseDot(simpleDotRange[1]), end: parseDot(simpleDotRange[2]) };
+  }
+
+  // If nothing matched, return null
+  return null;
+}
+
+/**
  * Parse Bulgarian date-time format "DD.MM.YYYY HH:MM" to Date object
  *
  * @param dateStr - Date string in Bulgarian format (e.g., "29.12.2025 10:51")
@@ -267,4 +354,30 @@ export function formatBulgarianDateTime(date: Date): string {
   const minute = String(date.getMinutes()).padStart(2, "0");
 
   return `${day}.${month}.${year} ${hour}:${minute}`;
+}
+
+
+/**
+ * Determines whether a date range is still relevant relative to today.
+ *
+ * Compares the range's end or start date (if provided) against the current date,
+ * normalized to UTC midnight, and returns true if the range is not in the past.
+ *
+ * @param range - Optional date range with `start` and/or `end` dates.
+ * @returns `true` if the range end (or start, if end is absent) is on or after today; otherwise `false`.
+ */
+export function isDateRelevantLocal(range: { start?: Date; end?: Date } | null): boolean {
+  if (!range) return false;
+
+  const today = new Date();
+
+  // Normalize to UTC midnight for comparisons
+  const now = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  const end = range.end ? Date.UTC(range.end.getUTCFullYear(), range.end.getUTCMonth(), range.end.getUTCDate()) : undefined;
+  const start = range.start ? Date.UTC(range.start.getUTCFullYear(), range.start.getUTCMonth(), range.start.getUTCDate()) : undefined;
+  
+  if (end !== undefined) return end >= now;
+  if (start !== undefined) return start >= now;
+
+  return false;
 }

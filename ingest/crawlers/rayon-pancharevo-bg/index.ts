@@ -6,6 +6,7 @@ import type { OboDb } from "@oboapp/db";
 import { extractPostLinks, extractPostDetails } from "./extractors";
 import { buildWebPageSourceDocument } from "../shared/webpage-crawlers";
 import { saveSourceDocumentIfNew } from "../shared/firestore";
+import { parseBulgarianDateOrRangeLocal, isDateRelevantLocal } from "../shared/date-utils";
 import { logger } from "@/lib/logger";
 
 // Load environment variables from .env.local
@@ -17,87 +18,6 @@ const SOURCE_TYPE = "rayon-pancharevo-bg";
 const LOCALITY = "bg.sofia";
 const DELAY_BETWEEN_REQUESTS = 2000; // 2 seconds
 
-// Local date parsing to handle multiple Bulgarian formats and ranges
-function parseBulgarianDateOrRangeLocal(text?: string): { start?: Date; end?: Date } | null {
-  if (!text) return null;
-  const t = text.trim();
-  // Bulgarian month names
-  const months: Record<string, number> = {
-    януари: 0,
-    февруари: 1,
-    март: 2,
-    април: 3,
-    май: 4,
-    юни: 5,
-    юли: 6,
-    август: 7,
-    септември: 8,
-    октомври: 9,
-    ноември: 10,
-    декември: 11,
-  };
-
-  // Normalize - replace multiple spaces and remove day-of-week in parentheses
-  const cleaned = t.replace(/\s+/g, " ").replace(/\([^)]*\)/g, "").trim();
-
-  // 1) Pattern: 27 януари 2026 or 27 януари
-  const singleMonthRe = /(?<day>\d{1,2})\s+(?<month>[\p{L}]+)\s*(?<year>\d{4})?/u;
-  const m1 = cleaned.match(singleMonthRe);
-  if (m1 && m1.groups) {
-    const day = Number(m1.groups.day);
-    const monthName = m1.groups.month.toLowerCase();
-    const year = m1.groups.year ? Number(m1.groups.year) : new Date().getFullYear();
-    const month = months[monthName];
-    if (month !== undefined) {
-      const start = new Date(Date.UTC(year, month, day));
-      return { start, end: start };
-    }
-  }
-
-  // 2) Range pattern: 15-19.03.2021  -> startDay-endDay.month.year
-  const rangeA = cleaned.match(/(?<start>\d{1,2})-(?<end>\d{1,2})\.(?<month>\d{1,2})\.(?<year>\d{4})/);
-  if (rangeA && rangeA.groups) {
-    const year = Number(rangeA.groups.year);
-    const month = Number(rangeA.groups.month) - 1;
-    const start = new Date(Date.UTC(year, month, Number(rangeA.groups.start)));
-    const end = new Date(Date.UTC(year, month, Number(rangeA.groups.end)));
-    return { start, end };
-  }
-
-  // 3) Range pattern: 15.02-19.03.2021 -> startDay.startMonth - endDay.endMonth.year
-  const rangeB = cleaned.match(/(?<sday>\d{1,2})\.(?<smonth>\d{1,2})-(?<eday>\d{1,2})\.(?<emonth>\d{1,2})\.(?<year>\d{4})/);
-  if (rangeB && rangeB.groups) {
-    const year = Number(rangeB.groups.year);
-    const start = new Date(Date.UTC(year, Number(rangeB.groups.smonth) - 1, Number(rangeB.groups.sday)));
-    const end = new Date(Date.UTC(year, Number(rangeB.groups.emonth) - 1, Number(rangeB.groups.eday)));
-    return { start, end };
-  }
-
-  // 4) Try numeric dates with dots: 15.03.2021 or 15.02.2021-19.03.2021
-  const simpleDotRange = cleaned.match(/(?<s>\d{1,2}\.\d{1,2}\.\d{4})\s*-\s*(?<e>\d{1,2}\.\d{1,2}\.\d{4})/);
-  if (simpleDotRange && simpleDotRange.groups) {
-    const parseDot = (v: string) => {
-      const [d, m, y] = v.split(".").map(Number);
-      return new Date(Date.UTC(y, m - 1, d));
-    };
-    return { start: parseDot(simpleDotRange.groups.s), end: parseDot(simpleDotRange.groups.e) };
-  }
-
-  // If nothing matched, return null
-  return null;
-}
-
-function isDateRelevantLocal(range: { start?: Date; end?: Date } | null): boolean {
-  if (!range) return false;
-  const today = new Date();
-  // Normalize to UTC midnight for comparisons
-  const now = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-  const end = range.end ? Date.UTC(range.end.getUTCFullYear(), range.end.getUTCMonth(), range.end.getUTCDate()) : undefined;
-  const start = range.start ? Date.UTC(range.start.getUTCFullYear(), range.start.getUTCMonth(), range.start.getUTCDate()) : undefined;
-  if (end !== undefined) return end >= now;
-  if (start !== undefined) return start >= now;
-  return false;
-}
 /**
  * Try to extract the village/settlement name from an opened post page
  */
