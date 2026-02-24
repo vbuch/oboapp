@@ -1,7 +1,7 @@
 import { BaseSourceDocument, PostLink } from "../shared/types";
 
 export interface SourceDocument extends BaseSourceDocument {
-  sourceType: "rayon--bg";
+  sourceType: "rayon-pancharevo-bg";
 }
 
 export type { PostLink };
