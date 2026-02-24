@@ -78,30 +78,75 @@ export function parseBulgarianDateOrRangeLocal(dateStr?: string): { start?: Date
     const monthName = monthText.toLowerCase();
     const year = yearText ? Number(yearText) : new Date().getFullYear();
     const month = months[monthName];
-    if (month !== undefined) {
-      const start = new Date(Date.UTC(year, month, day));
-      return { start, end: start };
+    // Validate month and day
+    if (
+      month === undefined || day < 1 || day > 31
+    ) {
+      return null;
     }
+    const start = new Date(Date.UTC(year, month, day));
+    // Check for invalid date (e.g., 31 Feb)
+    if (
+      start.getUTCFullYear() !== year || start.getUTCMonth() !== month || start.getUTCDate() !== day
+    ) {
+      return null;
+    }
+    return { start, end: start };
   }
 
   // 2) Range pattern: 15-19.03.2021  -> startDay-endDay.month.year
   const rangeA = normalized.match(/(\d{1,2})-(\d{1,2})\.(\d{1,2})\.(\d{4})/);
   if (rangeA) {
-    const [, startDay, endDay, monthText, yearText] = rangeA;
+    const [, startDayText, endDayText, monthText, yearText] = rangeA;
     const year = Number(yearText);
     const month = Number(monthText) - 1;
-    const start = new Date(Date.UTC(year, month, Number(startDay)));
-    const end = new Date(Date.UTC(year, month, Number(endDay)));
+    const startDay = Number(startDayText);
+    const endDay = Number(endDayText);
+    // Validate month and days
+    if (
+      month < 0 || month > 11 ||
+      startDay < 1 || startDay > 31 ||
+      endDay < 1 || endDay > 31
+    ) {
+      return null;
+    }
+    const start = new Date(Date.UTC(year, month, startDay));
+    const end = new Date(Date.UTC(year, month, endDay));
+    // Check for invalid dates (e.g., 31 Feb)
+    if (
+      start.getUTCFullYear() !== year || start.getUTCMonth() !== month || start.getUTCDate() !== startDay ||
+      end.getUTCFullYear() !== year || end.getUTCMonth() !== month || end.getUTCDate() !== endDay
+    ) {
+      return null;
+    }
     return { start, end };
   }
 
   // 3) Range pattern: 15.02-19.03.2021 -> startDay.startMonth - endDay.endMonth.year
   const rangeB = normalized.match(/(\d{1,2})\.(\d{1,2})-(\d{1,2})\.(\d{1,2})\.(\d{4})/);
   if (rangeB) {
-    const [, startDay, startMonth, endDay, endMonth, yearText] = rangeB;
+    const [, startDayText, startMonthText, endDayText, endMonthText, yearText] = rangeB;
     const year = Number(yearText);
-    const start = new Date(Date.UTC(year, Number(startMonth) - 1, Number(startDay)));
-    const end = new Date(Date.UTC(year, Number(endMonth) - 1, Number(endDay)));
+    const startMonth = Number(startMonthText) - 1;
+    const endMonth = Number(endMonthText) - 1;
+    const startDay = Number(startDayText);
+    const endDay = Number(endDayText);
+    // Validate months and days
+    if (
+      startMonth < 0 || startMonth > 11 || endMonth < 0 || endMonth > 11 ||
+      startDay < 1 || startDay > 31 || endDay < 1 || endDay > 31
+    ) {
+      return null;
+    }
+    const start = new Date(Date.UTC(year, startMonth, startDay));
+    const end = new Date(Date.UTC(year, endMonth, endDay));
+    // Check for invalid dates (e.g., 31 Feb)
+    if (
+      start.getUTCFullYear() !== year || start.getUTCMonth() !== startMonth || start.getUTCDate() !== startDay ||
+      end.getUTCFullYear() !== year || end.getUTCMonth() !== endMonth || end.getUTCDate() !== endDay
+    ) {
+      return null;
+    }
     return { start, end };
   }
 
@@ -110,9 +155,25 @@ export function parseBulgarianDateOrRangeLocal(dateStr?: string): { start?: Date
   if (simpleDotRange) {
     const parseDot = (v: string) => {
       const [d, m, y] = v.split(".").map(Number);
-      return new Date(Date.UTC(y, m - 1, d));
+      // Validate month and day
+      if (m < 1 || m > 12 || d < 1 || d > 31) {
+        return null;
+      }
+      const date = new Date(Date.UTC(y, m - 1, d));
+      // Check for invalid date (e.g., 31 Feb)
+      if (
+        date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d
+      ) {
+        return null;
+      }
+      return date;
     };
-    return { start: parseDot(simpleDotRange[1]), end: parseDot(simpleDotRange[2]) };
+    const start = parseDot(simpleDotRange[1]);
+    const end = parseDot(simpleDotRange[2]);
+    if (!start || !end) {
+      return null;
+    }
+    return { start, end };
   }
 
   // If nothing matched, return null
