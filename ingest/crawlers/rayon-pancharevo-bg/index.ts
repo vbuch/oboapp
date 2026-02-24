@@ -266,6 +266,9 @@ export async function crawl(): Promise<void> {
             if (process.env.DRY_RUN === "true") {
               logger.info("DRY_RUN: would save document", { url: postLink.url, title: details.title.substring(0, 50) });
             } else {
+              if (!db) {
+                throw new Error("Database connection is not initialized (db is null) in non-DRY_RUN mode.");
+              }
               const saved = await saveSourceDocumentIfNew(sourceDoc as Record<string, unknown>, db, { logSuccess: true });
               if (!saved) {
                 logger.info("Skipped duplicate article", { title: details.title.substring(0, 50) });
