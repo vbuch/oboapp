@@ -6,7 +6,7 @@ import type { OboDb } from "@oboapp/db";
 import { extractPostLinks, extractPostDetails } from "./extractors";
 import { buildWebPageSourceDocument } from "../shared/webpage-crawlers";
 import { saveSourceDocumentIfNew } from "../shared/firestore";
-import { parseBulgarianDateOrRangeLocal, isDateRelevantLocal } from "../shared/date-utils";
+import { parseBulgarianDateOrRange, isDateRelevant } from "../shared/date-utils";
 import { logger } from "@/lib/logger";
 
 // Load environment variables from .env.local
@@ -142,8 +142,8 @@ export async function crawl(): Promise<void> {
           const details = await extractPostDetails(detailPage);
 
           // Parse date strictly from details.dateText (requirement)
-          const parsed = parseBulgarianDateOrRangeLocal(details.dateText || details.title || "");
-          if (!isDateRelevantLocal(parsed)) {
+          const parsed = parseBulgarianDateOrRange(details.dateText || details.title || "");
+          if (!isDateRelevant(parsed)) {
             consecutivePastCount++;
             logger.info("Skipping past article", { title: (details.title || postLink.title).substring(0, 60), consecutiveCount: consecutivePastCount });
             if (consecutivePastCount >= 5) {
@@ -173,7 +173,7 @@ export async function crawl(): Promise<void> {
               sourceType: SOURCE_TYPE,
               locality: LOCALITY,
               customDateParser: (dt: string) => {
-                const p = parseBulgarianDateOrRangeLocal(dt);
+                const p = parseBulgarianDateOrRange(dt);
                 if (p && p.start) return p.start.toISOString();
                 // fallback: if date can't be parsed, return today's ISO date
                 return new Date().toISOString();

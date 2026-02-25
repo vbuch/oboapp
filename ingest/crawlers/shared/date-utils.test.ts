@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   formatBulgarianDateTime,
+  parseBulgarianDateOrRange,
   parseBulgarianDate,
   parseBulgarianDateTime,
   parseBulgarianMonthDate,
   parseShortBulgarianDateTime,
+  isDateRelevant
 } from "./date-utils";
 
 describe("parseBulgarianDate", () => {
@@ -114,6 +116,75 @@ describe("parseBulgarianDate", () => {
     expect(date.getDate()).toBe(31);
     expect(date.getMonth()).toBe(11); // December
     expect(date.getFullYear()).toBe(2099);
+  });
+});
+
+describe("parseBulgarianDateOrRange", () => {
+  it("should parse single Bulgarian month date", () => {
+    const result = parseBulgarianDateOrRange("27 януари 2026");
+    expect(result).not.toBeNull();
+    expect(result?.start).toBeInstanceOf(Date);
+    expect(result?.end).toBeInstanceOf(Date);
+    expect(result?.start?.getFullYear()).toBe(2026);
+    expect(result?.start?.getMonth()).toBe(0); // January
+    expect(result?.start?.getDate()).toBe(27);
+  });
+
+  it("should parse range with same month", () => {
+    const result = parseBulgarianDateOrRange("15-19.03.2021");
+    expect(result).not.toBeNull();
+    expect(result?.start?.getFullYear()).toBe(2021);
+    expect(result?.start?.getMonth()).toBe(2); // March
+    expect(result?.start?.getDate()).toBe(15);
+    expect(result?.end?.getDate()).toBe(19);
+  });
+
+  it("should parse range with different months", () => {
+    const result = parseBulgarianDateOrRange("15.02-19.03.2021");
+    expect(result).not.toBeNull();
+    expect(result?.start?.getMonth()).toBe(1); // February
+    expect(result?.end?.getMonth()).toBe(2); // March
+    expect(result?.start?.getDate()).toBe(15);
+    expect(result?.end?.getDate()).toBe(19);
+    expect(result?.start?.getFullYear()).toBe(2021);
+    expect(result?.end?.getFullYear()).toBe(2021);
+  });
+
+  it("should parse full dot-form range", () => {
+    const result = parseBulgarianDateOrRange("15.02.2021-19.03.2021");
+    expect(result).not.toBeNull();
+    expect(result?.start?.getMonth()).toBe(1); // February
+    expect(result?.end?.getMonth()).toBe(2); // March
+    expect(result?.start?.getDate()).toBe(15);
+    expect(result?.end?.getDate()).toBe(19);
+    expect(result?.start?.getFullYear()).toBe(2021);
+    expect(result?.end?.getFullYear()).toBe(2021);
+  });
+
+  it("should return null for invalid input", () => {
+    expect(parseBulgarianDateOrRange("invalid-date")).toBeNull();
+    expect(parseBulgarianDateOrRange("")).toBeNull();
+    expect(parseBulgarianDateOrRange(undefined)).toBeNull();
+  });
+
+  it("should return null for impossible dates", () => {
+    expect(parseBulgarianDateOrRange("32 януари 2026")).toBeNull();
+    expect(parseBulgarianDateOrRange("15-32.03.2021")).toBeNull();
+    expect(parseBulgarianDateOrRange("31.02-19.03.2021")).toBeNull();
+    expect(parseBulgarianDateOrRange("31.02.2021-19.03.2021")).toBeNull();
+  });
+
+  it("should parse dot-form range with swapped day/month", () => {
+    // Should return null for invalid month
+    expect(parseBulgarianDateOrRange("15.13.2021-19.03.2021")).toBeNull();
+  });
+
+  it("should parse single date with missing year as current year", () => {
+    const now = new Date();
+    const result = parseBulgarianDateOrRange("1 февруари");
+    expect(result).not.toBeNull();
+    expect(result?.start?.getMonth()).toBe(1); // February
+    expect(result?.start?.getFullYear()).toBe(now.getFullYear());
   });
 });
 
@@ -520,5 +591,58 @@ describe("parseBulgarianMonthDate", () => {
     const parsed = new Date(isoDate);
     expect(parsed.getTime()).toBeGreaterThanOrEqual(before.getTime());
     expect(parsed.getTime()).toBeLessThanOrEqual(after.getTime());
+  });
+});
+
+describe("isDateRelevant", () => {
+  const today = new Date(2026, 1, 25); // 25 Feb 2026 (months are 0-indexed)
+
+  it("returns true for a range ending today or in the future", () => {
+    const future = new Date(2026, 2, 1); // 1 Mar 2026
+    const range = { start: today, end: future };
+    expect(isDateRelevant(range, today)).toBe(true);
+  });
+
+  it("returns false for a range ending before today", () => {
+    const past = new Date(2026, 1, 20); // 20 Feb 2026
+    const range = { start: past, end: past };
+    expect(isDateRelevant(range, today)).toBe(false);
+  });
+
+  it("returns true for a single date that is today", () => {
+    const range = { start: today, end: today };
+    expect(isDateRelevant(range, today)).toBe(true);
+  });
+
+  it("returns true for a single date in the future", () => {
+    const future = new Date(2026, 2, 10); // 10 Mar 2026
+    const range = { start: future };
+    expect(isDateRelevant(range, today)).toBe(true);
+  });
+
+  it("returns false for a single date in the past", () => {
+    const past = new Date(2026, 0, 1); // 1 Jan 2026
+    const range = { start: past };
+    expect(isDateRelevant(range, today)).toBe(false);
+  });
+
+  it("returns false for null input", () => {
+    expect(isDateRelevant(null, today)).toBe(false);
+  });
+
+  it("returns false for empty object", () => {
+    expect(isDateRelevant({}, today)).toBe(false);
+  });
+
+  it("returns true if only end is today or in the future", () => {
+    const end = new Date(2026, 1, 25); // today
+    expect(isDateRelevant({ end }, today)).toBe(true);
+    const future = new Date(2026, 3, 1); // 1 Apr 2026
+    expect(isDateRelevant({ end: future }, today)).toBe(true);
+  });
+
+  it("returns false if only end is in the past", () => {
+    const end = new Date(2025, 11, 31); // 31 Dec 2025
+    expect(isDateRelevant({ end }, today)).toBe(false);
   });
 });

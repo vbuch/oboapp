@@ -47,7 +47,7 @@ export function parseBulgarianDate(dateStr: string): string {
  * @param dateStr - Input date string to parse.
  * @returns An object with `start` and `end` dates (both in UTC), or `null` if parsing fails.
  */
-export function parseBulgarianDateOrRangeLocal(dateStr?: string): { start?: Date; end?: Date } | null {
+export function parseBulgarianDateOrRange(dateStr?: string): { start?: Date; end?: Date } | null {
   if (!dateStr) return null;
   const t = dateStr.trim();
   // Bulgarian month names
@@ -84,45 +84,47 @@ export function parseBulgarianDateOrRangeLocal(dateStr?: string): { start?: Date
     ) {
       return null;
     }
-    const start = new Date(Date.UTC(year, month, day));
+    const start = new Date(year, month, day);
     // Check for invalid date (e.g., 31 Feb)
     if (
-      start.getUTCFullYear() !== year || start.getUTCMonth() !== month || start.getUTCDate() !== day
+      start.getFullYear() !== year || start.getMonth() !== month || start.getDate() !== day
     ) {
       return null;
     }
     return { start, end: start };
   }
 
-  // 2) Range pattern: 15-19.03.2021  -> startDay-endDay.month.year
-  const rangeA = normalized.match(/(\d{1,2})-(\d{1,2})\.(\d{1,2})\.(\d{4})/);
-  if (rangeA) {
-    const [, startDayText, endDayText, monthText, yearText] = rangeA;
-    const year = Number(yearText);
-    const month = Number(monthText) - 1;
-    const startDay = Number(startDayText);
-    const endDay = Number(endDayText);
-    // Validate month and days
-    if (
-      month < 0 || month > 11 ||
-      startDay < 1 || startDay > 31 ||
-      endDay < 1 || endDay > 31
-    ) {
+  // 2) Try numeric dates with dots: 15.03.2021 or 15.02.2021-19.03.2021 (full dot-form range, must come first)
+  const simpleDotRange = normalized.match(/(\d{1,2}\.\d{1,2}\.\d{4})\s*-\s*(\d{1,2}\.\d{1,2}\.\d{4})/);
+  if (simpleDotRange) {
+    const parseDot = (v: string) => {
+      const [d, m, y] = v.split(".").map(Number);
+      // Validate month and day
+      if (m < 1 || m > 12 || d < 1 || d > 31) {
+        return null;
+      }
+      const date = new Date(y, m - 1, d);
+      // Check for invalid date (e.g., 31 Feb)
+      if (
+        date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d
+      ) {
+        return null;
+      }
+      return date;
+    };
+    const start = parseDot(simpleDotRange[1]);
+    const end = parseDot(simpleDotRange[2]);
+    if (!start || !end) {
       return null;
     }
-    const start = new Date(Date.UTC(year, month, startDay));
-    const end = new Date(Date.UTC(year, month, endDay));
-    // Check for invalid dates (e.g., 31 Feb)
-    if (
-      start.getUTCFullYear() !== year || start.getUTCMonth() !== month || start.getUTCDate() !== startDay ||
-      end.getUTCFullYear() !== year || end.getUTCMonth() !== month || end.getUTCDate() !== endDay
-    ) {
+    // Ensure start is not after end
+    if (start.getTime() > end.getTime()) {
       return null;
     }
     return { start, end };
   }
 
-  // 3) Range pattern: 15.02-19.03.2021 -> startDay.startMonth - endDay.endMonth.year
+  // 3) Range pattern: 15.02-19.03.2021 -> startDay.startMonth - endDay.endMonth.year (most specific, must come after)
   const rangeB = normalized.match(/(\d{1,2})\.(\d{1,2})-(\d{1,2})\.(\d{1,2})\.(\d{4})/);
   if (rangeB) {
     const [, startDayText, startMonthText, endDayText, endMonthText, yearText] = rangeB;
@@ -138,39 +140,49 @@ export function parseBulgarianDateOrRangeLocal(dateStr?: string): { start?: Date
     ) {
       return null;
     }
-    const start = new Date(Date.UTC(year, startMonth, startDay));
-    const end = new Date(Date.UTC(year, endMonth, endDay));
+    const start = new Date(year, startMonth, startDay);
+    const end = new Date(year, endMonth, endDay);
     // Check for invalid dates (e.g., 31 Feb)
     if (
-      start.getUTCFullYear() !== year || start.getUTCMonth() !== startMonth || start.getUTCDate() !== startDay ||
-      end.getUTCFullYear() !== year || end.getUTCMonth() !== endMonth || end.getUTCDate() !== endDay
+      start.getFullYear() !== year || start.getMonth() !== startMonth || start.getDate() !== startDay ||
+      end.getFullYear() !== year || end.getMonth() !== endMonth || end.getDate() !== endDay
     ) {
+      return null;
+    }
+    // Ensure start is not after end
+    if (start.getTime() > end.getTime()) {
       return null;
     }
     return { start, end };
   }
 
-  // 4) Try numeric dates with dots: 15.03.2021 or 15.02.2021-19.03.2021
-  const simpleDotRange = normalized.match(/(\d{1,2}\.\d{1,2}\.\d{4})\s*-\s*(\d{1,2}\.\d{1,2}\.\d{4})/);
-  if (simpleDotRange) {
-    const parseDot = (v: string) => {
-      const [d, m, y] = v.split(".").map(Number);
-      // Validate month and day
-      if (m < 1 || m > 12 || d < 1 || d > 31) {
-        return null;
-      }
-      const date = new Date(Date.UTC(y, m - 1, d));
-      // Check for invalid date (e.g., 31 Feb)
-      if (
-        date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d
-      ) {
-        return null;
-      }
-      return date;
-    };
-    const start = parseDot(simpleDotRange[1]);
-    const end = parseDot(simpleDotRange[2]);
-    if (!start || !end) {
+  // 4) Range pattern: 15-19.03.2021  -> startDay-endDay.month.year (less specific, must come after)
+  const rangeA = normalized.match(/(\d{1,2})-(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (rangeA) {
+    const [, startDayText, endDayText, monthText, yearText] = rangeA;
+    const year = Number(yearText);
+    const startMonth = Number(monthText) - 1;
+    const startDay = Number(startDayText);
+    const endDay = Number(endDayText);
+    // Validate month and days
+    if (
+      startMonth < 0 || startMonth > 11 ||
+      startDay < 1 || startDay > 31 ||
+      endDay < 1 || endDay > 31
+    ) {
+      return null;
+    }
+    const start = new Date(year, startMonth, startDay);
+    const end = new Date(year, startMonth, endDay);
+    // Check for invalid dates (e.g., 31 Feb)
+    if (
+      start.getFullYear() !== year || start.getMonth() !== startMonth || start.getDate() !== startDay ||
+      end.getFullYear() !== year || end.getMonth() !== startMonth || end.getDate() !== endDay
+    ) {
+      return null;
+    }
+    // Ensure start is not after end
+    if (start.getTime() > end.getTime()) {
       return null;
     }
     return { start, end };
@@ -427,16 +439,34 @@ export function formatBulgarianDateTime(date: Date): string {
  * @param range - Optional date range with `start` and/or `end` dates.
  * @returns `true` if the range end (or start, if end is absent) is on or after today; otherwise `false`.
  */
-export function isDateRelevantLocal(range: { start?: Date; end?: Date } | null): boolean {
+/**
+ * Determines whether a date range is still relevant relative to today.
+ *
+ * Compares the range's end or start date (if provided) against the current date,
+ * normalized to UTC midnight, and returns true if the range is not in the past.
+ * Allows injecting a custom 'today' date for deterministic testing.
+ *
+ * @param range - Optional date range with `start` and/or `end` dates.
+ * @param todayOverride - Optional Date to use as 'today' (UTC midnight). Used for testing.
+ * @returns `true` if the range end (or start, if end is absent) is on or after today; otherwise `false`.
+ */
+export function isDateRelevant(
+  range: { start?: Date; end?: Date } | null,
+  todayOverride?: Date
+): boolean {
   if (!range) return false;
 
-  const today = new Date();
+  const today = todayOverride || new Date();
 
   // Normalize to UTC midnight for comparisons
   const now = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-  const end = range.end ? Date.UTC(range.end.getUTCFullYear(), range.end.getUTCMonth(), range.end.getUTCDate()) : undefined;
-  const start = range.start ? Date.UTC(range.start.getUTCFullYear(), range.start.getUTCMonth(), range.start.getUTCDate()) : undefined;
-  
+  const end = range.end
+    ? Date.UTC(range.end.getUTCFullYear(), range.end.getUTCMonth(), range.end.getUTCDate())
+    : undefined;
+  const start = range.start
+    ? Date.UTC(range.start.getUTCFullYear(), range.start.getUTCMonth(), range.start.getUTCDate())
+    : undefined;
+
   if (end !== undefined) return end >= now;
   if (start !== undefined) return start >= now;
 
