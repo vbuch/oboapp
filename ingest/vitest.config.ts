@@ -12,7 +12,7 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
       exclude: [
         "node_modules/",
-        "**/*.config.{js,mts}",
+        "**/*.config.{js,ts}",
         "**/*.d.ts",
         ".next/**",
       ],
