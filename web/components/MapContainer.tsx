@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import MapComponent from "@/components/MapComponent";
 import GeolocationButton from "@/components/GeolocationButton";
-import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
+import NotificationButton from "@/components/onboarding/NotificationButton";
+import AddInterestButton from "@/components/onboarding/AddInterestButton";
+import LoadingButton from "@/components/onboarding/LoadingButton";
 import { useGeolocationPrompt } from "@/lib/hooks/useGeolocationPrompt";
 import { useOnboardingFlow } from "@/lib/hooks/useOnboardingFlow";
 import { useAuth } from "@/lib/auth-context";
@@ -21,6 +23,8 @@ interface MapContainerProps {
     editingInterestId?: string | null;
   };
   readonly initialMapCenter?: { lat: number; lng: number } | null;
+  readonly hoveredMessageId?: string | null;
+  readonly selectedMessageId?: string | null;
   readonly onFeatureClick: (messageId: string) => void;
   readonly onMapReady: (
     centerMap: (
@@ -52,6 +56,14 @@ interface MapContainerProps {
       onDecline: () => void;
     } | null,
   ) => void;
+  readonly onOnboardingStateChange: (
+    state: import("@/lib/hooks/useOnboardingFlow").OnboardingState,
+    callbacks: {
+      onPermissionResult: (permission: NotificationPermission) => void;
+      onDismiss: () => void;
+      onAddInterests: () => void;
+    },
+  ) => void;
 }
 
 export default function MapContainer({
@@ -61,6 +73,8 @@ export default function MapContainer({
   user,
   targetMode,
   initialMapCenter,
+  hoveredMessageId,
+  selectedMessageId,
   onFeatureClick,
   onMapReady,
   onBoundsChanged,
@@ -69,6 +83,7 @@ export default function MapContainer({
   onCancelTargetMode,
   onStartAddInterest,
   onGeolocationPromptChange,
+  onOnboardingStateChange,
 }: MapContainerProps) {
   const [centerMap, setCenterMap] = useState<
     | ((
@@ -148,6 +163,23 @@ export default function MapContainer({
     isLocating,
   } = useGeolocationPrompt();
 
+  // Handle add interest button click in idle state
+  // If logged in, go directly to creation mode (skip showing AddInterestsPrompt again)
+  // If not logged in, restart the onboarding flow
+  const handleAddInterestClick = useCallback(() => {
+    if (onboardingState === "idle") {
+      if (authUser) {
+        // User already dismissed AddInterestsPrompt, go straight to creation
+        onStartAddInterest();
+      } else {
+        // Not logged in, restart onboarding flow
+        handleRestart();
+      }
+    } else {
+      onStartAddInterest();
+    }
+  }, [onboardingState, authUser, handleRestart, onStartAddInterest]);
+
   // Sync geolocation prompt state to parent for proper DOM ordering
   React.useEffect(() => {
     if (showPrompt) {
@@ -156,6 +188,21 @@ export default function MapContainer({
       onGeolocationPromptChange(null);
     }
   }, [showPrompt, onAccept, onDecline, onGeolocationPromptChange]);
+
+  // Memoize onboarding callbacks to prevent useEffect loop
+  const onboardingCallbacks = React.useMemo(
+    () => ({
+      onPermissionResult: handlePermissionResult,
+      onDismiss: handleDismiss,
+      onAddInterests: onStartAddInterest,
+    }),
+    [handlePermissionResult, handleDismiss, onStartAddInterest],
+  );
+
+  // Sync onboarding state to parent for proper DOM ordering
+  React.useEffect(() => {
+    onOnboardingStateChange(onboardingState, onboardingCallbacks);
+  }, [onboardingState, onboardingCallbacks, onOnboardingStateChange]);
 
   const handleMapReady = (
     centerMapFn: (
@@ -207,23 +254,6 @@ export default function MapContainer({
     [],
   );
 
-  // Handle add interest button click in idle state
-  // If logged in, go directly to creation mode (skip showing AddInterestsPrompt again)
-  // If not logged in, restart the onboarding flow
-  const handleAddInterestClick = useCallback(() => {
-    if (onboardingState === "idle") {
-      if (authUser) {
-        // User already dismissed AddInterestsPrompt, go straight to creation
-        onStartAddInterest();
-      } else {
-        // Not logged in, restart onboarding flow
-        handleRestart();
-      }
-    } else {
-      onStartAddInterest();
-    }
-  }, [onboardingState, authUser, handleRestart, onStartAddInterest]);
-
   return (
     <div className="absolute inset-0">
       <MapComponent
@@ -235,6 +265,8 @@ export default function MapContainer({
         onInterestClick={onInterestClick}
         initialCenter={initialMapCenter || undefined}
         shouldTrackLocation={isTrackingLocation}
+        hoveredMessageId={hoveredMessageId}
+        selectedMessageId={selectedMessageId}
         targetMode={
           targetMode.active
             ? {
@@ -248,16 +280,25 @@ export default function MapContainer({
         }
       />
 
-      {/* Onboarding prompts - controlled by state machine */}
-      <OnboardingPrompt
-        state={onboardingState}
-        targetModeActive={targetMode.active}
-        user={user}
-        onPermissionResult={handlePermissionResult}
-        onDismiss={handleDismiss}
-        onAddInterests={onStartAddInterest}
-        onAddInterestClick={handleAddInterestClick}
-      />
+      {/* Onboarding buttons (without backdrops) - positioned relative to map */}
+      {!targetMode.active && (
+        <>
+          {onboardingState === "loading" && <LoadingButton visible={true} />}
+          {onboardingState === "idle" && (
+            <NotificationButton
+              onClick={handleAddInterestClick}
+              visible={true}
+            />
+          )}
+          {onboardingState === "complete" && (
+            <AddInterestButton
+              onClick={handleAddInterestClick}
+              isUserAuthenticated={!!authUser}
+              visible={true}
+            />
+          )}
+        </>
+      )}
 
       {/* Geolocation button - always visible */}
       <GeolocationButton

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Circle } from "@react-google-maps/api";
 import { trackEvent, trackEventDebounced } from "@/lib/analytics";
-import { colors, borderRadius } from "@/lib/colors";
+import { colors, borderRadius, zIndex } from "@/lib/colors";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 
 interface InterestTargetModeProps {
@@ -132,7 +132,7 @@ export default function InterestTargetMode({
       )}
 
       {/* Control Panel */}
-      <div className="fixed sm:absolute bottom-8 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+      <div className={`fixed sm:absolute bottom-8 left-1/2 -translate-x-1/2 ${zIndex.overlay} pointer-events-auto`}>
         <div className="bg-white rounded-lg shadow-xl border border-neutral-border p-4 min-w-[320px]">
           {/* Coordinates Display */}
           {currentCenter && (

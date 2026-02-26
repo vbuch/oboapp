@@ -1,6 +1,6 @@
 import center from "@turf/center";
 import { lineString, polygon } from "@turf/helpers";
-import type { GeoJSONGeometry } from "@/lib/types";
+import type { GeoJSONGeometry, GeoJSONFeatureCollection } from "@/lib/types";
 
 /**
  * Convert GeoJSON coordinate to Google Maps LatLng format
@@ -183,4 +183,28 @@ export const jitterDuplicatePositions = <
   });
 
   return result;
+};
+
+/**
+ * Calculate combined centroid from all features in a GeoJSON FeatureCollection
+ *
+ * @param geoJson - GeoJSON FeatureCollection
+ * @returns Combined centroid as Google Maps LatLng object, or null if no features
+ */
+export const getFeaturesCentroid = (
+  geoJson: GeoJSONFeatureCollection | undefined | null,
+): { lat: number; lng: number } | null => {
+  const features = geoJson?.features;
+  if (!features || features.length === 0) return null;
+
+  const centroids = features
+    .map((f) => getCentroid(f.geometry))
+    .filter((c): c is { lat: number; lng: number } => c !== null);
+
+  if (centroids.length === 0) return null;
+
+  const avgLat = centroids.reduce((sum, c) => sum + c.lat, 0) / centroids.length;
+  const avgLng = centroids.reduce((sum, c) => sum + c.lng, 0) / centroids.length;
+
+  return { lat: avgLat, lng: avgLng };
 };

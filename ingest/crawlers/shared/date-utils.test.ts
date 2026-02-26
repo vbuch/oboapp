@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   formatBulgarianDateTime,
   parseBulgarianDate,
+  parseBulgarianDateOrRange,
   parseBulgarianDateTime,
   parseBulgarianMonthDate,
   parseShortBulgarianDateTime,
+  isDateRelevant,
 } from "./date-utils";
 
 describe("parseBulgarianDate", () => {
@@ -520,5 +522,110 @@ describe("parseBulgarianMonthDate", () => {
     const parsed = new Date(isoDate);
     expect(parsed.getTime()).toBeGreaterThanOrEqual(before.getTime());
     expect(parsed.getTime()).toBeLessThanOrEqual(after.getTime());
+  });
+});
+
+describe("parseBulgarianDateOrRange", () => {
+  it("should parse single numeric date", () => {
+    const range = parseBulgarianDateOrRange("27.01.2026");
+
+    expect(range.start.getFullYear()).toBe(2026);
+    expect(range.start.getMonth()).toBe(0);
+    expect(range.start.getDate()).toBe(27);
+    expect(range.end.getFullYear()).toBe(2026);
+    expect(range.end.getMonth()).toBe(0);
+    expect(range.end.getDate()).toBe(27);
+  });
+
+  it("should parse same-month numeric range", () => {
+    const range = parseBulgarianDateOrRange("15-19.03.2026");
+
+    expect(range.start.getFullYear()).toBe(2026);
+    expect(range.start.getMonth()).toBe(2);
+    expect(range.start.getDate()).toBe(15);
+    expect(range.end.getFullYear()).toBe(2026);
+    expect(range.end.getMonth()).toBe(2);
+    expect(range.end.getDate()).toBe(19);
+  });
+
+  it("should parse cross-month numeric range", () => {
+    const range = parseBulgarianDateOrRange("15.02-19.03.2026");
+
+    expect(range.start.getFullYear()).toBe(2026);
+    expect(range.start.getMonth()).toBe(1);
+    expect(range.start.getDate()).toBe(15);
+    expect(range.end.getFullYear()).toBe(2026);
+    expect(range.end.getMonth()).toBe(2);
+    expect(range.end.getDate()).toBe(19);
+  });
+
+  it("should parse Bulgarian month-name date", () => {
+    const range = parseBulgarianDateOrRange("27 януари 2026");
+
+    expect(range.start.getFullYear()).toBe(2026);
+    expect(range.start.getMonth()).toBe(0);
+    expect(range.start.getDate()).toBe(27);
+    expect(range.end.getTime()).toBe(range.start.getTime());
+  });
+
+  it("should parse month-name date with weekday in parentheses", () => {
+    const range = parseBulgarianDateOrRange("27 януари (вторник) 2026 г.");
+
+    expect(range.start.getFullYear()).toBe(2026);
+    expect(range.start.getMonth()).toBe(0);
+    expect(range.start.getDate()).toBe(27);
+    expect(range.end.getTime()).toBe(range.start.getTime());
+  });
+
+  it("should parse 2-digit years as 20XX", () => {
+    const range = parseBulgarianDateOrRange("15-19.03.26");
+
+    expect(range.start.getFullYear()).toBe(2026);
+    expect(range.end.getFullYear()).toBe(2026);
+  });
+
+  it("should throw for unknown month names", () => {
+    expect(() => parseBulgarianDateOrRange("20 фуфари 2026")).toThrow(
+      "Unsupported Bulgarian month",
+    );
+  });
+
+  it("should throw for unsupported formats", () => {
+    expect(() => parseBulgarianDateOrRange("invalid-date-text")).toThrow(
+      "Unable to parse Bulgarian date text",
+    );
+  });
+});
+
+describe("isDateRelevant", () => {
+  const range = {
+    start: new Date(2026, 2, 15, 0, 0, 0, 0),
+    end: new Date(2026, 2, 19, 0, 0, 0, 0),
+  };
+
+  it("should return true when reference is within range", () => {
+    expect(isDateRelevant(range, new Date(2026, 2, 17, 12, 30, 0, 0))).toBe(
+      true,
+    );
+  });
+
+  it("should return true for start boundary", () => {
+    expect(isDateRelevant(range, new Date(2026, 2, 15, 23, 59, 59, 999))).toBe(
+      true,
+    );
+  });
+
+  it("should return true for end boundary", () => {
+    expect(isDateRelevant(range, new Date(2026, 2, 19, 1, 0, 0, 0))).toBe(true);
+  });
+
+  it("should return false before range", () => {
+    expect(isDateRelevant(range, new Date(2026, 2, 14, 23, 59, 59, 999))).toBe(
+      false,
+    );
+  });
+
+  it("should return false after range", () => {
+    expect(isDateRelevant(range, new Date(2026, 2, 20, 0, 0, 0, 0))).toBe(false);
   });
 });

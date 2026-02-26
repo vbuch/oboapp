@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
-import { borderRadius } from "@/lib/colors";
+import { borderRadius, zIndex } from "@/lib/colors";
 
 interface SubscribePromptProps {
   readonly onClose: () => void;
@@ -16,12 +16,12 @@ export default function SubscribePrompt({ onClose }: SubscribePromptProps) {
       {/* Backdrop */}
       <button
         type="button"
-        className="fixed inset-0 z-[9] bg-black/20 backdrop-blur-sm pointer-events-auto"
+        className={`fixed inset-0 ${zIndex.modalBackdrop} bg-black/20 backdrop-blur-sm pointer-events-auto`}
         onClick={onClose}
         aria-label="Затвори"
       />
-      <div className="animate-fade-in absolute bottom-4 right-4 z-10 max-w-sm">
-        <div className="bg-warning-light border-2 border-warning-border rounded-lg shadow-xl p-4">
+      <div className={`animate-fade-in fixed inset-0 flex items-center justify-center p-4 ${zIndex.modalContent} pointer-events-none`}>
+        <div className="pointer-events-auto w-full max-w-sm bg-warning-light border-2 border-warning-border rounded-lg shadow-xl p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 text-2xl">⚠️</div>
             <div className="flex-1">

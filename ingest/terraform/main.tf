@@ -193,7 +193,7 @@ resource "google_workflows_workflow" "pipeline_emergent" {
 resource "google_workflows_workflow" "pipeline_all" {
   name            = "pipeline-all"
   region          = var.region
-  description     = "Orchestrates all 11 crawlers in parallel, then ingest and notify"
+  description     = "Orchestrates all 13 crawlers in parallel, then ingest and notify"
   service_account = google_service_account.ingest_runner.email
   source_contents = file("${path.module}/workflows/all.yaml")
   
@@ -273,6 +273,12 @@ locals {
       memory       = "1Gi"
       timeout      = "1800s"
       description  = "Crawl Raion Iskar website"
+    }
+    rayon-pancharevo = {
+      source       = "rayon-pancharevo-bg"
+      memory       = "1Gi"
+      timeout      = "1800s"
+      description  = "Crawl Rayon Pancharevo website"
     }
     nimh-severe-weather = {
       source       = "nimh-severe-weather"

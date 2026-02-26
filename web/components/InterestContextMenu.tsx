@@ -1,3 +1,5 @@
+import { zIndex } from "@/lib/colors";
+
 interface InterestContextMenuProps {
   readonly position: { x: number; y: number };
   readonly onMove: () => void;
@@ -16,13 +18,13 @@ export default function InterestContextMenu({
       {/* Backdrop to close menu */}
       <button
         type="button"
-        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm pointer-events-auto cursor-default"
+        className={`fixed inset-0 ${zIndex.overlay} bg-black/20 backdrop-blur-sm pointer-events-auto cursor-default`}
         onClick={onClose}
         aria-label="Затвори менюто"
       />
       {/* Menu */}
       <div
-        className="fixed z-50 bg-white rounded-lg shadow-xl border border-neutral-border py-1 min-w-[150px]"
+        className={`fixed ${zIndex.overlayContent} bg-white rounded-lg shadow-xl border border-neutral-border py-1 min-w-[150px]`}
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,

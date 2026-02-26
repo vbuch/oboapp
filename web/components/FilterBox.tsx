@@ -8,7 +8,7 @@ import Accordion from "@/components/Accordion";
 import Checkbox from "@/components/Checkbox";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { useDragPanel } from "@/lib/hooks/useDragPanel";
-import { borderRadius } from "@/lib/colors";
+import { borderRadius, zIndex } from "@/lib/colors";
 import {
   CATEGORY_LABELS,
   UNCATEGORIZED,
@@ -23,9 +23,9 @@ function CategoryFilterSkeleton() {
   const widths = ["w-32", "w-28", "w-36", "w-24", "w-40"];
   return (
     <div className="px-4 py-4 space-y-1">
-      {widths.map((width, i) => (
+      {widths.map((width) => (
         <div
-          key={i}
+          key={width}
           className="flex items-center gap-3 py-2 px-3 animate-pulse"
         >
           <div className="w-4 h-4 bg-neutral-light rounded" />
@@ -102,13 +102,13 @@ export default function FilterBox({
 
   // Calculate transform style based on drag state
   const transformStyle = useMemo(() => {
-    const translateX = isActuallyDragging
-      ? isOpen
-        ? `${dragOffset}px`
-        : `calc(-100% + ${dragOffset}px)`
-      : isOpen
-        ? "0"
-        : "-100%";
+    let translateX = "-100%";
+
+    if (isActuallyDragging) {
+      translateX = isOpen ? `${dragOffset}px` : `calc(-100% + ${dragOffset}px)`;
+    } else if (isOpen) {
+      translateX = "0";
+    }
 
     return {
       transform: `translateX(${translateX}) translateY(-50%)`,
@@ -133,7 +133,7 @@ export default function FilterBox({
       {isOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-20 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
+          className={`fixed inset-0 ${zIndex.overlay} bg-neutral/20 backdrop-blur-sm pointer-events-auto sm:hidden`}
           onClick={onTogglePanel}
           aria-label="Затвори филтрите"
         />
@@ -141,13 +141,13 @@ export default function FilterBox({
 
       {/* Filter Container - Box and Handle together */}
       <div
-        className="absolute left-0 top-1/2 z-20 transition-transform duration-300"
+        className={`absolute left-0 top-1/2 ${zIndex.overlayContent} transition-transform duration-300`}
         style={transformStyle}
       >
         {/* Filter Panel */}
         <div
           ref={panelRef}
-          className="relative z-20 w-[320px] max-h-[calc(100vh-80px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[450px] my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
+          className="relative w-[320px] max-h-[calc(100vh-80px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[450px] my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
         >
           {/* Filter Lists - Only show when loaded */}
           {isInitialLoad ? (
@@ -239,7 +239,7 @@ export default function FilterBox({
               onClick={onTogglePanel}
               className={`${buttonSizes.md} ${buttonStyles.primary} ${borderRadius.md}`}
             >
-              Покажи
+              {hasActiveFilters ? "Покажи" : "Покажи всички"}
             </button>
           </div>
         </div>
@@ -250,7 +250,8 @@ export default function FilterBox({
           onClick={onTogglePanel}
           {...handlers}
           className={[
-            "drag-handle absolute right-0 top-1/2 z-40 -translate-y-1/2 translate-x-full rounded-r-lg px-2 py-3 hover:px-3 transition-all duration-200 border border-l-0 border-primary-hover bg-primary text-white cursor-grab active:cursor-grabbing shadow-lg",
+            "drag-handle absolute right-0 top-1/2",
+            "-translate-y-1/2 translate-x-full rounded-r-lg px-2 py-3 hover:px-3 transition-all duration-200 border border-l-0 border-primary-hover bg-primary text-white cursor-grab active:cursor-grabbing shadow-lg",
           ].join(" ")}
           aria-label={isOpen ? "Затвори филтрите" : "Отвори филтрите"}
         >

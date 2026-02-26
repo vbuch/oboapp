@@ -24,7 +24,7 @@ export type OnboardingAction =
   | { type: "LOADED"; payload: OnboardingContext }
   | {
       type: "PERMISSION_RESULT";
-      payload: { permission: NotificationPermission };
+      payload: { permission: NotificationPermission; context: OnboardingContext };
     }
   | { type: "DISMISS" }
   | { type: "RESTART"; payload: OnboardingContext }
@@ -182,10 +182,23 @@ function handleLoaded(action: { payload: OnboardingContext }): ReducerState {
 function handlePermissionResult(
   state: ReducerState,
   permission: NotificationPermission,
+  context: OnboardingContext,
 ): ReducerState {
   if (state.state !== "notificationPrompt") return state;
 
-  const newState = permission === "denied" ? "blocked" : "loginPrompt";
+  // Determine next state based on permission and user auth status
+  let newState: OnboardingState;
+  
+  if (permission === "denied") {
+    newState = "blocked";
+  } else if (context.isLoggedIn && context.zonesCount > 0) {
+    // Authenticated user with zones who granted permission → complete
+    newState = "complete";
+  } else {
+    // Unauthenticated user who granted permission → loginPrompt
+    newState = "loginPrompt";
+  }
+  
   return { ...state, state: newState, lastPermission: permission };
 }
 
@@ -261,7 +274,7 @@ export function onboardingReducer(
       return handleLoaded(action);
 
     case "PERMISSION_RESULT":
-      return handlePermissionResult(state, action.payload.permission);
+      return handlePermissionResult(state, action.payload.permission, action.payload.context);
 
     case "DISMISS":
       return handleDismiss(state);
@@ -377,9 +390,14 @@ export function useOnboardingFlow(
   // Callback handlers
   const handlePermissionResult = useCallback(
     (permission: NotificationPermission) => {
-      dispatch({ type: "PERMISSION_RESULT", payload: { permission } });
+      // Include the new permission value in context to ensure consistency
+      const freshContext = {
+        ...context,
+        permission,
+      };
+      dispatch({ type: "PERMISSION_RESULT", payload: { permission, context: freshContext } });
     },
-    [],
+    [context],
   );
 
   const handleDismiss = useCallback(() => {

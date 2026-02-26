@@ -39,7 +39,7 @@ stateDiagram-v2
 
     notificationPrompt --> blocked : PERMISSION_RESULT [denied]
     notificationPrompt --> loginPrompt : PERMISSION_RESULT [granted, !user]
-    notificationPrompt --> complete : RE_EVALUATE [granted, user, zones>0]
+    notificationPrompt --> complete : PERMISSION_RESULT [granted, user, zones>0]
     notificationPrompt --> idle : DISMISS
 
     blocked --> zoneCreation : RE_EVALUATE [user logged in, zones=0]

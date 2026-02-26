@@ -26,7 +26,7 @@ describe("buildContentHash", () => {
     expect(hash1).toHaveLength(12);
   });
 
-  it("generates different hash when content changes", () => {
+  it("keeps hash stable when only recommendation text changes", () => {
     const dataYellow: WeatherPageData = {
       forecastDate: "2026-02-01",
       issuedAt: "2026-01-31T11:02:45",
@@ -44,7 +44,7 @@ describe("buildContentHash", () => {
     const hashYellow = buildContentHash(dataYellow);
     const hashOrange = buildContentHash(dataOrange);
 
-    expect(hashYellow).not.toBe(hashOrange);
+    expect(hashYellow).toBe(hashOrange);
   });
 
   it("generates different hash when warnings change", () => {
@@ -89,7 +89,7 @@ describe("buildUrl", () => {
     );
   });
 
-  it("generates different URLs when content changes", () => {
+  it("keeps URL stable when only recommendation text changes", () => {
     const data1: WeatherPageData = {
       forecastDate: "2026-02-01",
       issuedAt: "2026-01-31T11:02:45",
@@ -107,7 +107,7 @@ describe("buildUrl", () => {
     const url1 = buildUrl(data1);
     const url2 = buildUrl(data2);
 
-    expect(url1).not.toBe(url2);
+    expect(url1).toBe(url2);
   });
 });
 
@@ -143,6 +143,9 @@ describe("buildMarkdownText", () => {
 
     const markdown = buildMarkdownText(data);
 
+    expect(markdown).toContain(
+      "**Жълт код за опасно време за 01.02.2026 (неделя)**",
+    );
     expect(markdown).toContain("**Жълт код за сняг**");
     expect(markdown).toContain("Снеговалежи и образуване на снежна покривка");
   });
@@ -171,7 +174,11 @@ describe("buildMarkdownText", () => {
 
     const markdown = buildMarkdownText(data);
 
-    // Orange (more severe) should come first
+    // Should have heading with date (at the start)
+    expect(markdown).toMatch(
+      /^\*\*Оранжев код за опасно време за 01\.02\.2026 \(неделя\)\*\*/,
+    );
+    // Orange (more severe) should come first in the list
     expect(markdown).toContain("**Оранжев код за сняг**");
     expect(markdown).toContain("**Жълт код за температура**");
     expect(markdown).toContain("- Минимални температури от -14 до -9°С");
@@ -179,8 +186,8 @@ describe("buildMarkdownText", () => {
     expect(markdown).toContain("- Образуване на снежна покривка до 10 см");
 
     // Verify orange comes before yellow in output
-    const orangeIndex = markdown.indexOf("Оранжев");
-    const yellowIndex = markdown.indexOf("Жълт");
+    const orangeIndex = markdown.indexOf("Оранжев код за сняг");
+    const yellowIndex = markdown.indexOf("Жълт код за температура");
     expect(orangeIndex).toBeLessThan(yellowIndex);
   });
 
@@ -203,7 +210,7 @@ describe("buildMarkdownText", () => {
 });
 
 describe("buildMessageText", () => {
-  it("builds plain text message", () => {
+  it("builds plain text message with date", () => {
     const data: WeatherPageData = {
       forecastDate: "2026-02-01",
       issuedAt: "2026-01-31T11:02:45",
@@ -219,6 +226,7 @@ describe("buildMessageText", () => {
 
     const text = buildMessageText(data);
 
+    expect(text).toContain("Жълт код за опасно време за 01.02.2026 (неделя)");
     expect(text).toContain("Снеговалежи");
     expect(text).toContain("Образуване на снежна покривка; Заледяване");
   });

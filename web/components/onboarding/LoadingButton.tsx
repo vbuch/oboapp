@@ -1,6 +1,6 @@
 "use client";
 
-import { borderRadius } from "@/lib/colors";
+import { borderRadius, zIndex } from "@/lib/colors";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 
 interface LoadingButtonProps {
@@ -16,7 +16,7 @@ export default function LoadingButton({ visible = true }: LoadingButtonProps) {
     <button
       type="button"
       disabled
-      className={`animate-fade-in absolute bottom-8 right-8 z-10 ${
+      className={`animate-fade-in absolute bottom-8 right-8 ${zIndex.fixed} ${
         buttonSizes.lg
       } ${buttonStyles.primary} ${
         borderRadius.md

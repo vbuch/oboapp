@@ -1,6 +1,6 @@
 "use client";
 
-import { borderRadius } from "@/lib/colors";
+import { borderRadius, zIndex } from "@/lib/colors";
 import { buttonStyles } from "@/lib/theme";
 
 interface GeolocationButtonProps {
@@ -19,7 +19,7 @@ export default function GeolocationButton({
       type="button"
       onClick={onClick}
       disabled={isLocating}
-      className={`absolute bottom-8 left-8 z-10 p-4 ${borderRadius.full} shadow-lg hover:shadow-xl transition-all duration-200 ${
+      className={`absolute bottom-8 left-8 ${zIndex.fixed} p-4 ${borderRadius.full} shadow-lg hover:shadow-xl transition-all duration-200 ${
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
       } ${isLocating ? "cursor-not-allowed" : "cursor-pointer"} ${buttonStyles.primary}`}
       aria-label="Покажи моето местоположение"

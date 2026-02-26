@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { trackEvent } from "@/lib/analytics";
+import { zIndex } from "@/lib/colors";
 
 interface UserMenuProps {
   readonly isOpen: boolean;
@@ -27,7 +28,7 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
       {isOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm pointer-events-auto"
+          className={`fixed inset-0 ${zIndex.overlay} bg-black/20 backdrop-blur-sm pointer-events-auto`}
           onClick={onClose}
           aria-label="Close menu"
         />
@@ -35,7 +36,7 @@ export default function UserMenu({ isOpen, onClose }: UserMenuProps) {
 
       {/* Slide-in Panel */}
       <div
-        className={`fixed right-0 top-0 bottom-0 w-[300px] z-40 bg-white shadow-2xl transition-transform duration-300 ${
+        className={`fixed right-0 top-0 bottom-0 w-[300px] ${zIndex.overlayContent} bg-white shadow-2xl transition-transform duration-300 ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

@@ -1,7 +1,7 @@
 "use client";
 
 import { trackEvent } from "@/lib/analytics";
-import { borderRadius } from "@/lib/colors";
+import { borderRadius, zIndex } from "@/lib/colors";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import PlusIcon from "@/components/icons/PlusIcon";
 
@@ -28,7 +28,7 @@ export default function AddInterestButton({
     <button
       type="button"
       onClick={handleClick}
-      className={`animate-fade-in absolute bottom-8 right-8 z-10 ${
+      className={`animate-fade-in absolute bottom-8 right-8 ${zIndex.fixed} ${
         buttonSizes.lg
       } ${buttonStyles.primary} ${
         borderRadius.md

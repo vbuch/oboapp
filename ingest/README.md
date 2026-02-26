@@ -67,10 +67,18 @@ The system runs two automated pipelines via Cloud Scheduler:
   - Handles short-lived messages and emergency works
 
 - **Full Pipeline** (`pipeline:all`) - 3 times daily (10:00, 14:00, 16:00 EET)
-  - Crawlers: All sources (rayon-oborishte-bg, sofia-bg, mladost-bg, studentski-bg, sredec-sofia-org, so-slatina-org, lozenets-sofia-bg, nimh-severe-weather, plus emergent crawlers)
+  - Crawlers: All sources (rayon-oborishte-bg, rayon-pancharevo-bg, sofia-bg, mladost-bg, studentski-bg, sredec-sofia-org, so-slatina-org, lozenets-sofia-bg, raioniskar-bg, nimh-severe-weather, plus emergent crawlers)
   - Runs ingest and notify after crawling
   - Handles regularly scheduled announcements
 
 ## Deployment
 
 Dockerized for Google Cloud Run Jobs. See `Dockerfile` and `terraform/` directory.
+
+## Testing Toolchain Note
+
+`ingest/` currently pins `vitest@3.2.4` (with `vite@6`) while `web/` uses Vitest 4.
+
+Reason: in this workspace/runtime, `ingest` hit an `ERR_REQUIRE_ESM` startup failure with Vitest 4 + Vite 7 when loading `vitest.config.ts`. Pinning `ingest` to the Vitest 3 toolchain restores stable test execution (`pnpm test:run`) for crawler and pipeline tests.
+
+This is a temporary compatibility pin. We should align versions again once the workspace/runtime is upgraded or the upstream compatibility issue is resolved.

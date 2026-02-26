@@ -14,6 +14,7 @@ import MessagesGrid from "@/components/MessagesGrid";
 import InterestContextMenu from "@/components/InterestContextMenu";
 import FilterBox from "@/components/FilterBox";
 import GeolocationPrompt from "@/components/GeolocationPrompt";
+import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
 import { useInterests } from "@/lib/hooks/useInterests";
 import { useAuth } from "@/lib/auth-context";
 import { useMessages } from "@/lib/hooks/useMessages";
@@ -23,7 +24,11 @@ import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
 import { useSourceFilter } from "@/lib/hooks/useSourceFilter";
 import { classifyMessage } from "@/lib/message-classification";
 import { createMessageUrl } from "@/lib/url-utils";
+import { getFeaturesCentroid } from "@/lib/geometry-utils";
+import { zIndex } from "@/lib/colors";
+import { navigateBackOrReplace } from "@/lib/navigation-utils";
 import type { Message } from "@/lib/types";
+import type { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
 import { isValidMessageId } from "@oboapp/shared";
 
 /**
@@ -104,6 +109,32 @@ export default function HomeContent() {
     onDecline: () => void;
   } | null>(null);
 
+  // Message hover state for map highlight
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+  // Onboarding state (lifted from MapContainer for proper DOM ordering)
+  const [onboardingState, setOnboardingState] =
+    React.useState<OnboardingState | null>(null);
+  const [onboardingCallbacks, setOnboardingCallbacks] = React.useState<{
+    onPermissionResult: (permission: NotificationPermission) => void;
+    onDismiss: () => void;
+    onAddInterests: () => void;
+  } | null>(null);
+
+  const handleOnboardingStateChange = useCallback(
+    (
+      state: OnboardingState,
+      callbacks: {
+        onPermissionResult: (permission: NotificationPermission) => void;
+        onDismiss: () => void;
+        onAddInterests: () => void;
+      },
+    ) => {
+      setOnboardingState(state);
+      setOnboardingCallbacks(callbacks);
+    },
+    [],
+  );
+
   // Interest/zone management
   const {
     targetMode,
@@ -138,8 +169,7 @@ export default function HomeContent() {
 
   // Handle closing detail view
   const handleCloseDetail = useCallback(() => {
-    // Remove query parameter from URL - this will trigger selectedMessage derivation
-    router.push("/", { scroll: false });
+    navigateBackOrReplace(router, "/");
   }, [router]);
 
   // Derive selected message from URL parameter
@@ -209,6 +239,39 @@ export default function HomeContent() {
     return null;
   }, [messageId, viewportMatch, fetchedMessage]);
 
+  // Track the last message we centered on to avoid re-centering loops
+  const lastCenteredMessageIdRef = useRef<string | null>(null);
+
+  // Center map on selected message's geometry when detail view opens (only once per message)
+  useEffect(() => {
+    // Require a selected message with valid id, geometry and a ready map/navigation handler
+    if (
+      !selectedMessage?.id ||
+      !selectedMessage.geoJson ||
+      !handleAddressClick ||
+      !centerMapFn ||
+      !mapInstance
+    ) {
+      return;
+    }
+
+    // Skip if we've already centered on this message
+    if (lastCenteredMessageIdRef.current === selectedMessage.id) return;
+
+    const centroid = getFeaturesCentroid(selectedMessage.geoJson);
+    if (centroid) {
+      handleAddressClick(centroid.lat, centroid.lng);
+      lastCenteredMessageIdRef.current = selectedMessage.id;
+    }
+  }, [selectedMessage, handleAddressClick, centerMapFn, mapInstance]);
+
+  // Reset centered message tracking when selection is cleared
+  useEffect(() => {
+    if (!selectedMessage) {
+      lastCenteredMessageIdRef.current = null;
+    }
+  }, [selectedMessage]);
+
   return (
     <div
       className="flex-1 flex flex-col [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-row"
@@ -216,7 +279,9 @@ export default function HomeContent() {
     >
       {/* Error messages */}
       {error && (
-        <div className="bg-white border-b shadow-sm z-10 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:absolute [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:left-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:right-0">
+        <div
+          className={`bg-white border-b shadow-sm ${zIndex.fixed} [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:absolute [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:top-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:left-0 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:right-0`}
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="p-4 bg-error-light text-error rounded-md">
               {error}
@@ -264,6 +329,8 @@ export default function HomeContent() {
           user={user}
           targetMode={targetMode}
           initialMapCenter={initialMapCenter}
+          hoveredMessageId={hoveredMessageId}
+          selectedMessageId={selectedMessage?.id}
           onFeatureClick={handleFeatureClick}
           onMapReady={handleMapReady}
           onBoundsChanged={handleBoundsChanged}
@@ -272,9 +339,12 @@ export default function HomeContent() {
           onCancelTargetMode={handleCancelTargetMode}
           onStartAddInterest={handleStartAddInterest}
           onGeolocationPromptChange={setGeolocationPrompt}
+          onOnboardingStateChange={handleOnboardingStateChange}
         />
         {isLoading && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-lg shadow-md z-20">
+          <div
+            className={`absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-lg shadow-md ${zIndex.nav}`}
+          >
             <p className="text-sm text-neutral">Зареждане...</p>
           </div>
         )}
@@ -289,6 +359,7 @@ export default function HomeContent() {
             onMessageClick={(message) => {
               router.push(createMessageUrl(message), { scroll: false });
             }}
+            onMessageHover={setHoveredMessageId}
             variant="list"
           />
         </div>
@@ -308,6 +379,18 @@ export default function HomeContent() {
           onMove={handleMoveInterest}
           onDelete={handleDeleteInterest}
           onClose={handleCloseInterestMenu}
+        />
+      )}
+
+      {/* Onboarding Prompts - rendered at root for proper z-index stacking */}
+      {onboardingState && onboardingCallbacks && (
+        <OnboardingPrompt
+          state={onboardingState}
+          targetModeActive={targetMode.active}
+          user={user}
+          onPermissionResult={onboardingCallbacks.onPermissionResult}
+          onDismiss={onboardingCallbacks.onDismiss}
+          onAddInterests={onboardingCallbacks.onAddInterests}
         />
       )}
 

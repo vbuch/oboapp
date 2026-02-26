@@ -6,6 +6,7 @@ import { subscribeToPushNotifications } from "@/lib/notification-service";
 import { useAuth } from "@/lib/auth-context";
 import PromptCard from "../PromptCard";
 import BellIcon from "@/components/icons/BellIcon";
+import { zIndex } from "@/lib/colors";
 
 interface NotificationPromptProps {
   /** Called with the permission result after browser prompt */
@@ -61,27 +62,29 @@ export default function NotificationPrompt({
       {/* Backdrop */}
       <button
         type="button"
-        className="fixed inset-0 z-[9] bg-black/20 backdrop-blur-sm pointer-events-auto"
+        className={`fixed inset-0 ${zIndex.modalBackdrop} bg-black/20 backdrop-blur-sm pointer-events-auto`}
         onClick={handleDecline}
         aria-label="Затвори"
       />
-      <div className="animate-fade-in fixed sm:absolute bottom-2 sm:bottom-4 right-2 sm:right-4 left-2 sm:left-auto z-10 sm:max-w-sm">
-        <PromptCard
-          icon={<BellIcon className="w-12 h-12 text-primary" />}
-          title="Получавай известия"
-          description="Ще поискаме разрешение за известия от браузъра."
-          note="След това ще можеш да добавиш зони на интерес и да получаваш известия за събития в тях."
-          primaryButton={{
-            text: "Разреши известия",
-            onClick: () => {
-              void handleAccept();
-            },
-          }}
-          secondaryButton={{
-            text: "Не сега",
-            onClick: handleDecline,
-          }}
-        />
+      <div className={`animate-fade-in fixed inset-0 flex items-center justify-center p-4 ${zIndex.modalContent} pointer-events-none`}>
+        <div className="pointer-events-auto w-full max-w-sm">
+          <PromptCard
+            icon={<BellIcon className="w-12 h-12 text-primary" />}
+            title="Получавай известия"
+            description="Ще поискаме разрешение за известия от браузъра."
+            note="След това ще можеш да добавиш зони на интерес и да получаваш известия за събития в тях."
+            primaryButton={{
+              text: "Разреши известия",
+              onClick: () => {
+                void handleAccept();
+              },
+            }}
+            secondaryButton={{
+              text: "Не сега",
+              onClick: handleDecline,
+            }}
+          />
+        </div>
       </div>
     </>
   );

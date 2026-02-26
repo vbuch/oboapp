@@ -253,14 +253,16 @@ export function useCategoryFilter(
   }, [viewportMessages, availableCategoriesSet, isInitialLoad]);
 
   // Handle initial load separately
+  // Categories are static (always available), so we don't need to wait for messages
+  // Just show the UI after a brief delay for smooth transition
   useEffect(() => {
-    if (isInitialLoad && viewportMessages.length > 0) {
+    if (isInitialLoad) {
       const timer = setTimeout(() => {
         setIsInitialLoad(false);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isInitialLoad, viewportMessages]);
+  }, [isInitialLoad]);
 
   // Count features per category - ONLY for viewport messages that match showArchived filter
   const categoryCounts = useMemo<CategoryCount[]>(() => {

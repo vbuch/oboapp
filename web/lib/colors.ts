@@ -123,8 +123,30 @@ export const borderRadius = {
 } as const;
 
 /**
+ * Z-index scale for consistent stacking context
+ * Use these values to ensure proper layering of UI elements
+ */
+export const zIndex = {
+  /** Base content - map, messages, page content */
+  base: "z-0",
+  /** Fixed UI elements - geolocation button, onboarding buttons */
+  fixed: "z-10",
+  /** Navigation and top loading indicators */
+  nav: "z-20",
+  /** Overlays - slide-out panels, dropdowns */
+  overlay: "z-30",
+  /** Overlay content - panel content that should be above overlay backdrops */
+  overlayContent: "z-40",
+  /** Modal backdrops - full-screen overlays for modals and prompts */
+  modalBackdrop: "z-50",
+  /** Modal content - dialogs, prompts that appear above modal backdrops */
+  modalContent: "z-60",
+} as const;
+
+/**
  * Type-safe color access
  */
 export type ColorPalette = typeof colors;
 export type OpacityValues = typeof opacity;
 export type BorderRadiusValues = typeof borderRadius;
+export type ZIndexValues = typeof zIndex;
