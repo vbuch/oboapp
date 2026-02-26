@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import ZoneBadges from "@/components/ZoneBadges";
 import type { Interest } from "@/lib/types";
 
@@ -42,5 +43,23 @@ describe("ZoneBadges", () => {
     expect(addButton).toBeDisabled();
     expect(addButton).toHaveClass("disabled:opacity-50");
     expect(addButton).toHaveClass("disabled:cursor-not-allowed");
+  });
+
+  it("calls onZoneClick with the correct interest when a badge is clicked", async () => {
+    const onZoneClick = vi.fn();
+    render(
+      <ZoneBadges
+        interests={INTERESTS}
+        onAddZone={vi.fn()}
+        onZoneClick={onZoneClick}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Дом/i }));
+
+    expect(onZoneClick).toHaveBeenCalledTimes(1);
+    expect(onZoneClick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "zone-1", label: "Дом" }),
+    );
   });
 });

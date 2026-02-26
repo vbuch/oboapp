@@ -126,6 +126,7 @@ export default function AddZoneModal({
                       type="button"
                       onClick={() => setSelectedColor(option.color)}
                       aria-label={option.label}
+                      title={option.label}
                       className={`w-9 h-9 rounded-full border-2 ${isSelected ? "border-neutral-dark" : "border-neutral-border"}`}
                       style={{ backgroundColor: option.color }}
                     />
