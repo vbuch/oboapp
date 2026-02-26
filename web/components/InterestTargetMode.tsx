@@ -82,6 +82,13 @@ export default function InterestTargetMode({
         fillColor: circleColor,
         strokeColor: circleColor,
       });
+      // Re-attach the click listener so it captures the latest state
+      google.maps.event.clearInstanceListeners(circleRef.current);
+      circleRef.current.addListener("click", (e: google.maps.MapMouseEvent) => {
+        if (e.latLng) {
+          setCurrentCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+        }
+      });
     }
 
     // Cleanup: remove the circle from the map when the component unmounts
@@ -167,7 +174,9 @@ export default function InterestTargetMode({
   return (
     <>
       {/* Control Panel */}
-      <div className={`fixed sm:absolute bottom-8 left-1/2 -translate-x-1/2 ${zIndex.overlay} pointer-events-auto`}>
+      <div
+        className={`fixed sm:absolute bottom-8 left-1/2 -translate-x-1/2 ${zIndex.overlay} pointer-events-auto`}
+      >
         <div className="bg-white rounded-lg shadow-xl border border-neutral-border p-4 min-w-[320px]">
           {/* Placement hint or coordinates */}
           {!currentCenter ? (

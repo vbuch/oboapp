@@ -13,15 +13,16 @@ When `complete`, the sidebar header shows a segmented control with two tabs:
 | **Моите зони** | `ZoneList` — clickable list of saved zones (color dot, label, radius) |
 | **Събития**    | `MessagesGrid` — all messages visible in the map viewport             |
 
-A "Добави зона" button (visible only in the zones tab) opens the `AddZoneModal`.
+A "Добави зона" button (visible only in the zones tab) puts the map into **target mode**
+for creating a new zone; `AddZoneModal` is shown after the user places the zone on the map.
 
 ### Zone Creation Flow
 
-1. User clicks "Добави зона" → `AddZoneModal` opens with a 3×2 grid of zone types and a radius slider.
-2. User picks a type and radius, clicks confirm → modal closes, map enters **target mode**.
-3. User clicks the map to place the zone (no preview circle until first click).
-4. Control panel shows coordinates, radius slider, and save/cancel buttons.
-5. On save, the zone is persisted via `POST /api/interests` with `label` and `color`.
+1. User clicks "Добави зона" → the map enters **target mode** for placing a new zone.
+2. User clicks the map to place the zone (no preview circle until first click).
+3. Control panel shows coordinates, radius slider, and save/cancel buttons.
+4. On save, `AddZoneModal` opens where the user picks a label and color.
+5. On confirm, the zone is persisted via `POST /api/interests` with `label` and `color`.
 
 ### Zone Editing & Deletion
 

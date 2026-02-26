@@ -136,7 +136,9 @@ export default function HomeContent() {
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   // View mode for the sidebar: "zones" (my zones) or "events" (all)
   const [viewMode, setViewMode] = useState<ViewMode>("events");
-  // Reset to "events" on logout (user becomes null) so anonymous users see events
+  // Reset to "events" on logout (user becomes null) so anonymous users see events.
+  // Uses the React "adjusting state during render" pattern to avoid the
+  // react-hooks/set-state-in-effect lint violation from calling setState inside useEffect.
   const [prevUser, setPrevUser] = useState(user);
   if (user !== prevUser) {
     setPrevUser(user);

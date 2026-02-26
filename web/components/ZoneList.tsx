@@ -104,14 +104,15 @@ export default function ZoneList({
 
   return (
     <ul className="flex flex-col gap-2" ref={menuContainerRef}>
-      {interests.map((interest) => {
+      {interests.map((interest, index) => {
         const color = interest.color ?? DEFAULT_COLOR;
         const label = interest.label || "Зона";
         const menuId = `zone-actions-menu-${interest.id}`;
         const isMenuOpen = openMenuInterestId === interest.id;
+        const key = interest.id ?? `zone-${index}`;
 
         return (
-          <li key={interest.id}>
+          <li key={key}>
             <div className="w-full flex items-start gap-2 rounded-lg border border-neutral-border bg-white p-3 text-left transition-colors hover:bg-neutral-light">
               <button
                 type="button"
