@@ -136,8 +136,8 @@ export default function HomeContent() {
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   // View mode for the sidebar: "zones" (my zones) or "events" (all)
   const [viewMode, setViewMode] = useState<ViewMode>("events");
-  // Force anonymous users to always see the events tab.
-  // This also naturally resets to "events" when a user logs out.
+  // Force anonymous users to always see the events tab by ignoring viewMode when user is null.
+  // The underlying viewMode state is preserved and reapplied when the user logs back in.
   const effectiveViewMode = user ? viewMode : "events";
   // Onboarding state (lifted from MapContainer for proper DOM ordering)
   const [onboardingState, setOnboardingState] =

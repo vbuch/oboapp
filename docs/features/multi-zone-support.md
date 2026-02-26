@@ -6,7 +6,7 @@ radius (100–1000 m).
 
 ### Sidebar UI
 
-When `complete`, the sidebar header shows a segmented control with two tabs:
+On wide-desktop layouts, authenticated users see a segmented control header with two tabs:
 
 | Tab            | Content                                                               |
 | -------------- | --------------------------------------------------------------------- |
@@ -43,7 +43,7 @@ Zones are stored in the `interests` collection with these fields:
 | `coordinates` | {lat,lng} | Center of the zone                        |
 | `radius`      | number    | Radius in meters (100–1000)               |
 | `label`       | string?   | Zone type label (e.g. "Вкъщи")            |
-| `color`       | string?   | Hex color from zone type (e.g. "#3B82F6") |
+| `color`       | string?   | Hex color from zone type (e.g. "#4285F4") |
 | `createdAt`   | datetime  | Creation timestamp                        |
 | `updatedAt`   | datetime  | Last update timestamp                     |
 

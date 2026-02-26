@@ -180,7 +180,6 @@ export default function SourcePage() {
             isLoading={isLoading}
             onMessageClick={handleMessageClick}
             limit={12}
-            showHeading={false}
           />
         </div>
       </div>
