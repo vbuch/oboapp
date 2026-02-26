@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback } from "react";
+
 interface SegmentOption {
   readonly value: string;
   readonly label: string;
@@ -15,7 +17,8 @@ interface SegmentedControlProps {
 
 /**
  * Pill-shaped segmented control for selecting between mutually exclusive options.
- * Renders as a role="radiogroup" for accessibility.
+ * Renders as a role="radiogroup" with roving tabIndex and arrow-key navigation
+ * per the WAI-ARIA radio group pattern.
  */
 export default function SegmentedControl({
   options,
@@ -23,6 +26,41 @@ export default function SegmentedControl({
   onChange,
   className = "",
 }: SegmentedControlProps) {
+  const enabledOptions = options.filter((o) => !o.disabled);
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>) => {
+      const { key } = event;
+      if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(key))
+        return;
+
+      event.preventDefault();
+
+      const currentIndex = enabledOptions.findIndex((o) => o.value === value);
+      let nextIndex: number;
+
+      if (key === "ArrowRight" || key === "ArrowDown") {
+        nextIndex = (currentIndex + 1) % enabledOptions.length;
+      } else {
+        nextIndex =
+          (currentIndex - 1 + enabledOptions.length) % enabledOptions.length;
+      }
+
+      const nextOption = enabledOptions[nextIndex];
+      onChange(nextOption.value);
+
+      // Move focus to the newly selected radio button
+      const radiogroup = (event.target as HTMLElement).closest(
+        "[role='radiogroup']",
+      );
+      const buttons = radiogroup?.querySelectorAll<HTMLButtonElement>(
+        "[role='radio']:not([aria-disabled='true'])",
+      );
+      buttons?.[nextIndex]?.focus();
+    },
+    [enabledOptions, value, onChange],
+  );
+
   return (
     <div
       role="radiogroup"
@@ -31,6 +69,10 @@ export default function SegmentedControl({
       {options.map((option) => {
         const isActive = option.value === value;
         const isDisabled = option.disabled === true;
+        // Roving tabIndex: only the active (checked) radio is tabbable;
+        // disabled buttons are also not tabbable.
+        let tabIndex = -1;
+        if (!isDisabled && isActive) tabIndex = 0;
         return (
           <button
             key={option.value}
@@ -38,8 +80,9 @@ export default function SegmentedControl({
             role="radio"
             aria-checked={isActive}
             aria-disabled={isDisabled || undefined}
-            tabIndex={isDisabled ? -1 : 0}
+            tabIndex={tabIndex}
             onClick={isDisabled ? undefined : () => onChange(option.value)}
+            onKeyDown={isDisabled ? undefined : handleKeyDown}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
               isDisabled
                 ? "opacity-40 cursor-not-allowed text-neutral"

@@ -24,7 +24,10 @@ export type OnboardingAction =
   | { type: "LOADED"; payload: OnboardingContext }
   | {
       type: "PERMISSION_RESULT";
-      payload: { permission: NotificationPermission; context: OnboardingContext };
+      payload: {
+        permission: NotificationPermission;
+        context: OnboardingContext;
+      };
     }
   | { type: "DISMISS" }
   | { type: "RESTART"; payload: OnboardingContext }
@@ -133,7 +136,11 @@ export function computeStateFromContext(
   const { permission, isLoggedIn, zonesCount, isRestart = false } = context;
 
   return isLoggedIn
-    ? computeAuthenticatedState(zonesCount, permission, context.hasSeenZoneCreationPrompt)
+    ? computeAuthenticatedState(
+        zonesCount,
+        permission,
+        context.hasSeenZoneCreationPrompt,
+      )
     : computeUnauthenticatedState(permission, isRestart);
 }
 
@@ -191,7 +198,7 @@ function handlePermissionResult(
 
   // Determine next state based on permission and user auth status
   let newState: OnboardingState;
-  
+
   if (permission === "denied") {
     newState = "blocked";
   } else if (context.isLoggedIn && context.zonesCount > 0) {
@@ -201,7 +208,7 @@ function handlePermissionResult(
     // Unauthenticated user who granted permission → loginPrompt
     newState = "loginPrompt";
   }
-  
+
   return { ...state, state: newState, lastPermission: permission };
 }
 
@@ -277,7 +284,11 @@ export function onboardingReducer(
       return handleLoaded(action);
 
     case "PERMISSION_RESULT":
-      return handlePermissionResult(state, action.payload.permission, action.payload.context);
+      return handlePermissionResult(
+        state,
+        action.payload.permission,
+        action.payload.context,
+      );
 
     case "DISMISS":
       return handleDismiss(state);
@@ -370,10 +381,15 @@ export function useOnboardingFlow(
 
   // Build current context
   const context = useMemo((): OnboardingContext => {
-    const hasSeenZoneCreationPrompt =
-      typeof localStorage !== "undefined"
-        ? localStorage.getItem(ZONE_CREATION_SEEN_KEY) === "true"
-        : false;
+    let hasSeenZoneCreationPrompt = false;
+    try {
+      hasSeenZoneCreationPrompt =
+        typeof localStorage !== "undefined"
+          ? localStorage.getItem(ZONE_CREATION_SEEN_KEY) === "true"
+          : false;
+    } catch {
+      // Ignore storage errors (Safari private browsing, blocked storage, etc.)
+    }
     return {
       permission: getNotificationPermission(),
       isLoggedIn: user !== null,
@@ -416,7 +432,10 @@ export function useOnboardingFlow(
         ...context,
         permission,
       };
-      dispatch({ type: "PERMISSION_RESULT", payload: { permission, context: freshContext } });
+      dispatch({
+        type: "PERMISSION_RESULT",
+        payload: { permission, context: freshContext },
+      });
     },
     [context],
   );

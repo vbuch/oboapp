@@ -136,16 +136,9 @@ export default function HomeContent() {
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   // View mode for the sidebar: "zones" (my zones) or "events" (all)
   const [viewMode, setViewMode] = useState<ViewMode>("events");
-  // Reset to "events" on logout (user becomes null) so anonymous users see events.
-  // Uses the React "adjusting state during render" pattern to avoid the
-  // react-hooks/set-state-in-effect lint violation from calling setState inside useEffect.
-  const [prevUser, setPrevUser] = useState(user);
-  if (user !== prevUser) {
-    setPrevUser(user);
-    if (!user) {
-      setViewMode("events");
-    }
-  }
+  // Force anonymous users to always see the events tab.
+  // This also naturally resets to "events" when a user logs out.
+  const effectiveViewMode = user ? viewMode : "events";
   // Onboarding state (lifted from MapContainer for proper DOM ordering)
   const [onboardingState, setOnboardingState] =
     React.useState<OnboardingState | null>(null);
@@ -289,10 +282,10 @@ export default function HomeContent() {
       <div className="flex items-center justify-between gap-3">
         <SegmentedControl
           options={viewModeOptions}
-          value={viewMode}
+          value={effectiveViewMode}
           onChange={(v) => setViewMode(v as ViewMode)}
         />
-        {user && viewMode === "zones" && (
+        {user && effectiveViewMode === "zones" && (
           <button
             type="button"
             onClick={() => handleStartAddInterest()}
@@ -308,7 +301,7 @@ export default function HomeContent() {
     );
   }, [
     user,
-    viewMode,
+    effectiveViewMode,
     viewModeOptions,
     handleStartAddInterest,
     targetMode.active,
@@ -471,7 +464,7 @@ export default function HomeContent() {
             </div>
 
             {/* Desktop: zone list when in zones view mode */}
-            {user && viewMode === "zones" && (
+            {user && effectiveViewMode === "zones" && (
               <div className="hidden [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:block">
                 <ZoneList
                   interests={interests}
@@ -485,7 +478,7 @@ export default function HomeContent() {
             {/* Messages: always visible on mobile, conditional on desktop */}
             <div
               className={
-                user && viewMode === "zones"
+                user && effectiveViewMode === "zones"
                   ? "[@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:hidden"
                   : ""
               }

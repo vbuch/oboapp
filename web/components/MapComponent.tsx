@@ -314,6 +314,7 @@ export default function MapComponent({
               map={mapInstance}
               initialRadius={targetMode.initialRadius}
               pendingColor={targetMode.pendingColor}
+              isEditing={!!targetMode.editingInterestId}
               onSave={targetMode.onSave}
               onCancel={targetMode.onCancel}
             />
