@@ -36,7 +36,10 @@ export default function SegmentedControl({
 
       event.preventDefault();
 
+      if (enabledOptions.length === 0) return;
+
       const currentIndex = enabledOptions.findIndex((o) => o.value === value);
+      if (currentIndex === -1) return;
       let nextIndex: number;
 
       if (key === "ArrowRight" || key === "ArrowDown") {

@@ -65,14 +65,14 @@ export default function AddZoneModal({
       <dialog
         open
         aria-labelledby="add-zone-title"
-        className={`fixed inset-0 ${zIndex.modalContent} m-0 w-full h-full max-w-none max-h-none p-0 border-0 bg-transparent overflow-visible`}
+        className={`fixed inset-0 ${zIndex.modalContent} m-0 w-full h-full max-w-none max-h-none p-0 border-0 bg-transparent overflow-visible pointer-events-none`}
         onCancel={(event) => {
           event.preventDefault();
           onCancel();
         }}
       >
         <div className="w-full h-full p-3 sm:p-4 flex items-start sm:items-center justify-center">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 flex flex-col gap-5">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 flex flex-col gap-5 pointer-events-auto">
             <h2
               id="add-zone-title"
               className="text-base font-semibold text-neutral-dark"
