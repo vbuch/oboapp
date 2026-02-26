@@ -93,6 +93,8 @@ export default function AddZoneModal({
                 type="text"
                 value={labelInput}
                 maxLength={MAX_ZONE_LABEL_LENGTH}
+                aria-invalid={showError}
+                aria-describedby={showError ? "zone-label-error" : undefined}
                 onChange={(event) => {
                   setLabelInput(event.target.value);
                   setShowError(false);
@@ -113,7 +115,7 @@ export default function AddZoneModal({
                 ))}
               </div>
               {showError && (
-                <p className="text-xs text-error">
+                <p id="zone-label-error" className="text-xs text-error">
                   Моля, въведете име на зона.
                 </p>
               )}
@@ -130,6 +132,7 @@ export default function AddZoneModal({
                       type="button"
                       onClick={() => setSelectedColor(option.color)}
                       aria-label={option.label}
+                      aria-pressed={isSelected}
                       title={option.label}
                       className={`w-9 h-9 rounded-full border-2 ${isSelected ? "border-neutral-dark" : "border-neutral-border"}`}
                       style={{ backgroundColor: option.color }}

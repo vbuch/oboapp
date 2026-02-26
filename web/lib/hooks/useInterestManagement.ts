@@ -250,6 +250,8 @@ export function useInterestManagement(
           );
           setPendingNewInterest(null);
         } catch (error) {
+          // Intentionally keep pendingNewInterest set so AddZoneModal stays
+          // open and the user can retry without re-entering zone details.
           console.error("Failed to create interest:", error);
           alert("Не успях да запазя зоната. Опитай пак.");
         }
