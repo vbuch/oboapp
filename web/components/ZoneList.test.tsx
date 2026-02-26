@@ -33,12 +33,12 @@ describe("ZoneList", () => {
     const onZoneClick = vi.fn();
     render(
       <ZoneList
-        interests={[createInterest({ label: "Фитнес" })]}
+        interests={[createInterest({ label: "Вкъщи" })]}
         onZoneClick={onZoneClick}
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /Фитнес/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Вкъщи/i }));
 
     expect(onZoneClick).toHaveBeenCalledTimes(1);
     expect(onZoneClick).toHaveBeenCalledWith(
@@ -50,13 +50,13 @@ describe("ZoneList", () => {
     const onMoveZone = vi.fn();
     render(
       <ZoneList
-        interests={[createInterest({ label: "Дома" })]}
+        interests={[createInterest({ label: "Вкъщи" })]}
         onMoveZone={onMoveZone}
       />,
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: /Действия за Дома/i }),
+      screen.getByRole("button", { name: /Действия за Вкъщи/i }),
     );
     await userEvent.click(screen.getByRole("menuitem", { name: /Премести/i }));
 
@@ -70,13 +70,13 @@ describe("ZoneList", () => {
     const onDeleteZone = vi.fn();
     render(
       <ZoneList
-        interests={[createInterest({ id: "zone-2", label: "Офис" })]}
+        interests={[createInterest({ id: "zone-2", label: "Работа" })]}
         onDeleteZone={onDeleteZone}
       />,
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: /Действия за Офис/i }),
+      screen.getByRole("button", { name: /Действия за Работа/i }),
     );
     await userEvent.click(screen.getByRole("menuitem", { name: /Изтрий/i }));
 
@@ -89,20 +89,22 @@ describe("ZoneList", () => {
   it("toggles trigger aria-expanded and exposes menu/menuitems roles", async () => {
     render(
       <ZoneList
-        interests={[createInterest({ label: "Дома" })]}
+        interests={[createInterest({ label: "Вкъщи" })]}
         onMoveZone={vi.fn()}
         onDeleteZone={vi.fn()}
       />,
     );
 
-    const trigger = screen.getByRole("button", { name: /Действия за Дома/i });
+    const trigger = screen.getByRole("button", { name: /Действия за Вкъщи/i });
     expect(trigger).toHaveAttribute("aria-haspopup", "menu");
     expect(trigger).toHaveAttribute("aria-expanded", "false");
 
     await userEvent.click(trigger);
 
     expect(trigger).toHaveAttribute("aria-expanded", "true");
-    const menu = screen.getByRole("menu", { name: /Меню с действия за Дома/i });
+    const menu = screen.getByRole("menu", {
+      name: /Меню с действия за Вкъщи/i,
+    });
     expect(menu).toBeInTheDocument();
     expect(within(menu).getAllByRole("menuitem")).toHaveLength(2);
   });
@@ -110,13 +112,13 @@ describe("ZoneList", () => {
   it("closes menu on Escape and returns focus to trigger", async () => {
     render(
       <ZoneList
-        interests={[createInterest({ label: "Дома" })]}
+        interests={[createInterest({ label: "Вкъщи" })]}
         onMoveZone={vi.fn()}
         onDeleteZone={vi.fn()}
       />,
     );
 
-    const trigger = screen.getByRole("button", { name: /Действия за Дома/i });
+    const trigger = screen.getByRole("button", { name: /Действия за Вкъщи/i });
     await userEvent.click(trigger);
 
     const moveItem = screen.getByRole("menuitem", { name: /Премести/i });
@@ -132,13 +134,13 @@ describe("ZoneList", () => {
     const user = userEvent.setup();
     render(
       <ZoneList
-        interests={[createInterest({ label: "Дома" })]}
+        interests={[createInterest({ label: "Вкъщи" })]}
         onMoveZone={vi.fn()}
         onDeleteZone={vi.fn()}
       />,
     );
 
-    const trigger = screen.getByRole("button", { name: /Действия за Дома/i });
+    const trigger = screen.getByRole("button", { name: /Действия за Вкъщи/i });
     await user.click(trigger);
 
     const moveItem = screen.getByRole("menuitem", { name: /Премести/i });
@@ -156,13 +158,13 @@ describe("ZoneList", () => {
     const user = userEvent.setup();
     render(
       <ZoneList
-        interests={[createInterest({ label: "Дома" })]}
+        interests={[createInterest({ label: "Вкъщи" })]}
         onMoveZone={vi.fn()}
         onDeleteZone={vi.fn()}
       />,
     );
 
-    const trigger = screen.getByRole("button", { name: /Действия за Дома/i });
+    const trigger = screen.getByRole("button", { name: /Действия за Вкъщи/i });
 
     trigger.focus();
     fireEvent.keyDown(trigger, { key: "Enter" });

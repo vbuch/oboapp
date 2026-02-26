@@ -1,7 +1,7 @@
 ## Multi-Zone Support
 
 Authenticated users can create multiple named zones of interest. Each zone has a **type**
-(Дома, Офис, Родители, Училище, Фитнес, Друго) with a predefined color, and a configurable
+(Вкъщи, Работа, Родители, Училище) with a user-chosen color, and a configurable
 radius (100–1000 m).
 
 ### Sidebar UI
@@ -42,7 +42,7 @@ Zones are stored in the `interests` collection with these fields:
 | `userId`      | string    | Owner                                     |
 | `coordinates` | {lat,lng} | Center of the zone                        |
 | `radius`      | number    | Radius in meters (100–1000)               |
-| `label`       | string?   | Zone type label (e.g. "Дома")             |
+| `label`       | string?   | Zone type label (e.g. "Вкъщи")            |
 | `color`       | string?   | Hex color from zone type (e.g. "#3B82F6") |
 | `createdAt`   | datetime  | Creation timestamp                        |
 | `updatedAt`   | datetime  | Last update timestamp                     |
