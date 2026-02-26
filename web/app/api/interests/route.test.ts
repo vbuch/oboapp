@@ -1,9 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GET } from "./route";
+import { GET, POST, PATCH } from "./route";
+import { DEFAULT_ZONE_COLOR } from "@/lib/zoneTypes";
 
-const { findByUserIdMock, findManyMock } = vi.hoisted(() => ({
+const {
+  findByUserIdMock,
+  findManyMock,
+  insertOneMock,
+  findByIdMock,
+  updateOneMock,
+} = vi.hoisted(() => ({
   findByUserIdMock: vi.fn(),
   findManyMock: vi.fn(),
+  insertOneMock: vi.fn(),
+  findByIdMock: vi.fn(),
+  updateOneMock: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -11,6 +21,9 @@ vi.mock("@/lib/db", () => ({
     interests: {
       findByUserId: findByUserIdMock,
       findMany: findManyMock,
+      insertOne: insertOneMock,
+      findById: findByIdMock,
+      updateOne: updateOneMock,
     },
   }),
 }));
@@ -93,6 +106,138 @@ describe("GET /api/interests", () => {
       userId: "user-1",
       radius: 450,
       coordinates: { lat: 42.72, lng: 23.32 },
+    });
+  });
+});
+
+describe("POST /api/interests", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("sanitizes label and keeps only supported color", async () => {
+    insertOneMock.mockResolvedValue("interest-created");
+
+    const request = new Request("http://localhost/api/interests", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer test-token",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        coordinates: { lat: 42.7, lng: 23.3 },
+        radius: 500,
+        label: "  Моя    зона  ",
+        color: DEFAULT_ZONE_COLOR,
+      }),
+    });
+
+    const response = await POST(request as any);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(insertOneMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: "Моя зона",
+        color: DEFAULT_ZONE_COLOR,
+      }),
+    );
+    expect(data.interest).toMatchObject({
+      id: "interest-created",
+      label: "Моя зона",
+      color: DEFAULT_ZONE_COLOR,
+    });
+  });
+
+  it("drops unsupported color and empty label", async () => {
+    insertOneMock.mockResolvedValue("interest-created");
+
+    const request = new Request("http://localhost/api/interests", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer test-token",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        coordinates: { lat: 42.7, lng: 23.3 },
+        radius: 500,
+        label: "   ",
+        color: "#123456",
+      }),
+    });
+
+    const response = await POST(request as any);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(insertOneMock).toHaveBeenCalledWith(
+      expect.not.objectContaining({ label: expect.anything() }),
+    );
+    expect(insertOneMock).toHaveBeenCalledWith(
+      expect.not.objectContaining({ color: expect.anything() }),
+    );
+    expect(data.interest.label).toBeUndefined();
+    expect(data.interest.color).toBeUndefined();
+  });
+});
+
+describe("PATCH /api/interests", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("updates label as sanitized value and ignores unsupported color", async () => {
+    findByIdMock
+      .mockResolvedValueOnce({
+        _id: "interest-1",
+        userId: "user-1",
+        coordinates: { lat: 42.7, lng: 23.3 },
+        radius: 500,
+        createdAt: new Date("2026-02-16T10:00:00.000Z"),
+        updatedAt: new Date("2026-02-16T10:00:00.000Z"),
+      })
+      .mockResolvedValueOnce({
+        _id: "interest-1",
+        userId: "user-1",
+        coordinates: { lat: 42.7, lng: 23.3 },
+        radius: 500,
+        label: "Работа",
+        color: DEFAULT_ZONE_COLOR,
+        createdAt: new Date("2026-02-16T10:00:00.000Z"),
+        updatedAt: new Date("2026-02-16T11:00:00.000Z"),
+      });
+
+    const request = new Request("http://localhost/api/interests", {
+      method: "PATCH",
+      headers: {
+        authorization: "Bearer test-token",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: "interest-1",
+        label: "  Работа  ",
+        color: "#123456",
+      }),
+    });
+
+    const response = await PATCH(request as any);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(updateOneMock).toHaveBeenCalledWith(
+      "interest-1",
+      expect.objectContaining({
+        label: "Работа",
+      }),
+    );
+    expect(updateOneMock).toHaveBeenCalledWith(
+      "interest-1",
+      expect.not.objectContaining({ color: expect.anything() }),
+    );
+    expect(data.interest).toMatchObject({
+      id: "interest-1",
+      label: "Работа",
+      color: DEFAULT_ZONE_COLOR,
     });
   });
 });

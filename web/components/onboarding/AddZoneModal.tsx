@@ -1,18 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { ZONE_TYPES } from "@/lib/zoneTypes";
+import { useEffect, useRef, useState } from "react";
+import {
+  DEFAULT_ZONE_COLOR,
+  MAX_ZONE_LABEL_LENGTH,
+  ZONE_COLOR_OPTIONS,
+  ZONE_LABEL_HINTS,
+  sanitizeZoneLabel,
+} from "@/lib/zoneTypes";
 import { borderRadius, zIndex } from "@/lib/colors";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
-
-const MIN_RADIUS = 100;
-const MAX_RADIUS = 1000;
-const DEFAULT_RADIUS = 500;
 
 export interface PendingZone {
   readonly label: string;
   readonly color: string;
-  readonly radius: number;
 }
 
 interface AddZoneModalProps {
@@ -20,13 +21,35 @@ interface AddZoneModalProps {
   readonly onCancel: () => void;
 }
 
-export default function AddZoneModal({ onConfirm, onCancel }: AddZoneModalProps) {
-  const [selectedTypeId, setSelectedTypeId] = useState<string>(ZONE_TYPES[0].id);
-  const [radius, setRadius] = useState(DEFAULT_RADIUS);
+export default function AddZoneModal({
+  onConfirm,
+  onCancel,
+}: AddZoneModalProps) {
+  const [labelInput, setLabelInput] = useState("");
+  const [selectedColor, setSelectedColor] = useState(DEFAULT_ZONE_COLOR);
+  const [showError, setShowError] = useState(false);
+  const labelInputRef = useRef<HTMLInputElement>(null);
+
+  const sanitizedLabel = sanitizeZoneLabel(labelInput);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      labelInputRef.current?.focus();
+    });
+  }, []);
 
   const handleConfirm = () => {
-    const zoneType = ZONE_TYPES.find((t) => t.id === selectedTypeId) ?? ZONE_TYPES[0];
-    onConfirm({ label: zoneType.label, color: zoneType.color, radius });
+    if (!sanitizedLabel) {
+      setShowError(true);
+      return;
+    }
+
+    onConfirm({ label: sanitizedLabel, color: selectedColor });
+  };
+
+  const handleHintClick = (hint: string) => {
+    setLabelInput(hint);
+    setShowError(false);
   };
 
   return (
@@ -39,94 +62,98 @@ export default function AddZoneModal({ onConfirm, onCancel }: AddZoneModalProps)
       />
 
       {/* Dialog */}
-      <div
-        role="dialog"
-        aria-modal="true"
+      <dialog
+        open
         aria-labelledby="add-zone-title"
-        className={`fixed inset-0 flex items-center justify-center ${zIndex.modalContent} p-4`}
+        className={`fixed inset-0 ${zIndex.modalContent} m-0 w-full h-full max-w-none max-h-none p-0 border-0 bg-transparent overflow-visible`}
       >
-        <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 flex flex-col gap-5">
-          <h2
-            id="add-zone-title"
-            className="text-base font-semibold text-neutral-dark"
-          >
-            Добави зона
-          </h2>
+        <div className="w-full h-full p-3 sm:p-4 flex items-start sm:items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 flex flex-col gap-5">
+            <h2
+              id="add-zone-title"
+              className="text-base font-semibold text-neutral-dark"
+            >
+              Детайли за зона
+            </h2>
 
-          {/* Zone type grid */}
-          <div className="grid grid-cols-3 gap-2">
-            {ZONE_TYPES.map((type) => {
-              const isSelected = type.id === selectedTypeId;
-              return (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => setSelectedTypeId(type.id)}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
-                    isSelected
-                      ? "border-[var(--color-primary)] bg-neutral-light"
-                      : "border-neutral-border bg-white hover:bg-neutral-light"
-                  }`}
-                >
-                  <span
-                    className="w-8 h-8 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: type.color }}
-                    aria-hidden="true"
-                  />
-                  <span className="text-xs font-medium text-neutral-dark leading-tight text-center">
-                    {type.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Radius slider */}
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-2">
               <label
-                htmlFor="zone-radius"
+                htmlFor="zone-label"
                 className="text-sm font-medium text-neutral-dark"
               >
-                Радиус
+                Име на зона
               </label>
-              <span className="text-sm text-neutral">{radius} м</span>
+              <input
+                id="zone-label"
+                ref={labelInputRef}
+                type="text"
+                value={labelInput}
+                maxLength={MAX_ZONE_LABEL_LENGTH}
+                onChange={(event) => {
+                  setLabelInput(event.target.value);
+                  setShowError(false);
+                }}
+                placeholder="Напр. Вкъщи"
+                className={`w-full px-3 py-2 border ${showError ? "border-error-border" : "border-neutral-border"} ${borderRadius.sm} text-sm text-neutral-dark focus:outline-none focus:ring-2 focus:ring-primary/50`}
+              />
+              <div className="flex flex-wrap gap-2">
+                {ZONE_LABEL_HINTS.map((hint) => (
+                  <button
+                    key={hint}
+                    type="button"
+                    onClick={() => handleHintClick(hint)}
+                    className="px-2.5 py-1 rounded-md border border-neutral-border text-xs text-neutral-dark hover:bg-neutral-light"
+                  >
+                    {hint}
+                  </button>
+                ))}
+              </div>
+              {showError && (
+                <p className="text-xs text-error">
+                  Моля, въведете име на зона.
+                </p>
+              )}
             </div>
-            <input
-              id="zone-radius"
-              type="range"
-              min={MIN_RADIUS}
-              max={MAX_RADIUS}
-              step={50}
-              value={radius}
-              onChange={(e) => setRadius(Number(e.target.value))}
-              className="w-full accent-primary"
-            />
-            <div className="flex justify-between text-xs text-neutral">
-              <span>{MIN_RADIUS} м</span>
-              <span>{MAX_RADIUS} м</span>
-            </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 justify-end">
-            <button
-              type="button"
-              onClick={onCancel}
-              className={`${buttonSizes.md} ${buttonStyles.secondary} ${borderRadius.sm}`}
-            >
-              Отказ
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirm}
-              className={`${buttonSizes.md} ${buttonStyles.primary} ${borderRadius.sm}`}
-            >
-              Избери на картата
-            </button>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium text-neutral-dark">Цвят</p>
+              <div className="grid grid-cols-6 gap-2">
+                {ZONE_COLOR_OPTIONS.map((option) => {
+                  const isSelected = option.color === selectedColor;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setSelectedColor(option.color)}
+                      aria-label={option.label}
+                      className={`w-9 h-9 rounded-full border-2 ${isSelected ? "border-neutral-dark" : "border-neutral-border"}`}
+                      style={{ backgroundColor: option.color }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={onCancel}
+                className={`${buttonSizes.md} ${buttonStyles.secondary} ${borderRadius.sm}`}
+              >
+                Отказ
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className={`${buttonSizes.md} ${buttonStyles.primary} ${borderRadius.sm}`}
+              >
+                Запази зона
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </dialog>
     </>
   );
 }

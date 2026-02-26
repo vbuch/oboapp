@@ -1,17 +1,19 @@
 "use client";
 
 import type { Interest } from "@/lib/types";
-import { ZONE_TYPES } from "@/lib/zoneTypes";
+import { colors } from "@/lib/colors";
 import PlusIcon from "@/components/icons/PlusIcon";
+import { getButtonClasses } from "@/lib/theme";
 
 interface ZoneBadgesProps {
   readonly interests: readonly Interest[];
   readonly onAddZone: () => void;
+  readonly addZoneDisabled?: boolean;
   readonly onZoneClick?: (interest: Interest) => void;
 }
 
 /** Fallback colour when interest has no colour assigned. */
-const DEFAULT_COLOR = "#6B7280";
+const DEFAULT_COLOR = colors.primary.grey;
 
 /**
  * Renders the user's saved interest zones as inline badges.
@@ -20,8 +22,16 @@ const DEFAULT_COLOR = "#6B7280";
 export default function ZoneBadges({
   interests,
   onAddZone,
+  addZoneDisabled = false,
   onZoneClick,
 }: ZoneBadgesProps) {
+  const addZoneButtonClasses = getButtonClasses(
+    "primary",
+    "sm",
+    "sm",
+    "inline-flex items-center gap-1 text-xs font-medium",
+  );
+
   if (interests.length === 0) {
     return (
       <div className="flex items-center justify-between gap-2">
@@ -29,7 +39,8 @@ export default function ZoneBadges({
         <button
           type="button"
           onClick={onAddZone}
-          className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+          disabled={addZoneDisabled}
+          className={addZoneButtonClasses}
         >
           <PlusIcon className="w-3 h-3" />
           Добави зона
@@ -42,10 +53,7 @@ export default function ZoneBadges({
     <div className="flex flex-wrap items-center gap-2">
       {interests.map((interest) => {
         const color = interest.color ?? DEFAULT_COLOR;
-        const label =
-          interest.label ??
-          ZONE_TYPES.find((t) => t.color === interest.color)?.label ??
-          "Зона";
+        const label = interest.label || "Зона";
 
         return (
           <button
@@ -71,7 +79,8 @@ export default function ZoneBadges({
       <button
         type="button"
         onClick={onAddZone}
-        className="inline-flex items-center gap-1 rounded-md border border-dashed border-neutral-border px-2 py-1 text-xs text-neutral transition-colors hover:border-primary hover:text-primary"
+        disabled={addZoneDisabled}
+        className={addZoneButtonClasses}
         aria-label="Добави зона"
       >
         <PlusIcon className="w-3 h-3" />

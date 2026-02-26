@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { Interest } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
 import { toRequiredISOString } from "@/lib/date-serialization";
+import { sanitizeZoneColor, sanitizeZoneLabel } from "@/lib/zoneTypes";
 
 // Constants
 const MIN_RADIUS = 100; // meters
@@ -15,6 +16,56 @@ function validateRadius(radius: number): number {
     return DEFAULT_RADIUS;
   }
   return Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, radius));
+}
+
+function applyCoordinatesUpdate(
+  updates: Record<string, unknown>,
+  coordinates: unknown,
+): NextResponse | null {
+  if (!coordinates) {
+    return null;
+  }
+
+  const coords = coordinates as { lat?: unknown; lng?: unknown };
+  if (typeof coords.lat !== "number" || typeof coords.lng !== "number") {
+    return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
+  }
+
+  updates.coordinates = {
+    lat: coords.lat,
+    lng: coords.lng,
+  };
+  return null;
+}
+
+function applyRadiusUpdate(
+  updates: Record<string, unknown>,
+  radius: unknown,
+): void {
+  if (radius === undefined) {
+    return;
+  }
+
+  updates.radius = validateRadius(radius as number);
+}
+
+function applyMetadataUpdates(
+  updates: Record<string, unknown>,
+  metadata: { label?: unknown; color?: unknown },
+): void {
+  if (typeof metadata.label === "string") {
+    const sanitizedLabel = sanitizeZoneLabel(metadata.label);
+    if (sanitizedLabel) {
+      updates.label = sanitizedLabel;
+    }
+  }
+
+  if (typeof metadata.color === "string") {
+    const sanitizedColor = sanitizeZoneColor(metadata.color);
+    if (sanitizedColor) {
+      updates.color = sanitizedColor;
+    }
+  }
 }
 
 function recordToInterest(record: Record<string, unknown>): Interest {
@@ -132,6 +183,8 @@ export async function POST(request: NextRequest) {
 
     // Validate and sanitize radius
     const validatedRadius = validateRadius(radius);
+    const sanitizedLabel = sanitizeZoneLabel(label);
+    const sanitizedColor = sanitizeZoneColor(color);
 
     const now = new Date();
     const interestData: Record<string, unknown> = {
@@ -145,11 +198,11 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     };
 
-    if (typeof label === "string" && label.length > 0) {
-      interestData.label = label;
+    if (sanitizedLabel) {
+      interestData.label = sanitizedLabel;
     }
-    if (typeof color === "string" && color.length > 0) {
-      interestData.color = color;
+    if (sanitizedColor) {
+      interestData.color = sanitizedColor;
     }
 
     const db = await getDb();
@@ -160,8 +213,8 @@ export async function POST(request: NextRequest) {
       userId,
       coordinates: { lat: coordinates.lat, lng: coordinates.lng },
       radius: validatedRadius,
-      ...(typeof label === "string" && label.length > 0 ? { label } : {}),
-      ...(typeof color === "string" && color.length > 0 ? { color } : {}),
+      ...(sanitizedLabel ? { label: sanitizedLabel } : {}),
+      ...(sanitizedColor ? { color: sanitizedColor } : {}),
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     };
@@ -282,37 +335,13 @@ export async function PATCH(request: NextRequest) {
       updatedAt: new Date(),
     };
 
-    // Update coordinates if provided
-    if (coordinates) {
-      if (
-        typeof coordinates.lat !== "number" ||
-        typeof coordinates.lng !== "number"
-      ) {
-        return NextResponse.json(
-          { error: "Invalid coordinates" },
-          { status: 400 },
-        );
-      }
-      updates.coordinates = {
-        lat: coordinates.lat,
-        lng: coordinates.lng,
-      };
+    const coordinatesError = applyCoordinatesUpdate(updates, coordinates);
+    if (coordinatesError) {
+      return coordinatesError;
     }
 
-    // Update radius if provided
-    if (radius !== undefined) {
-      updates.radius = validateRadius(radius);
-    }
-
-    // Update label if provided
-    if (typeof body.label === "string") {
-      updates.label = body.label;
-    }
-
-    // Update color if provided
-    if (typeof body.color === "string") {
-      updates.color = body.color;
-    }
+    applyRadiusUpdate(updates, radius);
+    applyMetadataUpdates(updates, { label: body.label, color: body.color });
 
     await db.interests.updateOne(id, updates);
 

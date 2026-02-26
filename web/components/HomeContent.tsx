@@ -144,9 +144,6 @@ export default function HomeContent() {
       setViewMode("events");
     }
   }
-
-  // Controls the "Добави зона" modal
-  const [showAddZoneModal, setShowAddZoneModal] = useState(false);
   // Onboarding state (lifted from MapContainer for proper DOM ordering)
   const [onboardingState, setOnboardingState] =
     React.useState<OnboardingState | null>(null);
@@ -174,6 +171,7 @@ export default function HomeContent() {
   // Interest/zone management
   const {
     targetMode,
+    pendingNewInterest,
     selectedInterest,
     interestMenuPosition,
     handleInterestClick,
@@ -181,6 +179,8 @@ export default function HomeContent() {
     handleDeleteInterest,
     handleStartAddInterest,
     handleSaveInterest,
+    handleConfirmPendingInterest,
+    handleCancelPendingInterest,
     handleCancelTargetMode,
     handleCloseInterestMenu,
   } = useInterestManagement(
@@ -293,7 +293,8 @@ export default function HomeContent() {
         {user && viewMode === "zones" && (
           <button
             type="button"
-            onClick={() => setShowAddZoneModal(true)}
+            onClick={() => handleStartAddInterest()}
+            disabled={targetMode.active}
             className={`${buttonSizes.sm} ${buttonStyles.primary} ${borderRadius.sm} flex items-center gap-1.5 shrink-0`}
             aria-label="Добави зона"
           >
@@ -303,14 +304,19 @@ export default function HomeContent() {
         )}
       </div>
     );
-  }, [user, viewMode, viewModeOptions]);
+  }, [
+    user,
+    viewMode,
+    viewModeOptions,
+    handleStartAddInterest,
+    targetMode.active,
+  ]);
 
   const handleAddZoneConfirm = useCallback(
     (zone: PendingZone) => {
-      setShowAddZoneModal(false);
-      handleStartAddInterest(zone);
+      handleConfirmPendingInterest(zone);
     },
-    [handleStartAddInterest],
+    [handleConfirmPendingInterest],
   );
 
   // Center the map on a zone when clicked in the zone list
@@ -450,7 +456,8 @@ export default function HomeContent() {
               <div className="mb-4 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:hidden">
                 <ZoneBadges
                   interests={interests}
-                  onAddZone={() => setShowAddZoneModal(true)}
+                  onAddZone={handleStartAddInterest}
+                  addZoneDisabled={targetMode.active}
                   onZoneClick={handleZoneClick}
                 />
               </div>
@@ -509,8 +516,10 @@ export default function HomeContent() {
       {!isWideDesktopLayout && interestMenuPosition && selectedInterest && (
         <InterestContextMenu
           position={interestMenuPosition}
-          onMove={handleMoveInterest}
-          onDelete={handleDeleteInterest}
+          onMove={() => handleMoveInterest(selectedInterest)}
+          onDelete={() => {
+            void handleDeleteInterest(selectedInterest);
+          }}
           onClose={handleCloseInterestMenu}
         />
       )}
@@ -528,10 +537,10 @@ export default function HomeContent() {
       )}
 
       {/* Add Zone Modal - opened from sidebar header */}
-      {showAddZoneModal && (
+      {pendingNewInterest && (
         <AddZoneModal
           onConfirm={handleAddZoneConfirm}
-          onCancel={() => setShowAddZoneModal(false)}
+          onCancel={handleCancelPendingInterest}
         />
       )}
 

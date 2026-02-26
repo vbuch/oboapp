@@ -13,8 +13,24 @@ interface TargetMode {
   active: boolean;
   initialRadius?: number;
   editingInterestId?: string | null;
-  pendingLabel?: string;
   pendingColor?: string;
+}
+
+interface PendingInterestSelection {
+  readonly coordinates: { lat: number; lng: number };
+  readonly radius: number;
+}
+
+function hasValidCoordinates(
+  coordinates: Interest["coordinates"] | undefined,
+): coordinates is Interest["coordinates"] {
+  return (
+    !!coordinates &&
+    typeof coordinates.lat === "number" &&
+    typeof coordinates.lng === "number" &&
+    Number.isFinite(coordinates.lat) &&
+    Number.isFinite(coordinates.lng)
+  );
 }
 
 /**
@@ -40,6 +56,8 @@ export function useInterestManagement(
   deleteInterest: (id: string) => Promise<void>,
 ) {
   const [targetMode, setTargetMode] = useState<TargetMode>({ active: false });
+  const [pendingNewInterest, setPendingNewInterest] =
+    useState<PendingInterestSelection | null>(null);
   const [selectedInterest, setSelectedInterest] = useState<Interest | null>(
     null,
   );
@@ -96,7 +114,17 @@ export function useInterestManagement(
   const handleMoveInterest = useCallback(
     (interestToMove?: Interest) => {
       const interest = interestToMove ?? selectedInterest;
-      if (!interest || !centerMapFn) return;
+      if (!interest || !centerMapFn) {
+        return;
+      }
+
+      if (!hasValidCoordinates(interest.coordinates)) {
+        console.error("Cannot move interest with invalid coordinates", {
+          interest,
+        });
+        alert("Не успях да преместя зоната. Опитай пак.");
+        return;
+      }
 
       trackEvent({
         name: "zone_move_initiated",
@@ -117,7 +145,6 @@ export function useInterestManagement(
         initialRadius: interest.radius,
         editingInterestId: interest.id,
         pendingColor: interest.color,
-        pendingLabel: interest.label,
       });
 
       // Close menu
@@ -130,7 +157,10 @@ export function useInterestManagement(
   const handleDeleteInterest = useCallback(
     async (interestToDelete?: Interest) => {
       const interest = interestToDelete ?? selectedInterest;
-      if (!interest?.id) return;
+      if (!interest?.id) {
+        console.error("Cannot delete interest without id", { interest });
+        return;
+      }
 
       try {
         trackEvent({
@@ -166,12 +196,12 @@ export function useInterestManagement(
   );
 
   const handleStartAddInterest = useCallback(
-    (config?: { label?: string; color?: string; radius?: number }) => {
+    (config?: { color?: string; radius?: number }) => {
+      setPendingNewInterest(null);
       setTargetMode({
         active: true,
         initialRadius: config?.radius ?? 500,
         editingInterestId: null,
-        pendingLabel: config?.label,
         pendingColor: config?.color,
       });
     },
@@ -188,30 +218,49 @@ export function useInterestManagement(
               coordinates,
               radius,
             });
-          } else {
-            // Add new interest (with optional label/color from pending zone)
-            await addInterest(coordinates, radius, {
-              label: targetMode.pendingLabel,
-              color: targetMode.pendingColor,
-            });
-          }
 
-          // Exit target mode
-          setTargetMode({ active: false });
+            // Exit target mode
+            setTargetMode({ active: false });
+          } else {
+            // New interest uses two-step flow: first map selection, then metadata modal
+            setPendingNewInterest({ coordinates, radius });
+            setTargetMode({ active: false });
+          }
         } catch (error) {
           console.error("Failed to save interest:", error);
           alert("Не успях да запазя зоната. Опитай пак.");
         }
       })();
     },
-    [
-      targetMode.editingInterestId,
-      targetMode.pendingLabel,
-      targetMode.pendingColor,
-      addInterest,
-      updateInterest,
-    ],
+    [targetMode.editingInterestId, updateInterest],
   );
+
+  const handleConfirmPendingInterest = useCallback(
+    (metadata: { label?: string; color?: string }) => {
+      if (!pendingNewInterest) {
+        return;
+      }
+
+      (async () => {
+        try {
+          await addInterest(
+            pendingNewInterest.coordinates,
+            pendingNewInterest.radius,
+            metadata,
+          );
+          setPendingNewInterest(null);
+        } catch (error) {
+          console.error("Failed to create interest:", error);
+          alert("Не успях да запазя зоната. Опитай пак.");
+        }
+      })();
+    },
+    [addInterest, pendingNewInterest],
+  );
+
+  const handleCancelPendingInterest = useCallback(() => {
+    setPendingNewInterest(null);
+  }, []);
 
   const handleCancelTargetMode = useCallback(() => {
     setTargetMode({ active: false });
@@ -224,6 +273,7 @@ export function useInterestManagement(
 
   return {
     targetMode,
+    pendingNewInterest,
     selectedInterest,
     interestMenuPosition,
     handleInterestClick,
@@ -231,6 +281,8 @@ export function useInterestManagement(
     handleDeleteInterest,
     handleStartAddInterest,
     handleSaveInterest,
+    handleConfirmPendingInterest,
+    handleCancelPendingInterest,
     handleCancelTargetMode,
     handleCloseInterestMenu,
   };

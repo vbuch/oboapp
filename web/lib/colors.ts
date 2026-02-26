@@ -26,6 +26,22 @@ export const colors = {
     circle: "#1976D2",
   },
 
+  // Zone colors (distinct palette for user-created interest zones)
+  zones: {
+    /** Google blue */
+    blue: "#4285F4",
+    /** Google green */
+    green: "#34A853",
+    /** Google yellow */
+    yellow: "#FBBC05",
+    /** Google red */
+    red: "#EA4335",
+    /** Google purple */
+    purple: "#A142F4",
+    /** Google orange */
+    orange: "#FF6D01",
+  },
+
   // Map layer colors
   map: {
     /** Stroke color for map overlays */

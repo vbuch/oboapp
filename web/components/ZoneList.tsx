@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Interest } from "@/lib/types";
-import { ZONE_TYPES } from "@/lib/zoneTypes";
 import { colors } from "@/lib/colors";
 
 interface ZoneListProps {
@@ -107,10 +106,7 @@ export default function ZoneList({
     <ul className="flex flex-col gap-2" ref={menuContainerRef}>
       {interests.map((interest) => {
         const color = interest.color ?? DEFAULT_COLOR;
-        const label =
-          interest.label ??
-          ZONE_TYPES.find((t) => t.color === interest.color)?.label ??
-          "Зона";
+        const label = interest.label || "Зона";
         const menuId = `zone-actions-menu-${interest.id}`;
         const isMenuOpen = openMenuInterestId === interest.id;
 

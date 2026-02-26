@@ -24,6 +24,7 @@ const mockInterests: Interest[] = [
 
 const selectedInterestState = {
   targetMode: { active: false },
+  pendingNewInterest: null,
   selectedInterest: {
     id: "interest-1",
     userId: "user-1",
@@ -38,6 +39,8 @@ const selectedInterestState = {
   handleDeleteInterest: vi.fn(),
   handleStartAddInterest: vi.fn(),
   handleSaveInterest: vi.fn(),
+  handleConfirmPendingInterest: vi.fn(),
+  handleCancelPendingInterest: vi.fn(),
   handleCancelTargetMode: vi.fn(),
   handleCloseInterestMenu: vi.fn(),
 };
