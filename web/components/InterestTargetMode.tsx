@@ -94,6 +94,7 @@ export default function InterestTargetMode({
     // Cleanup: remove the circle from the map when the component unmounts
     return () => {
       if (circleRef.current) {
+        google.maps.event.clearInstanceListeners(circleRef.current);
         circleRef.current.setMap(null);
         circleRef.current = null;
       }
