@@ -81,4 +81,14 @@ Documentation is written for technical stakeholders, system administrators, and 
 - **Full stack (emulators)**: [Quick Start: Firebase Emulators](docs/setup/quick-start-emulators.md) - Local Firebase for backend integration
 - **Production deployment**: [Production Setup Guide](docs/setup/production-setup.md) - Google Cloud configuration
 
+### CI Checks
+
+Pull requests run a dependency-cycle check with `dpdm` as part of the CI pipeline (`Dependency Check` job). The check fails the workflow if circular imports are detected.
+
+Run it locally before pushing:
+
+```bash
+pnpm dlx dpdm@3.14.0 --no-tree --no-warning --exit-code circular:1 "db/src/**/*.ts" "shared/src/**/*.ts" "ingest/**/*.ts" "web/**/*.{ts,tsx}"
+```
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
