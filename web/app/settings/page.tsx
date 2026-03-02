@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { Interest, NotificationSubscription } from "@/lib/types";
+import { NotificationSubscription } from "@/lib/types";
 import {
   subscribeToPushNotifications,
   requestNotificationPermission,
@@ -13,7 +13,6 @@ import {
 import { getMessaging, getToken } from "firebase/messaging";
 import { app } from "@/lib/firebase";
 import NotificationsSection from "./NotificationsSection";
-import ZonesSection from "./ZonesSection";
 import DeleteAccountSection from "./DeleteAccountSection";
 import DeleteSuccessMessage from "./DeleteSuccessMessage";
 import LoadingState from "./LoadingState";
@@ -26,7 +25,6 @@ export default function SettingsPage() {
   const { user, signOut, reauthenticateWithGoogle } = useAuth();
   const router = useRouter();
 
-  const [interests, setInterests] = useState<Interest[]>([]);
   const [subscriptions, setSubscriptions] = useState<
     NotificationSubscription[]
   >([]);
@@ -54,11 +52,8 @@ export default function SettingsPage() {
       const token = await user.getIdToken();
       const authHeader = `Bearer ${token}`;
 
-      // Fetch interests, subscriptions, and API client in parallel
-      const [interestsRes, subscriptionsRes, apiClientRes] = await Promise.all([
-        fetch("/api/interests", {
-          headers: { Authorization: authHeader },
-        }),
+      // Fetch subscriptions and API client in parallel
+      const [subscriptionsRes, apiClientRes] = await Promise.all([
         fetch("/api/notifications/subscription/all", {
           headers: { Authorization: authHeader },
         }),
@@ -67,19 +62,15 @@ export default function SettingsPage() {
         }),
       ]);
 
-      if (!interestsRes.ok || !subscriptionsRes.ok) {
+      if (!subscriptionsRes.ok) {
         throw new Error("Failed to fetch data");
       }
 
-      const [interestsData, subscriptionsData, apiClientData] = await Promise.all([
-        interestsRes.json(),
+      const [subscriptionsData, apiClientData] = await Promise.all([
         subscriptionsRes.json(),
         apiClientRes.ok ? apiClientRes.json() : Promise.resolve(null),
       ]);
 
-      setInterests(
-        Array.isArray(interestsData?.interests) ? interestsData.interests : []
-      );
       setSubscriptions(
         Array.isArray(subscriptionsData) ? subscriptionsData : []
       );
@@ -88,7 +79,6 @@ export default function SettingsPage() {
       console.error("Error fetching data:", err);
       setError("Неуспешно зареждане на данни");
       // Ensure arrays are set even on error
-      setInterests([]);
       setSubscriptions([]);
     } finally {
       setIsLoading(false);
@@ -369,8 +359,6 @@ export default function SettingsPage() {
           onUnsubscribeDevice={handleUnsubscribeDevice}
           onUnsubscribeAll={handleUnsubscribeAll}
         />
-
-        <ZonesSection interests={interests} />
 
         <ApiAccessSection
           apiClient={apiClient}
