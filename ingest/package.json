@@ -28,7 +28,7 @@
     "promptfoo:locations": "NODE_OPTIONS='--import tsx/esm' promptfoo eval --env-file .env.local -c evals/extract-locations.yaml",
     "promptfoo:redteam": "NODE_OPTIONS='--import tsx/esm' promptfoo redteam eval --env-file .env.local -c evals/redteam.yaml",
     "promptfoo:view": "promptfoo view",
-    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "build": "pnpm --dir .. --filter @oboapp/shared build && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "prebuilt:crawl": "node dist/crawl.js",
     "prebuilt:ingest": "node dist/ingest.js",
     "prebuilt:notify": "node dist/notify.js",
