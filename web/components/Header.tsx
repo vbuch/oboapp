@@ -1,34 +1,35 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
-import { trackEvent } from "@/lib/analytics";
-import { buttonStyles, buttonSizes } from "@/lib/theme";
-import { borderRadius, zIndex } from "@/lib/colors";
+import { zIndex } from "@/lib/colors";
 import UserMenu from "@/components/UserMenu";
 import NotificationBell from "@/components/NotificationBell";
+import UserSilhouetteIcon from "@/components/icons/UserSilhouetteIcon";
+
+const USER_MENU_ID = "header-user-menu";
 
 export default function Header() {
-  const { user, signInWithGoogle } = useAuth();
+  const { user } = useAuth();
   const [logoError, setLogoError] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuTriggerRef = useRef<HTMLButtonElement>(null);
 
-  const handleLoginClick = useCallback(async () => {
-    trackEvent({ name: "login_initiated", params: { source: "header" } });
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      console.error("Error signing in from header:", error);
-      alert("Неуспешен вход. Моля, опитайте отново.");
-    }
-  }, [signInWithGoogle]);
+  const handleUserMenuClose = () => {
+    setShowUserMenu(false);
+    requestAnimationFrame(() => {
+      userMenuTriggerRef.current?.focus();
+    });
+  };
 
   return (
     <>
       {/* Top Header - Dark Blue */}
-      <header className={`bg-header-bg text-white relative ${zIndex.nav} shadow-md`}>
+      <header
+        className={`bg-header-bg text-white relative ${zIndex.nav} shadow-md`}
+      >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           {/* Main Header with Logo */}
           <div className="flex items-center justify-between py-2 sm:py-1">
@@ -40,7 +41,9 @@ export default function Header() {
                 className="flex-shrink-0 relative sm:-mb-10 md:-mb-12 cursor-pointer hover:opacity-90 transition-opacity"
               >
                 {logoError ? null : (
-                  <div className={`inline-block bg-white rounded-lg p-1 shadow-md relative ${zIndex.overlay}`}>
+                  <div
+                    className={`inline-block bg-white rounded-lg p-1 shadow-md relative ${zIndex.overlay}`}
+                  >
                     <Image
                       src="/logo.png"
                       alt="OboApp"
@@ -63,33 +66,30 @@ export default function Header() {
             {/* Right side - User Info */}
             <div className="flex items-center gap-4">
               {user && <NotificationBell />}
-              {user ? (
-                <button
-                  type="button"
-                  onClick={() => setShowUserMenu(true)}
-                  className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                  aria-label="User menu"
-                >
-                  {user.photoURL && (
-                    <Image
-                      src={user.photoURL}
-                      alt={user.displayName || "Потребител"}
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleLoginClick}
-                  className={`${buttonStyles.primary} ${buttonSizes.md} ${borderRadius.sm}`}
-                  aria-label="Влез"
-                >
-                  Влез
-                </button>
-              )}
+              <button
+                ref={userMenuTriggerRef}
+                type="button"
+                onClick={() => setShowUserMenu((current) => !current)}
+                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded-full"
+                aria-label="Профилно меню"
+                aria-haspopup="dialog"
+                aria-expanded={showUserMenu}
+                aria-controls={USER_MENU_ID}
+              >
+                {user?.photoURL ? (
+                  <Image
+                    src={user.photoURL}
+                    alt={user.displayName || "Потребител"}
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 rounded-full"
+                  />
+                ) : (
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white">
+                    <UserSilhouetteIcon className="w-5 h-5" />
+                  </span>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -105,7 +105,11 @@ export default function Header() {
       </nav>
 
       {/* User Menu */}
-      <UserMenu isOpen={showUserMenu} onClose={() => setShowUserMenu(false)} />
+      <UserMenu
+        id={USER_MENU_ID}
+        isOpen={showUserMenu}
+        onClose={handleUserMenuClose}
+      />
     </>
   );
 }

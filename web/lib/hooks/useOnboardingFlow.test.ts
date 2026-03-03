@@ -39,7 +39,7 @@ describe("computeStateFromContext", () => {
       expect(computeStateFromContext(context)).toBe("idle");
     });
 
-    it("returns loginPrompt on restart when permission is granted", () => {
+    it("returns zoneCreation on restart when permission is granted", () => {
       const context: OnboardingContext = {
         permission: "granted",
         isLoggedIn: false,
@@ -47,7 +47,7 @@ describe("computeStateFromContext", () => {
         hasSubscriptions: false,
         isRestart: true,
       };
-      expect(computeStateFromContext(context)).toBe("loginPrompt");
+      expect(computeStateFromContext(context)).toBe("zoneCreation");
     });
 
     it("returns idle on initial load when permission is denied", () => {
@@ -81,7 +81,7 @@ describe("computeStateFromContext", () => {
       expect(computeStateFromContext(context)).toBe("idle");
     });
 
-    it("returns loginPrompt on restart when Notification API is unavailable", () => {
+    it("returns zoneCreation on restart when Notification API is unavailable", () => {
       const context: OnboardingContext = {
         permission: undefined,
         isLoggedIn: false,
@@ -89,7 +89,7 @@ describe("computeStateFromContext", () => {
         hasSubscriptions: false,
         isRestart: true,
       };
-      expect(computeStateFromContext(context)).toBe("loginPrompt");
+      expect(computeStateFromContext(context)).toBe("zoneCreation");
     });
   });
 
@@ -262,7 +262,7 @@ describe("onboardingReducer", () => {
       expect(result.lastPermission).toBe("denied");
     });
 
-    it("transitions to loginPrompt when permission granted (unauthenticated)", () => {
+    it("transitions to zoneCreation when permission granted (guest flow)", () => {
       const initialState = createInitialState("notificationPrompt", "default");
       const context: OnboardingContext = {
         permission: "default",
@@ -277,7 +277,7 @@ describe("onboardingReducer", () => {
 
       const result = onboardingReducer(initialState, action);
 
-      expect(result.state).toBe("loginPrompt");
+      expect(result.state).toBe("zoneCreation");
       expect(result.lastPermission).toBe("granted");
     });
 
@@ -390,7 +390,7 @@ describe("onboardingReducer", () => {
       expect(result.state).toBe("notificationPrompt");
     });
 
-    it("re-evaluates from idle to loginPrompt when permission granted", () => {
+    it("re-evaluates from idle to zoneCreation when permission granted", () => {
       const initialState = createInitialState("idle", "granted");
       const context: OnboardingContext = {
         permission: "granted",
@@ -402,7 +402,7 @@ describe("onboardingReducer", () => {
 
       const result = onboardingReducer(initialState, action);
 
-      expect(result.state).toBe("loginPrompt");
+      expect(result.state).toBe("zoneCreation");
     });
 
     it("re-evaluates from idle to complete when fully onboarded", () => {
@@ -432,7 +432,7 @@ describe("onboardingReducer", () => {
 
       const result = onboardingReducer(initialState, action);
 
-      expect(result.state).toBe("loginPrompt");
+      expect(result.state).toBe("zoneCreation");
       expect(result.isDismissed).toBe(false);
     });
 
@@ -696,7 +696,7 @@ describe("onboardingReducer", () => {
         type: "RESTART",
         payload: context,
       });
-      expect(restartedState.state).toBe("loginPrompt");
+      expect(restartedState.state).toBe("zoneCreation");
       expect(restartedState.isDismissed).toBe(false);
     });
   });

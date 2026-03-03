@@ -28,6 +28,8 @@ Missing or invalid keys receive a `401 Unauthorized` response.
 
 Registered OboApp users can generate and revoke their own API key from the **Settings** page (under "Публичен API достъп"). Each user can hold at most one active key.
 
+Guest mode does not include API key management; users must sign in with Google first.
+
 When generating a key, users must provide a URL to a public website, repository, or project page that describes where the data will be used.
 
 Keys have the format `obo_<random>` and can be viewed from the Settings page — treat them as secrets and store them securely.

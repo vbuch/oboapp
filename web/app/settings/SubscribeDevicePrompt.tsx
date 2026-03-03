@@ -12,11 +12,13 @@ import { borderRadius } from "@/lib/colors";
 interface SubscribeDevicePromptProps {
   readonly onSubscribe: () => void;
   readonly hasAnySubscriptions: boolean;
+  readonly isGuestUser?: boolean;
 }
 
 export default function SubscribeDevicePrompt({
   onSubscribe,
   hasAnySubscriptions,
+  isGuestUser = false,
 }: SubscribeDevicePromptProps) {
   const [platformInfo] = useState<PlatformInfo | null>(() => {
     // Only run on client side
@@ -38,7 +40,9 @@ export default function SubscribeDevicePrompt({
       <p className="text-warning mb-2">
         {hasAnySubscriptions
           ? "Текущото устройство не е абонирано за известия."
-          : "Няма абонамент за известия на нито едно устройство. Това е основната задача на OboApp. Абонирай се!"}
+          : isGuestUser
+            ? "Няма абонамент за известия на това устройство. Това е основната задача на OboApp. Абонирай се!"
+            : "Няма абонамент за известия на нито едно устройство. Това е основната задача на OboApp. Абонирай се!"}
       </p>
 
       {platformInfo.requiresPWAInstall && (

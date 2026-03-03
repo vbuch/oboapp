@@ -162,6 +162,17 @@ export function useInterestManagement(
         return;
       }
 
+      const zoneLabel = interest.label?.trim() || "тази зона";
+      const shouldDelete =
+        typeof globalThis.confirm === "function"
+          ? globalThis.confirm(
+              `Сигурни ли сте, че искате да изтриете ${zoneLabel}?`,
+            )
+          : true;
+      if (!shouldDelete) {
+        return;
+      }
+
       try {
         trackEvent({
           name: "zone_deleted",

@@ -9,6 +9,7 @@ import UnsubscribeAllButton from "./UnsubscribeAllButton";
 interface NotificationsSectionProps {
   readonly subscriptions: NotificationSubscription[];
   readonly currentDeviceToken: string | null;
+  readonly isGuestUser?: boolean;
   readonly onSubscribeCurrentDevice: () => void;
   readonly onUnsubscribeDevice: (token: string) => void;
   readonly onUnsubscribeAll: () => void;
@@ -17,12 +18,13 @@ interface NotificationsSectionProps {
 export default function NotificationsSection({
   subscriptions,
   currentDeviceToken,
+  isGuestUser = false,
   onSubscribeCurrentDevice,
   onUnsubscribeDevice,
   onUnsubscribeAll,
 }: NotificationsSectionProps) {
   const isCurrentDeviceSubscribed = subscriptions.some(
-    (sub) => sub.token === currentDeviceToken
+    (sub) => sub.token === currentDeviceToken,
   );
 
   return (
@@ -35,6 +37,7 @@ export default function NotificationsSection({
         <SubscribeDevicePrompt
           onSubscribe={onSubscribeCurrentDevice}
           hasAnySubscriptions={subscriptions.length > 0}
+          isGuestUser={isGuestUser}
         />
       )}
 

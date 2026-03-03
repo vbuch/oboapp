@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Interest } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
+import { trackEvent } from "@/lib/analytics";
 
 export function useInterests() {
   const { user, loading: authLoading } = useAuth();
@@ -57,7 +58,7 @@ export function useInterests() {
         throw new Error(
           `Failed to fetch interests: ${response.status} - ${
             errorData.error || "Unknown error"
-          }`
+          }`,
         );
       }
 
@@ -77,14 +78,14 @@ export function useInterests() {
       // Deduplicate by ID (defensive)
       const deduped = fetchedInterests.filter(
         (interest: Interest, index: number, self: Interest[]) =>
-          index === self.findIndex((i) => i.id === interest.id)
+          index === self.findIndex((i) => i.id === interest.id),
       );
 
       if (deduped.length !== fetchedInterests.length) {
         console.warn(
           "[useInterests] Removed",
           fetchedInterests.length - deduped.length,
-          "duplicate interests"
+          "duplicate interests",
         );
       }
 
@@ -96,7 +97,7 @@ export function useInterests() {
         setError("Няма интернет връзка. Моля, свържете се към интернет.");
       } else {
         setError(
-          err instanceof Error ? err.message : "Failed to load interests"
+          err instanceof Error ? err.message : "Failed to load interests",
         );
       }
     } finally {
@@ -137,7 +138,7 @@ export function useInterests() {
           throw new Error(
             `Failed to add interest: ${response.status} - ${
               errorData.error || "Unknown error"
-            }`
+            }`,
           );
         }
 
@@ -152,19 +153,26 @@ export function useInterests() {
           return [data.interest, ...prev];
         });
 
+        if (user.isAnonymous) {
+          trackEvent({
+            name: "guest_zone_created",
+            params: { radius },
+          });
+        }
+
         return data.interest;
       } catch (err) {
         console.error("Error adding interest:", err);
         // Provide helpful error message for offline state
         if (!navigator.onLine) {
           throw new Error(
-            "Няма интернет връзка. Моля, свържете се към интернет и опитайте отново."
+            "Няма интернет връзка. Моля, свържете се към интернет и опитайте отново.",
           );
         }
         throw err;
       }
     },
-    [user, getAuthHeader]
+    [user, getAuthHeader],
   );
 
   // Update an existing interest (move or change radius)
@@ -174,7 +182,7 @@ export function useInterests() {
       updates: {
         coordinates?: { lat: number; lng: number };
         radius?: number;
-      }
+      },
     ) => {
       if (!user) {
         throw new Error("Must be logged in to update interests");
@@ -202,8 +210,8 @@ export function useInterests() {
         const data = await response.json();
         setInterests((prev) =>
           prev.map((interest) =>
-            interest.id === id ? data.interest : interest
-          )
+            interest.id === id ? data.interest : interest,
+          ),
         );
         return data.interest;
       } catch (err) {
@@ -211,13 +219,13 @@ export function useInterests() {
         // Provide helpful error message for offline state
         if (!navigator.onLine) {
           throw new Error(
-            "Няма интернет връзка. Моля, свържете се към интернет и опитайте отново."
+            "Няма интернет връзка. Моля, свържете се към интернет и опитайте отново.",
           );
         }
         throw err;
       }
     },
-    [user, getAuthHeader]
+    [user, getAuthHeader],
   );
 
   // Delete an interest
@@ -246,7 +254,7 @@ export function useInterests() {
           throw new Error(
             `Failed to delete interest: ${response.status} - ${
               errorData.error || "Unknown error"
-            }`
+            }`,
           );
         }
 
@@ -256,13 +264,13 @@ export function useInterests() {
         // Provide helpful error message for offline state
         if (!navigator.onLine) {
           throw new Error(
-            "Няма интернет връзка. Моля, свържете се към интернет и опитайте отново."
+            "Няма интернет връзка. Моля, свържете се към интернет и опитайте отново.",
           );
         }
         throw err;
       }
     },
-    [user, getAuthHeader]
+    [user, getAuthHeader],
   );
 
   // Fetch interests when user logs in

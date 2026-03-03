@@ -1,0 +1,333 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GET, POST } from "./route";
+
+type RecordData = Record<string, unknown>;
+
+let interestsStore: RecordData[] = [];
+let subscriptionsStore: RecordData[] = [];
+let sequence = 0;
+let failAtInsertCallNumber: number | null = null;
+let insertCallCounter = 0;
+
+const { verifyAuthTokenMock } = vi.hoisted(() => ({
+  verifyAuthTokenMock: vi.fn(),
+}));
+
+function nextId(prefix: string): string {
+  sequence += 1;
+  return `${prefix}-${sequence}`;
+}
+
+function getInterestsForUser(userId: string): RecordData[] {
+  return interestsStore.filter((record) => record.userId === userId);
+}
+
+function getSubscriptionsForUser(userId: string): RecordData[] {
+  return subscriptionsStore.filter((record) => record.userId === userId);
+}
+
+vi.mock("@/lib/verifyAuthToken", () => ({
+  verifyAuthToken: verifyAuthTokenMock,
+}));
+
+vi.mock("@/lib/db", () => ({
+  getDb: vi.fn().mockResolvedValue({
+    interests: {
+      findByUserId: vi.fn(async (userId: string) =>
+        getInterestsForUser(userId),
+      ),
+      insertOne: vi.fn(async (data: RecordData) => {
+        insertCallCounter += 1;
+        if (
+          failAtInsertCallNumber !== null &&
+          insertCallCounter === failAtInsertCallNumber
+        ) {
+          throw new Error("simulated insert failure");
+        }
+        const id = nextId("interest");
+        interestsStore.push({ _id: id, ...data });
+        return id;
+      }),
+      deleteAllByUserId: vi.fn(async (userId: string) => {
+        const before = interestsStore.length;
+        interestsStore = interestsStore.filter(
+          (record) => record.userId !== userId,
+        );
+        return before - interestsStore.length;
+      }),
+    },
+    notificationSubscriptions: {
+      findByUserId: vi.fn(async (userId: string) =>
+        getSubscriptionsForUser(userId),
+      ),
+      insertOne: vi.fn(async (data: RecordData) => {
+        insertCallCounter += 1;
+        if (
+          failAtInsertCallNumber !== null &&
+          insertCallCounter === failAtInsertCallNumber
+        ) {
+          throw new Error("simulated insert failure");
+        }
+        const id = nextId("subscription");
+        subscriptionsStore.push({ _id: id, ...data });
+        return id;
+      }),
+      deleteAllByUserId: vi.fn(async (userId: string) => {
+        const before = subscriptionsStore.length;
+        subscriptionsStore = subscriptionsStore.filter(
+          (record) => record.userId !== userId,
+        );
+        return before - subscriptionsStore.length;
+      }),
+    },
+  }),
+}));
+
+function makeRequest(
+  method: "GET" | "POST",
+  body?: unknown,
+  query = "",
+): Request {
+  return new Request(`http://localhost/api/auth/upgrade${query}`, {
+    method,
+    headers: {
+      authorization: "Bearer token",
+      ...(body ? { "content-type": "application/json" } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+function simplifyInterests(records: RecordData[]): Array<{
+  userId: string;
+  coordinates: RecordData;
+  radius: unknown;
+  label: unknown;
+}> {
+  return records
+    .map((record) => ({
+      userId: record.userId as string,
+      coordinates: record.coordinates as RecordData,
+      radius: record.radius,
+      label: record.label,
+    }))
+    .sort((a, b) =>
+      `${a.userId}:${String(a.label)}`.localeCompare(
+        `${b.userId}:${String(b.label)}`,
+      ),
+    );
+}
+
+function simplifySubscriptions(records: RecordData[]): Array<{
+  userId: string;
+  token: string;
+  endpoint: unknown;
+}> {
+  return records
+    .map((record) => ({
+      userId: record.userId as string,
+      token: record.token as string,
+      endpoint: record.endpoint,
+    }))
+    .sort((a, b) =>
+      `${a.userId}:${a.token}`.localeCompare(`${b.userId}:${b.token}`),
+    );
+}
+
+describe("/api/auth/upgrade", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    verifyAuthTokenMock.mockResolvedValue({ userId: "account-user" });
+    interestsStore = [
+      {
+        _id: "g-interest-1",
+        userId: "guest-user",
+        coordinates: { lat: 42.7, lng: 23.3 },
+        radius: 400,
+        label: "Гост зона",
+        color: "blue",
+        createdAt: new Date("2026-03-01T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-01T10:00:00.000Z"),
+      },
+      {
+        _id: "a-interest-1",
+        userId: "account-user",
+        coordinates: { lat: 42.71, lng: 23.31 },
+        radius: 500,
+        label: "Акаунт зона",
+        color: "red",
+        createdAt: new Date("2026-03-02T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-02T10:00:00.000Z"),
+      },
+    ];
+
+    subscriptionsStore = [
+      {
+        _id: "g-sub-1",
+        userId: "guest-user",
+        token: "guest-token",
+        endpoint: "https://fcm.example/guest",
+        createdAt: new Date("2026-03-01T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-01T10:00:00.000Z"),
+      },
+      {
+        _id: "a-sub-1",
+        userId: "account-user",
+        token: "account-token",
+        endpoint: "https://fcm.example/account",
+        createdAt: new Date("2026-03-02T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-02T10:00:00.000Z"),
+      },
+    ];
+
+    failAtInsertCallNumber = null;
+    insertCallCounter = 0;
+    sequence = 100;
+  });
+
+  it("GET returns requiresDecision=true when both guest and account have data", async () => {
+    const response = await GET(
+      makeRequest("GET", undefined, "?guestUserId=guest-user") as any,
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.requiresDecision).toBe(true);
+    expect(data.hasGuestData).toBe(true);
+    expect(data.hasAccountData).toBe(true);
+  });
+
+  it("POST keepSeparate does not mutate data", async () => {
+    const beforeInterests = simplifyInterests(interestsStore);
+    const beforeSubscriptions = simplifySubscriptions(subscriptionsStore);
+
+    const response = await POST(
+      makeRequest("POST", {
+        guestUserId: "guest-user",
+        option: "keepSeparate",
+      }) as any,
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toMatchObject({
+      success: true,
+      changed: false,
+      option: "keepSeparate",
+    });
+    expect(simplifyInterests(interestsStore)).toEqual(beforeInterests);
+    expect(simplifySubscriptions(subscriptionsStore)).toEqual(
+      beforeSubscriptions,
+    );
+  });
+
+  it("POST import moves guest data into account and clears guest records", async () => {
+    const response = await POST(
+      makeRequest("POST", {
+        guestUserId: "guest-user",
+        option: "import",
+      }) as any,
+    );
+
+    expect(response.status).toBe(200);
+
+    const guestInterestsAfter = interestsStore.filter(
+      (record) => record.userId === "guest-user",
+    );
+    const guestSubscriptionsAfter = subscriptionsStore.filter(
+      (record) => record.userId === "guest-user",
+    );
+
+    expect(guestInterestsAfter).toHaveLength(0);
+    expect(guestSubscriptionsAfter).toHaveLength(0);
+
+    const accountInterestsAfter = interestsStore.filter(
+      (record) => record.userId === "account-user",
+    );
+    const accountSubscriptionsAfter = subscriptionsStore.filter(
+      (record) => record.userId === "account-user",
+    );
+
+    expect(accountInterestsAfter).toHaveLength(2);
+    expect(accountSubscriptionsAfter).toHaveLength(2);
+    expect(
+      accountInterestsAfter.some((record) => record.label === "Гост зона"),
+    ).toBe(true);
+    expect(
+      accountSubscriptionsAfter.some(
+        (record) => record.token === "guest-token",
+      ),
+    ).toBe(true);
+  });
+
+  it("POST replace keeps only guest data in account and clears guest records", async () => {
+    const response = await POST(
+      makeRequest("POST", {
+        guestUserId: "guest-user",
+        option: "replace",
+      }) as any,
+    );
+
+    expect(response.status).toBe(200);
+
+    const accountInterestsAfter = interestsStore.filter(
+      (record) => record.userId === "account-user",
+    );
+    const accountSubscriptionsAfter = subscriptionsStore.filter(
+      (record) => record.userId === "account-user",
+    );
+
+    expect(accountInterestsAfter).toHaveLength(1);
+    expect(accountInterestsAfter[0].label).toBe("Гост зона");
+    expect(accountSubscriptionsAfter).toHaveLength(1);
+    expect(accountSubscriptionsAfter[0].token).toBe("guest-token");
+
+    expect(
+      interestsStore.filter((record) => record.userId === "guest-user"),
+    ).toHaveLength(0);
+    expect(
+      subscriptionsStore.filter((record) => record.userId === "guest-user"),
+    ).toHaveLength(0);
+  });
+
+  it("rolls back to previous state when upgrade mutation fails", async () => {
+    const beforeInterests = simplifyInterests(interestsStore);
+    const beforeSubscriptions = simplifySubscriptions(subscriptionsStore);
+
+    failAtInsertCallNumber = 1;
+
+    const response = await POST(
+      makeRequest("POST", {
+        guestUserId: "guest-user",
+        option: "replace",
+      }) as any,
+    );
+
+    expect(response.status).toBe(500);
+    expect(simplifyInterests(interestsStore)).toEqual(beforeInterests);
+    expect(simplifySubscriptions(subscriptionsStore)).toEqual(
+      beforeSubscriptions,
+    );
+  });
+
+  it("returns 400 for invalid upgrade option", async () => {
+    const response = await POST(
+      makeRequest("POST", {
+        guestUserId: "guest-user",
+        option: "invalid",
+      }) as any,
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 401 for missing auth token", async () => {
+    verifyAuthTokenMock.mockRejectedValueOnce(new Error("Missing auth token"));
+
+    const response = await GET(
+      makeRequest("GET", undefined, "?guestUserId=guest-user") as any,
+    );
+
+    expect(response.status).toBe(401);
+  });
+});

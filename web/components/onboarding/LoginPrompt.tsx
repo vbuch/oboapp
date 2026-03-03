@@ -19,9 +19,13 @@ interface LoginPromptProps {
 export default function LoginPrompt({ onDismiss }: LoginPromptProps) {
   const { signInWithGoogle } = useAuth();
 
-  const handleLogin = useCallback(() => {
+  const handleLogin = useCallback(async () => {
     trackEvent({ name: "login_initiated", params: { source: "prompt" } });
-    signInWithGoogle();
+    try {
+      await signInWithGoogle();
+    } catch {
+      window.alert("Неуспешно влизане. Опитайте отново.");
+    }
   }, [signInWithGoogle]);
 
   const handleClose = useCallback(() => {
@@ -38,7 +42,9 @@ export default function LoginPrompt({ onDismiss }: LoginPromptProps) {
         onClick={handleClose}
         aria-label="Затвори"
       />
-      <div className={`animate-fade-in fixed inset-0 flex items-center justify-center p-4 ${zIndex.modalContent} pointer-events-none`}>
+      <div
+        className={`animate-fade-in fixed inset-0 flex items-center justify-center p-4 ${zIndex.modalContent} pointer-events-none`}
+      >
         <div className="pointer-events-auto w-full max-w-sm">
           <PromptCard
             icon={<BellIcon className="w-12 h-12 text-primary" />}

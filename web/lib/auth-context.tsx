@@ -12,11 +12,14 @@ import {
   User,
   onAuthStateChanged,
   signInWithPopup,
+  signInAnonymously,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   AuthError,
 } from "firebase/auth";
 import { auth } from "./firebase";
+import { trackEvent } from "./analytics";
+import { PENDING_GUEST_UPGRADE_UID_KEY } from "./auth-upgrade";
 
 /**
  * Checks if a Firebase Auth error represents user-initiated cancellation
@@ -37,6 +40,7 @@ function isUserCancellationError(error: unknown): boolean {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  guestAuthUnavailable: boolean;
   signInWithGoogle: () => Promise<void>;
   reauthenticateWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -51,6 +55,7 @@ export function AuthProvider({
 }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [guestAuthUnavailable, setGuestAuthUnavailable] = useState(false);
 
   useEffect(() => {
     // MSW Mode: Skip Firebase auth subscription and use mock user
@@ -66,37 +71,66 @@ export function AuthProvider({
           setLoading(false);
         })
         .catch((error) => {
-          console.error(
-            "Failed to load MSW mock Firebase auth module:",
-            error,
-          );
+          console.error("Failed to load MSW mock Firebase auth module:", error);
           setUser(null);
           setLoading(false);
         });
       return () => {};
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setGuestAuthUnavailable(false);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        await signInAnonymously(auth);
+        trackEvent({ name: "guest_started", params: {} });
+      } catch (error) {
+        console.error("Error signing in anonymously:", error);
+        setGuestAuthUnavailable(true);
+        setUser(null);
+        setLoading(false);
+      }
     });
 
     return unsubscribe;
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    const guestUidBeforeUpgrade = user?.isAnonymous ? user.uid : null;
+
+    if (
+      guestUidBeforeUpgrade &&
+      typeof globalThis.sessionStorage !== "undefined"
+    ) {
+      globalThis.sessionStorage.setItem(
+        PENDING_GUEST_UPGRADE_UID_KEY,
+        guestUidBeforeUpgrade,
+      );
+    }
+
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (error: unknown) {
       // User closing the popup is intentional, not an error
       if (isUserCancellationError(error)) {
+        if (typeof globalThis.sessionStorage !== "undefined") {
+          globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+        }
         return;
+      }
+      if (typeof globalThis.sessionStorage !== "undefined") {
+        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
       }
       console.error("Error signing in with Google:", error);
       throw error;
     }
-  }, []);
+  }, [user]);
 
   const reauthenticateWithGoogle = useCallback(async () => {
     if (!user) {
@@ -142,11 +176,19 @@ export function AuthProvider({
     () => ({
       user,
       loading,
+      guestAuthUnavailable,
       signInWithGoogle,
       reauthenticateWithGoogle,
       signOut,
     }),
-    [user, loading, signInWithGoogle, reauthenticateWithGoogle, signOut],
+    [
+      user,
+      loading,
+      guestAuthUnavailable,
+      signInWithGoogle,
+      reauthenticateWithGoogle,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

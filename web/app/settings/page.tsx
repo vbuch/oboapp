@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { trackEvent } from "@/lib/analytics";
 import { NotificationSubscription } from "@/lib/types";
 import {
   subscribeToPushNotifications,
@@ -20,16 +21,26 @@ import SettingsHeader from "./SettingsHeader";
 import ErrorBanner from "./ErrorBanner";
 import ApiAccessSection from "./ApiAccessSection";
 import type { ApiClient } from "@/lib/types";
+import { buttonStyles, buttonSizes } from "@/lib/theme";
+import { borderRadius } from "@/lib/colors";
 
 export default function SettingsPage() {
-  const { user, signOut, reauthenticateWithGoogle } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    guestAuthUnavailable,
+    signOut,
+    reauthenticateWithGoogle,
+    signInWithGoogle,
+  } = useAuth();
   const router = useRouter();
+  const isGuestUser = user?.isAnonymous ?? false;
 
   const [subscriptions, setSubscriptions] = useState<
     NotificationSubscription[]
   >([]);
   const [currentDeviceToken, setCurrentDeviceToken] = useState<string | null>(
-    null
+    null,
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,29 +63,32 @@ export default function SettingsPage() {
       const token = await user.getIdToken();
       const authHeader = `Bearer ${token}`;
 
-      // Fetch subscriptions and API client in parallel
-      const [subscriptionsRes, apiClientRes] = await Promise.all([
-        fetch("/api/notifications/subscription/all", {
+      const subscriptionsRes = await fetch(
+        "/api/notifications/subscription/all",
+        {
           headers: { Authorization: authHeader },
-        }),
-        fetch("/api/api-clients", {
+        },
+      );
+
+      let apiClientRes: Response | null = null;
+      if (!isGuestUser) {
+        apiClientRes = await fetch("/api/api-clients", {
           headers: { Authorization: authHeader },
-        }),
-      ]);
+        });
+      }
 
       if (!subscriptionsRes.ok) {
         throw new Error("Failed to fetch data");
       }
 
-      const [subscriptionsData, apiClientData] = await Promise.all([
-        subscriptionsRes.json(),
-        apiClientRes.ok ? apiClientRes.json() : Promise.resolve(null),
-      ]);
+      const subscriptionsData = await subscriptionsRes.json();
+      const apiClientData =
+        apiClientRes && apiClientRes.ok ? await apiClientRes.json() : null;
 
       setSubscriptions(
-        Array.isArray(subscriptionsData) ? subscriptionsData : []
+        Array.isArray(subscriptionsData) ? subscriptionsData : [],
       );
-      setApiClient(apiClientData ?? null);
+      setApiClient(isGuestUser ? null : (apiClientData ?? null));
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Неуспешно зареждане на данни");
@@ -83,31 +97,34 @@ export default function SettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, isGuestUser]);
 
   // Fetch data
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     if (!user) {
-      router.push("/");
+      setIsLoading(false);
       return;
     }
 
     fetchData();
-  }, [user, router, fetchData]);
+  }, [authLoading, user, router, fetchData]);
 
   // Get current device FCM token
   useEffect(() => {
     const getCurrentToken = async () => {
       try {
         // Check if Firebase Messaging is supported
-        const { isMessagingSupported } = await import(
-          "@/lib/notification-service"
-        );
+        const { isMessagingSupported } =
+          await import("@/lib/notification-service");
         const supported = await isMessagingSupported();
 
         if (!supported) {
           console.warn(
-            "Firebase Messaging is not supported on this browser/platform"
+            "Firebase Messaging is not supported on this browser/platform",
           );
           return;
         }
@@ -135,16 +152,15 @@ export default function SettingsPage() {
 
     try {
       // Check if Firebase Messaging is supported first
-      const { isMessagingSupported } = await import(
-        "@/lib/notification-service"
-      );
+      const { isMessagingSupported } =
+        await import("@/lib/notification-service");
       const supported = await isMessagingSupported();
 
       if (!supported) {
         alert(
           "За съжаление, този браузър не поддържа известия.\n\n" +
             "На iOS Safari е необходимо да добавите приложението към началния екран " +
-            "преди да можете да получавате известия."
+            "преди да можете да получавате известия.",
         );
         return;
       }
@@ -157,7 +173,7 @@ export default function SettingsPage() {
             "1. Кликнете на иконката на катинара/информацията до адресната лента\n" +
             "2. Намерете настройките за известия\n" +
             "3. Разрешете известията за този сайт\n" +
-            "4. Презаредете страницата"
+            "4. Презаредете страницата",
         );
         return;
       }
@@ -169,10 +185,22 @@ export default function SettingsPage() {
       }
 
       const token = await user.getIdToken();
-      await subscribeToPushNotifications(user.uid, token);
+      const subscription = await subscribeToPushNotifications(user.uid, token);
+      if (user.isAnonymous) {
+        trackEvent({
+          name: subscription ? "guest_push_enabled" : "guest_push_failed",
+          params: { source: "settings" },
+        });
+      }
       await fetchData(); // Refresh subscriptions
     } catch (error) {
       console.error("Error subscribing:", error);
+      if (user.isAnonymous) {
+        trackEvent({
+          name: "guest_push_failed",
+          params: { source: "settings" },
+        });
+      }
       alert("Грешка при абонирането");
     }
   };
@@ -184,12 +212,12 @@ export default function SettingsPage() {
       const token = await user.getIdToken();
       const response = await fetch(
         `/api/notifications/subscription?token=${encodeURIComponent(
-          deviceToken
+          deviceToken,
         )}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -333,8 +361,56 @@ export default function SettingsPage() {
     }
   };
 
+  if (authLoading) {
+    return <LoadingState />;
+  }
+
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <SettingsHeader />
+          <section className="bg-white rounded-lg shadow mb-6 p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              {guestAuthUnavailable
+                ? "Гост режимът е недостъпен"
+                : "Подготвяме сесията"}
+            </h2>
+            <p className="text-neutral mb-4">
+              {guestAuthUnavailable
+                ? "Временно не може да се стартира гост сесия. Влез с Google, за да използваш настройките."
+                : "Подготвяме достъп до настройките. Ако това отнема повече време, можеш да влезеш с Google или да се върнеш към началото."}
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  trackEvent({
+                    name: "login_initiated",
+                    params: { source: "settings" },
+                  });
+                  try {
+                    await signInWithGoogle();
+                  } catch {
+                    window.alert("Неуспешно влизане. Опитайте отново.");
+                  }
+                }}
+                className={`${buttonStyles.primary} ${buttonSizes.md} ${borderRadius.md}`}
+              >
+                Влез с Google
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/")}
+                className={`${buttonStyles.secondary} ${buttonSizes.md} ${borderRadius.md}`}
+              >
+                Към началото
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
   }
 
   if (deleteSuccess) {
@@ -355,22 +431,56 @@ export default function SettingsPage() {
         <NotificationsSection
           subscriptions={subscriptions}
           currentDeviceToken={currentDeviceToken}
+          isGuestUser={isGuestUser}
           onSubscribeCurrentDevice={handleSubscribeCurrentDevice}
           onUnsubscribeDevice={handleUnsubscribeDevice}
           onUnsubscribeAll={handleUnsubscribeAll}
         />
 
-        <ApiAccessSection
-          apiClient={apiClient}
-          onGenerate={handleGenerateApiKey}
-          onRevoke={handleRevokeApiKey}
-          isLoading={isApiClientLoading}
-        />
+        {isGuestUser && (
+          <section className="bg-white rounded-lg shadow mb-6 p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              Профил в Google
+            </h2>
+            <p className="text-neutral mb-4">
+              В момента използваш приложението като гост. Влез с Google, за да
+              отключиш настройките за профил и API достъп.
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                trackEvent({
+                  name: "login_initiated",
+                  params: { source: "settings" },
+                });
+                try {
+                  await signInWithGoogle();
+                } catch {
+                  window.alert("Неуспешно влизане. Опитайте отново.");
+                }
+              }}
+              className={`${buttonStyles.primary} ${buttonSizes.md} ${borderRadius.md}`}
+            >
+              Влез с Google
+            </button>
+          </section>
+        )}
 
-        <DeleteAccountSection
-          onDeleteAccount={handleDeleteAccount}
-          isDeleting={isDeleting}
-        />
+        {!isGuestUser && (
+          <ApiAccessSection
+            apiClient={apiClient}
+            onGenerate={handleGenerateApiKey}
+            onRevoke={handleRevokeApiKey}
+            isLoading={isApiClientLoading}
+          />
+        )}
+
+        {!isGuestUser && (
+          <DeleteAccountSection
+            onDeleteAccount={handleDeleteAccount}
+            isDeleting={isDeleting}
+          />
+        )}
       </div>
     </div>
   );

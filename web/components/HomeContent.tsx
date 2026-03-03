@@ -15,6 +15,7 @@ import InterestContextMenu from "@/components/InterestContextMenu";
 import FilterBox from "@/components/FilterBox";
 import GeolocationPrompt from "@/components/GeolocationPrompt";
 import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
+import UpgradeConflictPrompt from "@/components/onboarding/UpgradeConflictPrompt";
 import AddZoneModal from "@/components/onboarding/AddZoneModal";
 import type { PendingZone } from "@/components/onboarding/AddZoneModal";
 import SegmentedControl from "@/components/SegmentedControl";
@@ -35,6 +36,11 @@ import { zIndex } from "@/lib/colors";
 import { buttonStyles, buttonSizes, borderRadius } from "@/lib/theme";
 import PlusIcon from "@/components/icons/PlusIcon";
 import { navigateBackOrReplace } from "@/lib/navigation-utils";
+import { trackEvent } from "@/lib/analytics";
+import {
+  PENDING_GUEST_UPGRADE_UID_KEY,
+  type UpgradeDecisionOption,
+} from "@/lib/auth-upgrade";
 import type { Message, Interest } from "@/lib/types";
 import type { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
 import { isValidMessageId } from "@oboapp/shared";
@@ -43,12 +49,12 @@ type ViewMode = "zones" | "events";
 const WIDE_DESKTOP_MEDIA_QUERY =
   "(min-width: 1280px) and (min-aspect-ratio: 4/3)";
 
-const VIEW_MODE_OPTIONS_AUTHENTICATED = [
+const VIEW_MODE_OPTIONS = [
   { value: "events" as const, label: "Събития" },
   { value: "zones" as const, label: "Моите зони" },
 ] as const;
 
-const VIEW_MODE_OPTIONS_ANONYMOUS = [
+const VIEW_MODE_OPTIONS_NO_USER = [
   { value: "events" as const, label: "Събития" },
   { value: "zones" as const, label: "Моите зони", disabled: true },
 ] as const;
@@ -79,7 +85,7 @@ export default function HomeContent() {
     updateInterest,
     deleteInterest,
   } = useInterests();
-  const { user } = useAuth();
+  const { user, signInWithGoogle } = useAuth();
   const isWideDesktopLayout = useMediaQuery(WIDE_DESKTOP_MEDIA_QUERY);
 
   // Message fetching and viewport management
@@ -137,8 +143,6 @@ export default function HomeContent() {
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   // View mode for the sidebar: "zones" (my zones) or "events" (all)
   const [viewMode, setViewMode] = useState<ViewMode>("events");
-  // Force anonymous users to always see the events tab by ignoring viewMode when user is null.
-  // The underlying viewMode state is preserved and reapplied when the user logs back in.
   const effectiveViewMode = user ? viewMode : "events";
   // Onboarding state (lifted from MapContainer for proper DOM ordering)
   const [onboardingState, setOnboardingState] =
@@ -162,6 +166,124 @@ export default function HomeContent() {
       setOnboardingCallbacks(callbacks);
     },
     [],
+  );
+
+  const [pendingGuestUpgradeUid, setPendingGuestUpgradeUid] = useState<
+    string | null
+  >(null);
+  const [isApplyingUpgradeOption, setIsApplyingUpgradeOption] = useState(false);
+
+  useEffect(() => {
+    if (
+      !user ||
+      user.isAnonymous ||
+      typeof globalThis.sessionStorage === "undefined"
+    ) {
+      return;
+    }
+
+    const guestUid = globalThis.sessionStorage.getItem(
+      PENDING_GUEST_UPGRADE_UID_KEY,
+    );
+
+    if (!guestUid || guestUid === user.uid) {
+      return;
+    }
+
+    let canceled = false;
+
+    (async () => {
+      try {
+        const idToken = await user.getIdToken();
+        const response = await fetch(
+          `/api/auth/upgrade?guestUserId=${encodeURIComponent(guestUid)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          },
+        );
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as { requiresDecision?: boolean };
+
+        if (canceled) {
+          return;
+        }
+
+        if (data.requiresDecision) {
+          setPendingGuestUpgradeUid(guestUid);
+          trackEvent({ name: "upgrade_prompt_shown", params: {} });
+          return;
+        }
+
+        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+      } catch (error) {
+        console.error("Failed to evaluate guest upgrade state:", error);
+      }
+    })();
+
+    return () => {
+      canceled = true;
+    };
+  }, [user]);
+
+  const handleUpgradeOptionSelect = useCallback(
+    async (option: UpgradeDecisionOption) => {
+      if (!user || !pendingGuestUpgradeUid) {
+        return;
+      }
+
+      setIsApplyingUpgradeOption(true);
+      trackEvent({
+        name: "upgrade_option_selected",
+        params: { option },
+      });
+
+      try {
+        const idToken = await user.getIdToken();
+        const response = await fetch("/api/auth/upgrade", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            guestUserId: pendingGuestUpgradeUid,
+            option,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Upgrade action failed");
+        }
+
+        trackEvent({
+          name: "upgrade_outcome",
+          params: { option, status: "success" },
+        });
+
+        if (typeof globalThis.sessionStorage !== "undefined") {
+          globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+        }
+
+        setPendingGuestUpgradeUid(null);
+        alert("Данните бяха обработени успешно.");
+      } catch (error) {
+        console.error("Failed to resolve upgrade choice:", error);
+        trackEvent({
+          name: "upgrade_outcome",
+          params: { option, status: "failure" },
+        });
+        alert("Неуспешна обработка. Няма промени в текущото състояние.");
+      } finally {
+        setIsApplyingUpgradeOption(false);
+      }
+    },
+    [user, pendingGuestUpgradeUid],
   );
 
   // Interest/zone management
@@ -272,11 +394,7 @@ export default function HomeContent() {
   }, [messageId, viewportMatch, fetchedMessage]);
 
   // Sidebar header with segmented control (shown for all users on desktop)
-  const viewModeOptions = useMemo(
-    () =>
-      user ? VIEW_MODE_OPTIONS_AUTHENTICATED : VIEW_MODE_OPTIONS_ANONYMOUS,
-    [user],
-  );
+  const viewModeOptions = user ? VIEW_MODE_OPTIONS : VIEW_MODE_OPTIONS_NO_USER;
 
   const sidebarHeaderContent = useMemo(() => {
     return (
@@ -480,6 +598,31 @@ export default function HomeContent() {
                   onMoveZone={handleMoveInterest}
                   onDeleteZone={handleDeleteInterest}
                 />
+                {user.isAnonymous && interests.length > 0 && (
+                  <div className="mt-4 border border-neutral-border bg-neutral-light rounded-lg p-4">
+                    <p className="text-neutral mb-3">
+                      Влез с Google, за да запазиш зоните си и на други
+                      устройства.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        trackEvent({
+                          name: "login_initiated",
+                          params: { source: "prompt" },
+                        });
+                        try {
+                          await signInWithGoogle();
+                        } catch {
+                          window.alert("Неуспешно влизане. Опитайте отново.");
+                        }
+                      }}
+                      className={`${buttonSizes.sm} ${buttonStyles.ghost} ${borderRadius.sm}`}
+                    >
+                      Влез, за да запазиш
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -535,7 +678,10 @@ export default function HomeContent() {
           user={user}
           onPermissionResult={onboardingCallbacks.onPermissionResult}
           onDismiss={onboardingCallbacks.onDismiss}
-          onAddInterests={onboardingCallbacks.onAddInterests}
+          onAddInterests={() => {
+            setViewMode("zones");
+            onboardingCallbacks.onAddInterests();
+          }}
         />
       )}
 
@@ -544,6 +690,15 @@ export default function HomeContent() {
         <AddZoneModal
           onConfirm={handleAddZoneConfirm}
           onCancel={handleCancelPendingInterest}
+        />
+      )}
+
+      {pendingGuestUpgradeUid && (
+        <UpgradeConflictPrompt
+          isLoading={isApplyingUpgradeOption}
+          onSelect={(option) => {
+            void handleUpgradeOptionSelect(option);
+          }}
         />
       )}
 

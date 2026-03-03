@@ -101,7 +101,11 @@ export default function MapContainer({
   const [subscriptionsLoaded, setSubscriptionsLoaded] = useState(false);
   const [hasSubscriptions, setHasSubscriptions] = useState(false);
 
-  const { user: authUser, loading: authLoading } = useAuth();
+  const {
+    user: authUser,
+    loading: authLoading,
+    guestAuthUnavailable,
+  } = useAuth();
 
   // Check subscriptions when user is authenticated
   // Wait for auth and interests to finish loading first to avoid flickering
@@ -152,6 +156,7 @@ export default function MapContainer({
     interests,
     subscriptionsLoaded,
     hasSubscriptions,
+    guestAvailable: !guestAuthUnavailable,
   });
 
   const [isTrackingLocation, setIsTrackingLocation] = useState(false);

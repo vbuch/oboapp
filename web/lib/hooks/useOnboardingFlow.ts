@@ -45,6 +45,8 @@ export interface OnboardingContext {
   zonesCount: number;
   /** Whether user has at least one push notification subscription */
   hasSubscriptions: boolean;
+  /** Whether guest mode is currently available */
+  guestAvailable?: boolean;
   /** Whether this is a restart (user clicked button) vs initial load */
   isRestart?: boolean;
   /** Whether the user has already seen the zero-zones creation prompt */
@@ -74,6 +76,7 @@ interface ReducerState {
 function computeUnauthenticatedState(
   permission: NotificationPermission | undefined,
   isRestart: boolean,
+  guestAvailable = true,
 ): OnboardingState {
   // Initial load: always show idle state for clean UI
   if (!isRestart) {
@@ -81,9 +84,9 @@ function computeUnauthenticatedState(
   }
 
   // User clicked button (RESTART) - now check permission
-  // No Notification API or permission already granted → go to login
+  // No Notification API or permission already granted → continue with zone creation
   if (permission === undefined || permission === "granted") {
-    return "loginPrompt";
+    return guestAvailable ? "zoneCreation" : "loginPrompt";
   }
 
   // Permission denied → explain blocked notifications
@@ -141,7 +144,11 @@ export function computeStateFromContext(
         permission,
         context.hasSeenZoneCreationPrompt,
       )
-    : computeUnauthenticatedState(permission, isRestart);
+    : computeUnauthenticatedState(
+        permission,
+        isRestart,
+        context.guestAvailable,
+      );
 }
 
 // ============================================================================
@@ -201,12 +208,13 @@ function handlePermissionResult(
 
   if (permission === "denied") {
     newState = "blocked";
-  } else if (context.isLoggedIn && context.zonesCount > 0) {
-    // Authenticated user with zones who granted permission → complete
+  } else if (context.zonesCount > 0) {
+    // User with zones who granted permission → complete
     newState = "complete";
   } else {
-    // Unauthenticated user who granted permission → loginPrompt
-    newState = "loginPrompt";
+    // Continue to zone creation only when guest session is available
+    newState =
+      context.guestAvailable === false ? "loginPrompt" : "zoneCreation";
   }
 
   return { ...state, state: newState, lastPermission: permission };
@@ -325,6 +333,7 @@ export interface UseOnboardingFlowInput {
   interests: readonly { id?: string }[];
   subscriptionsLoaded: boolean;
   hasSubscriptions: boolean;
+  guestAvailable?: boolean;
 }
 
 /**
@@ -375,7 +384,13 @@ const ZONE_CREATION_SEEN_KEY = "obo_seen_zone_prompt";
 export function useOnboardingFlow(
   input: UseOnboardingFlowInput,
 ): UseOnboardingFlowReturn {
-  const { user, interests, subscriptionsLoaded, hasSubscriptions } = input;
+  const {
+    user,
+    interests,
+    subscriptionsLoaded,
+    hasSubscriptions,
+    guestAvailable = true,
+  } = input;
 
   const [reducerState, dispatch] = useReducer(onboardingReducer, initialState);
 
@@ -395,9 +410,10 @@ export function useOnboardingFlow(
       isLoggedIn: user !== null,
       zonesCount: interests.length,
       hasSubscriptions,
+      guestAvailable,
       hasSeenZoneCreationPrompt,
     };
-  }, [user, interests.length, hasSubscriptions]);
+  }, [user, interests.length, hasSubscriptions, guestAvailable]);
 
   // Mark prompt as seen when state enters zoneCreation
   useEffect(() => {

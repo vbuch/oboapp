@@ -38,12 +38,27 @@ export default function NotificationPrompt({
       // If granted and user is logged in, register FCM token
       if (permission === "granted" && user) {
         const idToken = await user.getIdToken();
-        await subscribeToPushNotifications(user.uid, idToken);
+        const subscription = await subscribeToPushNotifications(
+          user.uid,
+          idToken,
+        );
+        if (user.isAnonymous) {
+          trackEvent({
+            name: subscription ? "guest_push_enabled" : "guest_push_failed",
+            params: { source: "onboarding" },
+          });
+        }
       }
 
       onPermissionResult(permission);
     } catch (error) {
       console.error("Error requesting notification permission:", error);
+      if (user?.isAnonymous) {
+        trackEvent({
+          name: "guest_push_failed",
+          params: { source: "onboarding" },
+        });
+      }
       // Treat errors as denied
       onPermissionResult("denied");
     }
@@ -66,7 +81,9 @@ export default function NotificationPrompt({
         onClick={handleDecline}
         aria-label="Затвори"
       />
-      <div className={`animate-fade-in fixed inset-0 flex items-center justify-center p-4 ${zIndex.modalContent} pointer-events-none`}>
+      <div
+        className={`animate-fade-in fixed inset-0 flex items-center justify-center p-4 ${zIndex.modalContent} pointer-events-none`}
+      >
         <div className="pointer-events-auto w-full max-w-sm">
           <PromptCard
             icon={<BellIcon className="w-12 h-12 text-primary" />}

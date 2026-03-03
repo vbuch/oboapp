@@ -288,14 +288,16 @@ export default function MapComponent({
           onCenterChanged={handleCenterChanged}
           onBoundsChanged={handleBoundsChangedInternal}
         >
-          <GeoJSONLayer
-            messages={messages}
-            onFeatureClick={onFeatureClick}
-            map={mapInstance}
-            currentZoom={currentZoom}
-            hoveredMessageId={hoveredMessageId}
-            selectedMessageId={selectedMessageId}
-          />
+          {!targetMode?.active && (
+            <GeoJSONLayer
+              messages={messages}
+              onFeatureClick={onFeatureClick}
+              map={mapInstance}
+              currentZoom={currentZoom}
+              hoveredMessageId={hoveredMessageId}
+              selectedMessageId={selectedMessageId}
+            />
+          )}
 
           {/* Render interest circles */}
           {interests && interests.length > 0 && (
@@ -305,7 +307,7 @@ export default function MapComponent({
               onInterestClick={onInterestClick}
               interactive={interestsInteractive}
               editingInterestId={targetMode?.editingInterestId}
-              hideAll={false}
+              hideAll={targetMode?.active ?? false}
             />
           )}
 
@@ -323,6 +325,7 @@ export default function MapComponent({
 
           {/* User location blue dot */}
           {userLocation &&
+            !targetMode?.active &&
             (() => {
               // Scale radius based on zoom level to remain visible at all zooms
               // At zoom 18 (max): 8m, at zoom 12 (min): 50m - linear scale

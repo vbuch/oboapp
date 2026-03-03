@@ -7,8 +7,32 @@ State machine hook for managing the user onboarding and engagement flow.
 This hook centralizes the onboarding UX logic for all users, guiding them through:
 
 1. Notification permission prompt
-2. Login
-3. Zone creation
+2. Guest usage (anonymous Firebase account)
+3. Optional Google login upgrade
+4. Zone creation
+
+## Anonymous-first behavior
+
+- The app creates a Firebase anonymous account on first open.
+- Guest users can create zones and enable push notifications on the current device.
+- Guest data persists until browser/app data is cleared.
+- If anonymous auth is temporarily unavailable, UI surfaces a Google sign-in path instead of guest actions.
+
+## Guest-to-Google upgrade prompt
+
+When a guest user logs in with Google and **both** guest + account already have data,
+the app shows a mandatory conflict prompt:
+
+- Title: **„Как да използваме данните ти?“**
+- Body: **„Открихме данни от гост режим и от профила ти. Избери как да продължим.“**
+- Options:
+  - **„Импортирай“** (moves guest data into account)
+  - **„Запази отделно“** (no data movement)
+  - **„Замени“** (replaces account context with guest context)
+
+No silent merge/overwrite occurs when both sides have data.
+
+The prompt is blocking: users must choose one of the three options to continue.
 
 **Unauthenticated Users:** Land in `idle` state showing a "Получавай известия" button with a bell icon.
 This keeps the UI clean and unobtrusive. The onboarding flow starts when the user

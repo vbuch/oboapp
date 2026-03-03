@@ -72,7 +72,7 @@ export default function ZoneList({
   };
 
   useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
+    const handlePointerDown = (event: PointerEvent) => {
       if (!menuContainerRef.current) {
         return;
       }
@@ -87,9 +87,9 @@ export default function ZoneList({
       }
     };
 
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
     };
   }, []);
 
@@ -184,7 +184,7 @@ export default function ZoneList({
 
                       triggerRefs.current.delete(interest.id!);
                     }}
-                    className="h-8 w-8 rounded-md text-neutral hover:bg-neutral-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    className="h-8 w-8 rounded-md text-neutral hover:bg-neutral-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
                     aria-label={`Действия за ${label}`}
                     aria-haspopup="menu"
                     aria-expanded={isMenuOpen}
@@ -244,7 +244,7 @@ export default function ZoneList({
                             onMoveZone(interest);
                             setOpenMenuInterestId(null);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm text-neutral hover:bg-neutral-light"
+                          className="w-full px-3 py-2 text-left text-sm text-neutral hover:bg-neutral-light cursor-pointer"
                         >
                           Премести
                         </button>
@@ -257,7 +257,7 @@ export default function ZoneList({
                             onDeleteZone(interest);
                             setOpenMenuInterestId(null);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm text-error hover:bg-error-light"
+                          className="w-full px-3 py-2 text-left text-sm text-error hover:bg-error-light cursor-pointer"
                         >
                           Изтрий
                         </button>

@@ -1,12 +1,15 @@
 ## Multi-Zone Support
 
-Authenticated users can create multiple named zones of interest. Each zone has a **type**
-(Вкъщи, Работа, Родители, Училище) with a user-chosen color, and a configurable
-radius (100–1000 m).
+Users in guest (anonymous) or Google-authenticated sessions can create multiple named
+zones of interest. Each zone has a **type** (Вкъщи, Работа, Родители, Училище)
+with a user-chosen color and a configurable radius (100–1000 m).
+
+For guest-to-Google upgrade choices when both sides already have data, see
+[Onboarding Flow](onboarding-flow.md).
 
 ### Sidebar UI
 
-On wide-desktop layouts, authenticated users see a segmented control header with two tabs:
+On wide-desktop layouts, users see a segmented control header with two tabs:
 
 | Tab            | Content                                                               |
 | -------------- | --------------------------------------------------------------------- |

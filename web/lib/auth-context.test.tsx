@@ -3,6 +3,11 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { AuthProvider, useAuth } from "./auth-context";
 import type { Auth, User, UserCredential } from "firebase/auth";
 
+const DEFAULT_AUTH_USER = {
+  uid: "anonymous-user-id",
+  isAnonymous: true,
+} as User;
+
 // Mock Firebase Auth
 vi.mock("./firebase", () => ({
   auth: {} as Auth,
@@ -14,9 +19,10 @@ vi.mock("firebase/auth", async () => {
   return {
     ...actual,
     onAuthStateChanged: vi.fn((auth, callback) => {
-      callback(null);
+      callback(DEFAULT_AUTH_USER);
       return vi.fn();
     }),
+    signInAnonymously: vi.fn(),
     signInWithPopup: vi.fn(),
     GoogleAuthProvider: vi.fn(),
     signOut: vi.fn(),
@@ -26,6 +32,31 @@ vi.mock("firebase/auth", async () => {
 describe("AuthContext", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("attempts anonymous sign-in when auth state is null", async () => {
+    const { onAuthStateChanged, signInAnonymously } =
+      await import("firebase/auth");
+    const mockOnAuthStateChanged = onAuthStateChanged as ReturnType<
+      typeof vi.fn
+    >;
+    const mockSignInAnonymously = signInAnonymously as ReturnType<typeof vi.fn>;
+
+    mockOnAuthStateChanged.mockImplementationOnce((auth, callback) => {
+      callback(null);
+      return vi.fn();
+    });
+    mockSignInAnonymously.mockResolvedValueOnce({ user: DEFAULT_AUTH_USER });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => {
+      expect(mockSignInAnonymously).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("signInWithGoogle", () => {
@@ -167,7 +198,9 @@ describe("AuthContext", () => {
       // Mock reauthenticateWithPopup dynamically
       vi.doMock("firebase/auth", async () => {
         const actual =
-          await vi.importActual<typeof import("firebase/auth")>("firebase/auth");
+          await vi.importActual<typeof import("firebase/auth")>(
+            "firebase/auth",
+          );
         return {
           ...actual,
           reauthenticateWithPopup: vi.fn().mockRejectedValue({

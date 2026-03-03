@@ -16,9 +16,31 @@ export type AnalyticsEvent =
     }
   | { name: "zone_deleted"; params: { zone_id: string; radius: number } }
   // Authentication
-  | { name: "login_initiated"; params: { source: "prompt" | "header" } }
+  | {
+      name: "login_initiated";
+      params: { source: "prompt" | "header" | "settings" };
+    }
   | { name: "login_prompt_dismissed"; params: {} }
   | { name: "logout_clicked"; params: { zones_count: number } }
+  | { name: "guest_started"; params: {} }
+  | { name: "guest_zone_created"; params: { radius: number } }
+  | {
+      name: "guest_push_enabled";
+      params: { source: "onboarding" | "settings" };
+    }
+  | { name: "guest_push_failed"; params: { source: "onboarding" | "settings" } }
+  | { name: "upgrade_prompt_shown"; params: {} }
+  | {
+      name: "upgrade_option_selected";
+      params: { option: "import" | "keepSeparate" | "replace" };
+    }
+  | {
+      name: "upgrade_outcome";
+      params: {
+        option: "import" | "keepSeparate" | "replace";
+        status: "success" | "failure";
+      };
+    }
   // Notifications
   | {
       name: "notification_permission_accepted";
