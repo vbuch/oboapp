@@ -6,6 +6,7 @@ import type { Auth, User, UserCredential } from "firebase/auth";
 const DEFAULT_AUTH_USER = {
   uid: "anonymous-user-id",
   isAnonymous: true,
+  getIdToken: vi.fn().mockResolvedValue("guest-token-proof"),
 } as User;
 
 // Mock Firebase Auth

@@ -17,6 +17,11 @@ function parseGuestUserId(request: NextRequest): string | null {
   return searchParams.get("guestUserId");
 }
 
+function parseGuestProofToken(request: NextRequest): string | null {
+  const token = request.headers.get("x-guest-token");
+  return token && token.trim().length > 0 ? token : null;
+}
+
 async function getUpgradeStats(
   guestUserId: string,
   accountUserId: string,
@@ -141,6 +146,24 @@ export async function GET(request: NextRequest) {
     }
 
     const stats = await getUpgradeStats(guestUserId, accountUserId);
+
+    const guestProofToken = parseGuestProofToken(request);
+    if (!guestProofToken) {
+      return NextResponse.json(
+        { error: "Missing guest proof token" },
+        { status: 401 },
+      );
+    }
+
+    const { userId: proofGuestUserId } = await verifyAuthToken(
+      `Bearer ${guestProofToken}`,
+    );
+    if (proofGuestUserId !== guestUserId) {
+      return NextResponse.json(
+        { error: "Guest proof token does not match guestUserId" },
+        { status: 403 },
+      );
+    }
     const hasGuestData = stats.guestInterests + stats.guestSubscriptions > 0;
     const hasAccountData =
       stats.accountInterests + stats.accountSubscriptions > 0;
@@ -194,6 +217,24 @@ export async function POST(request: NextRequest) {
 
     if (guestUserId === accountUserId) {
       return NextResponse.json({ success: true, option, changed: false });
+    }
+
+    const guestProofToken = parseGuestProofToken(request);
+    if (!guestProofToken) {
+      return NextResponse.json(
+        { error: "Missing guest proof token" },
+        { status: 401 },
+      );
+    }
+
+    const { userId: proofGuestUserId } = await verifyAuthToken(
+      `Bearer ${guestProofToken}`,
+    );
+    if (proofGuestUserId !== guestUserId) {
+      return NextResponse.json(
+        { error: "Guest proof token does not match guestUserId" },
+        { status: 403 },
+      );
     }
 
     if (option === "keepSeparate") {

@@ -19,7 +19,10 @@ import {
 } from "firebase/auth";
 import { auth } from "./firebase";
 import { trackEvent } from "./analytics";
-import { PENDING_GUEST_UPGRADE_UID_KEY } from "./auth-upgrade";
+import {
+  PENDING_GUEST_UPGRADE_UID_KEY,
+  PENDING_GUEST_UPGRADE_TOKEN_KEY,
+} from "./auth-upgrade";
 
 /**
  * Checks if a Firebase Auth error represents user-initiated cancellation
@@ -101,15 +104,20 @@ export function AuthProvider({
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    const guestUidBeforeUpgrade = user?.isAnonymous ? user.uid : null;
+    const guestUserBeforeUpgrade = user?.isAnonymous ? user : null;
 
     if (
-      guestUidBeforeUpgrade &&
+      guestUserBeforeUpgrade &&
       typeof globalThis.sessionStorage !== "undefined"
     ) {
+      const guestIdToken = await guestUserBeforeUpgrade.getIdToken();
       globalThis.sessionStorage.setItem(
         PENDING_GUEST_UPGRADE_UID_KEY,
-        guestUidBeforeUpgrade,
+        guestUserBeforeUpgrade.uid,
+      );
+      globalThis.sessionStorage.setItem(
+        PENDING_GUEST_UPGRADE_TOKEN_KEY,
+        guestIdToken,
       );
     }
 
@@ -121,11 +129,13 @@ export function AuthProvider({
       if (isUserCancellationError(error)) {
         if (typeof globalThis.sessionStorage !== "undefined") {
           globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+          globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
         }
         return;
       }
       if (typeof globalThis.sessionStorage !== "undefined") {
         globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
       }
       console.error("Error signing in with Google:", error);
       throw error;

@@ -87,11 +87,13 @@ function makeRequest(
   method: "GET" | "POST",
   body?: unknown,
   query = "",
+  includeGuestProof = true,
 ): Request {
   return new Request(`http://localhost/api/auth/upgrade${query}`, {
     method,
     headers: {
       authorization: "Bearer token",
+      ...(includeGuestProof ? { "x-guest-token": "guest-token-proof" } : {}),
       ...(body ? { "content-type": "application/json" } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -137,7 +139,19 @@ function simplifySubscriptions(records: RecordData[]): Array<{
 describe("/api/auth/upgrade", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    verifyAuthTokenMock.mockResolvedValue({ userId: "account-user" });
+    verifyAuthTokenMock.mockImplementation(
+      async (authHeader: string | null) => {
+        if (authHeader === "Bearer token") {
+          return { userId: "account-user" };
+        }
+
+        if (authHeader === "Bearer guest-token-proof") {
+          return { userId: "guest-user" };
+        }
+
+        throw new Error("Invalid auth token");
+      },
+    );
     interestsStore = [
       {
         _id: "g-interest-1",
@@ -329,5 +343,38 @@ describe("/api/auth/upgrade", () => {
     );
 
     expect(response.status).toBe(401);
+  });
+
+  it("returns 401 when guest proof token is missing", async () => {
+    const response = await GET(
+      makeRequest("GET", undefined, "?guestUserId=guest-user", false) as any,
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("returns 403 when guest proof token does not match guestUserId", async () => {
+    verifyAuthTokenMock.mockImplementation(
+      async (authHeader: string | null) => {
+        if (authHeader === "Bearer token") {
+          return { userId: "account-user" };
+        }
+
+        if (authHeader === "Bearer guest-token-proof") {
+          return { userId: "another-guest-user" };
+        }
+
+        throw new Error("Invalid auth token");
+      },
+    );
+
+    const response = await POST(
+      makeRequest("POST", {
+        guestUserId: "guest-user",
+        option: "import",
+      }) as any,
+    );
+
+    expect(response.status).toBe(403);
   });
 });

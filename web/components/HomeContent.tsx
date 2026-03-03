@@ -39,6 +39,7 @@ import { navigateBackOrReplace } from "@/lib/navigation-utils";
 import { trackEvent } from "@/lib/analytics";
 import {
   PENDING_GUEST_UPGRADE_UID_KEY,
+  PENDING_GUEST_UPGRADE_TOKEN_KEY,
   type UpgradeDecisionOption,
 } from "@/lib/auth-upgrade";
 import type { Message, Interest } from "@/lib/types";
@@ -185,8 +186,16 @@ export default function HomeContent() {
     const guestUid = globalThis.sessionStorage.getItem(
       PENDING_GUEST_UPGRADE_UID_KEY,
     );
+    const guestToken = globalThis.sessionStorage.getItem(
+      PENDING_GUEST_UPGRADE_TOKEN_KEY,
+    );
 
     if (!guestUid || guestUid === user.uid) {
+      return;
+    }
+
+    if (!guestToken) {
+      globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
       return;
     }
 
@@ -200,6 +209,7 @@ export default function HomeContent() {
           {
             headers: {
               Authorization: `Bearer ${idToken}`,
+              "X-Guest-Token": guestToken,
             },
           },
         );
@@ -221,6 +231,7 @@ export default function HomeContent() {
         }
 
         globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
       } catch (error) {
         console.error("Failed to evaluate guest upgrade state:", error);
       }
@@ -245,11 +256,20 @@ export default function HomeContent() {
 
       try {
         const idToken = await user.getIdToken();
+        const guestToken = globalThis.sessionStorage.getItem(
+          PENDING_GUEST_UPGRADE_TOKEN_KEY,
+        );
+
+        if (!guestToken) {
+          throw new Error("Missing guest proof token");
+        }
+
         const response = await fetch("/api/auth/upgrade", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${idToken}`,
+            "X-Guest-Token": guestToken,
           },
           body: JSON.stringify({
             guestUserId: pendingGuestUpgradeUid,
@@ -268,6 +288,7 @@ export default function HomeContent() {
 
         if (typeof globalThis.sessionStorage !== "undefined") {
           globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+          globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
         }
 
         setPendingGuestUpgradeUid(null);
@@ -598,7 +619,7 @@ export default function HomeContent() {
                   onMoveZone={handleMoveInterest}
                   onDeleteZone={handleDeleteInterest}
                 />
-                {user.isAnonymous && interests.length > 0 && (
+                {user?.isAnonymous && interests.length > 0 && (
                   <div className="mt-4 border border-neutral-border bg-neutral-light rounded-lg p-4">
                     <p className="text-neutral mb-3">
                       Влез с Google, за да запазиш зоните си и на други
