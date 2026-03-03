@@ -190,7 +190,13 @@ export default function HomeContent() {
       PENDING_GUEST_UPGRADE_TOKEN_KEY,
     );
 
-    if (!guestUid || guestUid === user.uid) {
+    if (!guestUid) {
+      return;
+    }
+
+    if (guestUid === user.uid) {
+      globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+      globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
       return;
     }
 
@@ -215,6 +221,8 @@ export default function HomeContent() {
         );
 
         if (!response.ok) {
+          globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+          globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
           return;
         }
 
@@ -234,6 +242,8 @@ export default function HomeContent() {
         globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
       } catch (error) {
         console.error("Failed to evaluate guest upgrade state:", error);
+        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
       }
     })();
 

@@ -8,9 +8,16 @@ let subscriptionsStore: RecordData[] = [];
 let sequence = 0;
 let failAtInsertCallNumber: number | null = null;
 let insertCallCounter = 0;
+let failOnStatsLookup = false;
 
-const { verifyAuthTokenMock } = vi.hoisted(() => ({
+const {
+  verifyAuthTokenMock,
+  interestsFindByUserIdMock,
+  subscriptionsFindByUserIdMock,
+} = vi.hoisted(() => ({
   verifyAuthTokenMock: vi.fn(),
+  interestsFindByUserIdMock: vi.fn(),
+  subscriptionsFindByUserIdMock: vi.fn(),
 }));
 
 function nextId(prefix: string): string {
@@ -33,9 +40,7 @@ vi.mock("@/lib/verifyAuthToken", () => ({
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn().mockResolvedValue({
     interests: {
-      findByUserId: vi.fn(async (userId: string) =>
-        getInterestsForUser(userId),
-      ),
+      findByUserId: interestsFindByUserIdMock,
       insertOne: vi.fn(async (data: RecordData) => {
         insertCallCounter += 1;
         if (
@@ -57,9 +62,7 @@ vi.mock("@/lib/db", () => ({
       }),
     },
     notificationSubscriptions: {
-      findByUserId: vi.fn(async (userId: string) =>
-        getSubscriptionsForUser(userId),
-      ),
+      findByUserId: subscriptionsFindByUserIdMock,
       insertOne: vi.fn(async (data: RecordData) => {
         insertCallCounter += 1;
         if (
@@ -139,6 +142,20 @@ function simplifySubscriptions(records: RecordData[]): Array<{
 describe("/api/auth/upgrade", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    interestsFindByUserIdMock.mockImplementation(async (userId: string) => {
+      if (failOnStatsLookup) {
+        throw new Error("stats lookup should not run");
+      }
+
+      return getInterestsForUser(userId);
+    });
+    subscriptionsFindByUserIdMock.mockImplementation(async (userId: string) => {
+      if (failOnStatsLookup) {
+        throw new Error("stats lookup should not run");
+      }
+
+      return getSubscriptionsForUser(userId);
+    });
     verifyAuthTokenMock.mockImplementation(
       async (authHeader: string | null) => {
         if (authHeader === "Bearer token") {
@@ -197,6 +214,7 @@ describe("/api/auth/upgrade", () => {
     failAtInsertCallNumber = null;
     insertCallCounter = 0;
     sequence = 100;
+    failOnStatsLookup = false;
   });
 
   it("GET returns requiresDecision=true when both guest and account have data", async () => {
@@ -346,11 +364,37 @@ describe("/api/auth/upgrade", () => {
   });
 
   it("returns 401 when guest proof token is missing", async () => {
+    failOnStatsLookup = true;
+
     const response = await GET(
       makeRequest("GET", undefined, "?guestUserId=guest-user", false) as any,
     );
 
     expect(response.status).toBe(401);
+  });
+
+  it("returns 403 for GET when guest proof token does not match guestUserId", async () => {
+    failOnStatsLookup = true;
+
+    verifyAuthTokenMock.mockImplementation(
+      async (authHeader: string | null) => {
+        if (authHeader === "Bearer token") {
+          return { userId: "account-user" };
+        }
+
+        if (authHeader === "Bearer guest-token-proof") {
+          return { userId: "another-guest-user" };
+        }
+
+        throw new Error("Invalid auth token");
+      },
+    );
+
+    const response = await GET(
+      makeRequest("GET", undefined, "?guestUserId=guest-user") as any,
+    );
+
+    expect(response.status).toBe(403);
   });
 
   it("returns 403 when guest proof token does not match guestUserId", async () => {

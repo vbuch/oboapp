@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { zIndex } from "@/lib/colors";
 import { buttonStyles, buttonSizes, borderRadius } from "@/lib/theme";
 import type { UpgradeDecisionOption } from "@/lib/auth-upgrade";
@@ -13,6 +14,12 @@ export default function UpgradeConflictPrompt({
   isLoading,
   onSelect,
 }: UpgradeConflictPromptProps) {
+  const firstActionRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    firstActionRef.current?.focus();
+  }, []);
+
   return (
     <>
       <div
@@ -23,8 +30,16 @@ export default function UpgradeConflictPrompt({
       <div
         className={`animate-fade-in fixed inset-0 flex items-center justify-center p-4 ${zIndex.modalContent} pointer-events-none`}
       >
-        <div className="pointer-events-auto w-full max-w-md bg-white rounded-lg shadow-xl p-6">
-          <h2 className="text-xl font-semibold text-foreground mb-3">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="upgrade-conflict-title"
+          className="pointer-events-auto w-full max-w-md bg-white rounded-lg shadow-xl p-6"
+        >
+          <h2
+            id="upgrade-conflict-title"
+            className="text-xl font-semibold text-foreground mb-3"
+          >
             Как да използваме данните ти?
           </h2>
           <p className="text-neutral mb-6">
@@ -34,6 +49,7 @@ export default function UpgradeConflictPrompt({
 
           <div className="space-y-3">
             <button
+              ref={firstActionRef}
               type="button"
               disabled={isLoading}
               onClick={() => onSelect("import")}

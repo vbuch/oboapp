@@ -145,8 +145,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const stats = await getUpgradeStats(guestUserId, accountUserId);
-
     const guestProofToken = parseGuestProofToken(request);
     if (!guestProofToken) {
       return NextResponse.json(
@@ -164,6 +162,8 @@ export async function GET(request: NextRequest) {
         { status: 403 },
       );
     }
+
+    const stats = await getUpgradeStats(guestUserId, accountUserId);
     const hasGuestData = stats.guestInterests + stats.guestSubscriptions > 0;
     const hasAccountData =
       stats.accountInterests + stats.accountSubscriptions > 0;
