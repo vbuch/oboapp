@@ -39,6 +39,49 @@ vi.mock("@/lib/verifyAuthToken", () => ({
 
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn().mockResolvedValue({
+    client: {
+      batchWrite: vi.fn(
+        async (
+          operations: Array<{
+            type: "set" | "delete";
+            collection: string;
+            id: string;
+            data?: Record<string, unknown>;
+          }>,
+        ) => {
+          for (const operation of operations) {
+            if (operation.type === "delete") {
+              if (operation.collection === "interests") {
+                interestsStore = interestsStore.filter(
+                  (record) => record._id !== operation.id,
+                );
+              } else if (operation.collection === "notificationSubscriptions") {
+                subscriptionsStore = subscriptionsStore.filter(
+                  (record) => record._id !== operation.id,
+                );
+              }
+
+              continue;
+            }
+
+            insertCallCounter += 1;
+            if (
+              failAtInsertCallNumber !== null &&
+              insertCallCounter === failAtInsertCallNumber
+            ) {
+              throw new Error("simulated insert failure");
+            }
+
+            const record = { _id: operation.id, ...(operation.data ?? {}) };
+            if (operation.collection === "interests") {
+              interestsStore.push(record);
+            } else if (operation.collection === "notificationSubscriptions") {
+              subscriptionsStore.push(record);
+            }
+          }
+        },
+      ),
+    },
     interests: {
       findByUserId: interestsFindByUserIdMock,
       insertOne: vi.fn(async (data: RecordData) => {

@@ -1,13 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import HomeContent from "@/components/HomeContent";
+import {
+  PENDING_GUEST_UPGRADE_UID_KEY,
+  PENDING_GUEST_UPGRADE_TOKEN_KEY,
+} from "@/lib/auth-upgrade";
 import type { Interest } from "@/lib/types";
 
 let isWideDesktopLayout = false;
 let capturedMapContainerProps: Record<string, unknown> | null = null;
 let capturedZoneListProps: Record<string, unknown> | null = null;
-let authUser: { uid: string } | null = null;
+let authUser:
+  | {
+      uid: string;
+      isAnonymous?: boolean;
+      getIdToken?: () => Promise<string>;
+    }
+  | null = null;
 
 const mockInterests: Interest[] = [
   {
@@ -214,6 +223,8 @@ describe("HomeContent pivot behavior", () => {
     isWideDesktopLayout = false;
     authUser = null;
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    globalThis.sessionStorage.clear();
   });
 
   it("passes desktop-wide map wiring and hides mobile interest menu", () => {
@@ -247,10 +258,62 @@ describe("HomeContent pivot behavior", () => {
     authUser = { uid: "user-1" };
 
     render(<HomeContent />);
-    await userEvent.click(screen.getByRole("button", { name: "Моите зони" }));
+    fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
 
     expect(capturedZoneListProps).not.toBeNull();
     expect(capturedZoneListProps?.onMoveZone).toEqual(expect.any(Function));
     expect(capturedZoneListProps?.onDeleteZone).toEqual(expect.any(Function));
+  });
+
+  it("automatically imports guest data when only guest has data and no decision is required", async () => {
+    authUser = {
+      uid: "account-uid",
+      isAnonymous: false,
+      getIdToken: vi.fn().mockResolvedValue("account-id-token"),
+    };
+
+    globalThis.sessionStorage.setItem(PENDING_GUEST_UPGRADE_UID_KEY, "guest-uid");
+    globalThis.sessionStorage.setItem(
+      PENDING_GUEST_UPGRADE_TOKEN_KEY,
+      "guest-proof-token",
+    );
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          requiresDecision: false,
+          hasGuestData: true,
+          hasAccountData: false,
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, changed: true, option: "import" }),
+      });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<HomeContent />);
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/auth/upgrade",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(globalThis.sessionStorage.getItem(PENDING_GUEST_UPGRADE_UID_KEY)).toBeNull();
+      expect(
+        globalThis.sessionStorage.getItem(PENDING_GUEST_UPGRADE_TOKEN_KEY),
+      ).toBeNull();
+    });
   });
 });

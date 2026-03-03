@@ -12,6 +12,16 @@ interface UpgradeStats {
   accountSubscriptions: number;
 }
 
+type BatchOperation = {
+  type: "set" | "delete";
+  collection: string;
+  id: string;
+  data?: Record<string, unknown>;
+};
+
+const INTERESTS_COLLECTION = "interests";
+const NOTIFICATION_SUBSCRIPTIONS_COLLECTION = "notificationSubscriptions";
+
 function parseGuestUserId(request: NextRequest): string | null {
   const { searchParams } = new URL(request.url);
   return searchParams.get("guestUserId");
@@ -63,6 +73,62 @@ function isUpgradeOption(value: unknown): value is UpgradeDecisionOption {
   return value === "import" || value === "keepSeparate" || value === "replace";
 }
 
+function getRecordId(record: DbRecord): string | null {
+  const id = record._id;
+  return typeof id === "string" && id.length > 0 ? id : null;
+}
+
+function buildInterestPayload(record: DbRecord, userId: string): DbRecord {
+  return {
+    userId,
+    coordinates: record.coordinates,
+    radius: record.radius,
+    label: record.label,
+    color: record.color,
+    createdAt: record.createdAt instanceof Date ? record.createdAt : new Date(),
+    updatedAt: record.updatedAt instanceof Date ? record.updatedAt : new Date(),
+  };
+}
+
+function buildSubscriptionPayload(
+  record: DbRecord,
+  userId: string,
+): DbRecord | null {
+  const token = typeof record.token === "string" ? record.token : "";
+  if (!token) {
+    return null;
+  }
+
+  return {
+    userId,
+    token,
+    endpoint: record.endpoint,
+    deviceInfo: record.deviceInfo ?? {},
+    createdAt: record.createdAt instanceof Date ? record.createdAt : new Date(),
+    updatedAt: record.updatedAt instanceof Date ? record.updatedAt : new Date(),
+  };
+}
+
+function createSetOperation(
+  collection: string,
+  data: DbRecord,
+): BatchOperation {
+  return {
+    type: "set",
+    collection,
+    id: globalThis.crypto.randomUUID(),
+    data,
+  };
+}
+
+function createDeleteOperation(collection: string, id: string): BatchOperation {
+  return {
+    type: "delete",
+    collection,
+    id,
+  };
+}
+
 async function restoreUserState(
   userId: string,
   interestRecords: DbRecord[],
@@ -70,49 +136,51 @@ async function restoreUserState(
 ): Promise<void> {
   const db = await getDb();
 
-  await Promise.all([
-    db.interests.deleteAllByUserId(userId),
-    db.notificationSubscriptions.deleteAllByUserId(userId),
+  const [existingInterests, existingSubscriptions] = await Promise.all([
+    db.interests.findByUserId(userId),
+    db.notificationSubscriptions.findByUserId(userId),
   ]);
 
+  const operations: BatchOperation[] = [];
+
+  for (const existingInterest of existingInterests) {
+    const id = getRecordId(existingInterest);
+    if (id) {
+      operations.push(createDeleteOperation(INTERESTS_COLLECTION, id));
+    }
+  }
+
+  for (const existingSubscription of existingSubscriptions) {
+    const id = getRecordId(existingSubscription);
+    if (id) {
+      operations.push(
+        createDeleteOperation(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, id),
+      );
+    }
+  }
+
   for (const interestRecord of interestRecords) {
-    await db.interests.insertOne({
-      userId,
-      coordinates: interestRecord.coordinates,
-      radius: interestRecord.radius,
-      label: interestRecord.label,
-      color: interestRecord.color,
-      createdAt:
-        interestRecord.createdAt instanceof Date
-          ? interestRecord.createdAt
-          : new Date(),
-      updatedAt:
-        interestRecord.updatedAt instanceof Date
-          ? interestRecord.updatedAt
-          : new Date(),
-    });
+    operations.push(
+      createSetOperation(
+        INTERESTS_COLLECTION,
+        buildInterestPayload(interestRecord, userId),
+      ),
+    );
   }
 
   for (const subscriptionRecord of subscriptionRecords) {
-    const token = (subscriptionRecord.token as string) ?? "";
-    if (!token) {
+    const payload = buildSubscriptionPayload(subscriptionRecord, userId);
+    if (!payload) {
       continue;
     }
 
-    await db.notificationSubscriptions.insertOne({
-      userId,
-      token,
-      endpoint: subscriptionRecord.endpoint,
-      deviceInfo: subscriptionRecord.deviceInfo ?? {},
-      createdAt:
-        subscriptionRecord.createdAt instanceof Date
-          ? subscriptionRecord.createdAt
-          : new Date(),
-      updatedAt:
-        subscriptionRecord.updatedAt instanceof Date
-          ? subscriptionRecord.updatedAt
-          : new Date(),
-    });
+    operations.push(
+      createSetOperation(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, payload),
+    );
+  }
+
+  if (operations.length > 0) {
+    await db.client.batchWrite(operations);
   }
 }
 
@@ -256,44 +324,49 @@ export async function POST(request: NextRequest) {
     ]);
 
     try {
+      const operations: BatchOperation[] = [];
+
       if (option === "replace") {
-        await Promise.all([
-          db.interests.deleteAllByUserId(accountUserId),
-          db.notificationSubscriptions.deleteAllByUserId(accountUserId),
-        ]);
+        for (const accountInterest of accountInterests) {
+          const id = getRecordId(accountInterest);
+          if (id) {
+            operations.push(createDeleteOperation(INTERESTS_COLLECTION, id));
+          }
+        }
+
+        for (const accountSubscription of accountSubscriptions) {
+          const id = getRecordId(accountSubscription);
+          if (id) {
+            operations.push(
+              createDeleteOperation(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, id),
+            );
+          }
+        }
 
         for (const guestInterest of guestInterests) {
-          await db.interests.insertOne({
-            userId: accountUserId,
-            coordinates: guestInterest.coordinates,
-            radius: guestInterest.radius,
-            label: guestInterest.label,
-            color: guestInterest.color,
-            createdAt:
-              guestInterest.createdAt instanceof Date
-                ? guestInterest.createdAt
-                : new Date(),
-            updatedAt: new Date(),
-          });
+          operations.push(
+            createSetOperation(INTERESTS_COLLECTION, {
+              ...buildInterestPayload(guestInterest, accountUserId),
+              updatedAt: new Date(),
+            }),
+          );
         }
 
         for (const guestSubscription of guestSubscriptions) {
-          const token = (guestSubscription.token as string) ?? "";
-          if (!token) {
+          const payload = buildSubscriptionPayload(
+            guestSubscription,
+            accountUserId,
+          );
+          if (!payload) {
             continue;
           }
 
-          await db.notificationSubscriptions.insertOne({
-            userId: accountUserId,
-            token,
-            endpoint: guestSubscription.endpoint,
-            deviceInfo: guestSubscription.deviceInfo ?? {},
-            createdAt:
-              guestSubscription.createdAt instanceof Date
-                ? guestSubscription.createdAt
-                : new Date(),
-            updatedAt: new Date(),
-          });
+          operations.push(
+            createSetOperation(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, {
+              ...payload,
+              updatedAt: new Date(),
+            }),
+          );
         }
       } else {
         const accountInterestKeys = new Set(
@@ -309,48 +382,63 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          await db.interests.insertOne({
-            userId: accountUserId,
-            coordinates: guestInterest.coordinates,
-            radius: guestInterest.radius,
-            label: guestInterest.label,
-            color: guestInterest.color,
-            createdAt:
-              guestInterest.createdAt instanceof Date
-                ? guestInterest.createdAt
-                : new Date(),
-            updatedAt: new Date(),
-          });
+          operations.push(
+            createSetOperation(INTERESTS_COLLECTION, {
+              ...buildInterestPayload(guestInterest, accountUserId),
+              updatedAt: new Date(),
+            }),
+          );
 
           accountInterestKeys.add(key);
         }
 
         for (const guestSubscription of guestSubscriptions) {
-          const token = (guestSubscription.token as string) ?? "";
+          const token =
+            typeof guestSubscription.token === "string"
+              ? guestSubscription.token
+              : "";
           if (!token || accountSubscriptionTokens.has(token)) {
             continue;
           }
 
-          await db.notificationSubscriptions.insertOne({
-            userId: accountUserId,
-            token,
-            endpoint: guestSubscription.endpoint,
-            deviceInfo: guestSubscription.deviceInfo ?? {},
-            createdAt:
-              guestSubscription.createdAt instanceof Date
-                ? guestSubscription.createdAt
-                : new Date(),
-            updatedAt: new Date(),
-          });
+          const payload = buildSubscriptionPayload(
+            guestSubscription,
+            accountUserId,
+          );
+          if (!payload) {
+            continue;
+          }
+
+          operations.push(
+            createSetOperation(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, {
+              ...payload,
+              updatedAt: new Date(),
+            }),
+          );
 
           accountSubscriptionTokens.add(token);
         }
       }
 
-      await Promise.all([
-        db.interests.deleteAllByUserId(guestUserId),
-        db.notificationSubscriptions.deleteAllByUserId(guestUserId),
-      ]);
+      for (const guestInterest of guestInterests) {
+        const id = getRecordId(guestInterest);
+        if (id) {
+          operations.push(createDeleteOperation(INTERESTS_COLLECTION, id));
+        }
+      }
+
+      for (const guestSubscription of guestSubscriptions) {
+        const id = getRecordId(guestSubscription);
+        if (id) {
+          operations.push(
+            createDeleteOperation(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, id),
+          );
+        }
+      }
+
+      if (operations.length > 0) {
+        await db.client.batchWrite(operations);
+      }
     } catch (operationError) {
       console.error("Upgrade operation failed, restoring previous state", {
         operationError,

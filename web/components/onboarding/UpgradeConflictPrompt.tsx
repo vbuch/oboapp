@@ -8,17 +8,71 @@ import type { UpgradeDecisionOption } from "@/lib/auth-upgrade";
 interface UpgradeConflictPromptProps {
   readonly isLoading: boolean;
   readonly onSelect: (option: UpgradeDecisionOption) => void;
+  readonly onClose?: () => void;
+  readonly returnFocusElement?: HTMLElement | null;
 }
 
 export default function UpgradeConflictPrompt({
   isLoading,
   onSelect,
+  onClose,
+  returnFocusElement,
 }: UpgradeConflictPromptProps) {
   const firstActionRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const previouslyFocusedElement = document.activeElement;
+
     firstActionRef.current?.focus();
-  }, []);
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && onClose && !isLoading) {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) {
+        return;
+      }
+
+      const focusableElements = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute("disabled"));
+
+      if (focusableElements.length === 0) {
+        return;
+      }
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    globalThis.window.addEventListener("keydown", handleKeydown);
+
+    return () => {
+      globalThis.window.removeEventListener("keydown", handleKeydown);
+      if (returnFocusElement instanceof HTMLElement) {
+        returnFocusElement.focus();
+        return;
+      }
+
+      if (previouslyFocusedElement instanceof HTMLElement) {
+        previouslyFocusedElement.focus();
+      }
+    };
+  }, [isLoading, onClose, returnFocusElement]);
 
   return (
     <>
@@ -31,6 +85,7 @@ export default function UpgradeConflictPrompt({
         className={`animate-fade-in fixed inset-0 flex items-center justify-center p-4 ${zIndex.modalContent} pointer-events-none`}
       >
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="upgrade-conflict-title"

@@ -31,48 +31,51 @@ export default function NotificationsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [nextOffset, setNextOffset] = useState<number | null>(null);
 
-  const fetchNotifications = useCallback(async (offset = 0, append = false) => {
-    if (!user) return;
+  const fetchNotifications = useCallback(
+    async (offset = 0, append = false) => {
+      if (!user) return;
 
-    try {
-      if (append) {
-        setIsLoadingMore(true);
-      } else {
-        setIsLoading(true);
-        setError(null);
-      }
+      try {
+        if (append) {
+          setIsLoadingMore(true);
+        } else {
+          setIsLoading(true);
+          setError(null);
+        }
 
-      const token = await user.getIdToken();
-      const url = `/api/notifications/history?limit=20&offset=${offset}`;
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        const token = await user.getIdToken();
+        const url = `/api/notifications/history?limit=20&offset=${offset}`;
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch notifications");
-      }
+        if (!response.ok) {
+          throw new Error("Failed to fetch notifications");
+        }
 
-      const data = await response.json();
-      
-      if (append) {
-        setNotifications((prev) => [...prev, ...(data.items || [])]);
-      } else {
-        setNotifications(data.items || []);
+        const data = await response.json();
+
+        if (append) {
+          setNotifications((prev) => [...prev, ...(data.items || [])]);
+        } else {
+          setNotifications(data.items || []);
+        }
+
+        setHasMore(data.hasMore || false);
+        setNextOffset(data.nextOffset);
+      } catch (err) {
+        console.error("Error fetching notifications:", err);
+        setError("Неуспешно зареждане на известията");
+        if (!append) {
+          setNotifications([]);
+        }
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
-      
-      setHasMore(data.hasMore || false);
-      setNextOffset(data.nextOffset);
-    } catch (err) {
-      console.error("Error fetching notifications:", err);
-      setError("Неуспешно зареждане на известията");
-      if (!append) {
-        setNotifications([]);
-      }
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  }, [user]);
+    },
+    [user],
+  );
 
   const handleLoadMore = useCallback(() => {
     if (nextOffset !== null && !isLoadingMore) {
@@ -84,9 +87,8 @@ export default function NotificationsPage() {
     if (!user) return;
 
     try {
-      const { isMessagingSupported } = await import(
-        "@/lib/notification-service"
-      );
+      const { isMessagingSupported } =
+        await import("@/lib/notification-service");
       const supported = await isMessagingSupported();
 
       if (!supported) {
@@ -146,12 +148,16 @@ export default function NotificationsPage() {
 
       setNotifications((prev) => {
         const updatedNotifications = prev.map((n) =>
-          n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n,
+          n.id === notificationId
+            ? { ...n, readAt: new Date().toISOString() }
+            : n,
         );
 
         // Notify other components (e.g., NotificationBell) to refetch unread count
         if (typeof window !== "undefined") {
-          const newUnreadCount = updatedNotifications.filter((n) => !n.readAt).length;
+          const newUnreadCount = updatedNotifications.filter(
+            (n) => !n.readAt,
+          ).length;
           window.dispatchEvent(
             new CustomEvent("notifications:unread-count-changed", {
               detail: { count: newUnreadCount },
@@ -260,6 +266,7 @@ export default function NotificationsPage() {
             <SubscribeDevicePrompt
               onSubscribe={handleSubscribeCurrentDevice}
               hasAnySubscriptions={subscriptionStatus.hasAnySubscriptions}
+              isGuestUser={user?.isAnonymous ?? false}
             />
           </div>
         )}

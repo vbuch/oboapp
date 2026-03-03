@@ -174,6 +174,11 @@ export default function HomeContent() {
   >(null);
   const [isApplyingUpgradeOption, setIsApplyingUpgradeOption] = useState(false);
 
+  const clearPendingGuestUpgradeSession = useCallback(() => {
+    globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+    globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
+  }, []);
+
   useEffect(() => {
     if (
       !user ||
@@ -195,8 +200,7 @@ export default function HomeContent() {
     }
 
     if (guestUid === user.uid) {
-      globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
-      globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
+      clearPendingGuestUpgradeSession();
       return;
     }
 
@@ -208,6 +212,8 @@ export default function HomeContent() {
     let canceled = false;
 
     (async () => {
+      let shouldClearPendingKeysOnError = true;
+
       try {
         const idToken = await user.getIdToken();
         const response = await fetch(
@@ -221,12 +227,15 @@ export default function HomeContent() {
         );
 
         if (!response.ok) {
-          globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
-          globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
+          clearPendingGuestUpgradeSession();
           return;
         }
 
-        const data = (await response.json()) as { requiresDecision?: boolean };
+        const data = (await response.json()) as {
+          requiresDecision?: boolean;
+          hasGuestData?: boolean;
+          hasAccountData?: boolean;
+        };
 
         if (canceled) {
           return;
@@ -238,19 +247,42 @@ export default function HomeContent() {
           return;
         }
 
-        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
-        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
+        if (data.hasGuestData && !data.hasAccountData) {
+          shouldClearPendingKeysOnError = false;
+
+          const importResponse = await fetch("/api/auth/upgrade", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
+              "X-Guest-Token": guestToken,
+            },
+            body: JSON.stringify({
+              guestUserId: guestUid,
+              option: "import" satisfies UpgradeDecisionOption,
+            }),
+          });
+
+          if (!importResponse.ok) {
+            throw new Error("Automatic guest data import failed");
+          }
+
+          shouldClearPendingKeysOnError = true;
+        }
+
+        clearPendingGuestUpgradeSession();
       } catch (error) {
         console.error("Failed to evaluate guest upgrade state:", error);
-        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
-        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
+        if (shouldClearPendingKeysOnError) {
+          clearPendingGuestUpgradeSession();
+        }
       }
     })();
 
     return () => {
       canceled = true;
     };
-  }, [user]);
+  }, [clearPendingGuestUpgradeSession, user]);
 
   const handleUpgradeOptionSelect = useCallback(
     async (option: UpgradeDecisionOption) => {
@@ -297,8 +329,7 @@ export default function HomeContent() {
         });
 
         if (typeof globalThis.sessionStorage !== "undefined") {
-          globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
-          globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
+          clearPendingGuestUpgradeSession();
         }
 
         setPendingGuestUpgradeUid(null);
@@ -314,7 +345,7 @@ export default function HomeContent() {
         setIsApplyingUpgradeOption(false);
       }
     },
-    [user, pendingGuestUpgradeUid],
+    [clearPendingGuestUpgradeSession, user, pendingGuestUpgradeUid],
   );
 
   // Interest/zone management
