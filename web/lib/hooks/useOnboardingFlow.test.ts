@@ -50,6 +50,18 @@ describe("computeStateFromContext", () => {
       expect(computeStateFromContext(context)).toBe("zoneCreation");
     });
 
+    it("returns loginPrompt on restart when permission is granted and guest is unavailable", () => {
+      const context: OnboardingContext = {
+        permission: "granted",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+        guestAvailable: false,
+        isRestart: true,
+      };
+      expect(computeStateFromContext(context)).toBe("loginPrompt");
+    });
+
     it("returns idle on initial load when permission is denied", () => {
       const context: OnboardingContext = {
         permission: "denied",
@@ -90,6 +102,18 @@ describe("computeStateFromContext", () => {
         isRestart: true,
       };
       expect(computeStateFromContext(context)).toBe("zoneCreation");
+    });
+
+    it("returns loginPrompt on restart when Notification API is unavailable and guest is unavailable", () => {
+      const context: OnboardingContext = {
+        permission: undefined,
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+        guestAvailable: false,
+        isRestart: true,
+      };
+      expect(computeStateFromContext(context)).toBe("loginPrompt");
     });
   });
 
@@ -278,6 +302,26 @@ describe("onboardingReducer", () => {
       const result = onboardingReducer(initialState, action);
 
       expect(result.state).toBe("zoneCreation");
+      expect(result.lastPermission).toBe("granted");
+    });
+
+    it("transitions to loginPrompt when permission granted and guest is unavailable", () => {
+      const initialState = createInitialState("notificationPrompt", "default");
+      const context: OnboardingContext = {
+        permission: "default",
+        isLoggedIn: false,
+        zonesCount: 0,
+        hasSubscriptions: false,
+        guestAvailable: false,
+      };
+      const action: OnboardingAction = {
+        type: "PERMISSION_RESULT",
+        payload: { permission: "granted", context },
+      };
+
+      const result = onboardingReducer(initialState, action);
+
+      expect(result.state).toBe("loginPrompt");
       expect(result.lastPermission).toBe("granted");
     });
 

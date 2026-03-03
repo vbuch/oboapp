@@ -89,6 +89,9 @@ export function AuthProvider({
         return;
       }
 
+      setUser(null);
+      setLoading(true);
+
       try {
         await signInAnonymously(auth);
         trackEvent({ name: "guest_started", params: {} });
