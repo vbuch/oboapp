@@ -16,7 +16,7 @@ export default function BlockedNotificationsPrompt() {
         <PromptCard
           icon={<NoNotificationsIcon className="w-12 h-12 text-warning" />}
           title="Известията са блокирани"
-          description="Браузърът или устройството ти не позволява известия. Можеш да ги включиш от настройките на браузъра."
+          description="Известията са изключени от браузъра/устройството. Активирай ги от настройките и опитай отново."
         />
       </div>
     </div>
