@@ -113,15 +113,24 @@ export function AuthProvider({
       guestUserBeforeUpgrade &&
       typeof globalThis.sessionStorage !== "undefined"
     ) {
-      const guestIdToken = await guestUserBeforeUpgrade.getIdToken();
-      globalThis.sessionStorage.setItem(
-        PENDING_GUEST_UPGRADE_UID_KEY,
-        guestUserBeforeUpgrade.uid,
-      );
-      globalThis.sessionStorage.setItem(
-        PENDING_GUEST_UPGRADE_TOKEN_KEY,
-        guestIdToken,
-      );
+      try {
+        const guestIdToken = await guestUserBeforeUpgrade.getIdToken();
+        globalThis.sessionStorage.setItem(
+          PENDING_GUEST_UPGRADE_UID_KEY,
+          guestUserBeforeUpgrade.uid,
+        );
+        globalThis.sessionStorage.setItem(
+          PENDING_GUEST_UPGRADE_TOKEN_KEY,
+          guestIdToken,
+        );
+      } catch (error: unknown) {
+        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+        globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_TOKEN_KEY);
+        console.error(
+          "Failed to store pending guest upgrade metadata, continuing with Google sign-in:",
+          error,
+        );
+      }
     }
 
     try {

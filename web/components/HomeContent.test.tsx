@@ -10,13 +10,11 @@ import type { Interest } from "@/lib/types";
 let isWideDesktopLayout = false;
 let capturedMapContainerProps: Record<string, unknown> | null = null;
 let capturedZoneListProps: Record<string, unknown> | null = null;
-let authUser:
-  | {
-      uid: string;
-      isAnonymous?: boolean;
-      getIdToken?: () => Promise<string>;
-    }
-  | null = null;
+let authUser: {
+  uid: string;
+  isAnonymous?: boolean;
+  getIdToken?: () => Promise<string>;
+} | null = null;
 
 const mockInterests: Interest[] = [
   {
@@ -272,7 +270,10 @@ describe("HomeContent pivot behavior", () => {
       getIdToken: vi.fn().mockResolvedValue("account-id-token"),
     };
 
-    globalThis.sessionStorage.setItem(PENDING_GUEST_UPGRADE_UID_KEY, "guest-uid");
+    globalThis.sessionStorage.setItem(
+      PENDING_GUEST_UPGRADE_UID_KEY,
+      "guest-uid",
+    );
     globalThis.sessionStorage.setItem(
       PENDING_GUEST_UPGRADE_TOKEN_KEY,
       "guest-proof-token",
@@ -310,10 +311,42 @@ describe("HomeContent pivot behavior", () => {
     );
 
     await waitFor(() => {
-      expect(globalThis.sessionStorage.getItem(PENDING_GUEST_UPGRADE_UID_KEY)).toBeNull();
+      expect(
+        globalThis.sessionStorage.getItem(PENDING_GUEST_UPGRADE_UID_KEY),
+      ).toBeNull();
       expect(
         globalThis.sessionStorage.getItem(PENDING_GUEST_UPGRADE_TOKEN_KEY),
       ).toBeNull();
     });
+  });
+
+  it("clears pending guest upgrade session when token is missing or invalid", async () => {
+    authUser = {
+      uid: "account-uid",
+      isAnonymous: false,
+      getIdToken: vi.fn().mockResolvedValue("account-id-token"),
+    };
+
+    globalThis.sessionStorage.setItem(
+      PENDING_GUEST_UPGRADE_UID_KEY,
+      "guest-uid",
+    );
+    globalThis.sessionStorage.setItem(PENDING_GUEST_UPGRADE_TOKEN_KEY, "");
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<HomeContent />);
+
+    await waitFor(() => {
+      expect(
+        globalThis.sessionStorage.getItem(PENDING_GUEST_UPGRADE_UID_KEY),
+      ).toBeNull();
+      expect(
+        globalThis.sessionStorage.getItem(PENDING_GUEST_UPGRADE_TOKEN_KEY),
+      ).toBeNull();
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

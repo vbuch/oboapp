@@ -147,6 +147,7 @@ function makeRequest(
 }
 
 function simplifyInterests(records: RecordData[]): Array<{
+  id: string;
   userId: string;
   coordinates: RecordData;
   radius: unknown;
@@ -154,6 +155,7 @@ function simplifyInterests(records: RecordData[]): Array<{
 }> {
   return records
     .map((record) => ({
+      id: String(record._id ?? ""),
       userId: record.userId as string,
       coordinates: record.coordinates as RecordData,
       radius: record.radius,
@@ -167,12 +169,14 @@ function simplifyInterests(records: RecordData[]): Array<{
 }
 
 function simplifySubscriptions(records: RecordData[]): Array<{
+  id: string;
   userId: string;
   token: string;
   endpoint: unknown;
 }> {
   return records
     .map((record) => ({
+      id: String(record._id ?? ""),
       userId: record.userId as string,
       token: record.token as string,
       endpoint: record.endpoint,
@@ -382,6 +386,14 @@ describe("/api/auth/upgrade", () => {
     expect(simplifyInterests(interestsStore)).toEqual(beforeInterests);
     expect(simplifySubscriptions(subscriptionsStore)).toEqual(
       beforeSubscriptions,
+    );
+
+    expect(interestsStore.map((record) => record._id).sort()).toStrictEqual([
+      "a-interest-1",
+      "g-interest-1",
+    ]);
+    expect(subscriptionsStore.map((record) => record._id).sort()).toStrictEqual(
+      ["a-sub-1", "g-sub-1"],
     );
   });
 

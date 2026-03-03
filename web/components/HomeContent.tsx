@@ -205,7 +205,7 @@ export default function HomeContent() {
     }
 
     if (!guestToken) {
-      globalThis.sessionStorage.removeItem(PENDING_GUEST_UPGRADE_UID_KEY);
+      clearPendingGuestUpgradeSession();
       return;
     }
 

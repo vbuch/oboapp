@@ -112,11 +112,12 @@ function buildSubscriptionPayload(
 function createSetOperation(
   collection: string,
   data: DbRecord,
+  id?: string,
 ): BatchOperation {
   return {
     type: "set",
     collection,
-    id: globalThis.crypto.randomUUID(),
+    id: id ?? globalThis.crypto.randomUUID(),
     data,
   };
 }
@@ -160,22 +161,29 @@ async function restoreUserState(
   }
 
   for (const interestRecord of interestRecords) {
+    const id = getRecordId(interestRecord);
     operations.push(
       createSetOperation(
         INTERESTS_COLLECTION,
         buildInterestPayload(interestRecord, userId),
+        id ?? undefined,
       ),
     );
   }
 
   for (const subscriptionRecord of subscriptionRecords) {
+    const id = getRecordId(subscriptionRecord);
     const payload = buildSubscriptionPayload(subscriptionRecord, userId);
     if (!payload) {
       continue;
     }
 
     operations.push(
-      createSetOperation(NOTIFICATION_SUBSCRIPTIONS_COLLECTION, payload),
+      createSetOperation(
+        NOTIFICATION_SUBSCRIPTIONS_COLLECTION,
+        payload,
+        id ?? undefined,
+      ),
     );
   }
 

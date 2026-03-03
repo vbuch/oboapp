@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { AuthProvider, useAuth } from "./auth-context";
 import type { Auth, User, UserCredential } from "firebase/auth";
+import {
+  PENDING_GUEST_UPGRADE_UID_KEY,
+  PENDING_GUEST_UPGRADE_TOKEN_KEY,
+} from "./auth-upgrade";
 
 const DEFAULT_AUTH_USER = {
   uid: "anonymous-user-id",
@@ -61,6 +65,53 @@ describe("AuthContext", () => {
   });
 
   describe("signInWithGoogle", () => {
+    it("continues Google sign-in when guest upgrade proof storage fails", async () => {
+      const { onAuthStateChanged, signInWithPopup } =
+        await import("firebase/auth");
+      const mockOnAuthStateChanged = onAuthStateChanged as ReturnType<
+        typeof vi.fn
+      >;
+      const mockSignInWithPopup = signInWithPopup as ReturnType<typeof vi.fn>;
+
+      const guestUserWithTokenFailure = {
+        uid: "guest-token-failure-user",
+        isAnonymous: true,
+        getIdToken: vi.fn().mockRejectedValue(new Error("Token unavailable")),
+      } as User;
+
+      mockOnAuthStateChanged.mockImplementationOnce((auth, callback) => {
+        callback(guestUserWithTokenFailure);
+        return vi.fn();
+      });
+      mockSignInWithPopup.mockResolvedValueOnce({} as UserCredential);
+
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {
+        // no-op for test readability
+      });
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <AuthProvider>{children}</AuthProvider>
+      );
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await expect(result.current.signInWithGoogle()).resolves.toBeUndefined();
+
+      expect(mockSignInWithPopup).toHaveBeenCalledTimes(1);
+      expect(
+        globalThis.sessionStorage.getItem(PENDING_GUEST_UPGRADE_UID_KEY),
+      ).toBeNull();
+      expect(
+        globalThis.sessionStorage.getItem(PENDING_GUEST_UPGRADE_TOKEN_KEY),
+      ).toBeNull();
+
+      consoleSpy.mockRestore();
+    });
+
     it("should not throw error when user closes the popup", async () => {
       const { signInWithPopup } = await import("firebase/auth");
       const mockSignInWithPopup = signInWithPopup as ReturnType<typeof vi.fn>;
