@@ -102,7 +102,7 @@ export default function UserMenu({ id, isOpen, onClose }: UserMenuProps) {
         type="button"
         aria-label="Затвори менюто"
         onClick={onClose}
-        className={`fixed inset-0 ${zIndex.modalBackdrop} bg-black/30`}
+        className={`fixed inset-0 ${zIndex.overlay} bg-black/30`}
       />
 
       {/* Slide-in Panel */}
