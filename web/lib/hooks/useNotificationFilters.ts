@@ -30,7 +30,13 @@ export function useNotificationFilters() {
 
   // Fetch current filters on mount
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      setSavedFilters(EMPTY_FILTERS);
+      setSelectedCategories(new Set());
+      setSelectedSources(new Set());
+      return;
+    }
 
     let cancelled = false;
     const currentUser = user;
@@ -122,8 +128,8 @@ export function useNotificationFilters() {
     return false;
   }, [savedFilters, selectedCategories, selectedSources]);
 
-  const save = useCallback(async () => {
-    if (!user) return;
+  const save = useCallback(async (): Promise<boolean> => {
+    if (!user) return false;
 
     try {
       setIsSaving(true);
@@ -146,10 +152,11 @@ export function useNotificationFilters() {
       setSavedFilters(data);
       setSelectedCategories(new Set(data.notificationCategories));
       setSelectedSources(new Set(data.notificationSources));
+      return true;
     } catch (err) {
       console.error("Error saving notification filters:", err);
       setError("Грешка при запазване на филтрите");
-      throw err;
+      return false;
     } finally {
       setIsSaving(false);
     }

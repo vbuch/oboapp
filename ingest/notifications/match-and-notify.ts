@@ -182,22 +182,21 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // Step 3: Load user notification filter preferences
+  // Step 3: Load user notification filter preferences (batch query to avoid N+1)
   const uniqueUserIds = [...new Set(interests.map((i) => i.userId))];
   const userFiltersMap = new Map<string, UserNotificationFilters>();
 
-  for (const userId of uniqueUserIds) {
-    const prefs = await db.userPreferences.findByUserId(userId);
-    if (prefs) {
-      const cats = (prefs.notificationCategories as string[]) ?? [];
-      const srcs = (prefs.notificationSources as string[]) ?? [];
-      // Only add to map if user actually has active filters
-      if (cats.length > 0 || srcs.length > 0) {
-        userFiltersMap.set(userId, {
-          notificationCategories: cats,
-          notificationSources: srcs,
-        });
-      }
+  const allPrefs = await db.userPreferences.findByUserIds(uniqueUserIds);
+  for (const prefs of allPrefs) {
+    const userId = prefs.userId as string;
+    const cats = (prefs.notificationCategories as string[]) ?? [];
+    const srcs = (prefs.notificationSources as string[]) ?? [];
+    // Only add to map if user actually has active filters
+    if (cats.length > 0 || srcs.length > 0) {
+      userFiltersMap.set(userId, {
+        notificationCategories: cats,
+        notificationSources: srcs,
+      });
     }
   }
 

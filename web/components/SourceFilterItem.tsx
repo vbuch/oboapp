@@ -6,8 +6,8 @@ interface SourceFilterItemProps {
   readonly label: string;
   readonly checked: boolean;
   readonly onChange: () => void;
-  readonly count: number;
-  readonly isLoadingCount: boolean;
+  readonly count?: number;
+  readonly isLoadingCount?: boolean;
 }
 
 /**
@@ -19,7 +19,7 @@ export default function SourceFilterItem({
   checked,
   onChange,
   count,
-  isLoadingCount,
+  isLoadingCount = false,
 }: SourceFilterItemProps) {
   return (
     <button

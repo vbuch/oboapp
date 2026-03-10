@@ -5,10 +5,11 @@ import { CategoryEnum } from "./category.schema";
  * Allowed values for notification category filters.
  * Includes all real categories plus "uncategorized" for messages without categories.
  */
-const NotificationCategoryEnum = z.enum([
+const notificationCategoryValues = [
   ...CategoryEnum.options,
   "uncategorized",
-]);
+] as const;
+const NotificationCategoryEnum = z.enum(notificationCategoryValues);
 
 export const UserPreferencesSchema = z.object({
   id: z.string(),

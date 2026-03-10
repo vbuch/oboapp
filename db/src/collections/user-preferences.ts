@@ -35,13 +35,36 @@ export class UserPreferencesRepository {
     return this.db.deleteOne(USER_PREFERENCES_COLLECTION, id);
   }
 
-  /** Find preferences for a user (returns first match or null) */
+  /**
+   * Find preferences for a user (returns first match or null) */
   async findByUserId(userId: string): Promise<Record<string, unknown> | null> {
     const results = await this.db.findMany(USER_PREFERENCES_COLLECTION, {
       where: [{ field: "userId", op: "==", value: userId }],
       limit: 1,
     });
     return results[0] ?? null;
+  }
+
+  /**
+   * Find preferences for multiple users in a single batched query.
+   * Batches in groups of 30 to avoid 'in' operator limits.
+   */
+  async findByUserIds(
+    userIds: string[],
+  ): Promise<Record<string, unknown>[]> {
+    if (userIds.length === 0) return [];
+    const BATCH_SIZE = 30;
+    const results: Record<string, unknown>[] = [];
+
+    for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+      const batch = userIds.slice(i, i + BATCH_SIZE);
+      const docs = await this.db.findMany(USER_PREFERENCES_COLLECTION, {
+        where: [{ field: "userId", op: "in", value: batch }],
+      });
+      results.push(...docs);
+    }
+
+    return results;
   }
 
   /**
