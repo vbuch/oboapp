@@ -1,0 +1,52 @@
+Feature: Heatmap API endpoint (GET /api/messages/heatmap)
+
+  As a consumer of the OboApp public API
+  I want to retrieve heatmap coordinate points for all finalized messages
+  So that I can render a geographic heatmap of historical data
+
+  # ─────────────────────────────────────────────
+  # Happy path
+  # ─────────────────────────────────────────────
+
+  Scenario: Returns a JSON array of coordinate points for finalized messages with GeoJSON
+    Given there are finalized messages with GeoJSON geometry in the database
+    When I send GET "/api/messages/heatmap"
+    Then the response status is 200
+    And the response body has a "points" array
+    And each item in "points" is an array of [latitude, longitude]
+
+  Scenario: City-wide messages are excluded from the response
+    Given there is a finalized message with "cityWide" set to true
+    When I send GET "/api/messages/heatmap"
+    Then the response body "points" array does not contain a centroid from that message
+
+  Scenario: Messages without GeoJSON are excluded from the response
+    Given there is a finalized message with no "geoJson" field
+    When I send GET "/api/messages/heatmap"
+    Then the response body "points" array does not contain a point for that message
+
+  Scenario: Non-finalized messages are excluded from the response
+    Given there is a message that has not been finalized (no "finalizedAt")
+    When I send GET "/api/messages/heatmap"
+    Then the response body "points" array does not contain a point for that message
+
+  Scenario: Multi-feature GeoJSON contributes one point per feature
+    Given there is a finalized message whose GeoJSON has 3 features
+    When I send GET "/api/messages/heatmap"
+    Then the response body "points" array contains 3 points from that message
+
+  Scenario: Returns an empty points array when there are no eligible messages
+    Given the database has no finalized messages with non-city-wide GeoJSON
+    When I send GET "/api/messages/heatmap"
+    Then the response status is 200
+    And the response body is '{"points":[]}'
+
+  # ─────────────────────────────────────────────
+  # Error handling
+  # ─────────────────────────────────────────────
+
+  Scenario: Returns 500 when the database is unavailable
+    Given the database is unavailable
+    When I send GET "/api/messages/heatmap"
+    Then the response status is 500
+    And the response body contains '{"error":"Failed to fetch heatmap data"}'
