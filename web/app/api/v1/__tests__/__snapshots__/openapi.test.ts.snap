@@ -333,6 +333,7 @@ exports[`V1 OpenAPI > matches snapshot 1`] = `
                   "items": {
                     "properties": {
                       "end": {
+                        "nullable": true,
                         "type": "string",
                       },
                       "start": {
@@ -396,6 +397,7 @@ exports[`V1 OpenAPI > matches snapshot 1`] = `
                   "items": {
                     "properties": {
                       "end": {
+                        "nullable": true,
                         "type": "string",
                       },
                       "start": {
@@ -775,6 +777,7 @@ exports[`V1 OpenAPI > matches snapshot 1`] = `
                       "items": {
                         "properties": {
                           "end": {
+                            "nullable": true,
                             "type": "string",
                           },
                           "start": {
@@ -838,6 +841,7 @@ exports[`V1 OpenAPI > matches snapshot 1`] = `
                       "items": {
                         "properties": {
                           "end": {
+                            "nullable": true,
                             "type": "string",
                           },
                           "start": {
@@ -1224,6 +1228,7 @@ exports[`V1 OpenAPI > matches snapshot 1`] = `
                         "items": {
                           "properties": {
                             "end": {
+                              "nullable": true,
                               "type": "string",
                             },
                             "start": {
@@ -1287,6 +1292,7 @@ exports[`V1 OpenAPI > matches snapshot 1`] = `
                         "items": {
                           "properties": {
                             "end": {
+                              "nullable": true,
                               "type": "string",
                             },
                             "start": {
