@@ -69,6 +69,7 @@ Feature: Notification Filters
     When I navigate to "/settings/notification-filters"
     And I click "Избери всички" in the Категории section
     Then all 17 categories and "Некатегоризирани" are selected
+    And the "Избери всички" button in the Категории section is disabled
     When I click "Запази"
     Then my preferences are saved with all categories selected
 
@@ -77,9 +78,20 @@ Feature: Notification Filters
     When I navigate to "/settings/notification-filters"
     And I click "Изчисти всички" in the Категории section
     Then no categories are selected
+    And the "Изчисти всички" button in the Категории section is disabled
     When I click "Запази"
     Then my notification preferences are saved with categories []
     And all future messages pass the category filter (no restriction)
+
+  Scenario: "Избери всички" button is disabled when all categories are already selected
+    Given I have notification category filter set to all categories
+    When I navigate to "/settings/notification-filters"
+    Then the "Избери всички" button in the Категории section is disabled
+
+  Scenario: "Изчисти всички" button is disabled when no categories are selected
+    Given I have no notification filter preferences saved
+    When I navigate to "/settings/notification-filters"
+    Then the "Изчисти всички" button in the Категории section is disabled
 
   # ─── Source Filtering ────────────────────────────────────────────────
 
@@ -100,6 +112,7 @@ Feature: Notification Filters
     When I navigate to "/settings/notification-filters"
     And I click "Избери всички" in the Източници section
     Then all sources for my locality are selected
+    And the "Избери всички" button in the Източници section is disabled
 
   Scenario: Deselect all sources
     Given I have notification source filter set to ["sofiyska-voda", "toplo-bg"]
@@ -108,6 +121,16 @@ Feature: Notification Filters
     And I click "Запази"
     Then my notification preferences are saved with sources []
     And all future messages pass the source filter (no restriction)
+
+  Scenario: "Избери всички" button is disabled when all sources are already selected
+    Given I have notification source filter set to all sources for my locality
+    When I navigate to "/settings/notification-filters"
+    Then the "Избери всички" button in the Източници section is disabled
+
+  Scenario: "Изчисти всички" button is disabled when no sources are selected
+    Given I have no notification filter preferences saved
+    When I navigate to "/settings/notification-filters"
+    Then the "Изчисти всички" button in the Източници section is disabled
 
   # ─── Combined Filters ───────────────────────────────────────────────
 
@@ -131,6 +154,19 @@ Feature: Notification Filters
     Then I am navigated away from the filters page
     When I navigate back to "/settings/notification-filters"
     Then only "Вода" is selected in categories
+
+  Scenario: Browser warns when navigating away with unsaved changes
+    Given I have no notification filter preferences saved
+    When I navigate to "/settings/notification-filters"
+    And I select the "Вода" category
+    And I try to close the browser tab without saving
+    Then I see a browser confirmation dialog warning me about unsaved changes
+
+  Scenario: Browser does not warn when there are no unsaved changes
+    Given I have no notification filter preferences saved
+    When I navigate to "/settings/notification-filters"
+    And I try to close the browser tab without making any changes
+    Then I do not see a browser confirmation dialog
 
   Scenario: Clear all filters removes all active filters
     Given I have notification category filter set to ["water", "electricity"]

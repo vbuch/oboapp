@@ -2,11 +2,14 @@
 
 import { ReactNode } from "react";
 import Accordion from "@/components/Accordion";
+import { buttonStyles, buttonSizes } from "@/lib/theme";
+import { borderRadius } from "@/lib/colors";
 
 interface FilterSectionProps {
   readonly title: string;
   readonly description: string;
   readonly hasActiveFilters: boolean;
+  readonly allSelected: boolean;
   readonly onSelectAll: () => void;
   readonly onDeselectAll: () => void;
   readonly children: ReactNode;
@@ -20,10 +23,12 @@ export default function FilterSection({
   title,
   description,
   hasActiveFilters,
+  allSelected,
   onSelectAll,
   onDeselectAll,
   children,
 }: FilterSectionProps) {
+  const actionButtonClasses = `text-xs ${buttonStyles.ghost} ${buttonSizes.sm} ${borderRadius.sm}`;
   return (
     <Accordion title={title} hasActiveFilters={hasActiveFilters}>
       <div className="px-4 pt-2 pb-4">
@@ -31,15 +36,16 @@ export default function FilterSection({
           <button
             type="button"
             onClick={onSelectAll}
-            className="text-xs text-primary hover:text-primary-hover hover:underline cursor-pointer transition-colors"
+            disabled={allSelected}
+            className={actionButtonClasses}
           >
             Избери всички
           </button>
-          <span className="text-neutral-border">|</span>
           <button
             type="button"
             onClick={onDeselectAll}
-            className="text-xs text-primary hover:text-primary-hover hover:underline cursor-pointer transition-colors"
+            disabled={!hasActiveFilters}
+            className={actionButtonClasses}
           >
             Изчисти всички
           </button>
