@@ -55,6 +55,7 @@ export default function HistoryMapClient() {
           center: SOFIA_CENTER,
           zoom: DEFAULT_ZOOM,
           zoomControl: true,
+          minZoom: 10,
           maxZoom: 15,
         });
         mapInstanceRef.current = map;
@@ -65,6 +66,7 @@ export default function HistoryMapClient() {
           {
             attribution:
               '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            minZoom: 10,
             maxZoom: 15,
             subdomains: "abcd",
           },
