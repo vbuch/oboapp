@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import "leaflet/dist/leaflet.css";
 import { colors } from "@/lib/colors";
 
 type HeatmapPoint = [number, number];

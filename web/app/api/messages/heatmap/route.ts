@@ -1,27 +1,48 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getCentroid } from "@/lib/geometry-utils";
-import type { GeoJSONFeatureCollection } from "@/lib/types";
+import type { GeoJSONFeatureCollection, GeoJSONGeometry } from "@/lib/types";
 
 type HeatmapPoint = [number, number];
 
 /**
+ * Extract every coordinate vertex from a single GeoJSON geometry as heatmap
+ * points in [lat, lng] order (note: GeoJSON stores [lng, lat]).
+ *
+ * - Point      → one point
+ * - LineString → one point per vertex (captures the full shape of each street)
+ * - Polygon    → one point per outer-ring vertex
+ */
+function geometryToPoints(geometry: GeoJSONGeometry): HeatmapPoint[] {
+  switch (geometry.type) {
+    case "Point": {
+      const [lng, lat] = geometry.coordinates;
+      return [[lat, lng]];
+    }
+    case "LineString": {
+      return geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+    }
+    case "Polygon": {
+      // Use the outer ring (index 0); holes are not needed for heatmap density
+      return (geometry.coordinates[0] ?? []).map(([lng, lat]) => [lat, lng]);
+    }
+    default:
+      return [];
+  }
+}
+
+/**
  * Extract coordinate points from a GeoJSON FeatureCollection.
- * Returns one centroid per feature.
+ * Returns all vertices from every feature so that streets and polygons
+ * are fully represented on the heatmap (not just their centroid).
  */
 function extractPoints(geoJson: GeoJSONFeatureCollection): HeatmapPoint[] {
   if (!geoJson?.features || !Array.isArray(geoJson.features)) return [];
 
   const points: HeatmapPoint[] = [];
-
   for (const feature of geoJson.features) {
     if (!feature?.geometry) continue;
-    const centroid = getCentroid(feature.geometry);
-    if (centroid) {
-      points.push([centroid.lat, centroid.lng]);
-    }
+    points.push(...geometryToPoints(feature.geometry));
   }
-
   return points;
 }
 
@@ -29,8 +50,8 @@ function extractPoints(geoJson: GeoJSONFeatureCollection): HeatmapPoint[] {
  * GET /api/messages/heatmap
  *
  * Returns all coordinate points extracted from finalized messages with GeoJSON.
- * Each message may contribute multiple points (one per geometry feature).
- * Intended for heatmap visualization of historical message coverage.
+ * Each feature contributes one point per vertex so that streets and polygons
+ * are faithfully represented on the heatmap at all zoom levels.
  *
  * Performance note: fetches all finalized messages in one query, but requests
  * only the `geoJson` and `cityWide` fields to minimise payload size. At the
@@ -41,8 +62,11 @@ export async function GET() {
   try {
     const db = await getDb();
 
+    // Use `> new Date(0)` instead of `!= null` for cross-backend consistency:
+    // MongoDB's `$ne: null` also matches missing fields, which would include
+    // non-finalized messages.
     const docs = await db.messages.findMany({
-      where: [{ field: "finalizedAt", op: "!=", value: null }],
+      where: [{ field: "finalizedAt", op: ">", value: new Date(0) }],
       select: ["_id", "geoJson", "cityWide"],
     });
 

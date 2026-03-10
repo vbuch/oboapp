@@ -47,7 +47,7 @@ Feature: Historic Heatmap Page (/history)
     And the loading indicator is no longer visible
 
   Scenario: A point-count badge is shown after the map loads
-    Given the heatmap API returns 1500 points
+    Given the heatmap API returns 1500 coordinate points
     When I navigate to "/history"
     And the heatmap data has loaded
     Then I see a badge containing "1 500 точки от исторически данни"

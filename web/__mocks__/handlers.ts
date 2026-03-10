@@ -112,19 +112,32 @@ function filterMessagesBySources(
 export const handlers = [
   // GET /api/messages/heatmap - Return heatmap coordinate points from all finalized messages
   http.get("/api/messages/heatmap", () => {
-    // Extract first coordinate from each feature in mock messages that have geoJson.
-    // Uses [lng, lat] → [lat, lng] conversion matching the production getCentroid logic.
-    const points: [number, number][] = MOCK_MESSAGES.flatMap((msg) => {
-      if (!msg.geoJson?.features) return [];
-      return msg.geoJson.features
-        .filter((f) => f.geometry?.coordinates)
-        .map((f) => {
-          const raw = f.geometry.type === "Point"
-            ? (f.geometry.coordinates as [number, number])
-            : (f.geometry.coordinates as number[][])[0] as [number, number];
-          return [raw[1], raw[0]] as [number, number]; // GeoJSON [lng,lat] → [lat,lng]
-        });
-    });
+    // Mirror production behaviour: skip city-wide messages and extract every
+    // vertex from each feature (Point → 1 point, LineString → all vertices,
+    // Polygon → all outer-ring vertices).
+    const points: [number, number][] = MOCK_MESSAGES
+      .filter((msg) => !msg.cityWide && msg.geoJson?.features)
+      .flatMap((msg) =>
+        msg.geoJson!.features.flatMap((f) => {
+          if (!f.geometry) return [] as [number, number][];
+          if (f.geometry.type === "Point") {
+            const [lng, lat] = f.geometry.coordinates as [number, number];
+            return [[lat, lng]] as [number, number][];
+          }
+          if (f.geometry.type === "LineString") {
+            return (f.geometry.coordinates as [number, number][]).map(
+              ([lng, lat]) => [lat, lng] as [number, number],
+            );
+          }
+          if (f.geometry.type === "Polygon") {
+            const outerRing = (
+              f.geometry.coordinates as [number, number][][]
+            )[0] ?? [];
+            return outerRing.map(([lng, lat]) => [lat, lng] as [number, number]);
+          }
+          return [] as [number, number][];
+        }),
+      );
     return HttpResponse.json({ points });
   }),
 

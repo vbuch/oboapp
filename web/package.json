@@ -36,7 +36,6 @@
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
     "lucide-react": "^0.563.0",
-    "react-leaflet": "^5.0.0",
     "next": "^16.1.6",
     "openapi3-ts": "^4.5.0",
     "react": "19.2.1",
