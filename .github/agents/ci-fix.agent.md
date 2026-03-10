@@ -37,7 +37,7 @@ Your sole job is to **fix the CI failure** described in this issue and open a pu
 
 ## What a good PR looks like
 
-- Title: `fix: <short description of root cause>`
+- Title: short, meaningful description of the root cause (no conventional-commit prefix)
 - Body: explains the root cause in 1-2 sentences, lists the files changed, and confirms
   that lint / type-check / tests all pass.
 - Scope: surgical – only the files strictly needed to fix the failure.
