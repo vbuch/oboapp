@@ -1,3 +1,5 @@
+"use client";
+
 interface LoadingSpinnerProps {
   readonly size?: "sm" | "md" | "lg";
 }

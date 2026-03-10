@@ -2,6 +2,7 @@ import type { OboDb } from "@oboapp/db";
 import type { Message, Interest, NotificationMatch } from "@/lib/types";
 import { matchMessageToInterest } from "./geo-matcher";
 import { logger } from "@/lib/logger";
+import { UNCATEGORIZED } from "@oboapp/shared";
 
 export interface MatchResult {
   messageId: string;
@@ -13,9 +14,9 @@ export interface MatchResult {
 /** User notification filter preferences (loaded from userPreferences collection) */
 export interface UserNotificationFilters {
   /** Categories to include (empty = allow all). May contain "uncategorized". */
-  notificationCategories: string[];
+  notificationCategories: Set<string>;
   /** Sources to include (empty = allow all) */
-  notificationSources: string[];
+  notificationSources: Set<string>;
 }
 
 /**
@@ -38,26 +39,26 @@ export function shouldNotifyUser(
   const { notificationCategories, notificationSources } = filters;
 
   // Check category filter
-  if (notificationCategories.length > 0) {
+  if (notificationCategories.size > 0) {
     const messageCategories = message.categories ?? [];
 
     if (messageCategories.length === 0) {
       // Message has no categories → only passes if "uncategorized" is selected
-      if (!notificationCategories.includes("uncategorized")) {
+      if (!notificationCategories.has(UNCATEGORIZED)) {
         return false;
       }
     } else {
       // Message has categories → at least one must be in the filter set
       const hasMatch = messageCategories.some((cat) =>
-        notificationCategories.includes(cat),
+        notificationCategories.has(cat),
       );
       if (!hasMatch) return false;
     }
   }
 
   // Check source filter
-  if (notificationSources.length > 0) {
-    if (!message.source || !notificationSources.includes(message.source)) {
+  if (notificationSources.size > 0) {
+    if (!message.source || !notificationSources.has(message.source)) {
       return false;
     }
   }
