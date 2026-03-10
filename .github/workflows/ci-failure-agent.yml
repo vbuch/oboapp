@@ -112,8 +112,9 @@ jobs:
               `Please:`,
               `1. Read the failure logs above and identify the root cause.`,
               `2. Implement the minimal fix required (follow the coding conventions in \`AGENTS.md\`).`,
-              `3. Ensure \`pnpm lint\`, \`pnpm tsc --noEmit\`, and \`pnpm test:run\` all pass after the fix.`,
-              `4. Open a pull request targeting \`${branch}\` with your fix.`,
+              `3. Ensure \`pnpm lint\` and \`pnpm test:run\` pass from the repository root after the fix.`,
+              `4. Ensure TypeScript typechecking passes in all relevant workspaces (for each TypeScript package, run \`pnpm --dir <workspace> tsc --noEmit\`).`,
+              `5. Open a pull request targeting \`${branch}\` with your fix.`,
               ``,
               `_This issue was opened automatically by the CI Failure Agent workflow._`,
             ].join('\n');
