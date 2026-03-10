@@ -99,6 +99,7 @@ export function normalizeStreetName(streetName: string): string {
  * Handles OSM naming quirks:
  * - Hyphen spacing: "Данчов-Зографина" query also matches OSM "Данчов - Зографина"
  * - Ordinal suffixes: "20" query also matches OSM "20-ти", "20-ви", etc.
+ * - Abbreviated names: "К. Пейчинович" query also matches OSM "Кирил Пейчинович"
  */
 export function toOverpassRegex(normalizedName: string): string {
   return (
@@ -107,6 +108,9 @@ export function toOverpassRegex(normalizedName: string): string {
       .replaceAll(/([а-яa-z])-([а-яa-z])/gi, "$1( ?- ?)$2")
       // Allow optional ordinal suffix after numbers
       .replaceAll(/(\d+)/g, "$1(-(ти|ви|и|ри|ма|то))?")
+      // Expand single-letter abbreviations: "к. пейчинович" → "к[а-яa-z]* пейчинович"
+      // Only expands a single letter followed by ". " (not multi-letter abbreviations like "ген.")
+      .replaceAll(/(^| )([а-яa-z])\. /gi, "$1$2[\u0430-\u044fa-z]* ")
   );
 }
 

@@ -225,5 +225,25 @@ describe("overpass-geocoding-service", () => {
     it("leaves plain street names unchanged", () => {
       expect(toOverpassRegex("лайош кошут")).toBe("лайош кошут");
     });
+
+    it("expands single-letter abbreviation at start: к. пейчинович matches Кирил Пейчинович", () => {
+      const regex = new RegExp(toOverpassRegex("к. пейчинович"), "i");
+      // OSM stores the full name, so the expanded pattern must match it
+      expect(regex.test("Кирил Пейчинович")).toBe(true);
+      // Also still matches when the first letter is followed by more letters (any initial)
+      expect(regex.test("Кузман Пейчинович")).toBe(true);
+    });
+
+    it("expands single-letter abbreviation in the middle: михаил д. скобелев matches Михаил Дмитриевич Скобелев", () => {
+      const regex = new RegExp(toOverpassRegex("михаил д. скобелев"), "i");
+      expect(regex.test("Михаил Дмитриевич Скобелев")).toBe(true);
+      expect(regex.test("Михаил Д. Скобелев")).toBe(false); // abbreviated form not matched (dot consumed)
+    });
+
+    it("does not expand multi-letter abbreviations (ген. stays literal)", () => {
+      const pattern = toOverpassRegex("ген. михаил скобелев");
+      // "ген." has 3 letters — must NOT be expanded to ген[а-яa-z]*
+      expect(pattern).not.toContain("ген[а-яa-z]*");
+    });
   });
 });
