@@ -65,19 +65,8 @@ jobs:
             let logSections = '';
             // Cap at 4 jobs so the combined issue body stays within GitHub's 65536-char limit
             for (const job of failedJobs.slice(0, 4)) {
-              let logs = '_Could not retrieve logs._';
-              try {
-                const resp = await github.rest.actions.downloadJobLogsForWorkflowRun({
-                  owner:  context.repo.owner,
-                  repo:   context.repo.repo,
-                  job_id: job.id,
-                });
-                // Trim to last 8000 chars to stay within issue body limits
-                const raw = typeof resp.data === 'string' ? resp.data : String(resp.data);
-                logs = raw.length > 8000 ? '…(truncated)\n' + raw.slice(-8000) : raw;
-              } catch (err) {
-                logs = `_Log fetch error: ${err.message}_`;
-              }
+              const jobUrl = job.html_url || `${runUrl}/jobs/${job.id}`;
+              const logs = `View logs for this job:\n${jobUrl}`;
               logSections += `\n### ❌ ${job.name}\n\`\`\`\n${logs}\n\`\`\`\n`;
             }
 
