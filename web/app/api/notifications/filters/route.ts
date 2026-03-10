@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       notificationSources: (prefs.notificationSources as string[]) ?? [],
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "Missing auth token") {
+    if (error instanceof Error && (error.message === "Missing auth token" || error.message === "Invalid auth token")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     console.error("Error fetching notification filters:", error);
@@ -62,7 +62,7 @@ export async function PUT(request: NextRequest) {
       notificationSources: parsed.data.notificationSources,
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "Missing auth token") {
+    if (error instanceof Error && (error.message === "Missing auth token" || error.message === "Invalid auth token")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     console.error("Error saving notification filters:", error);
@@ -96,7 +96,7 @@ export async function DELETE(request: NextRequest) {
       notificationSources: [],
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "Missing auth token") {
+    if (error instanceof Error && (error.message === "Missing auth token" || error.message === "Invalid auth token")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     console.error("Error clearing notification filters:", error);
