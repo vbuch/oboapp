@@ -17,6 +17,7 @@ import { borderRadius } from "@/lib/colors";
 import { ArrowLeft, Info } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function NotificationFiltersPage() {
   const router = useRouter();
@@ -80,7 +81,7 @@ export default function NotificationFiltersPage() {
   if (authLoading || !user) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -118,7 +119,7 @@ export default function NotificationFiltersPage() {
 
       {isLoading ? (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <LoadingSpinner />
         </div>
       ) : (
         <>
