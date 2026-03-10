@@ -4,7 +4,7 @@ import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { Message } from "@/lib/types";
 import { classifyMessage } from "@/lib/message-classification";
-import { useDragPanel } from "@/lib/hooks/useDragPanel";
+import { useDragPanel, type DragHandlers } from "@/lib/hooks/useDragPanel";
 import { useMessageAnimation } from "@/lib/hooks/useMessageAnimation";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { zIndex } from "@/lib/colors";
@@ -15,7 +15,6 @@ import DetailItem from "./DetailItem";
 import MessageText from "./MessageText";
 import CategoryChips from "@/components/CategoryChips";
 import { getFeaturesCentroid } from "@/lib/geometry-utils";
-import { DragHandlers } from "@/lib/hooks/useDragPanel";
 
 type CloseMethod = "drag" | "esc";
 
@@ -33,12 +32,12 @@ function formatDate(date: Date | string): string {
 // Mobile viewport detection via useSyncExternalStore
 const mobileQuery = "(max-width: 639px)";
 function subscribeMobile(callback: () => void) {
-  const mql = window.matchMedia(mobileQuery);
+  const mql = globalThis.matchMedia(mobileQuery);
   mql.addEventListener("change", callback);
   return () => mql.removeEventListener("change", callback);
 }
 function getIsMobile() {
-  return window.matchMedia(mobileQuery).matches;
+  return globalThis.matchMedia(mobileQuery).matches;
 }
 function getIsMobileServer() {
   return false;
@@ -220,8 +219,9 @@ export default function MessageDetailView({
   if (!message) return null;
 
   // Determine which drag is active
+  const fallbackDragOffset = isDragging ? dragOffset : 0;
   const activeDragOffset =
-    pullDownOffset > 0 ? pullDownOffset : isDragging ? dragOffset : 0;
+    pullDownOffset > 0 ? pullDownOffset : fallbackDragOffset;
   const isAnyDragging = isDragging || pullDownOffset > 0;
 
   return (

@@ -180,11 +180,7 @@ export default function HomeContent() {
   }, []);
 
   useEffect(() => {
-    if (
-      !user ||
-      user.isAnonymous ||
-      typeof globalThis.sessionStorage === "undefined"
-    ) {
+    if (!user || user.isAnonymous || globalThis.sessionStorage === undefined) {
       return;
     }
 
@@ -328,7 +324,7 @@ export default function HomeContent() {
           params: { option, status: "success" },
         });
 
-        if (typeof globalThis.sessionStorage !== "undefined") {
+        if (globalThis.sessionStorage !== undefined) {
           clearPendingGuestUpgradeSession();
         }
 
@@ -676,7 +672,9 @@ export default function HomeContent() {
                         try {
                           await signInWithGoogle();
                         } catch {
-                          window.alert("Неуспешно влизане. Опитайте отново.");
+                          globalThis.alert(
+                            "Неуспешно влизане. Опитайте отново.",
+                          );
                         }
                       }}
                       className={`${buttonSizes.sm} ${buttonStyles.ghost} ${borderRadius.sm}`}
