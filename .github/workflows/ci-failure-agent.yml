@@ -1,0 +1,141 @@
+name: CI Failure – Trigger Copilot Fix Agent
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types: [completed]
+
+jobs:
+  trigger-fix-agent:
+    name: Open Fix Issue for Copilot Agent
+    runs-on: ubuntu-latest
+    # Only act on failures; skip if this is already a Copilot-generated commit
+    if: >
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.actor.login != 'github-actions[bot]' &&
+      github.event.workflow_run.actor.login != 'copilot-swe-agent[bot]'
+
+    permissions:
+      actions: read    # read workflow run logs
+      contents: read
+      issues: write    # create the fix issue
+
+    steps:
+      - name: Collect failed-job logs
+        id: collect
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId   = context.payload.workflow_run.id;
+            const runUrl  = context.payload.workflow_run.html_url;
+            const branch  = context.payload.workflow_run.head_branch;
+            const sha     = context.payload.workflow_run.head_sha;
+            const shortSha = sha.substring(0, 7);
+
+            // ── Deduplicate: skip if we already opened an issue for this run ──
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              labels: 'ci-failure',
+              state: 'open',
+              per_page: 20,
+            });
+            const alreadyOpen = existing.data.some(i =>
+              i.body && i.body.includes(`run_id=${runId}`)
+            );
+            if (alreadyOpen) {
+              core.info(`Issue for run ${runId} already exists – skipping.`);
+              core.setOutput('skip', 'true');
+              return;
+            }
+            core.setOutput('skip', 'false');
+
+            // ── Fetch jobs and collect logs for failed ones ──
+            const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
+              owner:  context.repo.owner,
+              repo:   context.repo.repo,
+              run_id: runId,
+              filter: 'latest',
+            });
+
+            const failedJobs = jobs.filter(j => j.conclusion === 'failure');
+            const failedJobNames = failedJobs.map(j => j.name).join(', ');
+
+            let logSections = '';
+            // Cap at 4 jobs so the combined issue body stays within GitHub's 65536-char limit
+            for (const job of failedJobs.slice(0, 4)) {
+              let logs = '_Could not retrieve logs._';
+              try {
+                const resp = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                  owner:  context.repo.owner,
+                  repo:   context.repo.repo,
+                  job_id: job.id,
+                });
+                // Trim to last 8000 chars to stay within issue body limits
+                const raw = typeof resp.data === 'string' ? resp.data : String(resp.data);
+                logs = raw.length > 8000 ? '…(truncated)\n' + raw.slice(-8000) : raw;
+              } catch (err) {
+                logs = `_Log fetch error: ${err.message}_`;
+              }
+              logSections += `\n### ❌ ${job.name}\n\`\`\`\n${logs}\n\`\`\`\n`;
+            }
+
+            // ── Store outputs ──
+            core.setOutput('run_id',          String(runId));
+            core.setOutput('run_url',         runUrl);
+            core.setOutput('branch',          branch);
+            core.setOutput('sha',             sha);
+            core.setOutput('short_sha',       shortSha);
+            core.setOutput('failed_job_names', failedJobNames);
+            core.setOutput('log_sections',    logSections);
+
+      - name: Create Copilot fix issue
+        if: steps.collect.outputs.skip == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId         = '${{ steps.collect.outputs.run_id }}';
+            const runUrl        = '${{ steps.collect.outputs.run_url }}';
+            const branch        = '${{ steps.collect.outputs.branch }}';
+            const sha           = '${{ steps.collect.outputs.sha }}';
+            const shortSha      = '${{ steps.collect.outputs.short_sha }}';
+            const failedJobs    = '${{ steps.collect.outputs.failed_job_names }}';
+            // Log sections are passed via env to avoid shell-quoting problems
+            const logSections   = process.env.LOG_SECTIONS;
+
+            const body = [
+              `## CI failure on \`${branch}\` (${shortSha})`,
+              ``,
+              `| Field | Value |`,
+              `|-------|-------|`,
+              `| **Workflow run** | [View run](${runUrl}) |`,
+              `| **Branch** | \`${branch}\` |`,
+              `| **Commit** | \`${sha}\` |`,
+              `| **Failed jobs** | ${failedJobs} |`,
+              `| **run_id** | run_id=${runId} |`,
+              ``,
+              `## Failure logs`,
+              logSections,
+              `---`,
+              `## Task for Copilot`,
+              ``,
+              `Please:`,
+              `1. Read the failure logs above and identify the root cause.`,
+              `2. Implement the minimal fix required (follow the coding conventions in \`AGENTS.md\`).`,
+              `3. Ensure \`pnpm lint\`, \`pnpm tsc --noEmit\`, and \`pnpm test:run\` all pass after the fix.`,
+              `4. Open a pull request targeting \`${branch}\` with your fix.`,
+              ``,
+              `_This issue was opened automatically by the CI Failure Agent workflow._`,
+            ].join('\n');
+
+            const { data: issue } = await github.rest.issues.create({
+              owner:  context.repo.owner,
+              repo:   context.repo.repo,
+              title:  `[CI Fix] ${failedJobs} failed on ${branch} (${shortSha})`,
+              body,
+              labels: ['ci-failure', 'copilot'],
+            });
+
+            core.info(`Opened issue #${issue.number}: ${issue.html_url}`);
+        env:
+          LOG_SECTIONS: ${{ steps.collect.outputs.log_sections }}
