@@ -33,16 +33,17 @@ jobs:
             const shortSha = sha.substring(0, 7);
 
             // ── Deduplicate: skip if we already opened an issue for this run ──
-            const existing = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo:  context.repo.repo,
-              labels: 'ci-failure',
-              state: 'open',
-              per_page: 20,
+            const searchQuery = [
+              `repo:${context.repo.owner}/${context.repo.repo}`,
+              'label:ci-failure',
+              'state:open',
+              `run_id=${runId}`,
+            ].join(' ');
+            const searchResult = await github.rest.search.issuesAndPullRequests({
+              q: searchQuery,
+              per_page: 1,
             });
-            const alreadyOpen = existing.data.some(i =>
-              i.body && i.body.includes(`run_id=${runId}`)
-            );
+            const alreadyOpen = searchResult.data.total_count > 0;
             if (alreadyOpen) {
               core.info(`Issue for run ${runId} already exists – skipping.`);
               core.setOutput('skip', 'true');
