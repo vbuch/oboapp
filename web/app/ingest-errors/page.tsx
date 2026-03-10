@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import MessageCard, { MessageCardSkeleton } from "@/components/MessageCard";
 import MessageDetailView from "@/components/MessageDetailView/MessageDetailView";
 import type { InternalMessage } from "@/lib/types";
@@ -94,6 +95,17 @@ export default function IngestErrorsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Back link */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="text-primary hover:text-primary-hover inline-flex items-center gap-2"
+          >
+            <span>←</span>
+            <span>Начало</span>
+          </Link>
+        </div>
+
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-neutral-border">
           <div className="space-y-2">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">

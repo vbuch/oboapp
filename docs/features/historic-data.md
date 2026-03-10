@@ -4,13 +4,13 @@ A read-only page that visualises the full message history as a heatmap, enabling
 
 ## Screenshot
 
-![Historic data heatmap page showing Sofia, Bulgaria on a Leaflet map](https://github.com/user-attachments/assets/29d7df29-7cda-436e-8f16-64812e6e07cb)
+![Historic data heatmap page showing Sofia, Bulgaria on a desaturated Leaflet map](https://github.com/user-attachments/assets/ff68d257-ca7d-4efa-83c6-9a3a6f165375)
 
 ## Purpose
 
-With ~5 000+ messages in the collection — each potentially containing multiple geometry features — it is not practical to render them all on the regular Google Maps view. This page uses [Leaflet](https://leafletjs.com/) with the [leaflet.heat](https://github.com/Leaflet/Leaflet.heat) plugin and free OpenStreetMap tiles, which scale to any number of points without API-key costs.
+With ~5 000+ messages (at the time of implementation) in the collection — each potentially containing multiple geometry features — it is not practical to render them all on the regular Google Maps view. This page uses [Leaflet](https://leafletjs.com/) with the [leaflet.heat](https://github.com/Leaflet/Leaflet.heat) plugin and free OpenStreetMap tiles, which scale to any number of points without API-key costs.
 
-Operators can use the map to:
+The map can be used to:
 
 - Identify **hotspot areas** that appear frequently in crawler output.
 - Spot **coverage gaps** — neighbourhoods rarely or never mentioned in source data.

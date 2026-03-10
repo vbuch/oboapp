@@ -55,14 +55,20 @@ export default function HistoryMapClient() {
           center: SOFIA_CENTER,
           zoom: DEFAULT_ZOOM,
           zoomControl: true,
+          maxZoom: 15,
         });
         mapInstanceRef.current = map;
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          maxZoom: 18,
-        }).addTo(map);
+        // CartoDB Positron: a clean, desaturated base map (no API key required)
+        L.tileLayer(
+          "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+          {
+            attribution:
+              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            maxZoom: 15,
+            subdomains: "abcd",
+          },
+        ).addTo(map);
 
         const points = await fetchHeatmapPoints();
         if (cancelled) return;
