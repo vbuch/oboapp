@@ -166,7 +166,7 @@ function processPinsWithPreResolvedCoordinates(
   pins: Array<{
     address: string;
     coordinates?: Coordinates;
-    timespans: Array<{ start: string; end: string }>;
+    timespans: Array<{ start: string; end: string | null }>;
   }>,
   preGeocodedMap: Map<string, Coordinates>,
   addresses: Address[],

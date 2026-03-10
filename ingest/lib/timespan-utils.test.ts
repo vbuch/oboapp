@@ -128,7 +128,10 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
   const fallbackDate = new Date("2026-01-01T00:00:00Z");
 
   it("should return fallback when extractedData is null", () => {
-    const result = extractTimespanRangeFromExtractedLocations(null, fallbackDate);
+    const result = extractTimespanRangeFromExtractedLocations(
+      null,
+      fallbackDate,
+    );
 
     expect(result.timespanStart).toBe(fallbackDate);
     expect(result.timespanEnd).toBe(fallbackDate);
@@ -151,7 +154,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
 
   it("should extract MIN start and MAX end from pins", () => {
     const extractedData: ExtractedLocations = {
-
       pins: [
         {
           address: "Address 1",
@@ -162,7 +164,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
         },
       ],
       streets: [],
-
     };
 
     const result = extractTimespanRangeFromExtractedLocations(
@@ -184,7 +185,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
 
   it("should extract MIN start and MAX end from streets", () => {
     const extractedData: ExtractedLocations = {
-
       pins: [],
       streets: [
         {
@@ -194,7 +194,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
           timespans: [{ start: "05.01.2026 06:00", end: "05.01.2026 10:00" }],
         },
       ],
-
     };
 
     const result = extractTimespanRangeFromExtractedLocations(
@@ -214,7 +213,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
 
   it("should extract from cadastral properties", () => {
     const extractedData: ExtractedLocations = {
-
       pins: [],
       streets: [],
       cadastralProperties: [
@@ -223,7 +221,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
           timespans: [{ start: "20.01.2026 09:00", end: "20.01.2026 17:00" }],
         },
       ],
-
     };
 
     const result = extractTimespanRangeFromExtractedLocations(
@@ -242,7 +239,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
 
   it("should combine timespans from multiple sources", () => {
     const extractedData: ExtractedLocations = {
-
       pins: [
         {
           address: "Pin 1",
@@ -257,7 +253,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
           timespans: [{ start: "05.01.2026 14:00", end: "15.01.2026 18:00" }],
         },
       ],
-
     };
 
     const result = extractTimespanRangeFromExtractedLocations(
@@ -275,7 +270,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
 
   it("should handle invalid date formats gracefully", () => {
     const extractedData: ExtractedLocations = {
-
       pins: [
         {
           address: "Pin 1",
@@ -286,7 +280,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
         },
       ],
       streets: [],
-
     };
 
     const result = extractTimespanRangeFromExtractedLocations(
@@ -303,7 +296,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
 
   it("should return fallback when all timespans are invalid", () => {
     const extractedData: ExtractedLocations = {
-
       pins: [
         {
           address: "Pin 1",
@@ -311,7 +303,6 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
         },
       ],
       streets: [],
-
     };
 
     const result = extractTimespanRangeFromExtractedLocations(
@@ -321,6 +312,30 @@ describe("extractTimespanRangeFromExtractedLocations", () => {
 
     expect(result.timespanStart).toBe(fallbackDate);
     expect(result.timespanEnd).toBe(fallbackDate);
+  });
+
+  it("should use start + 30 days as timespanEnd for open-ended timespans (end: null)", () => {
+    const extractedData: ExtractedLocations = {
+      pins: [],
+      streets: [
+        {
+          street: "ул. Кн. Александър I",
+          from: "ул. Ген. Гурко",
+          to: "ул. Съборна",
+          timespans: [{ start: "04.03.2026 15:00", end: null }],
+        },
+      ],
+    };
+
+    const result = extractTimespanRangeFromExtractedLocations(
+      extractedData,
+      fallbackDate,
+    );
+
+    // timespanStart should be the parsed start date: 04.03.2026 15:00
+    expect(result.timespanStart).toEqual(new Date(2026, 2, 4, 15, 0));
+    // timespanEnd should be start + 7 days: 11.03.2026 15:00
+    expect(result.timespanEnd).toEqual(new Date(2026, 2, 11, 15, 0));
   });
 });
 

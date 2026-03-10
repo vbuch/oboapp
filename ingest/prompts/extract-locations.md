@@ -150,7 +150,8 @@ An array of objects representing Bulgarian **УПИ (Урегулиран поз
 
 An array of all date and time ranges associated with a location.
 
-- **Format**: Each object must have a `start` and `end` key with the value in `DD.MM.YYYY HH:MM` format.
+- **Format**: Each object must have a `start` key and an `end` key with the value in `DD.MM.YYYY HH:MM` format.
+- **Open-ended events**: If the end time is explicitly unknown or the text says the restriction is "until further notice" / "до отпадане на необходимостта" / similar, set `end` to `null`.
 
 # Key Notes for Geocoding
 

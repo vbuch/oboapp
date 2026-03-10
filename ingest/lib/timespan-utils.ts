@@ -7,6 +7,9 @@ import type {
 // Use UTC to avoid timezone-dependent boundary behavior
 const TIMESPAN_MIN_DATE = new Date(Date.UTC(2025, 0, 1)); // 2025-01-01T00:00:00Z
 
+// Fallback duration for open-ended events (end: null) — "until further notice"
+const OPEN_ENDED_FALLBACK_DAYS = 7;
+
 /**
  * Parse Bulgarian date format "DD.MM.YYYY HH:MM" to Date object
  * @param dateStr - Date string in Bulgarian format
@@ -125,8 +128,10 @@ function parseTimespans(timespans: Timespan[]): Date[] {
   const dates: Date[] = [];
 
   for (const timespan of timespans) {
+    let startDate: Date | null = null;
+
     if (timespan.start) {
-      const startDate = parseBulgarianDate(timespan.start);
+      startDate = parseBulgarianDate(timespan.start);
       if (startDate) {
         dates.push(startDate);
       }
@@ -137,6 +142,12 @@ function parseTimespans(timespans: Timespan[]): Date[] {
       if (endDate) {
         dates.push(endDate);
       }
+    } else if (startDate) {
+      // end is null — open-ended event ("until further notice")
+      // Use start + fallback so the message stays visible on the map
+      const fallbackEnd = new Date(startDate);
+      fallbackEnd.setDate(fallbackEnd.getDate() + OPEN_ENDED_FALLBACK_DAYS);
+      dates.push(fallbackEnd);
     }
   }
 

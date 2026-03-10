@@ -18,7 +18,7 @@ const BUFFER_WIDTH_RESIDENTIAL = 7; // 6-8m average
 
 // Step 1 — PIN / Address Geocoding (Points)
 function createPinFeature(
-  pin: { address: string; timespans: { start: string; end: string }[] },
+  pin: { address: string; timespans: { start: string; end: string | null }[] },
   preGeocodedAddresses: Map<string, IntersectionCoordinates>,
 ): GeoJSONFeature {
   const coords = preGeocodedAddresses.get(pin.address);
