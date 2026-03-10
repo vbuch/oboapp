@@ -16,6 +16,7 @@ import {
   storeNotificationMatches,
   getUnnotifiedMatches,
 } from "./match-processor";
+import type { UserNotificationFilters } from "./match-processor";
 import {
   sendToUserDevices,
   updateMatchWithResults,
@@ -181,10 +182,37 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // Step 3: Match messages with interests
+  // Step 3: Load user notification filter preferences
+  const uniqueUserIds = [...new Set(interests.map((i) => i.userId))];
+  const userFiltersMap = new Map<string, UserNotificationFilters>();
+
+  for (const userId of uniqueUserIds) {
+    const prefs = await db.userPreferences.findByUserId(userId);
+    if (prefs) {
+      const cats = (prefs.notificationCategories as string[]) ?? [];
+      const srcs = (prefs.notificationSources as string[]) ?? [];
+      // Only add to map if user actually has active filters
+      if (cats.length > 0 || srcs.length > 0) {
+        userFiltersMap.set(userId, {
+          notificationCategories: cats,
+          notificationSources: srcs,
+        });
+      }
+    }
+  }
+
+  if (userFiltersMap.size > 0) {
+    logger.info("Loaded user notification filters", {
+      usersWithFilters: userFiltersMap.size,
+      totalUsers: uniqueUserIds.length,
+    });
+  }
+
+  // Step 4: Match messages with interests (applying user filters)
   const matches = await matchMessagesWithInterests(
     unprocessedMessages,
     interests,
+    userFiltersMap,
   );
 
   if (matches.length === 0) {
@@ -197,13 +225,13 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // Step 4: Deduplicate matches
+  // Step 5: Deduplicate matches
   const dedupedMatches = deduplicateMatches(matches);
 
-  // Step 5: Store matches in database
+  // Step 6: Store matches in database
   await storeNotificationMatches(db, dedupedMatches);
 
-  // Step 6: Get all unnotified matches (including ones we just stored)
+  // Step 7: Get all unnotified matches (including ones we just stored)
   const unnotifiedMatches = await getUnnotifiedMatches(db);
 
   if (unnotifiedMatches.length === 0) {
@@ -216,10 +244,10 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // Step 7: Send notifications
+  // Step 8: Send notifications
   await sendNotifications(db, messaging, unnotifiedMatches);
 
-  // Step 8: Mark messages as having notifications sent
+  // Step 9: Mark messages as having notifications sent
   const messageIds = unprocessedMessages
     .map((m) => m.id)
     .filter((id): id is string => !!id);

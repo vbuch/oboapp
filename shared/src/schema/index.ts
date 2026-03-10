@@ -14,6 +14,7 @@ export * from "./pin.schema";
 export * from "./source.schema";
 export * from "./street-section.schema";
 export * from "./timespan.schema";
+export * from "./user-preferences.schema";
 
 // Re-export the zod instance
 export { z } from "zod";

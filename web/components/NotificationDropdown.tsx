@@ -98,15 +98,25 @@ export default function NotificationDropdown({
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-neutral-border">
         <h3 className="text-lg font-semibold text-foreground">Известия</h3>
-        {notifications.length > 0 && (
-          <button
-            type="button"
-            onClick={markAllRead}
-            className="text-sm text-primary hover:text-primary-hover hover:underline cursor-pointer transition-colors"
+        <div className="flex items-center gap-3">
+          <Link
+            href="/settings/notification-filters"
+            onClick={onClose}
+            className="text-sm text-primary hover:text-primary-hover hover:underline transition-colors"
+            title="Филтри за известия"
           >
-            Маркирай всички прочетени
-          </button>
-        )}
+            Филтри
+          </Link>
+          {notifications.length > 0 && (
+            <button
+              type="button"
+              onClick={markAllRead}
+              className="text-sm text-primary hover:text-primary-hover hover:underline cursor-pointer transition-colors"
+            >
+              Маркирай всички прочетени
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
