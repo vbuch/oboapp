@@ -16,6 +16,7 @@ import {
 } from "@/lib/notification-service";
 import { formatNotificationDateTime } from "@/lib/notification-history";
 import { useNotificationHistory } from "@/lib/hooks/useNotificationHistory";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface NotificationDropdownProps {
   readonly isOpen: boolean;
@@ -134,7 +135,7 @@ export default function NotificationDropdown({
 
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <LoadingSpinner />
           </div>
         ) : error ? (
           <div className="p-4 text-center text-error">{error}</div>

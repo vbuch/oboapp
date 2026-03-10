@@ -18,6 +18,7 @@ import {
 } from "@/lib/notification-service";
 import { formatNotificationDateTime } from "@/lib/notification-history";
 import { useNotificationHistory } from "@/lib/hooks/useNotificationHistory";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function NotificationsPage() {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ export default function NotificationsPage() {
 
           <h1 className="text-3xl font-bold text-gray-900 mb-8">Известия</h1>
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <LoadingSpinner size="lg" />
           </div>
         </div>
       </div>
