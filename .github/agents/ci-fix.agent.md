@@ -15,11 +15,11 @@ Your sole job is to **fix the CI failure** described in this issue and open a pu
 1. **Read the issue** – understand which job failed and why.
 2. **Reproduce locally** (mentally) – trace the error to the exact file(s) and line(s).
 3. **Apply the minimal fix** – change only what is necessary; do not refactor unrelated code.
-4. **Validate** before opening the PR:
-   - `pnpm lint` (in the affected workspace directory) – 0 errors
-   - `pnpm tsc --noEmit` (in the affected workspace directory) – 0 errors
-   - `pnpm test:run` (in the affected workspace directory) – all tests pass
-   - `pnpm build` in `shared/` if you touched anything under `shared/`
+4. **Validate** before opening the PR (following the pre-PR checks in `AGENTS.md`):
+   - In `web/`: `pnpm lint` and `pnpm tsc --noEmit` – 0 errors
+   - In `ingest/`: `pnpm lint` and `pnpm tsc --noEmit` – 0 errors
+   - From the repo root: `pnpm test:run` – all tests pass
+   - In `shared/`: `pnpm build` if you touched anything under `shared/`
 5. **Open a PR** targeting the branch mentioned in the issue with a clear title and description.
 
 ## Coding conventions (from AGENTS.md)
