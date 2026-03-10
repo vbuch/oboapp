@@ -42,6 +42,14 @@ export default function Footer({ className = "" }: FooterProps) {
                   Съобщения с грешки
                 </Link>
               </div>
+              <div>
+                <Link
+                  href="/history"
+                  className="text-link hover:text-link-hover hover:underline"
+                >
+                  Исторически данни
+                </Link>
+              </div>
             </div>
           </div>
         </div>

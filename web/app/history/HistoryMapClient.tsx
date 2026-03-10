@@ -1,0 +1,122 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import "leaflet/dist/leaflet.css";
+import { colors } from "@/lib/colors";
+
+type HeatmapPoint = [number, number];
+
+interface HeatmapResponse {
+  points: HeatmapPoint[];
+}
+
+const SOFIA_CENTER: [number, number] = [42.6977, 23.3219];
+const DEFAULT_ZOOM = 13;
+
+// Heatmap gradient using theme colors: cool → warm → hot
+const HEATMAP_GRADIENT = {
+  0.4: colors.zones.blue,
+  0.65: colors.semantic.warning,
+  1: colors.semantic.error,
+};
+
+async function fetchHeatmapPoints(): Promise<HeatmapPoint[]> {
+  const response = await fetch("/api/messages/heatmap");
+  if (!response.ok) {
+    throw new Error("Failed to fetch heatmap data");
+  }
+  const data = (await response.json()) as HeatmapResponse;
+  return data.points;
+}
+
+export default function HistoryMapClient() {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pointCount, setPointCount] = useState(0);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    let mapInstance: import("leaflet").Map | null = null;
+
+    async function init() {
+      try {
+        const L = (await import("leaflet")).default;
+        await import("leaflet.heat");
+
+        if (!mapRef.current) return;
+
+        mapInstance = L.map(mapRef.current, {
+          center: SOFIA_CENTER,
+          zoom: DEFAULT_ZOOM,
+          zoomControl: true,
+        });
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 18,
+        }).addTo(mapInstance);
+
+        const points = await fetchHeatmapPoints();
+        setPointCount(points.length);
+
+        if (points.length > 0) {
+          const heatLayer = (L as unknown as { heatLayer: (points: HeatmapPoint[], options: Record<string, unknown>) => import("leaflet").Layer }).heatLayer(points, {
+            radius: 20,
+            blur: 25,
+            maxZoom: 17,
+            gradient: HEATMAP_GRADIENT,
+          });
+          heatLayer.addTo(mapInstance);
+        }
+
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Error initializing heatmap:", err);
+        setError("Грешка при зареждане на картата");
+        setIsLoading(false);
+      }
+    }
+
+    init();
+
+    return () => {
+      if (mapInstance) {
+        mapInstance.remove();
+      }
+    };
+  }, []);
+
+  return (
+    <div className="relative w-full h-full min-h-[500px]">
+      {isLoading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-neutral-light">
+          <div className="text-center space-y-2">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-sm text-neutral">Зареждане на данните...</p>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-neutral-light">
+          <div className="rounded-md border border-error-border bg-error-light p-4 text-error text-sm">
+            {error}
+          </div>
+        </div>
+      )}
+
+      <div ref={mapRef} className="w-full h-full min-h-[500px]" />
+
+      {!isLoading && !error && pointCount > 0 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[400] pointer-events-none">
+          <div className="bg-white/90 rounded-lg px-3 py-1.5 shadow text-xs text-neutral border border-neutral-border">
+            {pointCount.toLocaleString("bg-BG")} точки от исторически данни
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
