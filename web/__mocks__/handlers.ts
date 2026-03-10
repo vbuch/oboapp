@@ -110,6 +110,24 @@ function filterMessagesBySources(
 }
 
 export const handlers = [
+  // GET /api/messages/heatmap - Return heatmap coordinate points from all finalized messages
+  http.get("/api/messages/heatmap", () => {
+    // Extract first coordinate from each feature in mock messages that have geoJson.
+    // Uses [lng, lat] → [lat, lng] conversion matching the production getCentroid logic.
+    const points: [number, number][] = MOCK_MESSAGES.flatMap((msg) => {
+      if (!msg.geoJson?.features) return [];
+      return msg.geoJson.features
+        .filter((f) => f.geometry?.coordinates)
+        .map((f) => {
+          const raw = f.geometry.type === "Point"
+            ? (f.geometry.coordinates as [number, number])
+            : (f.geometry.coordinates as number[][])[0] as [number, number];
+          return [raw[1], raw[0]] as [number, number]; // GeoJSON [lng,lat] → [lat,lng]
+        });
+    });
+    return HttpResponse.json({ points });
+  }),
+
   // GET /api/messages - Fetch messages with viewport/category/source filtering
   http.get("/api/messages", ({ request }) => {
     const url = new URL(request.url);

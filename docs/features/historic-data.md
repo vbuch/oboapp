@@ -2,6 +2,10 @@
 
 A read-only page that visualises the full message history as a heatmap, enabling coverage analysis of the crawled locality.
 
+## Screenshot
+
+![Historic data heatmap page showing Sofia, Bulgaria on a Leaflet map](https://github.com/user-attachments/assets/29d7df29-7cda-436e-8f16-64812e6e07cb)
+
 ## Purpose
 
 With ~5 000+ messages in the collection — each potentially containing multiple geometry features — it is not practical to render them all on the regular Google Maps view. This page uses [Leaflet](https://leafletjs.com/) with the [leaflet.heat](https://github.com/Leaflet/Leaflet.heat) plugin and free OpenStreetMap tiles, which scale to any number of points without API-key costs.

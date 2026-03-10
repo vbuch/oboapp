@@ -31,6 +31,7 @@ async function fetchHeatmapPoints(): Promise<HeatmapPoint[]> {
 
 export default function HistoryMapClient() {
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pointCount, setPointCount] = useState(0);
@@ -38,53 +39,63 @@ export default function HistoryMapClient() {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    let mapInstance: import("leaflet").Map | null = null;
+    // Avoid double-initialization (React Strict Mode double-invoke)
+    if (mapInstanceRef.current) return;
+
+    let cancelled = false;
 
     async function init() {
       try {
         const L = (await import("leaflet")).default;
         await import("leaflet.heat");
 
-        if (!mapRef.current) return;
+        if (cancelled || !mapRef.current || mapInstanceRef.current) return;
 
-        mapInstance = L.map(mapRef.current, {
+        const map = L.map(mapRef.current, {
           center: SOFIA_CENTER,
           zoom: DEFAULT_ZOOM,
           zoomControl: true,
         });
+        mapInstanceRef.current = map;
 
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution:
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           maxZoom: 18,
-        }).addTo(mapInstance);
+        }).addTo(map);
 
         const points = await fetchHeatmapPoints();
+        if (cancelled) return;
         setPointCount(points.length);
 
         if (points.length > 0) {
-          const heatLayer = (L as unknown as { heatLayer: (points: HeatmapPoint[], options: Record<string, unknown>) => import("leaflet").Layer }).heatLayer(points, {
-            radius: 20,
-            blur: 25,
-            maxZoom: 17,
-            gradient: HEATMAP_GRADIENT,
-          });
-          heatLayer.addTo(mapInstance);
+          (L as unknown as { heatLayer: (points: HeatmapPoint[], options: Record<string, unknown>) => import("leaflet").Layer })
+            .heatLayer(points, {
+              radius: 20,
+              blur: 25,
+              maxZoom: 17,
+              gradient: HEATMAP_GRADIENT,
+            })
+            .addTo(map);
         }
 
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       } catch (err) {
-        console.error("Error initializing heatmap:", err);
-        setError("Грешка при зареждане на картата");
-        setIsLoading(false);
+        if (!cancelled) {
+          console.error("Error initializing heatmap:", err);
+          setError("Грешка при зареждане на картата");
+          setIsLoading(false);
+        }
       }
     }
 
     init();
 
     return () => {
-      if (mapInstance) {
-        mapInstance.remove();
+      cancelled = true;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
       }
     };
   }, []);

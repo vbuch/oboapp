@@ -11,45 +11,43 @@ export default function Footer({ className = "" }: FooterProps) {
   return (
     <footer className={`border-t border-neutral-border ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* About Section */}
-          <div>
-            <h3 className="font-bold text-lg mb-4 text-foreground">
-              За проекта
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <a
-                  href="/kak-se-rodi"
-                  className="text-link hover:text-link-hover hover:underline"
-                >
-                  Как се роди?
-                </a>
-              </div>
-              <div>
-                <Link
-                  href="/sources"
-                  className="text-link hover:text-link-hover hover:underline"
-                >
-                  Източници на данни
-                </Link>
-              </div>
-              <div>
-                <Link
-                  href="/ingest-errors"
-                  className="text-link hover:text-link-hover hover:underline"
-                >
-                  Съобщения с грешки
-                </Link>
-              </div>
-              <div>
-                <Link
-                  href="/history"
-                  className="text-link hover:text-link-hover hover:underline"
-                >
-                  Исторически данни
-                </Link>
-              </div>
+        {/* Navigation links — 1 col mobile, 2 col sm, 4 col lg */}
+        <div>
+          <h3 className="font-bold text-lg mb-4 text-foreground">
+            За OboApp
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2 text-sm">
+            <div>
+              <a
+                href="/kak-se-rodi"
+                className="text-link hover:text-link-hover hover:underline"
+              >
+                Как се роди?
+              </a>
+            </div>
+            <div>
+              <Link
+                href="/sources"
+                className="text-link hover:text-link-hover hover:underline"
+              >
+                Източници на данни
+              </Link>
+            </div>
+            <div>
+              <Link
+                href="/ingest-errors"
+                className="text-link hover:text-link-hover hover:underline"
+              >
+                Съобщения с грешки
+              </Link>
+            </div>
+            <div>
+              <Link
+                href="/history"
+                className="text-link hover:text-link-hover hover:underline"
+              >
+                Исторически данни
+              </Link>
             </div>
           </div>
         </div>
