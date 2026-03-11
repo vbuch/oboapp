@@ -134,7 +134,7 @@ export default function NotificationFiltersPage() {
             <div className="bg-white rounded-lg shadow mb-6">
               <FilterSection
                 title="Категории"
-                description="Избери категориите, за които искаш да получаваш известия. Ако не избереш нищо, ще получаваш известия от всички категории."
+                description="Избери категориите, за които искаш да получаваш известия. Ако не избереш нищо, ще получаваш известия за съобщения, попадащи в зоните ти на интерес от всички категории."
                 hasActiveFilters={selectedCategories.size > 0}
                 allSelected={selectedCategories.size === allCategoryValues.length}
                 onSelectAll={() => selectAllCategories(allCategoryValues)}
