@@ -20,8 +20,16 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      notificationCategories: (prefs.notificationCategories as string[]) ?? [],
-      notificationSources: (prefs.notificationSources as string[]) ?? [],
+      notificationCategories: Array.isArray(prefs.notificationCategories)
+        ? prefs.notificationCategories.filter(
+            (v): v is string => typeof v === "string",
+          )
+        : [],
+      notificationSources: Array.isArray(prefs.notificationSources)
+        ? prefs.notificationSources.filter(
+            (v): v is string => typeof v === "string",
+          )
+        : [],
     });
   } catch (error) {
     if (error instanceof Error && (error.message === "Missing auth token" || error.message === "Invalid auth token")) {
@@ -80,16 +88,10 @@ export async function DELETE(request: NextRequest) {
     const { userId } = await verifyAuthToken(authHeader);
 
     const db = await getDb();
-    const prefs = await db.userPreferences.findByUserId(userId);
-
-    if (prefs) {
-      const docId = prefs._id as string;
-      await db.userPreferences.updateOne(docId, {
-        notificationCategories: [],
-        notificationSources: [],
-        updatedAt: new Date(),
-      });
-    }
+    await db.userPreferences.upsertByUserId(userId, {
+      notificationCategories: [],
+      notificationSources: [],
+    });
 
     return NextResponse.json({
       notificationCategories: [],
