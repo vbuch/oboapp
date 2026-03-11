@@ -159,7 +159,7 @@ export default function NotificationFiltersPage() {
 
               <FilterSection
                 title="Източници"
-                description="Избери от кои източници искаш да получаваш известия. Забележи: ще получаваш известия само за зоните, които си добавил — тези филтри се прилагат допълнително върху тях. Ако не избереш нищо, ще получаваш известия от всички източници."
+                description="Избери от кои източници искаш да получаваш известия. Ако не избереш нищо, ще получаваш известия от всички източници за съобщения попадащи в зоните ти на интерес."
                 hasActiveFilters={selectedSources.size > 0}
                 allSelected={selectedSources.size === allSourceIds.length}
                 onSelectAll={() => selectAllSources(allSourceIds)}
