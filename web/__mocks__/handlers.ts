@@ -4,6 +4,7 @@ import { MOCK_INTERESTS, MOCK_USER_ID } from "./fixtures/interests";
 import { MOCK_SUBSCRIPTIONS } from "./fixtures/subscriptions";
 import { MOCK_NOTIFICATION_HISTORY } from "./fixtures/notification-history";
 import { MOCK_API_CLIENT } from "./fixtures/api-client";
+import { getCentroid } from "@/lib/geometry-utils";
 import type { Interest, NotificationSubscription, ApiClient } from "@/lib/types";
 import type { Message } from "@oboapp/shared";
 
@@ -112,30 +113,24 @@ function filterMessagesBySources(
 export const handlers = [
   // GET /api/messages/heatmap - Return heatmap coordinate points from all finalized messages
   http.get("/api/messages/heatmap", () => {
-    // Mirror production behaviour: skip city-wide messages and extract every
-    // vertex from each feature (Point → 1 point, LineString → all vertices,
-    // Polygon → all outer-ring vertices).
+    // Mirror production behaviour: skip city-wide messages, then compute one
+    // centroid per feature (or one point per coordinate for MultiPoint).
     const points: [number, number][] = MOCK_MESSAGES
       .filter((msg) => !msg.cityWide && msg.geoJson?.features)
       .flatMap((msg) =>
         msg.geoJson!.features.flatMap((f) => {
           if (!f.geometry) return [] as [number, number][];
-          if (f.geometry.type === "Point") {
-            const [lng, lat] = f.geometry.coordinates as [number, number];
-            return [[lat, lng]] as [number, number][];
-          }
-          if (f.geometry.type === "LineString") {
+          // MultiPoint: each coordinate is a distinct pin
+          if (f.geometry.type === "MultiPoint") {
             return (f.geometry.coordinates as [number, number][]).map(
               ([lng, lat]) => [lat, lng] as [number, number],
             );
           }
-          if (f.geometry.type === "Polygon") {
-            const outerRing = (
-              f.geometry.coordinates as [number, number][][]
-            )[0] ?? [];
-            return outerRing.map(([lng, lat]) => [lat, lng] as [number, number]);
-          }
-          return [] as [number, number][];
+          // Point, LineString, Polygon → single centroid
+          const centroid = getCentroid(f.geometry);
+          return centroid
+            ? ([[centroid.lat, centroid.lng]] as [number, number][])
+            : ([] as [number, number][]);
         }),
       );
     return HttpResponse.json({ points });

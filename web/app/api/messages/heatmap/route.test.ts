@@ -124,12 +124,7 @@ describe("GET /api/messages/heatmap", () => {
     expect(body.points).toEqual([[42.6977, 23.3219]]);
   });
 
-  it("extracts ALL vertices from a LineString (not just centroid)", async () => {
-    const coords: [number, number][] = [
-      [23.30, 42.69],
-      [23.31, 42.70],
-      [23.32, 42.71],
-    ];
+  it("extracts exactly ONE centroid from a LineString geometry", async () => {
     mockMessagesData = [
       {
         _id: "line-msg",
@@ -139,7 +134,14 @@ describe("GET /api/messages/heatmap", () => {
           features: [
             {
               type: "Feature",
-              geometry: { type: "LineString", coordinates: coords },
+              geometry: {
+                type: "LineString",
+                coordinates: [
+                  [23.30, 42.69],
+                  [23.31, 42.70],
+                  [23.32, 42.71],
+                ],
+              },
               properties: {},
             },
           ],
@@ -148,19 +150,17 @@ describe("GET /api/messages/heatmap", () => {
     ];
     const res = await GET();
     const body = await res.json();
-    expect(body.points).toHaveLength(3);
-    // Each point should be [lat, lng]
-    expect(body.points).toEqual(coords.map(([lng, lat]) => [lat, lng]));
+    // A LineString is a single geometry → exactly 1 centroid
+    expect(body.points).toHaveLength(1);
+    const [lat, lng] = body.points[0];
+    // Centroid is within the Sofia bounding box
+    expect(lat).toBeGreaterThan(42.6);
+    expect(lat).toBeLessThan(42.8);
+    expect(lng).toBeGreaterThan(23.2);
+    expect(lng).toBeLessThan(23.4);
   });
 
-  it("extracts outer-ring vertices from a Polygon", async () => {
-    const ring: [number, number][] = [
-      [23.30, 42.69],
-      [23.31, 42.69],
-      [23.31, 42.70],
-      [23.30, 42.70],
-      [23.30, 42.69], // closing vertex
-    ];
+  it("extracts exactly ONE centroid from a Polygon geometry", async () => {
     mockMessagesData = [
       {
         _id: "poly-msg",
@@ -170,7 +170,18 @@ describe("GET /api/messages/heatmap", () => {
           features: [
             {
               type: "Feature",
-              geometry: { type: "Polygon", coordinates: [ring] },
+              geometry: {
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [23.30, 42.69],
+                    [23.31, 42.69],
+                    [23.31, 42.70],
+                    [23.30, 42.70],
+                    [23.30, 42.69],
+                  ],
+                ],
+              },
               properties: {},
             },
           ],
@@ -179,11 +190,46 @@ describe("GET /api/messages/heatmap", () => {
     ];
     const res = await GET();
     const body = await res.json();
-    expect(body.points).toHaveLength(ring.length);
-    expect(body.points).toEqual(ring.map(([lng, lat]) => [lat, lng]));
+    // A Polygon is a single geometry → exactly 1 centroid
+    expect(body.points).toHaveLength(1);
   });
 
-  it("accumulates points from multiple features in one message", async () => {
+  it("extracts one point per coordinate from a MultiPoint geometry", async () => {
+    mockMessagesData = [
+      {
+        _id: "multipoint-msg",
+        finalizedAt: FINALIZED_AT,
+        geoJson: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: {
+                type: "MultiPoint",
+                coordinates: [
+                  [23.30, 42.69],
+                  [23.31, 42.70],
+                  [23.32, 42.71],
+                ],
+              },
+              properties: {},
+            },
+          ],
+        },
+      },
+    ];
+    const res = await GET();
+    const body = await res.json();
+    // MultiPoint: each coordinate is a distinct pin → 3 points
+    expect(body.points).toHaveLength(3);
+    expect(body.points).toEqual([
+      [42.69, 23.30],
+      [42.70, 23.31],
+      [42.71, 23.32],
+    ]);
+  });
+
+  it("accumulates one point per feature across multiple features in one message", async () => {
     mockMessagesData = [
       {
         _id: "multi-feature",
@@ -213,8 +259,8 @@ describe("GET /api/messages/heatmap", () => {
     ];
     const res = await GET();
     const body = await res.json();
-    // 1 point from Point + 2 vertices from LineString = 3
-    expect(body.points).toHaveLength(3);
+    // 1 point from Point + 1 centroid from LineString = 2
+    expect(body.points).toHaveLength(2);
   });
 
   it("accumulates points from multiple messages", async () => {
@@ -256,7 +302,8 @@ describe("GET /api/messages/heatmap", () => {
     ];
     const res = await GET();
     const body = await res.json();
-    expect(body.points).toHaveLength(3);
+    // 1 point from msg-1 + 1 centroid from msg-2 = 2
+    expect(body.points).toHaveLength(2);
   });
 
   it("returns 500 when the database throws", async () => {

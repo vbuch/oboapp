@@ -30,20 +30,30 @@ Feature: Heatmap API endpoint (GET /api/messages/heatmap)
     When I send GET "/api/messages/heatmap"
     Then the response body "points" array does not contain a point for that message
 
-  Scenario: Multi-feature GeoJSON contributes all vertices per feature
-    Given there is a finalized message whose GeoJSON has a LineString with 4 vertices
+  Scenario: Each separate geometry feature contributes one centroid point
+    Given there is a finalized message whose GeoJSON has a LineString feature and a Point feature
     When I send GET "/api/messages/heatmap"
-    Then the response body "points" array contains 4 points from that LineString
+    Then the response body "points" array contains exactly 2 points (one centroid per feature)
 
   Scenario: A Point feature contributes exactly one point
     Given there is a finalized message whose GeoJSON has a single Point feature
     When I send GET "/api/messages/heatmap"
     Then the response body "points" array contains 1 point from that message
 
-  Scenario: A Polygon feature contributes one point per outer-ring vertex
-    Given there is a finalized message whose GeoJSON has a Polygon with 5 outer-ring vertices
+  Scenario: A LineString feature contributes exactly one centroid point
+    Given there is a finalized message whose GeoJSON has a LineString with 4 vertices
     When I send GET "/api/messages/heatmap"
-    Then the response body "points" array contains 5 points from that Polygon
+    Then the response body "points" array contains 1 centroid point from that LineString
+
+  Scenario: A Polygon feature contributes exactly one centroid point
+    Given there is a finalized message whose GeoJSON has a Polygon feature
+    When I send GET "/api/messages/heatmap"
+    Then the response body "points" array contains 1 centroid point from that Polygon
+
+  Scenario: A MultiPoint feature contributes one point per coordinate
+    Given there is a finalized message whose GeoJSON has a MultiPoint feature with 3 coordinates
+    When I send GET "/api/messages/heatmap"
+    Then the response body "points" array contains 3 points (one per coordinate)
 
   Scenario: Returns an empty points array when there are no eligible messages
     Given the database has no finalized messages with non-city-wide GeoJSON

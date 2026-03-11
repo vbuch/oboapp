@@ -1,39 +1,34 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { getCentroid } from "@/lib/geometry-utils";
 import type { GeoJSONFeatureCollection, GeoJSONGeometry } from "@/lib/types";
 
 type HeatmapPoint = [number, number];
 
 /**
- * Extract every coordinate vertex from a single GeoJSON geometry as heatmap
- * points in [lat, lng] order (note: GeoJSON stores [lng, lat]).
+ * Convert a single GeoJSON geometry to one or more heatmap points.
  *
- * - Point      → one point
- * - LineString → one point per vertex (captures the full shape of each street)
- * - Polygon    → one point per outer-ring vertex
+ * - Point      → the coordinate itself (1 point)
+ * - LineString → turf bounding-box centroid (1 point)
+ * - Polygon    → turf bounding-box centroid (1 point)
+ * - MultiPoint → each coordinate is a distinct pin (N points)
+ *
+ * Points are returned in [lat, lng] order (Leaflet convention);
+ * GeoJSON stores coordinates as [lng, lat].
  */
 function geometryToPoints(geometry: GeoJSONGeometry): HeatmapPoint[] {
-  switch (geometry.type) {
-    case "Point": {
-      const [lng, lat] = geometry.coordinates;
-      return [[lat, lng]];
-    }
-    case "LineString": {
-      return geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-    }
-    case "Polygon": {
-      // Use the outer ring (index 0); holes are not needed for heatmap density
-      return (geometry.coordinates[0] ?? []).map(([lng, lat]) => [lat, lng]);
-    }
-    default:
-      return [];
+  if (geometry.type === "MultiPoint") {
+    // Each coordinate in a MultiPoint is a distinct, independent pin
+    return geometry.coordinates.map(([lng, lat]) => [lat, lng]);
   }
+  // Point, LineString, Polygon → one representative centroid
+  const centroid = getCentroid(geometry);
+  return centroid ? [[centroid.lat, centroid.lng]] : [];
 }
 
 /**
  * Extract coordinate points from a GeoJSON FeatureCollection.
- * Returns all vertices from every feature so that streets and polygons
- * are fully represented on the heatmap (not just their centroid).
+ * Returns one centroid per feature (or one point per coordinate for MultiPoint).
  */
 function extractPoints(geoJson: GeoJSONFeatureCollection): HeatmapPoint[] {
   if (!geoJson?.features || !Array.isArray(geoJson.features)) return [];
@@ -49,9 +44,9 @@ function extractPoints(geoJson: GeoJSONFeatureCollection): HeatmapPoint[] {
 /**
  * GET /api/messages/heatmap
  *
- * Returns all coordinate points extracted from finalized messages with GeoJSON.
- * Each feature contributes one point per vertex so that streets and polygons
- * are faithfully represented on the heatmap at all zoom levels.
+ * Returns coordinate points extracted from finalized messages with GeoJSON.
+ * Each feature contributes one point (its centroid), except MultiPoint which
+ * contributes one point per coordinate. City-wide messages are excluded.
  *
  * Performance note: fetches all finalized messages in one query, but requests
  * only the `geoJson` and `cityWide` fields to minimise payload size. At the
