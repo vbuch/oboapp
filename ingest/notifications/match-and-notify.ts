@@ -189,13 +189,19 @@ export async function main(): Promise<void> {
   const allPrefs = await db.userPreferences.findByUserIds(uniqueUserIds);
   for (const prefs of allPrefs) {
     const userId = prefs.userId as string;
-    const cats = (prefs.notificationCategories as string[]) ?? [];
-    const srcs = (prefs.notificationSources as string[]) ?? [];
+    const rawCats = prefs.notificationCategories;
+    const cats = Array.isArray(rawCats)
+      ? rawCats.filter((v): v is string => typeof v === "string")
+      : [];
+    const rawSrcs = prefs.notificationSources;
+    const srcs = Array.isArray(rawSrcs)
+      ? rawSrcs.filter((v): v is string => typeof v === "string")
+      : [];
     // Only add to map if user actually has active filters
     if (cats.length > 0 || srcs.length > 0) {
       userFiltersMap.set(userId, {
-        notificationCategories: cats,
-        notificationSources: srcs,
+        notificationCategories: new Set(cats),
+        notificationSources: new Set(srcs),
       });
     }
   }

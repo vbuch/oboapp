@@ -110,8 +110,8 @@ describe("match-processor", () => {
 
     it("should allow all when both filter arrays are empty", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: [],
-        notificationSources: [],
+        notificationCategories: new Set(),
+        notificationSources: new Set(),
       };
       expect(
         shouldNotifyUser(filters, {
@@ -124,8 +124,8 @@ describe("match-processor", () => {
     // Category filtering
     it("should allow message when its category matches the filter", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: ["water"],
-        notificationSources: [],
+        notificationCategories: new Set(["water"]),
+        notificationSources: new Set([]),
       };
       expect(
         shouldNotifyUser(filters, {
@@ -137,8 +137,8 @@ describe("match-processor", () => {
 
     it("should reject message when its category does not match", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: ["water"],
-        notificationSources: [],
+        notificationCategories: new Set(["water"]),
+        notificationSources: new Set([]),
       };
       expect(
         shouldNotifyUser(filters, {
@@ -150,8 +150,8 @@ describe("match-processor", () => {
 
     it("should allow message when any of its categories match", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: ["water"],
-        notificationSources: [],
+        notificationCategories: new Set(["water"]),
+        notificationSources: new Set([]),
       };
       expect(
         shouldNotifyUser(filters, {
@@ -163,8 +163,8 @@ describe("match-processor", () => {
 
     it("should allow uncategorized messages when 'uncategorized' is selected", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: ["uncategorized"],
-        notificationSources: [],
+        notificationCategories: new Set(["uncategorized"]),
+        notificationSources: new Set([]),
       };
       expect(
         shouldNotifyUser(filters, { categories: [], source: "sofia-bg" }),
@@ -173,8 +173,8 @@ describe("match-processor", () => {
 
     it("should allow uncategorized messages when categories is undefined", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: ["uncategorized"],
-        notificationSources: [],
+        notificationCategories: new Set(["uncategorized"]),
+        notificationSources: new Set([]),
       };
       expect(
         shouldNotifyUser(filters, {
@@ -186,8 +186,8 @@ describe("match-processor", () => {
 
     it("should reject uncategorized messages when 'uncategorized' is not selected", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: ["water"],
-        notificationSources: [],
+        notificationCategories: new Set(["water"]),
+        notificationSources: new Set([]),
       };
       expect(
         shouldNotifyUser(filters, { categories: [], source: "sofia-bg" }),
@@ -197,8 +197,8 @@ describe("match-processor", () => {
     // Source filtering
     it("should allow message when its source matches the filter", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: [],
-        notificationSources: ["sofiyska-voda"],
+        notificationCategories: new Set([]),
+        notificationSources: new Set(["sofiyska-voda"]),
       };
       expect(
         shouldNotifyUser(filters, {
@@ -210,8 +210,8 @@ describe("match-processor", () => {
 
     it("should reject message when its source does not match", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: [],
-        notificationSources: ["sofiyska-voda"],
+        notificationCategories: new Set([]),
+        notificationSources: new Set(["sofiyska-voda"]),
       };
       expect(
         shouldNotifyUser(filters, {
@@ -223,8 +223,8 @@ describe("match-processor", () => {
 
     it("should reject message when source is undefined and source filter is active", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: [],
-        notificationSources: ["sofiyska-voda"],
+        notificationCategories: new Set([]),
+        notificationSources: new Set(["sofiyska-voda"]),
       };
       expect(
         shouldNotifyUser(filters, { categories: ["water"], source: undefined }),
@@ -234,8 +234,8 @@ describe("match-processor", () => {
     // Combined filtering
     it("should allow when both category and source match", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: ["water"],
-        notificationSources: ["sofiyska-voda"],
+        notificationCategories: new Set(["water"]),
+        notificationSources: new Set(["sofiyska-voda"]),
       };
       expect(
         shouldNotifyUser(filters, {
@@ -247,8 +247,8 @@ describe("match-processor", () => {
 
     it("should reject when category matches but source does not", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: ["water"],
-        notificationSources: ["sofiyska-voda"],
+        notificationCategories: new Set(["water"]),
+        notificationSources: new Set(["sofiyska-voda"]),
       };
       expect(
         shouldNotifyUser(filters, {
@@ -260,8 +260,8 @@ describe("match-processor", () => {
 
     it("should reject when source matches but category does not", () => {
       const filters: UserNotificationFilters = {
-        notificationCategories: ["water"],
-        notificationSources: ["sofiyska-voda"],
+        notificationCategories: new Set(["water"]),
+        notificationSources: new Set(["sofiyska-voda"]),
       };
       expect(
         shouldNotifyUser(filters, {
