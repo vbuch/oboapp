@@ -1,4 +1,5 @@
 import type { OboDb } from "@oboapp/db";
+import type { Category } from "@oboapp/shared";
 import { Message } from "@/lib/types";
 import { logger } from "@/lib/logger";
 
@@ -11,9 +12,7 @@ function toISOString(value: unknown): string {
 /**
  * Get all unprocessed messages (messages without notificationsSent flag)
  */
-export async function getUnprocessedMessages(
-  db: OboDb,
-): Promise<Message[]> {
+export async function getUnprocessedMessages(db: OboDb): Promise<Message[]> {
   logger.info("Fetching unprocessed messages");
 
   const docs = await db.messages.findMany({
@@ -31,11 +30,17 @@ export async function getUnprocessedMessages(
         geoJson: data.geoJson as Message["geoJson"],
         createdAt: toISOString(data.createdAt),
         cityWide: data.cityWide as boolean | undefined,
+        source: data.source as string | undefined,
+        categories: Array.isArray(data.categories)
+          ? (data.categories as Category[])
+          : undefined,
       });
     }
   }
 
-  logger.info("Found unprocessed messages", { count: unprocessedMessages.length });
+  logger.info("Found unprocessed messages", {
+    count: unprocessedMessages.length,
+  });
 
   return unprocessedMessages;
 }

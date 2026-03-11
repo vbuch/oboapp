@@ -5,6 +5,9 @@ import SubscriptionCount from "./SubscriptionCount";
 import SubscribeDevicePrompt from "./SubscribeDevicePrompt";
 import DeviceSubscriptionCard from "./DeviceSubscriptionCard";
 import UnsubscribeAllButton from "./UnsubscribeAllButton";
+import Link from "next/link";
+import { buttonStyles, buttonSizes } from "@/lib/theme";
+import { borderRadius } from "@/lib/colors";
 
 interface NotificationsSectionProps {
   readonly subscriptions: NotificationSubscription[];
@@ -57,6 +60,19 @@ export default function NotificationsSection({
       {subscriptions.length > 1 && (
         <UnsubscribeAllButton onUnsubscribeAll={onUnsubscribeAll} />
       )}
+
+      {/* Notification Filters link */}
+      <div className="mt-4 pt-4 border-t border-neutral-border">
+        <Link
+          href="/settings/notification-filters"
+          className={`${buttonStyles.ghost} ${buttonSizes.md} ${borderRadius.sm} inline-block`}
+        >
+          Филтри за известия
+        </Link>
+        <p className="text-xs text-neutral mt-1">
+          Изберете от кои категории и източници искате да получавате известия.
+        </p>
+      </div>
     </section>
   );
 }

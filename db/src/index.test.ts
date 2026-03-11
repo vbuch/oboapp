@@ -80,6 +80,7 @@ describe("createDbFromConfig", () => {
     expect(db.notificationMatches).toBeDefined();
     expect(db.notificationSubscriptions).toBeDefined();
     expect(db.gtfsStops).toBeDefined();
+    expect(db.userPreferences).toBeDefined();
     expect(typeof db.close).toBe("function");
   });
 

@@ -11,3 +11,7 @@ export {
   NOTIFICATION_SUBSCRIPTIONS_COLLECTION,
 } from "./notification-subscriptions";
 export { GtfsStopsRepository, GTFS_STOPS_COLLECTION } from "./gtfs-stops";
+export {
+  UserPreferencesRepository,
+  USER_PREFERENCES_COLLECTION,
+} from "./user-preferences";

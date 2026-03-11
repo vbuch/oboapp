@@ -5,7 +5,11 @@ import { MOCK_SUBSCRIPTIONS } from "./fixtures/subscriptions";
 import { MOCK_NOTIFICATION_HISTORY } from "./fixtures/notification-history";
 import { MOCK_API_CLIENT } from "./fixtures/api-client";
 import { getCentroid } from "@/lib/geometry-utils";
-import type { Interest, NotificationSubscription, ApiClient } from "@/lib/types";
+import type {
+  Interest,
+  NotificationSubscription,
+  ApiClient,
+} from "@/lib/types";
 import type { Message } from "@oboapp/shared";
 
 /**
@@ -18,6 +22,10 @@ let interests: Interest[] = [...MOCK_INTERESTS];
 let subscriptions: NotificationSubscription[] = [...MOCK_SUBSCRIPTIONS];
 let apiClient: ApiClient | null = null; // Start with no API client
 let notificationHistory = [...MOCK_NOTIFICATION_HISTORY];
+let notificationFilters = {
+  notificationCategories: [] as string[],
+  notificationSources: [] as string[],
+};
 
 /**
  * Helper: Filter messages by viewport bounds
@@ -367,10 +375,37 @@ export const handlers = [
     return HttpResponse.json({ success: true, deleted });
   }),
 
+  // GET /api/notifications/filters - Get notification filter preferences
+  http.get("/api/notifications/filters", () => {
+    return HttpResponse.json(notificationFilters);
+  }),
+
+  // PUT /api/notifications/filters - Save notification filter preferences
+  http.put("/api/notifications/filters", async ({ request }) => {
+    const body = (await request.json()) as {
+      notificationCategories?: string[];
+      notificationSources?: string[];
+    };
+    notificationFilters = {
+      notificationCategories: body.notificationCategories ?? [],
+      notificationSources: body.notificationSources ?? [],
+    };
+    return HttpResponse.json(notificationFilters);
+  }),
+
+  // DELETE /api/notifications/filters - Clear notification filter preferences
+  http.delete("/api/notifications/filters", () => {
+    notificationFilters = {
+      notificationCategories: [],
+      notificationSources: [],
+    };
+    return HttpResponse.json(notificationFilters);
+  }),
+
   // GET /api/notifications/history - Fetch notification history with pagination
   http.get("/api/notifications/history", ({ request }) => {
     const url = new URL(request.url);
-    
+
     const rawLimit = url.searchParams.get("limit");
     let limit = Number.parseInt(rawLimit ?? "", 10);
     if (!Number.isFinite(limit) || limit <= 0) {
@@ -445,6 +480,10 @@ export const handlers = [
     subscriptions = [];
     apiClient = null;
     notificationHistory = [];
+    notificationFilters = {
+      notificationCategories: [],
+      notificationSources: [],
+    };
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -457,7 +496,10 @@ export const handlers = [
   http.post("/api/api-clients", async ({ request }) => {
     if (apiClient) {
       return HttpResponse.json(
-        { error: "You already have an API key. Revoke it first to generate a new one." },
+        {
+          error:
+            "You already have an API key. Revoke it first to generate a new one.",
+        },
         { status: 409 },
       );
     }
@@ -478,7 +520,10 @@ export const handlers = [
   // DELETE /api/api-clients - Revoke current user's API key
   http.delete("/api/api-clients", () => {
     if (!apiClient) {
-      return HttpResponse.json({ error: "No API client found" }, { status: 404 });
+      return HttpResponse.json(
+        { error: "No API client found" },
+        { status: 404 },
+      );
     }
     apiClient = null;
     return HttpResponse.json({ success: true });

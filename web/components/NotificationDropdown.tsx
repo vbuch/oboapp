@@ -16,6 +16,7 @@ import {
 } from "@/lib/notification-service";
 import { formatNotificationDateTime } from "@/lib/notification-history";
 import { useNotificationHistory } from "@/lib/hooks/useNotificationHistory";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface NotificationDropdownProps {
   readonly isOpen: boolean;
@@ -98,15 +99,25 @@ export default function NotificationDropdown({
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-neutral-border">
         <h3 className="text-lg font-semibold text-foreground">Известия</h3>
-        {notifications.length > 0 && (
-          <button
-            type="button"
-            onClick={markAllRead}
-            className="text-sm text-primary hover:text-primary-hover hover:underline cursor-pointer transition-colors"
+        <div className="flex items-center gap-3">
+          <Link
+            href="/settings/notification-filters"
+            onClick={onClose}
+            className="text-sm text-primary hover:text-primary-hover hover:underline transition-colors"
+            title="Филтри за известия"
           >
-            Маркирай всички прочетени
-          </button>
-        )}
+            Филтри
+          </Link>
+          {notifications.length > 0 && (
+            <button
+              type="button"
+              onClick={markAllRead}
+              className="text-sm text-primary hover:text-primary-hover hover:underline cursor-pointer transition-colors"
+            >
+              Маркирай всички прочетени
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -124,7 +135,7 @@ export default function NotificationDropdown({
 
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <LoadingSpinner />
           </div>
         ) : error ? (
           <div className="p-4 text-center text-error">{error}</div>
