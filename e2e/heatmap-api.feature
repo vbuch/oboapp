@@ -59,7 +59,7 @@ Feature: Heatmap API endpoint (GET /api/messages/heatmap)
     Given the database has no finalized messages with non-city-wide GeoJSON
     When I send GET "/api/messages/heatmap"
     Then the response status is 200
-    And the response body is '{"points":[]}'
+    And the response body is '{"points":[],"messageCount":0,"oldestDate":null}'
 
   # ─────────────────────────────────────────────
   # Error handling

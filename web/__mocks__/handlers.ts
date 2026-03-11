@@ -115,25 +115,42 @@ export const handlers = [
   http.get("/api/messages/heatmap", () => {
     // Mirror production behaviour: skip city-wide messages, then compute one
     // centroid per feature (or one point per coordinate for MultiPoint).
-    const points: [number, number][] = MOCK_MESSAGES
-      .filter((msg) => !msg.cityWide && msg.geoJson?.features)
-      .flatMap((msg) =>
-        msg.geoJson!.features.flatMap((f) => {
-          if (!f.geometry) return [] as [number, number][];
-          // MultiPoint: each coordinate is a distinct pin
-          if (f.geometry.type === "MultiPoint") {
-            return (f.geometry.coordinates as [number, number][]).map(
-              ([lng, lat]) => [lat, lng] as [number, number],
-            );
-          }
-          // Point, LineString, Polygon → single centroid
-          const centroid = getCentroid(f.geometry);
-          return centroid
-            ? ([[centroid.lat, centroid.lng]] as [number, number][])
-            : ([] as [number, number][]);
-        }),
-      );
-    return HttpResponse.json({ points });
+    const heatmapMessages = MOCK_MESSAGES.filter(
+      (msg) => !msg.cityWide && msg.geoJson?.features,
+    );
+
+    const points: [number, number][] = heatmapMessages.flatMap((msg) =>
+      msg.geoJson!.features.flatMap((f) => {
+        if (!f.geometry) return [] as [number, number][];
+        // MultiPoint: each coordinate is a distinct pin
+        if (f.geometry.type === "MultiPoint") {
+          return (f.geometry.coordinates as [number, number][]).map(
+            ([lng, lat]) => [lat, lng] as [number, number],
+          );
+        }
+        // Point, LineString, Polygon → single centroid
+        const centroid = getCentroid(f.geometry);
+        return centroid
+          ? ([[centroid.lat, centroid.lng]] as [number, number][])
+          : ([] as [number, number][]);
+      }),
+    );
+
+    const messageCount = heatmapMessages.length;
+
+    const oldestDate =
+      heatmapMessages.length === 0
+        ? null
+        : heatmapMessages.reduce<string | null>((oldest, msg) => {
+            const fa = (msg as Record<string, unknown>).finalizedAt as
+              | string
+              | undefined;
+            if (!fa) return oldest;
+            if (!oldest) return fa;
+            return fa < oldest ? fa : oldest;
+          }, null);
+
+    return HttpResponse.json({ points, messageCount, oldestDate });
   }),
 
   // GET /api/messages - Fetch messages with viewport/category/source filtering

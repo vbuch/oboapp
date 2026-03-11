@@ -12,7 +12,20 @@ export default function HistoryStats() {
 
   useEffect(() => {
     fetch("/api/messages/heatmap")
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          const body = await r.text().catch(() => undefined);
+          console.error("Failed to load heatmap stats: HTTP error", {
+            status: r.status,
+            statusText: r.statusText,
+            body,
+          });
+          throw new Error(
+            `Failed to load heatmap stats: ${r.status} ${r.statusText}`,
+          );
+        }
+        return r.json();
+      })
       .then((data: unknown) => {
         const d = data as Record<string, unknown>;
         if (typeof d.messageCount === "number") {

@@ -49,7 +49,7 @@ function extractPoints(geoJson: GeoJSONFeatureCollection): HeatmapPoint[] {
  * contributes one point per coordinate. City-wide messages are excluded.
  *
  * Performance note: fetches all finalized messages in one query, but requests
- * only the `geoJson` and `cityWide` fields to minimise payload size. At the
+ * only the `geoJson`, `cityWide`, and `finalizedAt` fields to minimise payload size. At the
  * current scale (~5 000 messages) this is fast enough; if the collection grows
  * significantly, consider caching the result or pre-computing the point list.
  */

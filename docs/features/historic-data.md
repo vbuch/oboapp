@@ -23,16 +23,17 @@ The map can be used to:
 ## How It Works
 
 1. The page fetches `GET /api/messages/heatmap`.
-2. The API reads all finalized messages (those with a `finalizedAt` timestamp) from the database, requesting only the `geoJson` and `cityWide` fields to minimise data transfer.
+2. The API reads all finalized messages (those with a `finalizedAt > new Date(0)` filter, which is cross-backend-safe) from the database, selecting the `geoJson`, `cityWide`, and `finalizedAt` fields to minimise data transfer.
 3. City-wide messages are excluded — they carry no specific geometry.
 4. For every GeoJSON feature in each message's `FeatureCollection`, the centroid coordinate is computed and added to the result array.
-5. The client renders the points as a heatmap layer using `leaflet.heat`.
+5. The API also computes `messageCount` (number of eligible messages) and `oldestDate` (earliest `finalizedAt` among them), and returns all three in the JSON response.
+6. The client renders the points as a heatmap layer using `leaflet.heat` and displays the `messageCount`/`oldestDate` metadata in the description text above the map.
 
 ## Database Considerations
 
-The API query uses a `finalizedAt != null` filter. Both Firestore and MongoDB support this inequality operator; no additional index is required beyond the existing `finalizedAt` descending index.
+The API query uses a `finalizedAt > new Date(0)` filter for cross-backend consistency: MongoDB's `$ne: null` can incorrectly match documents where the field is missing, while an inequality filter behaves correctly on both Firestore and MongoDB. No additional index is required beyond the existing `finalizedAt` descending index.
 
-Because only two fields are selected (`geoJson`, `cityWide`), the payload per document is small even when the full collection is large.
+Because only three fields are selected (`geoJson`, `cityWide`, `finalizedAt`), the payload per document is small even when the full collection is large.
 
 ## Dual Database Setup
 

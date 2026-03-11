@@ -18,12 +18,12 @@ export default function Footer({ className = "" }: FooterProps) {
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2 text-sm">
             <div>
-              <a
+              <Link
                 href="/kak-se-rodi"
                 className="text-link hover:text-link-hover hover:underline"
               >
                 Как се роди?
-              </a>
+              </Link>
             </div>
             <div>
               <Link
