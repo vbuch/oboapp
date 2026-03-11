@@ -16,6 +16,7 @@ import {
   storeNotificationMatches,
   getUnnotifiedMatches,
 } from "./match-processor";
+import type { UserNotificationFilters } from "./match-processor";
 import {
   sendToUserDevices,
   updateMatchWithResults,
@@ -181,10 +182,42 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // Step 3: Match messages with interests
+  // Step 3: Load user notification filter preferences (batch query to avoid N+1)
+  const uniqueUserIds = [...new Set(interests.map((i) => i.userId))];
+  const userFiltersMap = new Map<string, UserNotificationFilters>();
+
+  const allPrefs = await db.userPreferences.findByUserIds(uniqueUserIds);
+  for (const prefs of allPrefs) {
+    const userId = prefs._id as string;
+    const rawCats = prefs.notificationCategories;
+    const cats = Array.isArray(rawCats)
+      ? rawCats.filter((v): v is string => typeof v === "string")
+      : [];
+    const rawSrcs = prefs.notificationSources;
+    const srcs = Array.isArray(rawSrcs)
+      ? rawSrcs.filter((v): v is string => typeof v === "string")
+      : [];
+    // Only add to map if user actually has active filters
+    if (cats.length > 0 || srcs.length > 0) {
+      userFiltersMap.set(userId, {
+        notificationCategories: new Set(cats),
+        notificationSources: new Set(srcs),
+      });
+    }
+  }
+
+  if (userFiltersMap.size > 0) {
+    logger.info("Loaded user notification filters", {
+      usersWithFilters: userFiltersMap.size,
+      totalUsers: uniqueUserIds.length,
+    });
+  }
+
+  // Step 4: Match messages with interests (applying user filters)
   const matches = await matchMessagesWithInterests(
     unprocessedMessages,
     interests,
+    userFiltersMap,
   );
 
   if (matches.length === 0) {
@@ -197,13 +230,13 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // Step 4: Deduplicate matches
+  // Step 5: Deduplicate matches
   const dedupedMatches = deduplicateMatches(matches);
 
-  // Step 5: Store matches in database
+  // Step 6: Store matches in database
   await storeNotificationMatches(db, dedupedMatches);
 
-  // Step 6: Get all unnotified matches (including ones we just stored)
+  // Step 7: Get all unnotified matches (including ones we just stored)
   const unnotifiedMatches = await getUnnotifiedMatches(db);
 
   if (unnotifiedMatches.length === 0) {
@@ -216,10 +249,10 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // Step 7: Send notifications
+  // Step 8: Send notifications
   await sendNotifications(db, messaging, unnotifiedMatches);
 
-  // Step 8: Mark messages as having notifications sent
+  // Step 9: Mark messages as having notifications sent
   const messageIds = unprocessedMessages
     .map((m) => m.id)
     .filter((id): id is string => !!id);
