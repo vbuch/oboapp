@@ -31,7 +31,9 @@ export async function getUnprocessedMessages(db: OboDb): Promise<Message[]> {
         createdAt: toISOString(data.createdAt),
         cityWide: data.cityWide as boolean | undefined,
         source: data.source as string | undefined,
-        categories: (data.categories as Category[]) || undefined,
+        categories: Array.isArray(data.categories)
+          ? (data.categories as Category[])
+          : undefined,
       });
     }
   }

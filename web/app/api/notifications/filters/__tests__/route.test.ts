@@ -271,17 +271,10 @@ describe("DELETE /api/notifications/filters", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     verifyAuthTokenMock.mockResolvedValue({ userId: "user-1" });
+    upsertByUserIdMock.mockResolvedValue("user-1");
   });
 
-  it("clears filters when preferences document exists", async () => {
-    findByUserIdMock.mockResolvedValue({
-      _id: "prefs-1",
-      userId: "user-1",
-      notificationCategories: ["water"],
-      notificationSources: ["sofiyska-voda"],
-    });
-    updateOneMock.mockResolvedValue(undefined);
-
+  it("clears filters for a user", async () => {
     const request = new Request(
       "http://localhost/api/notifications/filters",
       {
@@ -295,30 +288,10 @@ describe("DELETE /api/notifications/filters", () => {
 
     expect(response.status).toBe(200);
     expect(data).toEqual({ notificationCategories: [], notificationSources: [] });
-    expect(updateOneMock).toHaveBeenCalledWith("prefs-1", {
+    expect(upsertByUserIdMock).toHaveBeenCalledWith("user-1", {
       notificationCategories: [],
       notificationSources: [],
-      updatedAt: expect.any(Date),
     });
-  });
-
-  it("returns empty filters gracefully when no preferences document exists", async () => {
-    findByUserIdMock.mockResolvedValue(null);
-
-    const request = new Request(
-      "http://localhost/api/notifications/filters",
-      {
-        method: "DELETE",
-        headers: { authorization: "Bearer test-token" },
-      },
-    );
-
-    const response = await DELETE(request as any);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data).toEqual({ notificationCategories: [], notificationSources: [] });
-    expect(updateOneMock).not.toHaveBeenCalled();
   });
 
   it("returns 401 when auth token is missing", async () => {
@@ -355,7 +328,7 @@ describe("DELETE /api/notifications/filters", () => {
   });
 
   it("returns 500 when database fails", async () => {
-    findByUserIdMock.mockRejectedValue(new Error("DB connection failed"));
+    upsertByUserIdMock.mockRejectedValue(new Error("DB connection failed"));
 
     const request = new Request(
       "http://localhost/api/notifications/filters",

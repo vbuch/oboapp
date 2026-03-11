@@ -188,7 +188,7 @@ export async function main(): Promise<void> {
 
   const allPrefs = await db.userPreferences.findByUserIds(uniqueUserIds);
   for (const prefs of allPrefs) {
-    const userId = prefs.userId as string;
+    const userId = prefs._id as string;
     const rawCats = prefs.notificationCategories;
     const cats = Array.isArray(rawCats)
       ? rawCats.filter((v): v is string => typeof v === "string")
