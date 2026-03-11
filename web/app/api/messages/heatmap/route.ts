@@ -62,10 +62,12 @@ export async function GET() {
     // non-finalized messages.
     const docs = await db.messages.findMany({
       where: [{ field: "finalizedAt", op: ">", value: new Date(0) }],
-      select: ["_id", "geoJson", "cityWide"],
+      select: ["_id", "geoJson", "cityWide", "finalizedAt"],
     });
 
     const points: HeatmapPoint[] = [];
+    let messageCount = 0;
+    let oldestDate: string | null = null;
 
     for (const doc of docs) {
       // Skip city-wide messages — they have no specific geometry
@@ -74,11 +76,22 @@ export async function GET() {
       const geoJson = doc.geoJson as GeoJSONFeatureCollection | null;
       if (!geoJson) continue;
 
+      messageCount++;
+
+      // Track oldest finalizedAt among messages that contributed to the heatmap
+      const raw = doc.finalizedAt;
+      if (raw instanceof Date) {
+        const iso = raw.toISOString();
+        if (!oldestDate || iso < oldestDate) oldestDate = iso;
+      } else if (typeof raw === "string" && raw) {
+        if (!oldestDate || raw < oldestDate) oldestDate = raw;
+      }
+
       const docPoints = extractPoints(geoJson);
       points.push(...docPoints);
     }
 
-    return NextResponse.json({ points });
+    return NextResponse.json({ points, messageCount, oldestDate });
   } catch (error) {
     console.error("Error fetching heatmap data:", error);
     return NextResponse.json(

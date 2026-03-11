@@ -45,7 +45,7 @@ describe("GET /api/messages/heatmap", () => {
     const res = await GET();
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ points: [] });
+    expect(body).toEqual({ points: [], messageCount: 0, oldestDate: null });
   });
 
   it("excludes non-finalized messages (missing finalizedAt)", async () => {
@@ -122,6 +122,8 @@ describe("GET /api/messages/heatmap", () => {
     const body = await res.json();
     // GeoJSON [lng, lat] → heatmap [lat, lng]
     expect(body.points).toEqual([[42.6977, 23.3219]]);
+    expect(body.messageCount).toBe(1);
+    expect(body.oldestDate).toBe(FINALIZED_AT.toISOString());
   });
 
   it("extracts exactly ONE centroid from a LineString geometry", async () => {
@@ -304,6 +306,61 @@ describe("GET /api/messages/heatmap", () => {
     const body = await res.json();
     // 1 point from msg-1 + 1 centroid from msg-2 = 2
     expect(body.points).toHaveLength(2);
+  });
+
+  it("reports correct messageCount and oldestDate across multiple messages", async () => {
+    const older = new Date("2023-06-01T00:00:00Z");
+    const newer = new Date("2024-01-01T00:00:00Z");
+    mockMessagesData = [
+      {
+        _id: "msg-newer",
+        finalizedAt: newer,
+        geoJson: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [23.30, 42.69] },
+              properties: {},
+            },
+          ],
+        },
+      },
+      {
+        _id: "msg-older",
+        finalizedAt: older,
+        geoJson: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [23.31, 42.70] },
+              properties: {},
+            },
+          ],
+        },
+      },
+      // City-wide message should NOT be counted
+      {
+        _id: "msg-citywide",
+        finalizedAt: new Date("2022-01-01T00:00:00Z"),
+        cityWide: true,
+        geoJson: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [23.32, 42.71] },
+              properties: {},
+            },
+          ],
+        },
+      },
+    ];
+    const res = await GET();
+    const body = await res.json();
+    expect(body.messageCount).toBe(2);
+    expect(body.oldestDate).toBe(older.toISOString());
   });
 
   it("returns 500 when the database throws", async () => {
