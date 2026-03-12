@@ -39,8 +39,25 @@ export default function HistoryContent() {
     categories: Set<string>,
     sources: Set<string>,
   ) {
-    setSelectedCategories(categories);
-    setSelectedSources(sources);
+    // Shallow-compare to avoid triggering a re-fetch when nothing changed
+    setSelectedCategories((prev) => {
+      if (
+        prev.size === categories.size &&
+        [...categories].every((c) => prev.has(c))
+      ) {
+        return prev;
+      }
+      return new Set(categories);
+    });
+    setSelectedSources((prev) => {
+      if (
+        prev.size === sources.size &&
+        [...sources].every((s) => prev.has(s))
+      ) {
+        return prev;
+      }
+      return new Set(sources);
+    });
     setIsModalOpen(false);
   }
 

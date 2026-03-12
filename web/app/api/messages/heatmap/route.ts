@@ -78,13 +78,14 @@ export async function GET(request: Request) {
 
     // Hoist derived values out of the per-document loop so they are computed
     // once per request. Use Sets for O(1) membership checks.
-    const filterCategories =
-      selectedCategoriesArr && selectedCategoriesArr.length > 0;
+    const filterCategories = (selectedCategoriesArr?.length ?? 0) > 0;
     const includeUncategorized =
-      filterCategories && selectedCategoriesArr!.includes("uncategorized");
-    const realCategoriesSet = filterCategories
-      ? new Set(selectedCategoriesArr!.filter((c) => c !== "uncategorized"))
-      : null;
+      filterCategories &&
+      selectedCategoriesArr?.includes("uncategorized") === true;
+    const realCategoriesSet =
+      filterCategories && selectedCategoriesArr
+        ? new Set(selectedCategoriesArr.filter((c) => c !== "uncategorized"))
+        : null;
     const selectedSourcesSet =
       selectedSourcesArr && selectedSourcesArr.length > 0
         ? new Set(selectedSourcesArr)
