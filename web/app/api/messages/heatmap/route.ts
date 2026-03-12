@@ -118,8 +118,9 @@ export async function GET(request: Request) {
         const hasNoCategories = docCategories.length === 0;
         const matchesUncategorized = includeUncategorized && hasNoCategories;
         const matchesCategory =
-          realCategoriesSet!.size > 0 &&
-          docCategories.some((cat) => realCategoriesSet!.has(cat));
+          !!realCategoriesSet &&
+          realCategoriesSet.size > 0 &&
+          docCategories.some((cat) => realCategoriesSet.has(cat));
 
         if (!matchesUncategorized && !matchesCategory) continue;
       }
