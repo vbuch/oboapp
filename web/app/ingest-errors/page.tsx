@@ -22,42 +22,53 @@ function buildGitHubIssueUrl(message: InternalMessage): string {
   const messageUrl = `${BASE_URL}/ingest-errors?messageId=${encodeURIComponent(String(message.id))}`;
   const rawErrors = message.ingestErrors ?? [];
   const limitedErrors = rawErrors.slice(0, MAX_INGEST_ERRORS_IN_GITHUB_BODY);
-  let errors = limitedErrors
-    .map((e: IngestError) => `- [${e.type}] ${e.text}`)
+
+  // Escape sequences of 3+ backticks in error text so they don't close the code fence
+  const escapeBackticks = (text: string) =>
+    text.replace(/`{3,}/g, (m) => m.split("").join("\u200B"));
+
+  let errorsContent = limitedErrors
+    .map((e: IngestError) => `- [${e.type}] ${escapeBackticks(e.text)}`)
     .join("\n");
 
   if (rawErrors.length > limitedErrors.length) {
     const remaining = rawErrors.length - limitedErrors.length;
     const suffixLine = `- ... (${remaining} more error${remaining === 1 ? "" : "s"} truncated)`;
-    errors = errors ? `${errors}\n${suffixLine}` : suffixLine;
+    errorsContent = errorsContent ? `${errorsContent}\n${suffixLine}` : suffixLine;
   }
 
   const title = `Ingest error: ${message.id}`;
-  let body = `**Съобщение:** ${messageUrl}\n\n**Проблеми при обработка:**\n\`\`\`\n${errors}\n\`\`\``;
+  const header = `**Съобщение:** ${messageUrl}\n\n**Проблеми при обработка:**\n`;
+  const openFence = "```\n";
+  const closeFence = "\n```";
 
   const buildUrl = (issueBody: string) =>
     `https://github.com/${GITHUB_REPO}/issues/new?${new URLSearchParams({ title, body: issueBody })}`;
 
-  if (buildUrl(body).length > MAX_URL_LENGTH) {
-    const suffix = "\n\n(truncated)";
-    let low = 0;
-    let high = body.length;
-    let best = suffix;
+  const buildBody = (content: string) => `${header}${openFence}${content}${closeFence}`;
 
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      const candidate = body.slice(0, mid) + suffix;
-      if (buildUrl(candidate).length <= MAX_URL_LENGTH) {
-        best = candidate;
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-    body = best;
+  if (buildUrl(buildBody(errorsContent)).length <= MAX_URL_LENGTH) {
+    return buildUrl(buildBody(errorsContent));
   }
 
-  return buildUrl(body);
+  // Truncate only the errors content so the code fence is always properly closed
+  const truncSuffix = "\n(truncated)" + closeFence;
+  let low = 0;
+  let high = errorsContent.length;
+  let bestContent = truncSuffix;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const candidate = errorsContent.slice(0, mid) + truncSuffix;
+    if (buildUrl(`${header}${openFence}${candidate}`).length <= MAX_URL_LENGTH) {
+      bestContent = candidate;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return buildUrl(`${header}${openFence}${bestContent}`);
 }
 
 type IngestErrorsCursor = {
