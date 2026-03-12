@@ -140,7 +140,7 @@ export default function NotificationDropdown({
         ) : error ? (
           <div className="p-4 text-center text-error">{error}</div>
         ) : notifications.length === 0 ? (
-          <div className="p-8 text-center text-neutral">Нямаш известия</div>
+          <div className="p-8 text-center text-neutral">Няма известия</div>
         ) : (
           <>
             {notifications.map((notification) => (
