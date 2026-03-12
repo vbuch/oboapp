@@ -1,15 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { isValidMessageId } from "@oboapp/shared";
 import MessageCard, { MessageCardSkeleton } from "@/components/MessageCard";
 import MessageDetailView from "@/components/MessageDetailView/MessageDetailView";
-import type { InternalMessage, Message } from "@/lib/types";
+import type { InternalMessage } from "@/lib/types";
 import { navigateBackOrReplace } from "@/lib/navigation-utils";
 import { getButtonClasses } from "@/lib/theme";
+import { useMessageByIdFallback } from "@/lib/hooks/useMessageByIdFallback";
 
 const PAGE_SIZE = 12;
 
@@ -69,62 +69,12 @@ export default function UnreadablePage() {
 
   const messageId = searchParams.get("messageId");
 
-  // Message fetched from API when messageId doesn't match any loaded page
-  const [fetchedMessage, setFetchedMessage] = useState<{
-    id: string;
-    message: Message;
-  } | null>(null);
+  const listMatch = useMemo(
+    () => messages.find((message) => message.id === messageId) ?? null,
+    [messageId, messages],
+  );
 
-  // Try to find the message in the already-loaded pages first
-  const listMatch = useMemo(() => {
-    if (messageId && messages.length > 0) {
-      return messages.find((message) => message.id === messageId) || null;
-    }
-    return null;
-  }, [messageId, messages]);
-
-  // Fetch by ID when messageId is present but not found in loaded pages (e.g. deep link to older message)
-  useEffect(() => {
-    if (!messageId || !isValidMessageId(messageId)) {
-      return;
-    }
-
-    if (listMatch) {
-      return;
-    }
-
-    if (fetchedMessage?.id === messageId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    fetch(`/api/messages/by-id?id=${encodeURIComponent(messageId)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Not found");
-        return res.json();
-      })
-      .then((data) => {
-        if (!cancelled && data?.message) {
-          setFetchedMessage({ id: messageId, message: data.message });
-        }
-      })
-      .catch(() => {
-        // Leave as null on error
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [messageId, listMatch, fetchedMessage]);
-
-  // Derive selected message: prefer loaded list match, fall back to fetched message
-  const selectedMessage = useMemo((): InternalMessage | Message | null => {
-    if (!messageId) return null;
-    if (listMatch) return listMatch;
-    if (fetchedMessage?.id === messageId) return fetchedMessage.message;
-    return null;
-  }, [messageId, listMatch, fetchedMessage]);
+  const selectedMessage = useMessageByIdFallback(messageId, listMatch);
 
   const handleMessageClick = useCallback(
     (message: InternalMessage) => {
