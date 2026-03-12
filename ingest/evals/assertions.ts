@@ -230,7 +230,8 @@ export function assertNoLinks(
   if (!parsed.success) return parsed.result;
 
   const items = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
-  const urlPattern = /https?:\/\/[^\s)]+|\[[^\]]+\]\([^)]+\)/;
+  const urlPattern =
+    /https?:\/\/[^\s)<>\]]+|www\.[^\s)<>\]]+|<https?:\/\/[^>\s]+>|\[[^\]]+\]\([^)]+\)|\[[^\]]+\]\s*\[[^\]]*\]|\[[^\]]+\]:\s*https?:\/\/\S+/im;
 
   if (items.some((item) => typeof item !== "object" || item === null)) {
     return {
