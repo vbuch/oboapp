@@ -578,5 +578,41 @@ describe.skipIf(!HAS_API_KEY)(
         ).toBe(true);
       });
     });
+
+    // ─── Test 9: Message with links (heating outage in Nadezhda) ─────
+    describe("single-message-with-links.md", () => {
+      it("filterAndSplit: should strip link and lead-in phrase, preserve meaningful content", async () => {
+        const { filterAndSplit } = await import("./ai-service");
+        const text = readSourceFixture("single-message-with-links.md");
+        const recorder = createMockRecorder();
+
+        const result = await filterAndSplit(text, recorder);
+
+        expect(result).not.toBeNull();
+        expect(result!.length).toBe(1);
+
+        const msg = result![0];
+        expect(msg.isRelevant).toBe(true);
+        expect(msg.plainText).toBeTruthy();
+        expect(msg.markdownText).toBeTruthy();
+
+        // Link URL must be stripped from both fields
+        expect(msg.plainText).not.toMatch(/https?:\/\//);
+        expect(msg.markdownText).not.toMatch(/https?:\/\//);
+
+        // Markdown link syntax must be gone from markdownText
+        expect(msg.markdownText).not.toMatch(/\[[^\]]+\]\([^)]+\)/);
+
+        // Lead-in phrase pointing to the link must be stripped
+        expect(msg.plainText).not.toContain("С пълния текст");
+        expect(msg.markdownText).not.toContain("С пълния текст");
+
+        // Substantive content must be preserved
+        expect(msg.plainText).toContain("Надежда");
+        expect(msg.plainText).toContain("15.03.2026");
+
+        expect(recorder.errors).toHaveLength(0);
+      });
+    });
   },
 );
