@@ -124,7 +124,7 @@ export default function ApiAccessSection({
           {showRevokeConfirm ? (
             <div className="border border-error-border rounded-lg p-4 bg-error-light">
               <p className="text-error font-semibold mb-2">
-                Сигурен ли си, че искаш да отмениш API ключа?
+                Наистина ли искаш да отмениш API ключа?
               </p>
               <p className="text-error text-sm mb-4">
                 Всички приложения, използващи този ключ, ще загубят достъп
