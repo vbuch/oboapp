@@ -78,7 +78,7 @@ export function useInterests() {
       console.error("Error fetching interests:", err);
       // Check if offline
       if (!navigator.onLine) {
-        setError("Няма интернет връзка.");
+        setError(OFFLINE_ERROR);
       } else {
         setError(
           err instanceof Error ? err.message : "Failed to load interests",
