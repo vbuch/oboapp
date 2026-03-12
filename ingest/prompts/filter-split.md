@@ -38,12 +38,47 @@ Enhance readability and presentation while preserving all original content.
 
 - **CRITICAL: Include the reason/purpose** - If the message explains WHY the traffic organization exists (e.g., "за рекламен клип", "за ремонт", "за празнично богослужение"), it MUST be included in the message
 - Use markdown formatting: headings (# ## ###), **bold**, _italic_, lists (- or 1.), paragraphs, and line breaks.
-- Preserve ALL original content exactly - do not add information, do not omit information.
+- Preserve ALL original content exactly - do not add information, do not omit information. Exception: links and their lead-in text are stripped per <links>.
 - Structure the content logically with appropriate headings and emphasis.
 - Use bold for important terms like dates, locations, responsible entities.
 - Break up long paragraphs for better readability.
 
 </markdown-formatting>
+
+<links>
+Remove all links from `plainText` and `markdownText`. Do not add any notice, placeholder, or explanation that links were removed.
+
+**What to remove:**
+
+- Bare URLs (`https://...` or `http://...`)
+- Markdown hyperlinks (`[display text](url)`) — remove the **entire construct**, including both the display text and the URL
+
+**Remove orphaned lead-in text:**
+After removing a link, also remove any text whose sole purpose was to introduce or direct the reader to that link — text that has no standalone value without the link.
+
+Examples of phrases to remove together with the link:
+
+- "С пълния текст на писмото можете да се запознаете от следния линк:"
+- "Повече информация на:"
+- "За допълнителна информация посетете:"
+- "For more details, see:"
+- Any inline connector fragment left dangling after link removal (e.g., "...прочетете на" or "...see at" with nothing meaningful following)
+
+**Preserve informative content:**
+Do NOT remove text that carries standalone value independent of the link — descriptions, dates, locations, entity names, and substantive content. Only remove text whose entire purpose was to point to the removed link.
+
+The remaining text must read naturally — no dangling colons, broken connectors, or orphaned phrases.
+
+**Example:**
+
+Input:
+Прекъсване на топлоподаването: Ще бъде в рамките на 48 часа.
+
+С пълния текст на писмото можете да се запознаете от следния линк: [Уведомление от Топлофикация София ЕАД](https://toplo-bg.example.com/notice.pdf)
+
+Output:
+Прекъсване на топлоподаването: Ще бъде в рамките на 48 часа.
+</links>
 
 <single-message>
 A single MEANINGFUL message that makes sense on its own and is relevant to a single topic. It doesn't lack any information that is common to all the messages in the source notification.

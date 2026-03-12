@@ -218,6 +218,40 @@ export function assertWithSpecificAddress(
   };
 }
 
+/**
+ * Asserts that filter-split output contains no links in plainText or markdownText.
+ * Checks both bare URLs (https://...) and markdown hyperlinks ([text](url)).
+ */
+export function assertNoLinks(
+  output: string,
+  _context: AssertionValueFunctionContext,
+): GradingResult {
+  const parsed = parseOutput(output);
+  if (!parsed.success) return parsed.result;
+
+  const arr = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
+  const urlPattern = /https?:\/\/[^\s)]+|\[[^\]]+\]\([^)]+\)/;
+
+  const violations: string[] = [];
+  for (const item of arr as Record<string, unknown>[]) {
+    for (const field of ["plainText", "markdownText"] as const) {
+      const text = String(item[field] ?? "");
+      if (urlPattern.test(text)) {
+        violations.push(`${field} contains a link`);
+      }
+    }
+  }
+
+  const pass = violations.length === 0;
+  return {
+    pass,
+    score: pass ? 1 : 0,
+    reason: pass
+      ? "No links found in plainText or markdownText"
+      : `Links found in output: ${violations.join("; ")}`,
+  };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────
 
 function parseOutput(

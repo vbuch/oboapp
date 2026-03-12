@@ -90,3 +90,12 @@ tests:
   # Insufficient content — may be irrelevant or produce minimal output
   - vars:
       input: "file://../__mocks__/fixtures/sources/insufficient.md"
+
+  # Message with link — link and lead-in text must be stripped from output
+  - vars:
+      input: "file://../__mocks__/fixtures/sources/single-message-with-links.md"
+    assert:
+      - type: javascript
+        value: "file://assertions.ts:assertRelevant"
+      - type: javascript
+        value: "file://assertions.ts:assertNoLinks"
