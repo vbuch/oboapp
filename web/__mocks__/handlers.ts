@@ -126,10 +126,10 @@ export const handlers = [
     const sourcesParam = url.searchParams.get("sources");
 
     const selectedCategories = categoriesParam
-      ? categoriesParam.split(",").filter(Boolean)
+      ? categoriesParam.split(",").map((v) => v.trim()).filter(Boolean)
       : undefined;
     const selectedSources = sourcesParam
-      ? sourcesParam.split(",").filter(Boolean)
+      ? sourcesParam.split(",").map((v) => v.trim()).filter(Boolean)
       : undefined;
 
     // Mirror production behaviour: skip city-wide messages, then compute one
