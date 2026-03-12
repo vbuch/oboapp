@@ -35,6 +35,8 @@ export default function HistoryContent() {
     setStats(newStats);
   }, []);
 
+  const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
+
   function handleApplyFilters(
     categories: Set<string>,
     sources: Set<string>,
@@ -136,7 +138,7 @@ export default function HistoryContent() {
           selectedCategories={selectedCategories}
           selectedSources={selectedSources}
           onApply={handleApplyFilters}
-          onClose={() => setIsModalOpen(false)}
+          onClose={handleCloseModal}
         />
       )}
 
