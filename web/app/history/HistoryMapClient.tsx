@@ -43,7 +43,8 @@ async function fetchHeatmapData(
   if (sources && sources.size > 0) {
     params.set("sources", Array.from(sources).join(","));
   }
-  const url = `/api/messages/heatmap${params.toString() ? `?${params.toString()}` : ""}`;
+  const qs = params.toString();
+  const url = `/api/messages/heatmap${qs ? `?${qs}` : ""}`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error("Failed to fetch heatmap data");
