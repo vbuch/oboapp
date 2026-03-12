@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isValidMessageId } from "@oboapp/shared";
 import type { Message } from "@/lib/types";
 
@@ -23,6 +23,10 @@ export function useMessageByIdFallback(
     message: Message;
   } | null>(null);
 
+  // Tracks the messageId for which a fetch has been initiated, so the effect
+  // doesn't re-run simply because fetchedMessage state was updated.
+  const fetchedIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!messageId || !isValidMessageId(messageId)) {
       return;
@@ -32,10 +36,11 @@ export function useMessageByIdFallback(
       return;
     }
 
-    if (fetchedMessage?.id === messageId) {
+    if (fetchedIdRef.current === messageId) {
       return;
     }
 
+    fetchedIdRef.current = messageId;
     let cancelled = false;
 
     fetch(`/api/messages/by-id?id=${encodeURIComponent(messageId)}`)
@@ -49,13 +54,14 @@ export function useMessageByIdFallback(
         }
       })
       .catch(() => {
-        // Leave as null on error
+        // Clear the ref on error so a subsequent messageId change can retry.
+        if (!cancelled) fetchedIdRef.current = null;
       });
 
     return () => {
       cancelled = true;
     };
-  }, [messageId, listMatch, fetchedMessage]);
+  }, [messageId, listMatch]);
 
   return useMemo(() => {
     if (!messageId) return null;

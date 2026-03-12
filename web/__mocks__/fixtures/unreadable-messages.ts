@@ -21,6 +21,5 @@ export const MOCK_UNREADABLE_MESSAGES: InternalMessage[] = [
     cityWide: false,
     isRelevant: false,
     isUnreadable: true,
-    geoJson: undefined,
   },
 ];
