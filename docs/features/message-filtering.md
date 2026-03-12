@@ -116,7 +116,7 @@ Timespan-based filtering uses denormalized `timespanEnd` field (MAX end time acr
 
 Beyond time-based relevance, several filters operate at different pipeline stages:
 
-- **Content Relevance** (AI): Applied during the Filter & Split stage of message ingestion, before categorization and geocoding. Large language model analyzes text to remove announcements unrelated to infrastructure (e.g., transport schedules, events, general news). Irrelevant messages are marked as finalized without GeoJSON.
+- **Content Relevance** (AI): Applied during the Filter & Split stage of message ingestion, before categorization and geocoding. Large language model analyzes text to remove announcements unrelated to infrastructure (e.g., transport schedules, events, general news). Irrelevant messages are marked as finalized without GeoJSON. The stage also normalizes output text by stripping all link forms (bare URLs, `www.` domains, autolinks, Markdown inline and reference-style links) from `plainText` and `markdownText`, along with any orphaned lead-in phrases that existed solely to introduce the removed link.
 
 - **Boundary Filter**: Applied twice - pre-check during source ingestion for pre-geocoded data, and post-check after geocoding for AI-extracted locations. Uses geometric intersection with defined boundary polygons to ensure geographic relevance to the target region.
 
