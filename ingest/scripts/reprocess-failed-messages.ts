@@ -200,9 +200,18 @@ async function main() {
     return;
   }
 
-  const bySource = groupBySource(failed);
+  const unreadable = failed.filter((m) => m.isUnreadable === true);
+  const retryable = failed.filter((m) => m.isUnreadable !== true);
+
+  if (unreadable.length > 0) {
+    console.log(
+      `ℹ️  ${unreadable.length} message(s) marked isUnreadable=true — skipping (AI-determined document-only redirects)`,
+    );
+  }
+
+  const bySource = groupBySource(retryable);
   console.log(
-    `Found ${failed.length} failed message(s) across ${bySource.size} source(s)\n`,
+    `Found ${retryable.length} retryable message(s) across ${bySource.size} source(s)\n`,
   );
 
   const stats = {
@@ -237,17 +246,22 @@ async function main() {
       `\n⚠️  DRY RUN — no changes made. Re-run with --execute to apply.`,
     );
     console.log(
-      `\nSummary (dry-run): Would attempt: ${bySource.size} (window: last ${daysBack} days)\n`,
+      `\nSummary (dry-run): Would attempt: ${bySource.size} source(s) (window: last ${daysBack} days)`,
     );
+    console.log(
+      `                   Skipped as unreadable: ${unreadable.length}`,
+    );
+    console.log();
   } else {
-    console.log(`\n${"-".repeat(45)}`);
+    console.log(`\n${"─".repeat(55)}`);
     console.log(
       `Sources  — Attempted: ${stats.attempted} | Succeeded: ${stats.succeeded} | Failed: ${stats.failed}`,
     );
     console.log(
       `Messages — Created: ${stats.messagesCreated} | Got GeoJSON: ${stats.messagesWithGeoJson} | Still failed: ${stats.messagesStillFailed}`,
     );
-    console.log(`${"-".repeat(45)}\n`);
+    console.log(`Skipped as unreadable: ${unreadable.length}`);
+    console.log(`${"─".repeat(55)}\n`);
   }
 }
 
