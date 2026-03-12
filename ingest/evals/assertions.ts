@@ -220,7 +220,8 @@ export function assertWithSpecificAddress(
 
 /**
  * Asserts that filter-split output contains no links in plainText or markdownText.
- * Checks both bare URLs (https://...) and markdown hyperlinks ([text](url)).
+ * Checks bare URLs (https://..., http://...), www.-style domains, autolinks (<https://...>),
+ * Markdown inline links ([text](url)), and Markdown reference-style links ([text][id] / [id]: url).
  */
 export function assertNoLinks(
   output: string,
