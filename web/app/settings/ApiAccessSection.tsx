@@ -58,7 +58,7 @@ export default function ApiAccessSection({
     if (!apiClient?.apiKey) return;
     if (!navigator.clipboard?.writeText) {
       alert(
-        "Копирането не е поддържано в този браузър. Копирай ключа ръчно.",
+        "Копирането не се поддържа в този браузър. Копирай ключа ръчно.",
       );
       return;
     }
