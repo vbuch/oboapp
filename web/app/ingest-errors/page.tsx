@@ -33,7 +33,7 @@ function buildGitHubIssueUrl(message: InternalMessage): string {
   }
 
   const title = `Ingest error: ${message.id}`;
-  let body = `**Съобщение:** ${messageUrl}\n\n**Проблеми при обработка:**\n${errors}`;
+  let body = `**Съобщение:** ${messageUrl}\n\n**Проблеми при обработка:**\n\`\`\`\n${errors}\n\`\`\``;
 
   if (body.length > MAX_GITHUB_BODY_LENGTH) {
     const truncatedBody = body.slice(0, MAX_GITHUB_BODY_LENGTH);
