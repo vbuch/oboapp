@@ -35,7 +35,8 @@
     "prebuilt:notify": "node dist/notify.js",
     "prebuilt:gtfs-stops": "node dist/ingest.js gtfs-stops",
     "prebuilt:pipeline:emergent": "node dist/pipeline.js --emergent",
-    "prebuilt:pipeline:all": "node dist/pipeline.js --all"
+    "prebuilt:pipeline:all": "node dist/pipeline.js --all",
+    "prebuilt:air-quality-fetch": "node dist/air-quality-fetch.js"
   },
   "dependencies": {
     "@google/genai": "^1.33.0",
