@@ -51,7 +51,7 @@ Remove all links from `plainText` and `markdownText`. Do not add any notice, pla
 **What to remove:**
 
 - Bare URLs (`https://...` or `http://...`)
-- Markdown hyperlinks (`[display text](url)`) — remove the **entire construct**, including both the display text and the URL
+- Markdown hyperlinks (`[display text](url)`) — remove the link, but if needed, keep the text if it makes sense without a link attached. Remove the text as well, if it would be meaningless without a link.
 
 **Remove orphaned lead-in text:**
 After removing a link, also remove any text whose sole purpose was to introduce or direct the reader to that link — text that has no standalone value without the link.
