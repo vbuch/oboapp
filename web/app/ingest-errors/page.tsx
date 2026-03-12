@@ -35,8 +35,8 @@ function buildGitHubIssueUrl(message: InternalMessage): string {
   const title = `Ingest error: ${message.id}`;
   let body = `**Съобщение:** ${messageUrl}\n\n**Проблеми при обработка:**\n\`\`\`\n${errors}\n\`\`\``;
 
-  const buildUrl = (b: string) =>
-    `https://github.com/${GITHUB_REPO}/issues/new?${new URLSearchParams({ title, body: b })}`;
+  const buildUrl = (issueBody: string) =>
+    `https://github.com/${GITHUB_REPO}/issues/new?${new URLSearchParams({ title, body: issueBody })}`;
 
   if (buildUrl(body).length > MAX_URL_LENGTH) {
     const suffix = "\n\n(truncated)";
