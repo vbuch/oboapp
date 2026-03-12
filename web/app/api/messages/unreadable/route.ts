@@ -136,11 +136,40 @@ export async function GET(request: Request) {
     const hitFetchLimit = fetchedDocs.length === FETCH_LIMIT;
     const hasMore = hasMoreCandidates || hitFetchLimit;
     const lastDoc = pageDocs.at(-1);
-    const boundaryDoc = hasMoreCandidates
-      ? lastDoc
-      : [...fetchedDocs]
-          .reverse()
-          .find((doc) => toTimestamp(doc.finalizedAt) !== null);
+
+    let boundaryDoc: Record<string, unknown> | undefined;
+
+    if (hasMoreCandidates) {
+      boundaryDoc = lastDoc;
+    } else if (hitFetchLimit) {
+      // When the DB batch was truncated at FETCH_LIMIT but not enough candidates
+      // filled the page, use the lowest _id within the oldest-timestamp bucket
+      // as the cursor. This ensures same-timestamp docs are never skipped on the
+      // next page (picking an arbitrary _id from that bucket would lose others).
+      const validDocs = fetchedDocs.filter(
+        (doc) => toTimestamp(doc.finalizedAt) !== null,
+      );
+
+      if (validDocs.length > 0) {
+        let oldestTime = toTimestamp(validDocs[0].finalizedAt)!;
+        for (let i = 1; i < validDocs.length; i += 1) {
+          const t = toTimestamp(validDocs[i].finalizedAt)!;
+          if (t < oldestTime) {
+            oldestTime = t;
+          }
+        }
+
+        const oldestBucket = validDocs.filter(
+          (doc) => toTimestamp(doc.finalizedAt) === oldestTime,
+        );
+
+        oldestBucket.sort((left, right) =>
+          String(left._id).localeCompare(String(right._id)),
+        );
+
+        boundaryDoc = oldestBucket[0];
+      }
+    }
 
     const nextCursor =
       boundaryDoc && hasMore

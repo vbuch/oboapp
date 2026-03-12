@@ -39,6 +39,27 @@ vi.mock("@/lib/db", () => ({
           }
         }
 
+        if (options?.orderBy) {
+          filtered.sort((a, b) => {
+            for (const { field, direction } of options.orderBy) {
+              const aVal = a[field];
+              const bVal = b[field];
+              let cmp = 0;
+              if (aVal instanceof Date && bVal instanceof Date) {
+                cmp = aVal.getTime() - bVal.getTime();
+              } else if (typeof aVal === "string" && typeof bVal === "string") {
+                cmp = aVal.localeCompare(bVal);
+              } else if (typeof aVal === "number" && typeof bVal === "number") {
+                cmp = aVal - bVal;
+              }
+              if (cmp !== 0) {
+                return direction === "desc" ? -cmp : cmp;
+              }
+            }
+            return 0;
+          });
+        }
+
         if (options?.limit) {
           filtered = filtered.slice(0, options.limit);
         }

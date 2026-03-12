@@ -25,8 +25,10 @@ type UnreadableResponse = {
 
 const fetchUnreadable = async ({
   pageParam,
+  signal,
 }: {
   pageParam?: UnreadableCursor;
+  signal?: AbortSignal;
 }): Promise<UnreadableResponse> => {
   const params = new URLSearchParams();
 
@@ -35,7 +37,9 @@ const fetchUnreadable = async ({
     params.set("cursorId", pageParam.id);
   }
 
-  const response = await fetch(`/api/messages/unreadable?${params}`);
+  const response = await fetch(`/api/messages/unreadable?${params}`, {
+    signal,
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch unreadable messages");
