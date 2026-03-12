@@ -225,17 +225,15 @@ export default function IngestErrorsPage() {
                         ))}
                       </ul>
                       <div className="pt-1">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(buildGitHubIssueUrl(message), "_blank", "noopener,noreferrer");
-                          }}
+                        <a
+                          href={buildGitHubIssueUrl(message)}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 text-xs font-medium text-error hover:underline"
                         >
                           <GitHubIcon className="size-4 shrink-0" />
                           Създай issue в GitHub
-                        </button>
+                        </a>
                       </div>
                     </div>
                   )}
