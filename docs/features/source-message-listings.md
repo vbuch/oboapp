@@ -26,6 +26,7 @@ The source message listing feature provides dedicated pages for each data source
 - `lozenets-sofia-bg` - Столична община, Район "Лозенец"
 - `raioniskar-bg` - Столична община, Район "Искър"
 - `rayon-pancharevo-bg` - Столична община, Район "Панчарево"
+- `rayon-ilinden-bg` - Столична община, Район "Илинден"
 - `nimh-severe-weather` - НИМХ (Метеорологични предупреждения)
 
 ## Page Structure
