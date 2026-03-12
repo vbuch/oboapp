@@ -58,7 +58,15 @@ function buildGitHubIssueUrl(message: InternalMessage): string {
   let bestContent = truncSuffix;
 
   while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
+    let mid = Math.floor((low + high) / 2);
+    // Never cut through a surrogate pair (non-BMP character)
+    if (mid > 0 && mid < errorsContent.length) {
+      const prevCode = errorsContent.charCodeAt(mid - 1);
+      const nextCode = errorsContent.charCodeAt(mid);
+      if (prevCode >= 0xd800 && prevCode <= 0xdbff && nextCode >= 0xdc00 && nextCode <= 0xdfff) {
+        mid -= 1;
+      }
+    }
     const candidate = errorsContent.slice(0, mid) + truncSuffix;
     if (buildUrl(`${header}${openFence}${candidate}`).length <= MAX_URL_LENGTH) {
       bestContent = candidate;
@@ -217,15 +225,17 @@ export default function IngestErrorsPage() {
                         ))}
                       </ul>
                       <div className="pt-1">
-                        <a
-                          href={buildGitHubIssueUrl(message)}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(buildGitHubIssueUrl(message), "_blank", "noopener,noreferrer");
+                          }}
                           className="inline-flex items-center gap-1.5 text-xs font-medium text-error hover:underline"
                         >
                           <GitHubIcon className="size-4 shrink-0" />
                           Създай issue в GitHub
-                        </a>
+                        </button>
                       </div>
                     </div>
                   )}
