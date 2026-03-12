@@ -181,7 +181,8 @@ export default function IngestErrorsPage() {
 
           {!isLoading &&
             messages.map((message) => {
-              const hasErrors = (message.ingestErrors?.length ?? 0) > 0;
+              const ingestErrors = message.ingestErrors ?? [];
+              const hasErrors = ingestErrors.length > 0;
               return (
                 <div key={message.id} className="flex flex-col">
                   <MessageCard
@@ -195,7 +196,7 @@ export default function IngestErrorsPage() {
                     <div className="rounded-b-md border border-t-0 border-error-border bg-error-light text-error p-3 text-xs space-y-2">
                       <p className="font-semibold">Проблеми при обработка</p>
                       <ul className="list-disc list-inside space-y-1">
-                        {message.ingestErrors!.map((error, index) => (
+                        {ingestErrors.map((error, index) => (
                           <li
                             key={`${error.type}-${index}`}
                             className="break-words"
