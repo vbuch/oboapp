@@ -81,7 +81,7 @@ export default function HistoryContent() {
     }
     if (selectedSources.size > 0) {
       parts.push(
-        `${selectedSources.size} ${selectedSources.size === 1 ? "извор" : "извори"}`,
+        `${selectedSources.size} ${selectedSources.size === 1 ? "източник" : "източника"}`,
       );
     }
 
