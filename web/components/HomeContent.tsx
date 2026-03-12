@@ -409,6 +409,11 @@ export default function HomeContent() {
       return;
     }
 
+    // Skip fetch if the message is already in the viewport list
+    if (viewportMatch) {
+      return;
+    }
+
     // Skip if we already have this message fetched
     if (fetchedMessage?.id === messageId) {
       return;
@@ -433,7 +438,7 @@ export default function HomeContent() {
     return () => {
       cancelled = true;
     };
-  }, [messageId, fetchedMessage]);
+  }, [messageId, viewportMatch, fetchedMessage]);
 
   // Derive selected message: use viewport match or fetched message (only if ID matches current messageId)
   const selectedMessage = useMemo(() => {

@@ -84,6 +84,11 @@ export default function SourcePage() {
       return;
     }
 
+    // Skip fetch if the message is already in the loaded list
+    if (listMatch) {
+      return;
+    }
+
     if (fetchedMessage?.id === messageId) {
       return;
     }
@@ -107,7 +112,7 @@ export default function SourcePage() {
     return () => {
       cancelled = true;
     };
-  }, [messageId, fetchedMessage]);
+  }, [messageId, listMatch, fetchedMessage]);
 
   // Derive selected message: prefer list match, fall back to fetched message
   const selectedMessage = useMemo(() => {
