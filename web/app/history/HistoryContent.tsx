@@ -123,8 +123,9 @@ export default function HistoryContent() {
         />
       )}
 
-      {/* Full-height map */}
-      <div className="flex-1">
+      {/* Full-height map — isolated stacking context so Leaflet layers don't
+          bleed outside this container */}
+      <div className="flex-1 isolate">
         <HistoryMapWrapper
           categories={selectedCategories}
           sources={selectedSources}

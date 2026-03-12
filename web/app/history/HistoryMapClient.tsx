@@ -59,7 +59,10 @@ export default function HistoryMapClient({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
   const heatLayerRef = useRef<import("leaflet").Layer | null>(null);
-  const leafletRef = useRef<typeof import("leaflet").default | null>(null);
+  // Store L (leaflet namespace) — cast via unknown because @types/leaflet uses
+  // `export =` and doesn't expose a `.default` member, but at runtime
+  // `(await import("leaflet")).default` is the same object.
+  const leafletRef = useRef<typeof import("leaflet") | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +81,7 @@ export default function HistoryMapClient({
 
     async function initMap() {
       try {
-        const L = (await import("leaflet")).default;
+        const L = (await import("leaflet")).default as typeof import("leaflet");
         await import("leaflet.heat");
 
         if (cancelled || !mapRef.current || mapInstanceRef.current) return;
