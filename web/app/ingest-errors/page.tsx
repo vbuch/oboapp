@@ -15,15 +15,30 @@ const PAGE_SIZE = 12;
 const GITHUB_REPO = "vbuch/oboapp";
 const BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL ?? "https://oboapp.online";
+const MAX_GITHUB_BODY_LENGTH = 4000;
+const MAX_INGEST_ERRORS_IN_GITHUB_BODY = 20;
 
 function buildGitHubIssueUrl(message: InternalMessage): string {
   const messageUrl = `${BASE_URL}/ingest-errors?messageId=${encodeURIComponent(String(message.id))}`;
-  const errors =
-    message.ingestErrors
-      ?.map((e: IngestError) => `- [${e.type}] ${e.text}`)
-      .join("\n") ?? "";
+  const rawErrors = message.ingestErrors ?? [];
+  const limitedErrors = rawErrors.slice(0, MAX_INGEST_ERRORS_IN_GITHUB_BODY);
+  let errors = limitedErrors
+    .map((e: IngestError) => `- [${e.type}] ${e.text}`)
+    .join("\n");
+
+  if (rawErrors.length > limitedErrors.length) {
+    const remaining = rawErrors.length - limitedErrors.length;
+    const suffixLine = `- ... (${remaining} more error${remaining === 1 ? "" : "s"} truncated)`;
+    errors = errors ? `${errors}\n${suffixLine}` : suffixLine;
+  }
+
   const title = `Ingest error: ${message.id}`;
-  const body = `**Съобщение:** ${messageUrl}\n\n**Проблеми при обработка:**\n${errors}`;
+  let body = `**Съобщение:** ${messageUrl}\n\n**Проблеми при обработка:**\n${errors}`;
+
+  if (body.length > MAX_GITHUB_BODY_LENGTH) {
+    const truncatedBody = body.slice(0, MAX_GITHUB_BODY_LENGTH);
+    body = `${truncatedBody}\n\n(truncated)`;
+  }
   const params = new URLSearchParams({ title, body });
   return `https://github.com/${GITHUB_REPO}/issues/new?${params}`;
 }
