@@ -4,7 +4,11 @@
     // See .browserslistrc for supported browser list
     // This eliminates unnecessary polyfills and reduces bundle size
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -22,8 +26,12 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "zod": ["./node_modules/zod"]
+      "@/*": [
+        "./*"
+      ],
+      "zod": [
+        "./node_modules/zod"
+      ]
     },
     "baseUrl": "."
   },
@@ -33,7 +41,8 @@
     "**/*.tsx",
     "**/*.mdx",
     ".next/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

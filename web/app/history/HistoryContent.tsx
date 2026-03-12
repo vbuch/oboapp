@@ -15,8 +15,8 @@ function formatDate(iso: string): string {
 
 /**
  * Client component that owns the filter state for the history heatmap page.
- * Renders the description paragraph (with a clickable "filters" link), the
- * filter modal, and the map.
+ * Renders the stats paragraph (with a clickable "filters" link), the filter
+ * modal, and the map.
  */
 export default function HistoryContent() {
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
@@ -44,7 +44,7 @@ export default function HistoryContent() {
     setIsModalOpen(false);
   }
 
-  // Inline description rendered as part of the surrounding <p> element
+  // Inline description rendered as a paragraph below the main description
   const filterSummary = (() => {
     if (!stats) return null;
 
@@ -54,8 +54,7 @@ export default function HistoryContent() {
 
     if (!hasActiveFilters) {
       return (
-        <>
-          {" "}
+        <p className="text-sm text-neutral">
           Картата е базирана на{" "}
           <span className="font-medium">
             {stats.messageCount.toLocaleString("bg-BG")} съобщения
@@ -70,7 +69,7 @@ export default function HistoryContent() {
             филтри
           </button>
           .
-        </>
+        </p>
       );
     }
 
@@ -82,13 +81,12 @@ export default function HistoryContent() {
     }
     if (selectedSources.size > 0) {
       parts.push(
-        `${selectedSources.size} ${selectedSources.size === 1 ? "извор" : "извора"}`,
+        `${selectedSources.size} ${selectedSources.size === 1 ? "извор" : "извори"}`,
       );
     }
 
     return (
-      <>
-        {" "}
+      <p className="text-sm text-neutral">
         Показват се{" "}
         <span className="font-medium">
           {stats.messageCount.toLocaleString("bg-BG")} съобщения
@@ -102,14 +100,20 @@ export default function HistoryContent() {
           {parts.join(" и ")}
         </button>
         .
-      </>
+      </p>
     );
   })();
 
   return (
-    <>
-      {filterSummary}
+    <div className="flex flex-col flex-1">
+      {/* Stats paragraph with filter link */}
+      {filterSummary && (
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-4">
+          {filterSummary}
+        </div>
+      )}
 
+      {/* Filter modal */}
       {isModalOpen && (
         <HistoryFilterModal
           selectedCategories={selectedCategories}
@@ -120,13 +124,13 @@ export default function HistoryContent() {
       )}
 
       {/* Full-height map */}
-      <div className="flex-1 mt-8">
+      <div className="flex-1">
         <HistoryMapWrapper
           categories={selectedCategories}
           sources={selectedSources}
           onStatsLoaded={handleStatsLoaded}
         />
       </div>
-    </>
+    </div>
   );
 }

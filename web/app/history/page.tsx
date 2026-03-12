@@ -31,9 +31,11 @@ export default function HistoryPage() {
           Може да бъде показател за това къде е нужно да извлечем повече данни
           или за това къде районните администрации могат да
           споделят повече информация.
-          <HistoryContent />
         </p>
       </div>
+
+      {/* Stats, filters and full-height map */}
+      <HistoryContent />
     </div>
   );
 }

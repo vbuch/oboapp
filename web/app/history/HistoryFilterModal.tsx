@@ -13,7 +13,7 @@ import CategoryFilterItem from "@/components/CategoryFilterItem";
 import SourceFilterItem from "@/components/SourceFilterItem";
 import Accordion from "@/components/Accordion";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
-import { borderRadius, zIndex } from "@/lib/colors";
+import { borderRadius } from "@/lib/colors";
 import { getCurrentLocalitySources } from "@/lib/source-utils";
 
 const orderedCategories: (Category | typeof UNCATEGORIZED)[] = [
@@ -88,17 +88,17 @@ export default function HistoryFilterModal({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — z-[1000] ensures it sits above the Leaflet heatmap canvas (z-400) */}
       <button
         type="button"
-        className={`fixed inset-0 ${zIndex.modalBackdrop} bg-black/30 backdrop-blur-sm`}
+        className="fixed inset-0 z-[1000] bg-black/30 backdrop-blur-sm"
         onClick={onClose}
         aria-label="Затвори филтрите"
       />
 
-      {/* Modal */}
+      {/* Modal — z-[1001] sits above the backdrop */}
       <div
-        className={`fixed inset-0 flex items-center justify-center p-4 ${zIndex.modalContent} pointer-events-none`}
+        className="fixed inset-0 flex items-center justify-center p-4 z-[1001] pointer-events-none"
       >
         <div
           role="dialog"
