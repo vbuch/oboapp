@@ -206,7 +206,7 @@ export default function SettingsPage() {
   const handleUnsubscribeAll = async () => {
     if (!user) return;
     if (
-      !confirm("Сигурен ли си, че искаш да се отпишеш от всички устройства?")
+      !confirm("Наистина ли искаш да отпишеш всички устройства?")
     ) {
       return;
     }
