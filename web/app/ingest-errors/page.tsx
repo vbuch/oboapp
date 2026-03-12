@@ -10,6 +10,7 @@ import GitHubIcon from "@/components/icons/GitHubIcon";
 import type { InternalMessage, IngestError } from "@/lib/types";
 import { navigateBackOrReplace } from "@/lib/navigation-utils";
 import { getButtonClasses } from "@/lib/theme";
+import { useMessageByIdFallback } from "@/lib/hooks/useMessageByIdFallback";
 
 const PAGE_SIZE = 12;
 
@@ -143,17 +144,14 @@ export default function IngestErrorsPage() {
     [data],
   );
 
-  const selectedMessage = useMemo(() => {
-    const messageId = searchParams.get("messageId");
+  const messageId = searchParams.get("messageId");
 
-    if (messages.length === 0) return null;
+  const listMatch = useMemo(
+    () => messages.find((message) => message.id === messageId) ?? null,
+    [messageId, messages],
+  );
 
-    if (messageId) {
-      return messages.find((message) => message.id === messageId) || null;
-    }
-
-    return null;
-  }, [messages, searchParams]);
+  const selectedMessage = useMessageByIdFallback(messageId, listMatch);
 
   const handleMessageClick = useCallback(
     (message: InternalMessage) => {
