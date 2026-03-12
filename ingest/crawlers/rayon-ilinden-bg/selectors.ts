@@ -13,6 +13,5 @@ export const SELECTORS = {
     CONTENT: "article, .entry-content, .post-content, main",
     TITLE: "h1, .entry-title, .post-title",
     DATE: "time, .entry-date, .posted-on, [class*=\"date\"]",
-    MESSAGE: ".entry-content, .post-content, article p",
   },
 } as const;
