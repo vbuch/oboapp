@@ -9,12 +9,12 @@ import MessageDetailView from "@/components/MessageDetailView/MessageDetailView"
 import GitHubIcon from "@/components/icons/GitHubIcon";
 import type { InternalMessage, IngestError } from "@/lib/types";
 import { navigateBackOrReplace } from "@/lib/navigation-utils";
+import { getButtonClasses } from "@/lib/theme";
 
 const PAGE_SIZE = 12;
 
 const GITHUB_REPO = "vbuch/oboapp";
-const BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL ?? "https://oboapp.online";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://oboapp.online";
 const MAX_URL_LENGTH = 8000;
 const MAX_INGEST_ERRORS_IN_GITHUB_BODY = 20;
 
@@ -34,7 +34,9 @@ function buildGitHubIssueUrl(message: InternalMessage): string {
   if (rawErrors.length > limitedErrors.length) {
     const remaining = rawErrors.length - limitedErrors.length;
     const suffixLine = `- ... (${remaining} more error${remaining === 1 ? "" : "s"} truncated)`;
-    errorsContent = errorsContent ? `${errorsContent}\n${suffixLine}` : suffixLine;
+    errorsContent = errorsContent
+      ? `${errorsContent}\n${suffixLine}`
+      : suffixLine;
   }
 
   const title = `Ingest error: ${message.id}`;
@@ -45,7 +47,8 @@ function buildGitHubIssueUrl(message: InternalMessage): string {
   const buildUrl = (issueBody: string) =>
     `https://github.com/${GITHUB_REPO}/issues/new?${new URLSearchParams({ title, body: issueBody })}`;
 
-  const buildBody = (content: string) => `${header}${openFence}${content}${closeFence}`;
+  const buildBody = (content: string) =>
+    `${header}${openFence}${content}${closeFence}`;
 
   if (buildUrl(buildBody(errorsContent)).length <= MAX_URL_LENGTH) {
     return buildUrl(buildBody(errorsContent));
@@ -63,12 +66,19 @@ function buildGitHubIssueUrl(message: InternalMessage): string {
     if (mid > 0 && mid < errorsContent.length) {
       const prevCode = errorsContent.charCodeAt(mid - 1);
       const nextCode = errorsContent.charCodeAt(mid);
-      if (prevCode >= 0xd800 && prevCode <= 0xdbff && nextCode >= 0xdc00 && nextCode <= 0xdfff) {
+      if (
+        prevCode >= 0xd800 &&
+        prevCode <= 0xdbff &&
+        nextCode >= 0xdc00 &&
+        nextCode <= 0xdfff
+      ) {
         mid -= 1;
       }
     }
     const candidate = errorsContent.slice(0, mid) + truncSuffix;
-    if (buildUrl(`${header}${openFence}${candidate}`).length <= MAX_URL_LENGTH) {
+    if (
+      buildUrl(`${header}${openFence}${candidate}`).length <= MAX_URL_LENGTH
+    ) {
       bestContent = candidate;
       low = mid + 1;
     } else {
@@ -161,7 +171,7 @@ export default function IngestErrorsPage() {
   const isLoadingCards = isLoading || isFetchingNextPage;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-light">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Back link */}
         <div className="mb-6">
@@ -176,7 +186,7 @@ export default function IngestErrorsPage() {
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-neutral-border">
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               Съобщения с проблеми при обработка
             </h1>
             <p className="text-sm text-neutral">
@@ -255,7 +265,7 @@ export default function IngestErrorsPage() {
               onClick={() => {
                 fetchNextPage();
               }}
-              className="px-6 py-3 rounded-md border border-neutral-border bg-white text-neutral hover:bg-neutral-light transition"
+              className={getButtonClasses("ghost", "lg", "sm")}
               disabled={isFetchingNextPage}
             >
               {isFetchingNextPage ? "Зареждане..." : "Покажи още"}
