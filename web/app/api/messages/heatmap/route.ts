@@ -48,13 +48,49 @@ function extractPoints(geoJson: GeoJSONFeatureCollection): HeatmapPoint[] {
  * Each feature contributes one point (its centroid), except MultiPoint which
  * contributes one point per coordinate. City-wide messages are excluded.
  *
+ * Optional query parameters:
+ * - `categories` – comma-separated list of category names (including "uncategorized")
+ * - `sources`    – comma-separated list of source IDs
+ *
  * Performance note: fetches all finalized messages in one query, but requests
- * only the `geoJson`, `cityWide`, and `finalizedAt` fields to minimise payload size. At the
- * current scale (~5 000 messages) this is fast enough; if the collection grows
- * significantly, consider caching the result or pre-computing the point list.
+ * only the minimal fields to minimise payload size. At the current scale
+ * (~5 000 messages) this is fast enough; if the collection grows significantly,
+ * consider caching the result or pre-computing the point list.
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const categoriesParam = searchParams.get("categories");
+    const sourcesParam = searchParams.get("sources");
+
+    const selectedCategoriesArr = categoriesParam
+      ? categoriesParam
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : null;
+    const selectedSourcesArr = sourcesParam
+      ? sourcesParam
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : null;
+
+    // Hoist derived values out of the per-document loop so they are computed
+    // once per request. Use Sets for O(1) membership checks.
+    const filterCategories = (selectedCategoriesArr?.length ?? 0) > 0;
+    const includeUncategorized =
+      filterCategories &&
+      selectedCategoriesArr?.includes("uncategorized") === true;
+    const realCategoriesSet =
+      filterCategories && selectedCategoriesArr
+        ? new Set(selectedCategoriesArr.filter((c) => c !== "uncategorized"))
+        : null;
+    const selectedSourcesSet =
+      selectedSourcesArr && selectedSourcesArr.length > 0
+        ? new Set(selectedSourcesArr)
+        : null;
+
     const db = await getDb();
 
     // Use `> new Date(0)` instead of `!= null` for cross-backend consistency:
@@ -62,7 +98,7 @@ export async function GET() {
     // non-finalized messages.
     const docs = await db.messages.findMany({
       where: [{ field: "finalizedAt", op: ">", value: new Date(0) }],
-      select: ["_id", "geoJson", "cityWide", "finalizedAt"],
+      select: ["_id", "geoJson", "cityWide", "finalizedAt", "categories", "source"],
     });
 
     const points: HeatmapPoint[] = [];
@@ -75,6 +111,25 @@ export async function GET() {
 
       const geoJson = doc.geoJson as GeoJSONFeatureCollection | null;
       if (!geoJson) continue;
+
+      // Apply category filter when requested
+      if (filterCategories) {
+        const docCategories = (doc.categories as string[] | undefined) ?? [];
+        const hasNoCategories = docCategories.length === 0;
+        const matchesUncategorized = includeUncategorized && hasNoCategories;
+        const matchesCategory =
+          !!realCategoriesSet &&
+          realCategoriesSet.size > 0 &&
+          docCategories.some((cat) => realCategoriesSet.has(cat));
+
+        if (!matchesUncategorized && !matchesCategory) continue;
+      }
+
+      // Apply source filter when requested
+      if (selectedSourcesSet) {
+        const docSource = doc.source as string | undefined;
+        if (!docSource || !selectedSourcesSet.has(docSource)) continue;
+      }
 
       messageCount++;
 

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import HistoryMapWrapper from "./HistoryMapWrapper";
-import HistoryStats from "./HistoryStats";
+import HistoryContent from "./HistoryContent";
 
 export const metadata: Metadata = {
   title: "Исторически данни | OboApp",
@@ -32,14 +31,11 @@ export default function HistoryPage() {
           Може да бъде показател за това къде е нужно да извлечем повече данни
           или за това къде районните администрации могат да
           споделят повече информация.
-          <HistoryStats />
         </p>
       </div>
 
-      {/* Full-height map */}
-      <div className="flex-1">
-        <HistoryMapWrapper />
-      </div>
+      {/* Stats, filters and full-height map */}
+      <HistoryContent />
     </div>
   );
 }

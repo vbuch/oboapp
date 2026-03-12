@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { HistoryMapClientProps } from "./HistoryMapClient";
 
 const HistoryMapClient = dynamic(() => import("./HistoryMapClient"), {
   ssr: false,
@@ -14,6 +15,6 @@ const HistoryMapClient = dynamic(() => import("./HistoryMapClient"), {
   ),
 });
 
-export default function HistoryMapWrapper() {
-  return <HistoryMapClient />;
+export default function HistoryMapWrapper(props: HistoryMapClientProps) {
+  return <HistoryMapClient {...props} />;
 }

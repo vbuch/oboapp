@@ -120,12 +120,32 @@ function filterMessagesBySources(
 
 export const handlers = [
   // GET /api/messages/heatmap - Return heatmap coordinate points from all finalized messages
-  http.get("/api/messages/heatmap", () => {
+  http.get("/api/messages/heatmap", ({ request }) => {
+    const url = new URL(request.url);
+    const categoriesParam = url.searchParams.get("categories");
+    const sourcesParam = url.searchParams.get("sources");
+
+    const selectedCategories = categoriesParam
+      ? categoriesParam.split(",").map((v) => v.trim()).filter(Boolean)
+      : undefined;
+    const selectedSources = sourcesParam
+      ? sourcesParam.split(",").map((v) => v.trim()).filter(Boolean)
+      : undefined;
+
     // Mirror production behaviour: skip city-wide messages, then compute one
     // centroid per feature (or one point per coordinate for MultiPoint).
-    const heatmapMessages = MOCK_MESSAGES.filter(
+    let heatmapMessages = MOCK_MESSAGES.filter(
       (msg) => !msg.cityWide && msg.geoJson?.features,
     );
+
+    // Apply category filter
+    heatmapMessages = filterMessagesByCategories(
+      heatmapMessages,
+      selectedCategories,
+    );
+
+    // Apply source filter
+    heatmapMessages = filterMessagesBySources(heatmapMessages, selectedSources);
 
     const points: [number, number][] = heatmapMessages.flatMap((msg) =>
       msg.geoJson!.features.flatMap((f) => {
