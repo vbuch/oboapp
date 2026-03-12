@@ -24,11 +24,14 @@ export function useMessageByIdFallback(
   } | null>(null);
 
   // Tracks the messageId for which a fetch has been initiated, so the effect
-  // doesn't re-run simply because fetchedMessage state was updated.
+  // doesn't start a duplicate request within a single render cycle.
+  // The ref is cleared in cleanup and on error so that cancellation or failure
+  // never permanently blocks a retry for the same messageId.
   const fetchedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!messageId || !isValidMessageId(messageId)) {
+      fetchedIdRef.current = null;
       return;
     }
 
@@ -41,25 +44,33 @@ export function useMessageByIdFallback(
     }
 
     fetchedIdRef.current = messageId;
-    let cancelled = false;
+    const controller = new AbortController();
 
-    fetch(`/api/messages/by-id?id=${encodeURIComponent(messageId)}`)
+    fetch(`/api/messages/by-id?id=${encodeURIComponent(messageId)}`, {
+      signal: controller.signal,
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Not found");
         return res.json();
       })
       .then((data) => {
-        if (!cancelled && data?.message) {
+        if (data?.message) {
           setFetchedMessage({ id: messageId, message: data.message });
         }
       })
-      .catch(() => {
-        // Clear the ref on error so a subsequent messageId change can retry.
-        if (!cancelled) fetchedIdRef.current = null;
+      .catch((err) => {
+        // On a real error (not an intentional abort), clear the ref so a future
+        // navigation to the same messageId can retry.
+        if ((err as Error).name !== "AbortError") {
+          fetchedIdRef.current = null;
+        }
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
+      // Clear the ref so that if messageId returns to this value after
+      // unmounting or a deps change, a fresh fetch will be started.
+      fetchedIdRef.current = null;
     };
   }, [messageId, listMatch]);
 
