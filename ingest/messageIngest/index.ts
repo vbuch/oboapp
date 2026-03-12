@@ -521,6 +521,7 @@ async function storeFilteredMessage(
   await updateMessage(messageId, {
     plainText: filteredMessage.plainText,
     isRelevant: filteredMessage.isRelevant,
+    isUnreadable: filteredMessage.isUnreadable,
     markdownText: filteredMessage.markdownText,
     responsibleEntity: filteredMessage.responsibleEntity,
     isOneOfMany: filteredMessage.isOneOfMany,

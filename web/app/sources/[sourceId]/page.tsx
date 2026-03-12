@@ -7,7 +7,7 @@ import {
   useSearchParams,
   notFound,
 } from "next/navigation";
-import { isValidMessageId } from "@oboapp/shared";
+import { useMessageByIdFallback } from "@/lib/hooks/useMessageByIdFallback";
 import Link from "next/link";
 import Image from "next/image";
 import { Message, SourceConfig } from "@/lib/types";
@@ -64,63 +64,12 @@ export default function SourcePage() {
 
   const messageId = searchParams.get("messageId");
 
-  // Message fetched from API when messageId doesn't match any message in the list
-  const [fetchedMessage, setFetchedMessage] = useState<{
-    id: string;
-    message: Message;
-  } | null>(null);
+  const listMatch = useMemo(
+    () => messages.find((m) => m.id === messageId) ?? null,
+    [messageId, messages],
+  );
 
-  // Try to find the message in the already-fetched list first
-  const listMatch = useMemo(() => {
-    if (messageId && messages.length > 0) {
-      return messages.find((m) => m.id === messageId) || null;
-    }
-    return null;
-  }, [messageId, messages]);
-
-  // Fetch message by ID from API when not found in the list (e.g. old message, shared link)
-  useEffect(() => {
-    if (!messageId || !isValidMessageId(messageId)) {
-      return;
-    }
-
-    // Skip fetch if the message is already in the loaded list
-    if (listMatch) {
-      return;
-    }
-
-    if (fetchedMessage?.id === messageId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    fetch(`/api/messages/by-id?id=${encodeURIComponent(messageId)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Not found");
-        return res.json();
-      })
-      .then((data) => {
-        if (!cancelled && data?.message) {
-          setFetchedMessage({ id: messageId, message: data.message });
-        }
-      })
-      .catch(() => {
-        // Leave as null on error
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [messageId, listMatch, fetchedMessage]);
-
-  // Derive selected message: prefer list match, fall back to fetched message
-  const selectedMessage = useMemo(() => {
-    if (!messageId) return null;
-    if (listMatch) return listMatch;
-    if (fetchedMessage?.id === messageId) return fetchedMessage.message;
-    return null;
-  }, [messageId, listMatch, fetchedMessage]);
+  const selectedMessage = useMessageByIdFallback(messageId, listMatch);
 
   // Handle message click
   const handleMessageClick = useCallback(

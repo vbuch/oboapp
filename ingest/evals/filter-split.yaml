@@ -103,3 +103,21 @@ tests:
         value: "file://assertions.ts:assertMessageCount"
         config:
           value: 1
+
+  # PDF-only message — should be flagged as unreadable and irrelevant
+  - vars:
+      input: "file://../__mocks__/fixtures/sources/pdf-only-message.md"
+    assert:
+      - type: javascript
+        value: "file://assertions.ts:assertUnreadable"
+      - type: javascript
+        value: "file://assertions.ts:assertIrrelevant"
+
+  # PDF link + readable content — should NOT be flagged as unreadable
+  - vars:
+      input: "file://../__mocks__/fixtures/sources/pdf-link-readable-message.md"
+    assert:
+      - type: javascript
+        value: "file://assertions.ts:assertRelevant"
+      - type: javascript
+        value: "file://assertions.ts:assertNotUnreadable"

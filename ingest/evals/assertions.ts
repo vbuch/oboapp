@@ -271,6 +271,54 @@ export function assertNoLinks(
   };
 }
 
+/**
+ * Asserts that filter-split output marks at least one message as unreadable.
+ */
+export function assertUnreadable(
+  output: string,
+  _context: AssertionValueFunctionContext,
+): GradingResult {
+  const parsed = parseOutput(output);
+  if (!parsed.success) return parsed.result;
+
+  const arr = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
+  const hasUnreadable = arr.some(
+    (item: Record<string, unknown>) => item.isUnreadable === true,
+  );
+
+  return {
+    pass: hasUnreadable,
+    score: hasUnreadable ? 1 : 0,
+    reason: hasUnreadable
+      ? "At least one message correctly marked as unreadable"
+      : "Expected at least one message with isUnreadable=true, but none found",
+  };
+}
+
+/**
+ * Asserts that filter-split output does NOT mark any message as unreadable.
+ */
+export function assertNotUnreadable(
+  output: string,
+  _context: AssertionValueFunctionContext,
+): GradingResult {
+  const parsed = parseOutput(output);
+  if (!parsed.success) return parsed.result;
+
+  const arr = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
+  const hasUnreadable = arr.some(
+    (item: Record<string, unknown>) => item.isUnreadable === true,
+  );
+
+  return {
+    pass: !hasUnreadable,
+    score: !hasUnreadable ? 1 : 0,
+    reason: !hasUnreadable
+      ? "No message incorrectly marked as unreadable"
+      : "Expected no unreadable messages, but at least one has isUnreadable=true",
+  };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────
 
 function parseOutput(

@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { MOCK_MESSAGES } from "./fixtures/messages";
+import { MOCK_UNREADABLE_MESSAGES } from "./fixtures/unreadable-messages";
 import { MOCK_INTERESTS, MOCK_USER_ID } from "./fixtures/interests";
 import { MOCK_SUBSCRIPTIONS } from "./fixtures/subscriptions";
 import { MOCK_NOTIFICATION_HISTORY } from "./fixtures/notification-history";
@@ -547,5 +548,13 @@ export const handlers = [
     }
     apiClient = null;
     return HttpResponse.json({ success: true });
+  }),
+
+  // GET /api/messages/unreadable - Return messages flagged as unreadable (PDF/DOCX only)
+  http.get("/api/messages/unreadable", () => {
+    return HttpResponse.json({
+      messages: MOCK_UNREADABLE_MESSAGES,
+      nextCursor: undefined,
+    });
   }),
 ];

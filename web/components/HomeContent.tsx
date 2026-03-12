@@ -42,9 +42,9 @@ import {
   PENDING_GUEST_UPGRADE_TOKEN_KEY,
   type UpgradeDecisionOption,
 } from "@/lib/auth-upgrade";
-import type { Message, Interest } from "@/lib/types";
+import type { Interest } from "@/lib/types";
 import type { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
-import { isValidMessageId } from "@oboapp/shared";
+import { useMessageByIdFallback } from "@/lib/hooks/useMessageByIdFallback";
 
 type ViewMode = "zones" | "events";
 const WIDE_DESKTOP_MEDIA_QUERY =
@@ -388,73 +388,12 @@ export default function HomeContent() {
   // Note: We search in unfiltered 'messages' to preserve selection even when filtered out
   const messageId = searchParams.get("messageId");
 
-  // Message fetched from API when messageId doesn't match any viewport message
-  const [fetchedMessage, setFetchedMessage] = useState<{
-    id: string;
-    message: Message;
-  } | null>(null);
+  const viewportMatch = useMemo(
+    () => messages.find((m) => m.id === messageId) ?? null,
+    [messageId, messages],
+  );
 
-  // Try to find the message in viewport messages first
-  const viewportMatch = useMemo(() => {
-    if (messageId && messages.length > 0) {
-      return messages.find((m) => m.id === messageId) || null;
-    }
-    return null;
-  }, [messageId, messages]);
-
-  // Fetch message by ID from API when not already fetched (e.g., shared link, or message outside viewport)
-  useEffect(() => {
-    // Don't fetch if: no messageId or invalid messageId
-    if (!messageId || !isValidMessageId(messageId)) {
-      return;
-    }
-
-    // Skip fetch if the message is already in the viewport list
-    if (viewportMatch) {
-      return;
-    }
-
-    // Skip if we already have this message fetched
-    if (fetchedMessage?.id === messageId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    fetch(`/api/messages/by-id?id=${encodeURIComponent(messageId)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Not found");
-        return res.json();
-      })
-      .then((data) => {
-        if (!cancelled && data?.message) {
-          setFetchedMessage({ id: messageId, message: data.message });
-        }
-      })
-      .catch(() => {
-        // Don't update state on error - leave previous message or null
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [messageId, viewportMatch, fetchedMessage]);
-
-  // Derive selected message: use viewport match or fetched message (only if ID matches current messageId)
-  const selectedMessage = useMemo(() => {
-    if (!messageId) {
-      return null;
-    }
-    // Prioritize viewport match, then fetched message (with ID validation to prevent stale data)
-    if (viewportMatch) {
-      return viewportMatch;
-    }
-    // Only use fetchedMessage if its ID matches the current messageId from URL
-    if (fetchedMessage?.id === messageId) {
-      return fetchedMessage.message;
-    }
-    return null;
-  }, [messageId, viewportMatch, fetchedMessage]);
+  const selectedMessage = useMessageByIdFallback(messageId, viewportMatch);
 
   // Sidebar header with segmented control (shown for all users on desktop)
   const viewModeOptions = user ? VIEW_MODE_OPTIONS : VIEW_MODE_OPTIONS_NO_USER;
@@ -677,9 +616,7 @@ export default function HomeContent() {
                         try {
                           await signInWithGoogle();
                         } catch {
-                          globalThis.alert(
-                            "Неуспешно влизане. Опитай отново.",
-                          );
+                          globalThis.alert("Неуспешно влизане. Опитай отново.");
                         }
                       }}
                       className={`${buttonSizes.sm} ${buttonStyles.ghost} ${borderRadius.sm}`}

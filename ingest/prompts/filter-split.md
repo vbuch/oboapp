@@ -27,9 +27,15 @@ The app displays them on an interactive map and pushes notifications for regions
   - is relevant to <app-scope>
   - is compliant to <single-message>
   - `isInformative`
-- `plainText`: <single-message> formatted to be readable as plain text using only plain characters and new lines. Blank if not `isRelevant`.
-- `markdownText`: A markdown-formatted version of the message for improved display. See <markdown-formatting>. Blank if not `isRelevant`.
-- `responsibleEntity`: The name of the person or organization issuing the announcement. If not mentioned, return an empty string. Blank if not `isRelevant`.
+- `isUnreadable`: boolean. Set to `true` **only** when the message body contains **no actionable disruption information whatsoever** — the entire text is essentially just a reference or link to an external document (PDF, DOCX, or similar file), with no dates, no times, no locations, and no description of the disruption. Set to `false` in all other cases.
+  - **Decision rule**: Does the message body contain even **one** of the following on its own — a date, a time, a street name, a district, or any description of what the disruption is? If yes, set `isUnreadable: false`, regardless of whether a document link is also present. Only set `isUnreadable: true` if the body is **entirely** a redirect — zero substantive details exist in the text itself.
+  - **Trigger threshold**: A document link accompanied by even a single actionable detail (e.g., a date, a street name, a reason for interruption) does **not** qualify as unreadable. The bar for `true` is strict: the body adds **nothing** beyond "go read this file." If you can extract any disruption fact from the text alone, the bar is not met.
+  - **Examples that are `isUnreadable: true`**: "С пълния текст можете да се запознаете от следния линк: https://example.com/doc.pdf" (no dates, no location, no description — just a redirect to a file).
+  - **Examples that are `isUnreadable: false`**: a message that announces a water supply interruption on a specific date, time, and street, and also includes "Повече информация в прикачения документ: [link]". The substantive disruption details ARE present in the text, so `isUnreadable: false`.
+  - **When `isUnreadable` is `true`**: set `isRelevant` to `false` and set `plainText`, `markdownText`, and `responsibleEntity` to `""` (empty string — **never** `null`).
+- `plainText`: <single-message> formatted to be readable as plain text using only plain characters and new lines. Set to `""` (empty string, **never** `null`) if not `isRelevant`.
+- `markdownText`: A markdown-formatted version of the message for improved display. See <markdown-formatting>. Set to `""` (empty string, **never** `null`) if not `isRelevant`.
+- `responsibleEntity`: The name of the person or organization issuing the announcement. If not mentioned, return an empty string. Set to `""` (empty string, **never** `null`) if not `isRelevant`.
   - **Examples**: "Топлофикация София ЕАД"; "Столична Община, Район 'Красно село'"
 </json-object-structure>
 

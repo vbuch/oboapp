@@ -11,12 +11,10 @@ export default function Footer({ className = "" }: FooterProps) {
   return (
     <footer className={`border-t border-neutral-border ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Navigation links — 1 col mobile, 2 col sm, 4 col lg */}
+        {/* Navigation links — 1 col mobile, 2 col sm, 5 col lg */}
         <div>
-          <h3 className="font-bold text-lg mb-4 text-foreground">
-            За OboApp
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2 text-sm">
+          <h3 className="font-bold text-lg mb-4 text-foreground">За OboApp</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-8 gap-y-2 text-sm">
             <div>
               <Link
                 href="/kak-se-rodi"
@@ -47,6 +45,14 @@ export default function Footer({ className = "" }: FooterProps) {
                 className="text-link hover:text-link-hover hover:underline"
               >
                 Исторически данни
+              </Link>
+            </div>
+            <div>
+              <Link
+                href="/unreadable"
+                className="text-link hover:text-link-hover hover:underline"
+              >
+                Нечетими съобщения
               </Link>
             </div>
           </div>

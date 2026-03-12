@@ -5,6 +5,7 @@ const FilteredMessageSchema = z.object({
   isOneOfMany: z.boolean().default(false),
   isInformative: z.boolean().default(false),
   isRelevant: z.boolean(),
+  isUnreadable: z.boolean().default(false),
   responsibleEntity: z.string().default(""),
   markdownText: z.string().default(""),
 });
