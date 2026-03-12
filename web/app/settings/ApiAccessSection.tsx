@@ -173,7 +173,7 @@ export default function ApiAccessSection({
         <div className="space-y-3">
           <p className="text-sm text-neutral">
             Нямаш активен API ключ. Предостави URL на проекта, в който
-            планираш да ползваш данните (уебсайт, GitHub репозитори,
+            планираш да ползваш данните (уебсайт, GitHub repo,
             приложение и др.).
           </p>
           <div>
