@@ -7,6 +7,19 @@ type HeatmapPoint = [number, number];
 
 interface HeatmapResponse {
   points: HeatmapPoint[];
+  messageCount: number;
+  oldestDate: string | null;
+}
+
+export interface HeatmapStats {
+  messageCount: number;
+  oldestDate: string | null;
+}
+
+export interface HistoryMapClientProps {
+  readonly categories?: Set<string>;
+  readonly sources?: Set<string>;
+  readonly onStatsLoaded?: (stats: HeatmapStats) => void;
 }
 
 const SOFIA_CENTER: [number, number] = [42.6977, 23.3219];
@@ -19,36 +32,58 @@ const HEATMAP_GRADIENT = {
   1: colors.semantic.error,
 };
 
-async function fetchHeatmapPoints(): Promise<HeatmapPoint[]> {
-  const response = await fetch("/api/messages/heatmap");
+async function fetchHeatmapData(
+  categories?: Set<string>,
+  sources?: Set<string>,
+): Promise<HeatmapResponse> {
+  const params = new URLSearchParams();
+  if (categories && categories.size > 0) {
+    params.set("categories", Array.from(categories).join(","));
+  }
+  if (sources && sources.size > 0) {
+    params.set("sources", Array.from(sources).join(","));
+  }
+  const url = `/api/messages/heatmap${params.toString() ? `?${params.toString()}` : ""}`;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error("Failed to fetch heatmap data");
   }
-  const data = (await response.json()) as HeatmapResponse;
-  return data.points;
+  return response.json() as Promise<HeatmapResponse>;
 }
 
-export default function HistoryMapClient() {
+export default function HistoryMapClient({
+  categories,
+  sources,
+  onStatsLoaded,
+}: HistoryMapClientProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
+  const heatLayerRef = useRef<import("leaflet").Layer | null>(null);
+  const leafletRef = useRef<typeof import("leaflet").default | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pointCount, setPointCount] = useState(0);
 
-  useEffect(() => {
-    if (!mapRef.current) return;
+  // Keep a stable ref to the callback so the data-fetching effect doesn't
+  // need to list it as a dependency (avoids spurious re-fetches).
+  const onStatsLoadedRef = useRef(onStatsLoaded);
+  onStatsLoadedRef.current = onStatsLoaded;
 
-    // Avoid double-initialization (React Strict Mode double-invoke)
-    if (mapInstanceRef.current) return;
+  // ── Map initialisation (runs once) ──────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || mapInstanceRef.current) return;
 
     let cancelled = false;
 
-    async function init() {
+    async function initMap() {
       try {
         const L = (await import("leaflet")).default;
         await import("leaflet.heat");
 
         if (cancelled || !mapRef.current || mapInstanceRef.current) return;
+
+        leafletRef.current = L;
 
         const map = L.map(mapRef.current, {
           center: SOFIA_CENTER,
@@ -71,41 +106,94 @@ export default function HistoryMapClient() {
           },
         ).addTo(map);
 
-        const points = await fetchHeatmapPoints();
-        if (cancelled) return;
-        setPointCount(points.length);
-
-        if (points.length > 0) {
-          (L as unknown as { heatLayer: (points: HeatmapPoint[], options: Record<string, unknown>) => import("leaflet").Layer })
-            .heatLayer(points, {
-              radius: 20,
-              blur: 25,
-              maxZoom: 17,
-              gradient: HEATMAP_GRADIENT,
-            })
-            .addTo(map);
-        }
-
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) setIsMapReady(true);
       } catch (err) {
         if (!cancelled) {
-          console.error("Error initializing heatmap:", err);
+          console.error("Error initializing map:", err);
           setError("Грешка при зареждане на картата");
           setIsLoading(false);
         }
       }
     }
 
-    init();
+    initMap();
 
     return () => {
       cancelled = true;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+        leafletRef.current = null;
       }
     };
   }, []);
+
+  // ── Data fetching (re-runs whenever filters change or map becomes ready) ─
+  useEffect(() => {
+    if (!isMapReady) return;
+
+    let cancelled = false;
+
+    async function loadData() {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Remove the previous heat layer before fetching new data
+        if (heatLayerRef.current && mapInstanceRef.current) {
+          mapInstanceRef.current.removeLayer(heatLayerRef.current);
+          heatLayerRef.current = null;
+        }
+
+        const data = await fetchHeatmapData(categories, sources);
+        if (cancelled) return;
+
+        setPointCount(data.points.length);
+        onStatsLoadedRef.current?.({
+          messageCount: data.messageCount,
+          oldestDate: data.oldestDate,
+        });
+
+        if (
+          data.points.length > 0 &&
+          mapInstanceRef.current &&
+          leafletRef.current
+        ) {
+          const L = leafletRef.current;
+          const layer = (
+            L as unknown as {
+              heatLayer: (
+                points: HeatmapPoint[],
+                options: Record<string, unknown>,
+              ) => import("leaflet").Layer;
+            }
+          )
+            .heatLayer(data.points, {
+              radius: 20,
+              blur: 25,
+              maxZoom: 17,
+              gradient: HEATMAP_GRADIENT,
+            })
+            .addTo(mapInstanceRef.current);
+          heatLayerRef.current = layer;
+        }
+
+        if (!cancelled) setIsLoading(false);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Error loading heatmap data:", err);
+          setError("Грешка при зареждане на картата");
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isMapReady, categories, sources]);
 
   return (
     <div className="relative w-full h-full min-h-[500px]">
