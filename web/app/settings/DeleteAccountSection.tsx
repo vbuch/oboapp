@@ -37,7 +37,7 @@ export default function DeleteAccountSection({
       {showConfirm ? (
         <div className="border border-error-border rounded-lg p-4 bg-error-light relative z-30">
           <p className="text-error font-semibold mb-3">
-            Сигурен ли си, че искаш да изтриеш профила си?
+            Наистина ли искаш да изтриеш профила си?
           </p>
           <p className="text-error text-sm mb-4">
             Това действие е необратимо. Напиши <strong>ИЗТРИЙ</strong> за
