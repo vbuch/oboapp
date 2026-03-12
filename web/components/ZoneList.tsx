@@ -97,7 +97,7 @@ export default function ZoneList({
     return (
       <div className="text-center text-neutral py-8">
         Нямаш добавени зони. Натисни &ldquo;Добави зона&rdquo;, за да
-        започнете.
+        започнеш.
       </div>
     );
   }
