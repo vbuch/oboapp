@@ -24,7 +24,7 @@ export default function LoginPrompt({ onDismiss }: LoginPromptProps) {
     try {
       await signInWithGoogle();
     } catch {
-      window.alert("Неуспешно влизане. Опитайте отново.");
+      window.alert("Неуспешно влизане. Опитай отново.");
     }
   }, [signInWithGoogle]);
 

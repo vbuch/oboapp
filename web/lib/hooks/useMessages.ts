@@ -86,7 +86,7 @@ export function useMessages() {
         // Check if it's a network error (offline)
         if (!navigator.onLine) {
           setError(
-            "Няма интернет връзка. Моля, свържете се към интернет и презаредете страницата.",
+            "Няма интернет връзка. Свържи се с интернет и презареди страницата.",
           );
         } else if (err instanceof TypeError && err.message.includes("fetch")) {
           setError(

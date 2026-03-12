@@ -76,7 +76,7 @@ export function useInterests() {
       console.error("Error fetching interests:", err);
       // Check if offline
       if (!navigator.onLine) {
-        setError("Няма интернет връзка. Моля, свържете се към интернет.");
+        setError("Няма интернет връзка. Свържи се с интернет.");
       } else {
         setError(
           err instanceof Error ? err.message : "Failed to load interests",
@@ -142,7 +142,7 @@ export function useInterests() {
         // Provide helpful error message for offline state
         if (!navigator.onLine) {
           throw new Error(
-            "Няма интернет връзка. Моля, свържете се към интернет и опитайте отново.",
+            "Няма интернет връзка. Свържи се с интернет и опитай отново.",
           );
         }
         throw err;
@@ -189,7 +189,7 @@ export function useInterests() {
         // Provide helpful error message for offline state
         if (!navigator.onLine) {
           throw new Error(
-            "Няма интернет връзка. Моля, свържете се към интернет и опитайте отново.",
+            "Няма интернет връзка. Свържи се с интернет и опитай отново.",
           );
         }
         throw err;
@@ -226,7 +226,7 @@ export function useInterests() {
         // Provide helpful error message for offline state
         if (!navigator.onLine) {
           throw new Error(
-            "Няма интернет връзка. Моля, свържете се към интернет и опитайте отново.",
+            "Няма интернет връзка. Свържи се с интернет и опитай отново.",
           );
         }
         throw err;

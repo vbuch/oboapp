@@ -678,7 +678,7 @@ export default function HomeContent() {
                           await signInWithGoogle();
                         } catch {
                           globalThis.alert(
-                            "Неуспешно влизане. Опитайте отново.",
+                            "Неуспешно влизане. Опитай отново.",
                           );
                         }
                       }}

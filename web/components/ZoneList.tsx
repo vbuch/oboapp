@@ -96,7 +96,7 @@ export default function ZoneList({
   if (interests.length === 0) {
     return (
       <div className="text-center text-neutral py-8">
-        Нямате добавени зони. Натиснете &ldquo;Добави зона&rdquo;, за да
+        Нямаш добавени зони. Натисни &ldquo;Добави зона&rdquo;, за да
         започнете.
       </div>
     );

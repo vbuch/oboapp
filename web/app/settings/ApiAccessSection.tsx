@@ -36,7 +36,7 @@ export default function ApiAccessSection({
   const handleGenerate = async () => {
     const trimmedUrl = websiteUrl.trim();
     if (!validateUrl(trimmedUrl)) {
-      setUrlError("Моля, въведете валиден http/https URL адрес");
+      setUrlError("Въведи валиден http/https URL адрес");
       return;
     }
     setUrlError("");
@@ -58,7 +58,7 @@ export default function ApiAccessSection({
     if (!apiClient?.apiKey) return;
     if (!navigator.clipboard?.writeText) {
       alert(
-        "Копирането не е поддържано в този браузър. Моля, копирайте ключа ръчно.",
+        "Копирането не е поддържано в този браузър. Копирай ключа ръчно.",
       );
       return;
     }
@@ -68,7 +68,7 @@ export default function ApiAccessSection({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
-      alert("Неуспешно копиране. Моля, копирайте ключа ръчно.");
+      alert("Неуспешно копиране. Копирай ключа ръчно.");
     }
   };
 
@@ -124,11 +124,11 @@ export default function ApiAccessSection({
           {showRevokeConfirm ? (
             <div className="border border-error-border rounded-lg p-4 bg-error-light">
               <p className="text-error font-semibold mb-2">
-                Сигурни ли сте, че искате да отмените API ключа?
+                Сигурен ли си, че искаш да отмениш API ключа?
               </p>
               <p className="text-error text-sm mb-4">
                 Всички приложения, използващи този ключ, ще загубят достъп
-                незабавно. Напишете <strong>ОТМЕНИ</strong> за потвърждение:
+                незабавно. Напиши <strong>ОТМЕНИ</strong> за потвърждение:
               </p>
               <input
                 type="text"
@@ -172,8 +172,8 @@ export default function ApiAccessSection({
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-neutral">
-            Нямате активен API ключ. Предоставете URL на проекта, в който
-            планирате да ползвате данните (уебсайт, GitHub репозитори,
+            Нямаш активен API ключ. Предостави URL на проекта, в който
+            планираш да ползваш данните (уебсайт, GitHub репозитори,
             приложение и др.).
           </p>
           <div>

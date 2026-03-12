@@ -78,7 +78,7 @@ export default function UserMenu({ id, isOpen, onClose }: UserMenuProps) {
     try {
       await signInWithGoogle();
     } catch {
-      window.alert("Неуспешно влизане. Опитайте отново.");
+      window.alert("Неуспешно влизане. Опитай отново.");
     }
     onClose();
   };

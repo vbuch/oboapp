@@ -26,7 +26,7 @@ describe("ZoneList", () => {
   it("renders empty state when no zones exist", () => {
     render(<ZoneList interests={[]} />);
 
-    expect(screen.getByText(/Нямате добавени зони/i)).toBeInTheDocument();
+    expect(screen.getByText(/Нямаш добавени зони/i)).toBeInTheDocument();
   });
 
   it("calls onZoneClick when clicking a zone row", async () => {

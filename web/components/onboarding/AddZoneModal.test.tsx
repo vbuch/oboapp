@@ -66,7 +66,7 @@ describe("AddZoneModal", () => {
     const onConfirm = vi.fn();
     render(<AddZoneModal onConfirm={onConfirm} onCancel={vi.fn()} />);
     await userEvent.click(screen.getByRole("button", { name: /запази зона/i }));
-    expect(screen.getByText(/моля, въведете име на зона/i)).toBeInTheDocument();
+    expect(screen.getByText(/въведи име на зона/i)).toBeInTheDocument();
     expect(onConfirm).not.toHaveBeenCalled();
   });
 

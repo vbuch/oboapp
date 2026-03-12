@@ -30,17 +30,17 @@ export default function DeleteAccountSection({
       </h2>
 
       <p className="text-neutral mb-4">
-        Това действие ще изтрие всички ваши данни, включително зони на интерес,
+        Това действие ще изтрие всичките ти данни, включително зони на интерес,
         абонаменти за известия и история на известия.
       </p>
 
       {showConfirm ? (
         <div className="border border-error-border rounded-lg p-4 bg-error-light relative z-30">
           <p className="text-error font-semibold mb-3">
-            Сигурни ли сте, че искате да изтриете профила си?
+            Сигурен ли си, че искаш да изтриеш профила си?
           </p>
           <p className="text-error text-sm mb-4">
-            Това действие е необратимо. Напишете <strong>ИЗТРИЙ</strong> за
+            Това действие е необратимо. Напиши <strong>ИЗТРИЙ</strong> за
             потвърждение:
           </p>
           <input

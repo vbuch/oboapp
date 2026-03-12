@@ -166,7 +166,7 @@ export function useInterestManagement(
       const shouldDelete =
         typeof globalThis.confirm === "function"
           ? globalThis.confirm(
-              `Сигурни ли сте, че искате да изтриете ${zoneLabel}?`,
+              `Сигурен ли си, че искаш да изтриеш ${zoneLabel}?`,
             )
           : true;
       if (!shouldDelete) {

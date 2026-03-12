@@ -35,7 +35,7 @@ export default function ZoneBadges({
   if (interests.length === 0) {
     return (
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm text-neutral">Нямате добавени зони.</span>
+        <span className="text-sm text-neutral">Нямаш добавени зони.</span>
         <button
           type="button"
           onClick={onAddZone}

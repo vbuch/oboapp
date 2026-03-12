@@ -29,7 +29,7 @@ export default function SubscribePrompt({ onClose }: SubscribePromptProps) {
                 Няма абонамент за известия
               </h3>
               <p className="text-warning text-sm mb-3">
-                Имате зони на интерес, но не сте абонирани за известия. Това е
+                Имаш зони на интерес, но не си абониран/а за известия. Това е
                 основната задача на OboApp!
               </p>
               <div className="flex gap-2">

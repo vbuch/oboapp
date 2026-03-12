@@ -206,7 +206,7 @@ export default function SettingsPage() {
   const handleUnsubscribeAll = async () => {
     if (!user) return;
     if (
-      !confirm("Сигурни ли сте, че искате да се отпишете от всички устройства?")
+      !confirm("Сигурен ли си, че искаш да се отпишеш от всички устройства?")
     ) {
       return;
     }
@@ -236,7 +236,7 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = async (confirmText: string) => {
     if (confirmText !== "ИЗТРИЙ") {
-      alert("Моля, напишете 'ИЗТРИЙ' за потвърждение");
+      alert("Напиши 'ИЗТРИЙ' за потвърждение");
       return;
     }
 
@@ -248,7 +248,7 @@ export default function SettingsPage() {
         await reauthenticateWithGoogle();
       } catch (reauthError) {
         console.error("Re-authentication failed:", reauthError);
-        alert("Необходима е повторна идентификация. Моля, опитайте отново.");
+        alert("Необходима е повторна идентификация. Опитай отново.");
         setIsDeleting(false);
         return;
       }
@@ -357,7 +357,7 @@ export default function SettingsPage() {
                   try {
                     await signInWithGoogle();
                   } catch {
-                    window.alert("Неуспешно влизане. Опитайте отново.");
+                    window.alert("Неуспешно влизане. Опитай отново.");
                   }
                 }}
                 className={`${buttonStyles.primary} ${buttonSizes.md} ${borderRadius.md}`}
@@ -421,7 +421,7 @@ export default function SettingsPage() {
                 try {
                   await signInWithGoogle();
                 } catch {
-                  window.alert("Неуспешно влизане. Опитайте отново.");
+                  window.alert("Неуспешно влизане. Опитай отново.");
                 }
               }}
               className={`${buttonStyles.primary} ${buttonSizes.md} ${borderRadius.md}`}

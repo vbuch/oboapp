@@ -116,7 +116,7 @@ export default function AddZoneModal({
               </div>
               {showError && (
                 <p id="zone-label-error" className="text-xs text-error">
-                  Моля, въведете име на зона.
+                  Въведи име на зона.
                 </p>
               )}
             </div>

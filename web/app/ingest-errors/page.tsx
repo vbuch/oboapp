@@ -120,7 +120,7 @@ export default function IngestErrorsPage() {
 
         {error && (
           <div className="mb-6 rounded-md border border-error-border bg-error-light p-4 text-error">
-            Не успях да заредя съобщенията. Моля, опитайте отново.
+            Грешка при зареждане на съобщенията. Опитай отново.
           </div>
         )}
 

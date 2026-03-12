@@ -185,7 +185,7 @@ export default function InterestTargetMode({
           {/* Placement hint or coordinates */}
           {!currentCenter ? (
             <div className="mb-4 text-sm text-neutral text-center">
-              Натиснете на картата, за да поставите зоната
+              Натисни на картата, за да поставиш зоната
             </div>
           ) : (
             <div className="mb-4 text-xs text-neutral font-mono text-center">
