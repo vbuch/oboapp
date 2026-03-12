@@ -15,7 +15,7 @@ const PAGE_SIZE = 12;
 const GITHUB_REPO = "vbuch/oboapp";
 const BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL ?? "https://oboapp.online";
-const MAX_GITHUB_BODY_LENGTH = 4000;
+const MAX_URL_LENGTH = 8000;
 const MAX_INGEST_ERRORS_IN_GITHUB_BODY = 20;
 
 function buildGitHubIssueUrl(message: InternalMessage): string {
@@ -35,12 +35,29 @@ function buildGitHubIssueUrl(message: InternalMessage): string {
   const title = `Ingest error: ${message.id}`;
   let body = `**Съобщение:** ${messageUrl}\n\n**Проблеми при обработка:**\n\`\`\`\n${errors}\n\`\`\``;
 
-  if (body.length > MAX_GITHUB_BODY_LENGTH) {
-    const truncatedBody = body.slice(0, MAX_GITHUB_BODY_LENGTH);
-    body = `${truncatedBody}\n\n(truncated)`;
+  const buildUrl = (b: string) =>
+    `https://github.com/${GITHUB_REPO}/issues/new?${new URLSearchParams({ title, body: b })}`;
+
+  if (buildUrl(body).length > MAX_URL_LENGTH) {
+    const suffix = "\n\n(truncated)";
+    let low = 0;
+    let high = body.length;
+    let best = suffix;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = body.slice(0, mid) + suffix;
+      if (buildUrl(candidate).length <= MAX_URL_LENGTH) {
+        best = candidate;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    body = best;
   }
-  const params = new URLSearchParams({ title, body });
-  return `https://github.com/${GITHUB_REPO}/issues/new?${params}`;
+
+  return buildUrl(body);
 }
 
 type IngestErrorsCursor = {
@@ -163,18 +180,22 @@ export default function IngestErrorsPage() {
             ))}
 
           {!isLoading &&
-            messages.map((message) => (
-              <MessageCard
-                key={message.id}
-                message={message}
-                onClick={handleMessageClick}
-              >
-                {message.ingestErrors && message.ingestErrors.length > 0 && (
-                  <div className="mt-auto pt-4">
-                    <div className="rounded-md border border-error-border bg-error-light text-error p-3 text-xs space-y-2">
+            messages.map((message) => {
+              const hasErrors = (message.ingestErrors?.length ?? 0) > 0;
+              return (
+                <div key={message.id} className="flex flex-col">
+                  <MessageCard
+                    message={message}
+                    onClick={handleMessageClick}
+                    className={
+                      hasErrors ? "rounded-b-none border-b-0" : undefined
+                    }
+                  />
+                  {hasErrors && (
+                    <div className="rounded-b-md border border-t-0 border-error-border bg-error-light text-error p-3 text-xs space-y-2">
                       <p className="font-semibold">Проблеми при обработка</p>
                       <ul className="list-disc list-inside space-y-1">
-                        {message.ingestErrors.map((error, index) => (
+                        {message.ingestErrors!.map((error, index) => (
                           <li
                             key={`${error.type}-${index}`}
                             className="break-words"
@@ -188,7 +209,6 @@ export default function IngestErrorsPage() {
                           href={buildGitHubIssueUrl(message)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center gap-1.5 text-xs font-medium text-error hover:underline"
                         >
                           <GitHubIcon className="size-4 shrink-0" />
@@ -196,10 +216,10 @@ export default function IngestErrorsPage() {
                         </a>
                       </div>
                     </div>
-                  </div>
-                )}
-              </MessageCard>
-            ))}
+                  )}
+                </div>
+              );
+            })}
 
           {isEmpty && (
             <div className="col-span-full text-center text-neutral py-8">

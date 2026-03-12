@@ -14,6 +14,7 @@ interface MessageCardProps {
   readonly onClick: (message: Message) => void;
   readonly onHover?: (messageId: string | null) => void;
   readonly children?: React.ReactNode;
+  readonly className?: string;
 }
 
 export function MessageCardSkeleton() {
@@ -54,6 +55,7 @@ export default function MessageCard({
   onClick,
   onHover,
   children,
+  className,
 }: MessageCardProps) {
   const [logoError, setLogoError] = useState(false);
 
@@ -121,7 +123,7 @@ export default function MessageCard({
   return (
     <button
       type="button"
-      className="bg-white rounded-lg shadow-md p-4 border border-neutral-border hover:shadow-lg transition-shadow cursor-pointer w-full text-left relative h-full flex flex-col min-w-0 overflow-clip"
+      className={`bg-white rounded-lg shadow-md p-4 border border-neutral-border hover:shadow-lg transition-shadow cursor-pointer w-full text-left relative h-full flex flex-col min-w-0 overflow-clip${className ? ` ${className}` : ""}`}
       onClick={handleClick}
       onMouseEnter={() => message.id && onHover?.(message.id)}
       onMouseLeave={() => onHover?.(null)}
