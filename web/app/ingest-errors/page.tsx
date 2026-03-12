@@ -191,7 +191,7 @@ export default function IngestErrorsPage() {
                           onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center gap-1.5 text-xs font-medium text-error hover:underline"
                         >
-                          <GitHubIcon />
+                          <GitHubIcon className="size-4 shrink-0" />
                           Създай issue в GitHub
                         </a>
                       </div>
