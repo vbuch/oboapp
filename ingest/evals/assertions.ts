@@ -232,15 +232,12 @@ export function assertNoLinks(
   const items = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
   const urlPattern = /https?:\/\/[^\s)]+|\[[^\]]+\]\([^)]+\)/;
 
-  if (
-    !Array.isArray(items) ||
-    items.some((item) => typeof item !== "object" || item === null)
-  ) {
+  if (items.some((item) => typeof item !== "object" || item === null)) {
     return {
       pass: false,
       score: 0,
       reason:
-        "Output is malformed: expected an object or array of objects with plainText/markdownText fields",
+        "Output is malformed: expected an array of objects with plainText/markdownText fields",
     };
   }
 
