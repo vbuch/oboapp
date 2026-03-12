@@ -123,7 +123,7 @@ export default function NotificationsPage() {
 
         {notifications.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-neutral text-lg">Нямаш известия</p>
+            <p className="text-neutral text-lg">Няма известия</p>
           </div>
         ) : (
           <div className="space-y-0">
