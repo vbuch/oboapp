@@ -63,6 +63,23 @@ main:
                               args:
                                 text: '${"Crawler sofiyska-voda failed: " + string(e)}'
                                 severity: "ERROR"
+            - sensorCommunity:
+                steps:
+                  - callSensorCommunity:
+                      try:
+                        call: http.post
+                        args:
+                          url: '${"https://" + region + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + project + "/jobs/crawl-sensor-community:run"}'
+                          auth:
+                            type: OAuth2
+                      except:
+                        as: e
+                        steps:
+                          - log4:
+                              call: sys.log
+                              args:
+                                text: '${"Crawler sensor-community failed: " + string(e)}'
+                                severity: "ERROR"
     - ingest:
         try:
           call: http.post
@@ -73,7 +90,7 @@ main:
         except:
           as: e
           steps:
-            - log4:
+            - log5:
                 call: sys.log
                 args:
                   text: '${"Ingest failed: " + string(e)}'
@@ -88,7 +105,7 @@ main:
         except:
           as: e
           steps:
-            - log5:
+            - log6:
                 call: sys.log
                 args:
                   text: '${"Notify failed: " + string(e)}'

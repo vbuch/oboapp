@@ -21,6 +21,7 @@ import { NotificationSubscriptionsRepository } from "./collections/notification-
 import { GtfsStopsRepository } from "./collections/gtfs-stops";
 import { ApiClientsRepository } from "./collections/api-clients";
 import { UserPreferencesRepository } from "./collections/user-preferences";
+import { SensorCommunityReadingsRepository } from "./collections/sensor-community-readings";
 
 /** High-level database interface with typed collection repositories */
 export interface OboDb {
@@ -42,6 +43,8 @@ export interface OboDb {
   apiClients: ApiClientsRepository;
   /** User preferences (notification filters, etc.) */
   userPreferences: UserPreferencesRepository;
+  /** Raw sensor.community PM readings */
+  sensorCommunityReadings: SensorCommunityReadingsRepository;
   /** Close all database connections */
   close(): Promise<void>;
 }
@@ -71,6 +74,7 @@ function buildRepositories(client: DbClient): OboDb {
     gtfsStops: new GtfsStopsRepository(client),
     apiClients: new ApiClientsRepository(client),
     userPreferences: new UserPreferencesRepository(client),
+    sensorCommunityReadings: new SensorCommunityReadingsRepository(client),
     close: () => client.close(),
   };
 }

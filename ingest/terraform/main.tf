@@ -286,6 +286,12 @@ locals {
       timeout      = "1800s"
       description  = "Crawl NIMH severe weather warnings"
     }
+    sensor-community = {
+      source       = "sensor-community"
+      memory       = "512Mi"
+      timeout      = "600s"
+      description  = "Evaluate sensor.community air quality data"
+    }
   }
 }
 
@@ -922,6 +928,96 @@ resource "google_cloud_scheduler_job" "gtfs_sync_schedule" {
   depends_on = [
     google_project_service.cloudscheduler,
     google_cloud_run_v2_job.gtfs_sync
+  ]
+}
+
+# ── Air Quality Fetch Job ─────────────────────────────────────────────────────
+
+resource "google_cloud_run_v2_job" "air_quality_fetch" {
+  name     = "air-quality-fetch"
+  location = var.region
+
+  template {
+    template {
+      service_account = google_service_account.ingest_runner.email
+      timeout         = "300s"
+
+      containers {
+        image = local.full_image_url
+        args  = ["pnpm", "run", "prebuilt:air-quality-fetch"]
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
+
+        env {
+          name  = "NODE_ENV"
+          value = "production"
+        }
+
+        env {
+          name = "FIREBASE_SERVICE_ACCOUNT_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.firebase_sa_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+
+        env {
+          name  = "FIREBASE_PROJECT_ID"
+          value = var.firebase_project_id
+        }
+
+        env {
+          name  = "LOCALITY"
+          value = var.locality
+        }
+      }
+
+      max_retries = 1
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      launch_stage,
+    ]
+  }
+
+  depends_on = [
+    google_project_service.run
+  ]
+}
+
+resource "google_cloud_scheduler_job" "air_quality_fetch_schedule" {
+  name             = "air-quality-fetch-schedule"
+  description      = "Fetch sensor.community air quality data every 15 minutes"
+  schedule         = var.schedules.air_quality_fetch
+  time_zone        = var.schedule_timezone
+  attempt_deadline = "320s"
+  region           = var.region
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/air-quality-fetch:run"
+
+    oauth_token {
+      service_account_email = google_service_account.ingest_runner.email
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler,
+    google_cloud_run_v2_job.air_quality_fetch
   ]
 }
 

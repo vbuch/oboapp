@@ -15,3 +15,7 @@ export {
   UserPreferencesRepository,
   USER_PREFERENCES_COLLECTION,
 } from "./user-preferences";
+export {
+  SensorCommunityReadingsRepository,
+  SENSOR_COMMUNITY_READINGS_COLLECTION,
+} from "./sensor-community-readings";

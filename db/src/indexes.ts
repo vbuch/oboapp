@@ -113,6 +113,25 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
     spec: { apiKey: 1 },
     options: { name: "apiKey", unique: true },
   },
+
+  // --- sensorCommunityReadings ---
+  {
+    collection: "sensorCommunityReadings",
+    spec: { locality: 1, timestamp: -1 },
+    options: { name: "locality_timestamp" },
+  },
+  {
+    collection: "sensorCommunityReadings",
+    spec: { timestamp: 1 },
+    options: { name: "timestamp" },
+  },
+
+  // --- sources: sustained-alert lookup for sensor-community crawler ---
+  {
+    collection: "sources",
+    spec: { sourceType: 1, locality: 1, url: 1 },
+    options: { name: "sourceType_locality_url" },
+  },
 ];
 
 /**
