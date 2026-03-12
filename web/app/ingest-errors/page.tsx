@@ -204,7 +204,7 @@ export default function IngestErrorsPage() {
                     }
                   />
                   {hasErrors && (
-                    <div className="rounded-b-md border border-t-0 border-error-border bg-error-light text-error p-3 text-xs space-y-2">
+                    <div className="rounded-b-lg border border-t-0 border-error-border bg-error-light text-error p-3 text-xs space-y-2">
                       <p className="font-semibold">Проблеми при обработка</p>
                       <ul className="list-disc list-inside space-y-1">
                         {ingestErrors.map((error, index) => (
