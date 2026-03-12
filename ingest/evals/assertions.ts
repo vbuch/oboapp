@@ -229,13 +229,33 @@ export function assertNoLinks(
   const parsed = parseOutput(output);
   if (!parsed.success) return parsed.result;
 
-  const arr = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
+  const items = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
   const urlPattern = /https?:\/\/[^\s)]+|\[[^\]]+\]\([^)]+\)/;
 
+  if (
+    !Array.isArray(items) ||
+    items.some((item) => typeof item !== "object" || item === null)
+  ) {
+    return {
+      pass: false,
+      score: 0,
+      reason:
+        "Output is malformed: expected an object or array of objects with plainText/markdownText fields",
+    };
+  }
+
   const violations: string[] = [];
-  for (const item of arr as Record<string, unknown>[]) {
+  for (const item of items as Record<string, unknown>[]) {
     for (const field of ["plainText", "markdownText"] as const) {
-      const text = String(item[field] ?? "");
+      const value = item[field];
+      if (typeof value !== "string") {
+        return {
+          pass: false,
+          score: 0,
+          reason: `Output is malformed: expected ${field} to be a string on every item`,
+        };
+      }
+      const text = value;
       if (urlPattern.test(text)) {
         violations.push(`${field} contains a link`);
       }
