@@ -6,10 +6,27 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import MessageCard, { MessageCardSkeleton } from "@/components/MessageCard";
 import MessageDetailView from "@/components/MessageDetailView/MessageDetailView";
-import type { InternalMessage } from "@/lib/types";
+import GitHubIcon from "@/components/icons/GitHubIcon";
+import type { InternalMessage, IngestError } from "@/lib/types";
 import { navigateBackOrReplace } from "@/lib/navigation-utils";
 
 const PAGE_SIZE = 12;
+
+const GITHUB_REPO = "vbuch/oboapp";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL ?? "https://oboapp.online";
+
+function buildGitHubIssueUrl(message: InternalMessage): string {
+  const messageUrl = `${BASE_URL}/ingest-errors?messageId=${encodeURIComponent(String(message.id))}`;
+  const errors =
+    message.ingestErrors
+      ?.map((e: IngestError) => `- [${e.type}] ${e.text}`)
+      .join("\n") ?? "";
+  const title = `Ingest error: ${message.id}`;
+  const body = `**Съобщение:** ${messageUrl}\n\n**Проблеми при обработка:**\n${errors}`;
+  const params = new URLSearchParams({ title, body });
+  return `https://github.com/${GITHUB_REPO}/issues/new?${params}`;
+}
 
 type IngestErrorsCursor = {
   finalizedAt: string;
@@ -151,6 +168,18 @@ export default function IngestErrorsPage() {
                           </li>
                         ))}
                       </ul>
+                      <div className="pt-1">
+                        <a
+                          href={buildGitHubIssueUrl(message)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-error hover:underline"
+                        >
+                          <GitHubIcon />
+                          Създай issue в GitHub
+                        </a>
+                      </div>
                     </div>
                   </div>
                 )}
