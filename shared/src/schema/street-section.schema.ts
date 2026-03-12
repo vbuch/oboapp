@@ -5,9 +5,9 @@ import { TimespanSchema } from "./timespan.schema";
 export const StreetSectionSchema = z.object({
   street: z.string(),
   from: z.string(),
-  fromCoordinates: CoordinatesSchema.optional(),
+  fromCoordinates: CoordinatesSchema.optional().catch(undefined),
   to: z.string(),
-  toCoordinates: CoordinatesSchema.optional(),
+  toCoordinates: CoordinatesSchema.optional().catch(undefined),
   timespans: z.array(TimespanSchema),
 });
 

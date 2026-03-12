@@ -203,5 +203,32 @@ describe("ai-response-parser", () => {
       expect(result!.cadastralProperties).toEqual([]);
       expect(result!.busStops).toEqual([]);
     });
+
+    it("should keep street item and drop invalid toCoordinates/fromCoordinates", () => {
+      // Reproduces: AI returns toCoordinates with lat/lng undefined (empty object)
+      const recorder = createMockRecorder();
+      const response = JSON.stringify({
+        streets: [
+          {
+            street: "бул. Витоша",
+            from: "ул. Алабин",
+            to: "пл. България",
+            toCoordinates: {}, // invalid: lat and lng are missing
+            fromCoordinates: { lat: null, lng: null }, // invalid: nulls instead of numbers
+            timespans: [
+              { start: "2024-01-01T10:00:00Z", end: "2024-01-01T12:00:00Z" },
+            ],
+          },
+        ],
+      });
+      const result = parseExtractLocationsResponse(response, recorder);
+      expect(result).not.toBeNull();
+      // Street item is preserved (not dropped)
+      expect(result!.streets).toHaveLength(1);
+      expect(result!.streets[0].street).toBe("бул. Витоша");
+      // Invalid coordinates are stripped rather than causing item rejection
+      expect(result!.streets[0].toCoordinates).toBeUndefined();
+      expect(result!.streets[0].fromCoordinates).toBeUndefined();
+    });
   });
 });
