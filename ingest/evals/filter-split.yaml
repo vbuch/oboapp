@@ -99,3 +99,7 @@ tests:
         value: "file://assertions.ts:assertRelevant"
       - type: javascript
         value: "file://assertions.ts:assertNoLinks"
+      - type: javascript
+        value: "file://assertions.ts:assertMessageCount"
+        config:
+          value: 1
