@@ -63,18 +63,32 @@ export async function GET(request: Request) {
     const categoriesParam = searchParams.get("categories");
     const sourcesParam = searchParams.get("sources");
 
-    const selectedCategories = categoriesParam
+    const selectedCategoriesArr = categoriesParam
       ? categoriesParam
           .split(",")
           .map((c) => c.trim())
           .filter(Boolean)
       : null;
-    const selectedSources = sourcesParam
+    const selectedSourcesArr = sourcesParam
       ? sourcesParam
           .split(",")
           .map((c) => c.trim())
           .filter(Boolean)
       : null;
+
+    // Hoist derived values out of the per-document loop so they are computed
+    // once per request. Use Sets for O(1) membership checks.
+    const filterCategories =
+      selectedCategoriesArr && selectedCategoriesArr.length > 0;
+    const includeUncategorized =
+      filterCategories && selectedCategoriesArr!.includes("uncategorized");
+    const realCategoriesSet = filterCategories
+      ? new Set(selectedCategoriesArr!.filter((c) => c !== "uncategorized"))
+      : null;
+    const selectedSourcesSet =
+      selectedSourcesArr && selectedSourcesArr.length > 0
+        ? new Set(selectedSourcesArr)
+        : null;
 
     const db = await getDb();
 
@@ -98,25 +112,21 @@ export async function GET(request: Request) {
       if (!geoJson) continue;
 
       // Apply category filter when requested
-      if (selectedCategories && selectedCategories.length > 0) {
+      if (filterCategories) {
         const docCategories = (doc.categories as string[] | undefined) ?? [];
-        const includeUncategorized = selectedCategories.includes("uncategorized");
-        const realCategories = selectedCategories.filter(
-          (c) => c !== "uncategorized",
-        );
         const hasNoCategories = docCategories.length === 0;
         const matchesUncategorized = includeUncategorized && hasNoCategories;
         const matchesCategory =
-          realCategories.length > 0 &&
-          docCategories.some((cat) => realCategories.includes(cat));
+          realCategoriesSet!.size > 0 &&
+          docCategories.some((cat) => realCategoriesSet!.has(cat));
 
         if (!matchesUncategorized && !matchesCategory) continue;
       }
 
       // Apply source filter when requested
-      if (selectedSources && selectedSources.length > 0) {
+      if (selectedSourcesSet) {
         const docSource = doc.source as string | undefined;
-        if (!docSource || !selectedSources.includes(docSource)) continue;
+        if (!docSource || !selectedSourcesSet.has(docSource)) continue;
       }
 
       messageCount++;

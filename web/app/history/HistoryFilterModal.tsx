@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   CATEGORIES,
   CATEGORY_DISPLAY_ORDER,
@@ -48,6 +48,55 @@ export default function HistoryFilterModal({
   );
 
   const sources = getCurrentLocalitySources();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const firstFocusableRef = useRef<HTMLButtonElement>(null);
+
+  // Focus management: move focus into dialog, trap Tab, Escape to close,
+  // restore focus to the triggering element on unmount.
+  useEffect(() => {
+    const previouslyFocusedElement = document.activeElement;
+
+    firstFocusableRef.current?.focus();
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) {
+        return;
+      }
+
+      const focusableElements = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute("disabled"));
+
+      if (focusableElements.length === 0) return;
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    globalThis.window.addEventListener("keydown", handleKeydown);
+    return () => {
+      globalThis.window.removeEventListener("keydown", handleKeydown);
+      if (previouslyFocusedElement instanceof HTMLElement) {
+        previouslyFocusedElement.focus();
+      }
+    };
+  }, [onClose]);
 
   const hasActiveCategories = localCategories.size > 0;
   const hasActiveSources = localSources.size > 0;
@@ -101,6 +150,7 @@ export default function HistoryFilterModal({
         className="fixed inset-0 flex items-center justify-center p-4 z-[1001] pointer-events-none"
       >
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="history-filter-title"
@@ -115,6 +165,7 @@ export default function HistoryFilterModal({
               Филтри
             </h2>
             <button
+              ref={firstFocusableRef}
               type="button"
               onClick={onClose}
               className="text-neutral hover:text-neutral-dark transition-colors p-1 hover:bg-neutral-light rounded-full"
