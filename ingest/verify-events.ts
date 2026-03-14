@@ -86,23 +86,64 @@ async function showOverview(
     printEventSummary(event, eventMessages, verbose);
   }
 
-  // Show orphan messages (messages with no eventId)
-  const orphanMessages = await db.messages.findMany({
+  // Inspect finalized messages with geometry and compare against authoritative links.
+  const messagesToInspect = await db.messages.findMany({
     where: sourceName
       ? [{ field: "source", op: "==", value: sourceName }]
       : undefined,
     limit: 100,
   });
 
-  const orphans = orphanMessages.filter(
-    (m) => m.finalizedAt && m.geoJson && !m.eventId,
+  const finalizedWithGeometry = messagesToInspect.filter(
+    (m) => m.finalizedAt && m.geoJson,
   );
+
+  const orphans: Record<string, unknown>[] = [];
+  const cacheMismatches: Array<{
+    messageId: string;
+    cachedEventId?: string;
+    linkedEventIds: string[];
+  }> = [];
+
+  for (const message of finalizedWithGeometry) {
+    const messageId = message._id as string;
+    const links = await db.eventMessages.findByMessageId(messageId);
+    const linkedEventIds = links
+      .map((link) => link.eventId)
+      .filter((id): id is string => typeof id === "string");
+
+    if (linkedEventIds.length === 0) {
+      orphans.push(message);
+      continue;
+    }
+
+    const cachedEventId =
+      typeof message.eventId === "string" ? message.eventId : undefined;
+    if (!cachedEventId || !linkedEventIds.includes(cachedEventId)) {
+      cacheMismatches.push({ messageId, cachedEventId, linkedEventIds });
+    }
+  }
 
   if (orphans.length > 0) {
     console.log("━".repeat(60));
-    console.log(`⚠️  ${orphans.length} finalized message(s) with GeoJSON but NO eventId:`);
+    console.log(
+      `⚠️  ${orphans.length} finalized message(s) with GeoJSON but NO eventMessages link:`,
+    );
     for (const m of orphans) {
       console.log(`  - ${m._id} (source: ${m.source}, categories: ${JSON.stringify(m.categories)})`);
+    }
+    console.log();
+  }
+
+  if (cacheMismatches.length > 0) {
+    console.log("━".repeat(60));
+    console.log(
+      `⚠️  ${cacheMismatches.length} message(s) with eventMessages link but stale/missing message.eventId cache:`,
+    );
+    for (const mismatch of cacheMismatches) {
+      console.log(
+        `  - ${mismatch.messageId} (cached eventId: ${mismatch.cachedEventId ?? "none"}, linked eventIds: ${JSON.stringify(mismatch.linkedEventIds)})`,
+      );
     }
     console.log();
   }

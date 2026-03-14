@@ -20,7 +20,7 @@ export const EventMessageSchema = z.object({
   source: z.string(),
   confidence: z.number().min(0).max(1),
   geometryQuality: z.number().int().min(0).max(3),
-  matchSignals: MatchSignalsSchema.optional(),
+  matchSignals: MatchSignalsSchema.nullable().optional(),
   createdAt: z.string(),
 });
 

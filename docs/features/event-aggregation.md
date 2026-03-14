@@ -6,6 +6,16 @@ Multiple sources (crawlers) sometimes report the same real-world incident — fo
 
 The **Event Aggregation** layer groups related messages into a single **Event** representing one real-world incident. Each Event tracks which messages contributed to it, selects the best available geometry, and provides a canonical description.
 
+## Linking Model
+
+`eventMessages` is the authoritative source of truth for message-to-event links.
+
+- `eventMessages` defines which message belongs to which event
+- `messages.eventId` is a denormalized cache for convenience and fast reads
+- if `messages.eventId` is missing or stale, the canonical relationship is still taken from `eventMessages`
+
+Operational tooling should treat missing `eventMessages` links as integrity issues and treat `messages.eventId` mismatches as cache inconsistencies.
+
 ## How It Works
 
 When a message is finalized with GeoJSON, the pipeline automatically tries to match it against existing events:

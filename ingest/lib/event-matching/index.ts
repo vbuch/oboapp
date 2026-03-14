@@ -80,7 +80,7 @@ export async function processEventMatching(
   }
 
   // No match found — create a new event
-  const { eventId, confidence } = await createEventFromMessage(db, {
+  const { eventId, confidence, action } = await createEventFromMessage(db, {
     _id: messageId,
     plainText: message.plainText as string | undefined,
     text: message.text as string | undefined,
@@ -98,7 +98,8 @@ export async function processEventMatching(
   logger.info("New event created for message", {
     messageId,
     eventId,
+    action,
   });
 
-  return { eventId, action: "created", confidence };
+  return { eventId, action, confidence };
 }

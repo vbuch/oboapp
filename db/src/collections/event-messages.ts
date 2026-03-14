@@ -29,6 +29,10 @@ export class EventMessagesRepository {
     return this.db.insertOne(EVENT_MESSAGES_COLLECTION, data, id);
   }
 
+  async createOne(data: Record<string, unknown>, id: string): Promise<string> {
+    return this.db.createOne(EVENT_MESSAGES_COLLECTION, data, id);
+  }
+
   async updateOne(id: string, data: Record<string, unknown>): Promise<void> {
     return this.db.updateOne(EVENT_MESSAGES_COLLECTION, id, data);
   }

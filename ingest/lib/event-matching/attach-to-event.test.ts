@@ -16,9 +16,13 @@ vi.mock("@/lib/source-trust", () => ({
 }));
 
 const mockInsertEventMessage = vi.fn().mockResolvedValue("em-new");
+const mockCreateEventMessage = vi.fn().mockResolvedValue("msg-2");
 const mockUpdateEvent = vi.fn().mockResolvedValue(undefined);
 const mockFindByMessageId = vi.fn().mockResolvedValue([]);
 const mockDb = {
+  client: {
+    createOne: mockCreateEventMessage,
+  },
   eventMessages: {
     insertOne: mockInsertEventMessage,
     findByMessageId: mockFindByMessageId,
@@ -31,6 +35,7 @@ const baseSignals = { locationSimilarity: 0.9, timeOverlap: 0.8, categoryMatch: 
 describe("attachMessageToEvent", () => {
   beforeEach(() => {
     mockInsertEventMessage.mockClear();
+    mockCreateEventMessage.mockClear().mockResolvedValue("msg-2");
     mockUpdateEvent.mockClear();
     mockFindByMessageId.mockClear().mockResolvedValue([]);
   });
@@ -59,11 +64,28 @@ describe("attachMessageToEvent", () => {
       baseSignals,
     );
 
-    const emData = mockInsertEventMessage.mock.calls[0][0];
+    const emData = mockCreateEventMessage.mock.calls[0][1];
     expect(emData.eventId).toBe("evt-1");
     expect(emData.messageId).toBe("msg-2");
     expect(emData.confidence).toBe(0.85);
     expect(emData.matchSignals).toEqual(baseSignals);
+    expect(mockCreateEventMessage.mock.calls[0][2]).toBe("msg-2");
+  });
+
+  it("handles concurrent duplicate create without updating event", async () => {
+    const duplicate = new Error("Document already exists");
+    (duplicate as { code?: unknown }).code = "already-exists";
+    mockCreateEventMessage.mockRejectedValueOnce(duplicate);
+
+    await attachMessageToEvent(
+      mockDb,
+      { _id: "msg-2", source: "sofia-bg" },
+      { _id: "evt-1", geometryQuality: 3, sources: ["toplo-bg"], messageCount: 1 },
+      0.85,
+      baseSignals,
+    );
+
+    expect(mockUpdateEvent).not.toHaveBeenCalled();
   });
 
   it("increments messageCount", async () => {

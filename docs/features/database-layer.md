@@ -36,6 +36,8 @@ flowchart TD
 | `events`                    | Aggregated real-world incidents            | locality + timespanEnd, locality + categories + timespanEnd |
 | `eventMessages`             | Links between messages and events         | eventId + createdAt, messageId         |
 
+For event aggregation, `eventMessages` is the authoritative relationship table. `messages.eventId` is a denormalized cache field and may occasionally lag behind links during retries or concurrent processing.
+
 ## Operating Modes
 
 ### Firestore Only (default)
@@ -72,6 +74,8 @@ The adapters handle type differences transparently:
 | `Timestamp`                    | `Date`         |
 | Stringified JSON (`geoJson`)   | Native objects |
 
+For event aggregation records, `null` is used intentionally to represent "known missing" values (for example optional text/timespans/signals that were attempted but unavailable). `undefined` means the field was not set.
+
 ## Local Development
 
 MongoDB runs via Docker Compose:
@@ -95,6 +99,7 @@ cd db && npx tsx migrate/<script-name>.ts
 | ---------------------------------- | ------------------------------------------------ |
 | `2026-02-10-add-locality-field.ts` | Backfills locality field on sources and messages |
 | `2026-02-13-firestore-to-mongo.ts` | One-time Firestore → MongoDB data migration      |
+| `2026-03-15-create-events-from-messages.ts` | Creates initial events and event-message links from finalized messages |
 
 The Firestore-to-MongoDB migration is idempotent (uses upserts) and verifies document counts after completion.
 

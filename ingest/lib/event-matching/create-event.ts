@@ -1,7 +1,8 @@
 import type { OboDb } from "@oboapp/db";
 import type { GeoJSONFeatureCollection } from "@/lib/types";
 import { getSourceTrust, getGeometryQuality } from "@/lib/source-trust";
-import { toISOString } from "./utils";
+import { isAlreadyExistsError, toISOString } from "./utils";
+import { logger } from "@/lib/logger";
 
 /**
  * Create a new event from a message that didn't match any existing event.
@@ -23,12 +24,13 @@ export async function createEventFromMessage(
     cityWide?: boolean;
     embedding?: number[] | null;
   },
-): Promise<{ eventId: string; confidence: number }> {
+): Promise<{ eventId: string; confidence: number; action: "created" | "attached" }> {
   const existingLinks = await db.eventMessages.findByMessageId(message._id);
   if (existingLinks.length > 0) {
     return {
       eventId: existingLinks[0].eventId as string,
       confidence: 1.0,
+      action: "attached",
     };
   }
 
@@ -63,21 +65,52 @@ export async function createEventFromMessage(
     updatedAt: now,
   });
 
-  await db.eventMessages.insertOne({
-    eventId,
-    messageId: message._id,
-    source,
-    confidence: 1.0,
-    geometryQuality,
-    matchSignals: {
-      locationSimilarity: 1.0,
-      timeOverlap: 1.0,
-      categoryMatch: 1.0,
-      textSimilarity: 1.0,
-    },
-    createdAt: now,
-  });
+  try {
+    await db.client.createOne(
+      "eventMessages",
+      {
+        eventId,
+        messageId: message._id,
+        source,
+        confidence: 1.0,
+        geometryQuality,
+        matchSignals: {
+          locationSimilarity: 1.0,
+          timeOverlap: 1.0,
+          categoryMatch: 1.0,
+          textSimilarity: 1.0,
+        },
+        createdAt: now,
+      },
+      message._id,
+    );
+  } catch (error) {
+    if (!isAlreadyExistsError(error)) {
+      throw error;
+    }
 
-  return { eventId, confidence: 1.0 };
+    // Another worker linked this message concurrently. Reuse that link and
+    // remove the orphaned event we just created.
+    const concurrentLinks = await db.eventMessages.findByMessageId(message._id);
+    const concurrentEventId = concurrentLinks[0]?.eventId as string | undefined;
+
+    try {
+      await db.events.deleteOne(eventId);
+    } catch (deleteError) {
+      logger.warn("Failed to delete orphan event after concurrent message link", {
+        messageId: message._id,
+        orphanEventId: eventId,
+        error: deleteError,
+      });
+    }
+
+    if (!concurrentEventId) {
+      throw error;
+    }
+
+    return { eventId: concurrentEventId, confidence: 1.0, action: "attached" };
+  }
+
+  return { eventId, confidence: 1.0, action: "created" };
 }
 

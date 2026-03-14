@@ -63,6 +63,17 @@ describe("EventMessagesRepository", () => {
     );
   });
 
+  it("createOne uses atomic create", async () => {
+    const data = { eventId: "evt-1", messageId: "msg-1" };
+    const id = await repo.createOne(data, "msg-1");
+    expect(db.createOne).toHaveBeenCalledWith(
+      EVENT_MESSAGES_COLLECTION,
+      data,
+      "msg-1",
+    );
+    expect(id).toBe("created-id");
+  });
+
   it("deleteOne delegates correctly", async () => {
     await repo.deleteOne("em-1");
     expect(db.deleteOne).toHaveBeenCalledWith(EVENT_MESSAGES_COLLECTION, "em-1");

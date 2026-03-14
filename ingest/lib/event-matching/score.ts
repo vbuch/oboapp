@@ -11,6 +11,7 @@ import {
   CANDIDATE_DISTANCE_METERS,
 } from "./constants";
 import { cosineSimilarity } from "./cosine-similarity";
+import { toMs } from "./utils";
 
 export interface MatchSignals {
   locationSimilarity: number;
@@ -180,7 +181,3 @@ function computeCategoryMatch(
   return intersection / union;
 }
 
-function toMs(value: string | Date): number {
-  const ms = value instanceof Date ? value.getTime() : new Date(value).getTime();
-  return Number.isNaN(ms) ? 0 : ms;
-}

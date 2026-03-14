@@ -570,12 +570,13 @@ async function storeCategorization(
   messageId: string,
   categorizationResult: { categories: string[] },
 ): Promise<void> {
-  const { FieldValue } = await import("firebase-admin/firestore");
   await updateMessage(messageId, {
-    categories: categorizationResult.categories,
-    process: FieldValue.arrayUnion(
-      createCategorizationAudit(categorizationResult.categories),
-    ),
+    $set: {
+      categories: categorizationResult.categories,
+    },
+    $addToSet: {
+      process: createCategorizationAudit(categorizationResult.categories),
+    },
   });
 }
 
@@ -604,18 +605,19 @@ async function storeExtractedLocations(
   // Validate and fallback to crawledAt if invalid
   const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
 
-  const { FieldValue } = await import("firebase-admin/firestore");
   await updateMessage(messageId, {
-    pins,
-    streets,
-    cadastralProperties,
-    busStops,
-    cityWide,
-    timespanStart: validated.timespanStart,
-    timespanEnd: validated.timespanEnd,
-    process: FieldValue.arrayUnion(
-      createLocationExtractionAudit(extractedLocations),
-    ),
+    $set: {
+      pins,
+      streets,
+      cadastralProperties,
+      busStops,
+      cityWide,
+      timespanStart: validated.timespanStart,
+      timespanEnd: validated.timespanEnd,
+    },
+    $addToSet: {
+      process: createLocationExtractionAudit(extractedLocations),
+    },
   });
 }
 
@@ -987,7 +989,7 @@ async function storeEmbeddingForMessage(
 
 /**
  * Run event matching for a finalized message.
- * Reads the full message from DB, finds or creates an event, and stores the eventId + audit trail.
+ * Reads the full message from DB, finds or creates an event, and stores the eventId cache.
  */
 async function runEventMatching(messageId: string): Promise<void> {
   try {

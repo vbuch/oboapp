@@ -2,7 +2,7 @@ import type { OboDb } from "@oboapp/db";
 import type { GeoJSONFeatureCollection } from "@/lib/types";
 import { getSourceTrust, getGeometryQuality } from "@/lib/source-trust";
 import type { MatchSignals } from "./score";
-import { toISOString, toMs } from "./utils";
+import { toISOString, toMs, isAlreadyExistsError } from "./utils";
 import { logger } from "@/lib/logger";
 
 /**
@@ -42,15 +42,30 @@ export async function attachMessageToEvent(
   const eventId = event._id as string;
 
   // Create EventMessage link
-  await db.eventMessages.insertOne({
-    eventId,
-    messageId: message._id,
-    source,
-    confidence,
-    geometryQuality: newGeometryQuality,
-    matchSignals: signals,
-    createdAt: now,
-  });
+  try {
+    await db.client.createOne(
+      "eventMessages",
+      {
+        eventId,
+        messageId: message._id,
+        source,
+        confidence,
+        geometryQuality: newGeometryQuality,
+        matchSignals: signals,
+        createdAt: now,
+      },
+      message._id,
+    );
+  } catch (error) {
+    if (isAlreadyExistsError(error)) {
+      logger.info("Message link created concurrently, skipping duplicate attach", {
+        messageId: message._id,
+        attemptedEventId: eventId,
+      });
+      return;
+    }
+    throw error;
+  }
 
   // Build event update
   const existingGeometryQuality = (event.geometryQuality as number) ?? 0;

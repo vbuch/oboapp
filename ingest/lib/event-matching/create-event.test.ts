@@ -17,9 +17,14 @@ vi.mock("@/lib/source-trust", () => ({
 
 const mockInsertEvent = vi.fn().mockResolvedValue("evt-new");
 const mockInsertEventMessage = vi.fn().mockResolvedValue("em-new");
+const mockCreateEventMessage = vi.fn().mockResolvedValue("msg-1");
 const mockFindByMessageId = vi.fn().mockResolvedValue([]);
+const mockDeleteEvent = vi.fn().mockResolvedValue(undefined);
 const mockDb = {
-  events: { insertOne: mockInsertEvent },
+  client: {
+    createOne: mockCreateEventMessage,
+  },
+  events: { insertOne: mockInsertEvent, deleteOne: mockDeleteEvent },
   eventMessages: {
     insertOne: mockInsertEventMessage,
     findByMessageId: mockFindByMessageId,
@@ -30,7 +35,9 @@ describe("createEventFromMessage", () => {
   beforeEach(() => {
     mockInsertEvent.mockClear().mockResolvedValue("evt-new");
     mockInsertEventMessage.mockClear().mockResolvedValue("em-new");
+    mockCreateEventMessage.mockClear().mockResolvedValue("msg-1");
     mockFindByMessageId.mockClear().mockResolvedValue([]);
+    mockDeleteEvent.mockClear().mockResolvedValue(undefined);
   });
 
   it("creates event with correct fields from message", async () => {
@@ -48,6 +55,7 @@ describe("createEventFromMessage", () => {
 
     expect(result.eventId).toBe("evt-new");
     expect(result.confidence).toBe(1.0);
+    expect(result.action).toBe("created");
 
     const eventData = mockInsertEvent.mock.calls[0][0];
     expect(eventData.canonicalText).toBe("Water outage on Vitosha blvd");
@@ -67,7 +75,7 @@ describe("createEventFromMessage", () => {
       geoJson: { type: "FeatureCollection", features: [] },
     });
 
-    const emData = mockInsertEventMessage.mock.calls[0][0];
+    const emData = mockCreateEventMessage.mock.calls[0][1];
     expect(emData.eventId).toBe("evt-new");
     expect(emData.messageId).toBe("msg-1");
     expect(emData.source).toBe("toplo-bg");
@@ -79,6 +87,7 @@ describe("createEventFromMessage", () => {
       categoryMatch: 1.0,
       textSimilarity: 1.0,
     });
+    expect(mockCreateEventMessage.mock.calls[0][2]).toBe("msg-1");
   });
 
   it("uses precomputed geometry quality for precomputed sources with geoJson", async () => {
@@ -122,8 +131,26 @@ describe("createEventFromMessage", () => {
       geoJson: { type: "FeatureCollection", features: [] },
     });
 
-    expect(result).toEqual({ eventId: "evt-existing", confidence: 1.0 });
+    expect(result).toEqual({ eventId: "evt-existing", confidence: 1.0, action: "attached" });
     expect(mockInsertEvent).not.toHaveBeenCalled();
     expect(mockInsertEventMessage).not.toHaveBeenCalled();
+  });
+
+  it("reuses concurrent link and cleans up orphan event on duplicate link create", async () => {
+    const duplicate = new Error("Document already exists");
+    (duplicate as { code?: unknown }).code = "already-exists";
+    mockCreateEventMessage.mockRejectedValueOnce(duplicate);
+    mockFindByMessageId
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ eventId: "evt-existing" }]);
+
+    const result = await createEventFromMessage(mockDb, {
+      _id: "msg-1",
+      source: "sofia-bg",
+      geoJson: { type: "FeatureCollection", features: [] },
+    });
+
+    expect(mockDeleteEvent).toHaveBeenCalledWith("evt-new");
+    expect(result).toEqual({ eventId: "evt-existing", confidence: 1.0, action: "attached" });
   });
 });
