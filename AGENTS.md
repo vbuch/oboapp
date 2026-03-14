@@ -258,7 +258,7 @@ flowchart LR
 - `process` - Array of debug/audit trail entries tracking each pipeline step
 - `timespanStart` - Denormalized MIN start time (enables Firestore queries)
 - `timespanEnd` - Denormalized MAX end time (enables Firestore queries)
-- `embedding` - Text embedding vector (768-dim, from Gemini `text-embedding-004`) for event matching similarity
+- `embedding` - Text embedding vector (768-dim, from Gemini `gemini-embedding-001`) for event matching similarity
 - `eventId` - Links message to its matched/created Event
 - `geoJson` - Final geometry (determines public visibility)
 - `finalizedAt` - Marks processing complete
@@ -276,7 +276,7 @@ After finalization, messages are matched to Events (real-world incidents) via `i
 
 - **Match thresholds**: score ≥ 0.70 auto-attaches; 0.55–0.70 triggers LLM verification (Gemini compares both texts); < 0.55 creates new event
 - **LLM verification**: `ingest/prompts/verify-event-match.md` — conservative fallback (on failure → new event)
-- Env var: `GOOGLE_EMBEDDING_MODEL` (default: `text-embedding-004`)
+- Env var: `GOOGLE_EMBEDDING_MODEL` (default: `gemini-embedding-001`)
 - Embeddings are optional — graceful degradation when missing
 - Cleanup: `scripts/cleanup-embeddings.ts` removes embeddings from expired documents
 

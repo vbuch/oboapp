@@ -3,7 +3,7 @@ import { delay } from "./delay";
 import { logger } from "./logger";
 
 const EMBEDDING_MODEL =
-  process.env.GOOGLE_EMBEDDING_MODEL || "text-embedding-004";
+  process.env.GOOGLE_EMBEDDING_MODEL || "gemini-embedding-001";
 const EMBEDDING_DIMENSIONS = 768;
 const RATE_LIMIT_MS = 200;
 
@@ -18,7 +18,7 @@ function getClient(): GoogleGenAI {
 }
 
 /**
- * Generate a text embedding via Gemini text-embedding-004.
+ * Generate a text embedding via Gemini gemini-embedding-001.
  * Rate-limited to 200ms between calls.
  * Returns null on failure (does not throw).
  */

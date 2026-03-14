@@ -11,8 +11,8 @@
 
 import type { Firestore } from "firebase-admin/firestore";
 
-// A point on ul. Shishman in Oborishte (lat 42.6955, lng 23.3360)
-const SHARED_LOCATION = { lat: 42.6955, lng: 23.336 };
+// A point on ul. Shishman 14-20 in Oborishte (lat 42.693, lng 23.331)
+const SHARED_LOCATION = { lat: 42.693, lng: 23.331 };
 
 const now = new Date();
 const startDate = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000); // 2 days ago

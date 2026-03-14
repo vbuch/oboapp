@@ -104,7 +104,7 @@ Sources with ready GeoJSON bypass the AI pipeline:
 
 ### Embedding Generation
 
-After AI processing (or for precomputed sources, after message creation), a text embedding is generated via Gemini `text-embedding-004` (768 dimensions). This embedding is stored on the message and used for text similarity during event matching. Embedding generation is non-blocking — failures are logged but don't affect the pipeline.
+After AI processing (or for precomputed sources, after message creation), a text embedding is generated via Gemini `gemini-embedding-001` (768 dimensions). This embedding is stored on the message and used for text similarity during event matching. Embedding generation is non-blocking — failures are logged but don't affect the pipeline.
 
 ### Event Matching
 

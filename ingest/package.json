@@ -12,6 +12,7 @@
     "ingest": "tsx ingest",
     "ingestable": "tsx ingestable",
     "geocode": "tsx geocode",
+    "verify-events": "tsx verify-events",
     "notify": "tsx notify",
     "sources:clean": "tsx sources-clean",
     "gtfs-stops": "tsx ingest gtfs-stops",

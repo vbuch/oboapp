@@ -37,7 +37,7 @@ Pre-geocoding scoring uses time overlap and category match (no spatial compariso
 
 ### Text Similarity (Embeddings)
 
-Messages and events store text embeddings generated via Gemini `text-embedding-004` (768 dimensions). When both a message and a candidate event have embeddings, cosine similarity is used as the text matching signal.
+Messages and events store text embeddings generated via Gemini `gemini-embedding-001` (768 dimensions). When both a message and a candidate event have embeddings, cosine similarity is used as the text matching signal.
 
 **Scoring formula:**
 - With embeddings: 0.35 location + 0.25 time + 0.25 text + 0.15 category
@@ -45,7 +45,7 @@ Messages and events store text embeddings generated via Gemini `text-embedding-0
 
 Embeddings are optional — old messages/events without embeddings use fallback weights automatically.
 
-**Configuration:** Set `GOOGLE_EMBEDDING_MODEL` environment variable (default: `text-embedding-004`).
+**Configuration:** Set `GOOGLE_EMBEDDING_MODEL` environment variable (default: `gemini-embedding-001`).
 
 **Cleanup:** Expired messages/events have their embedding fields removed to save Firestore storage. Run `cd ingest && pnpm tsx scripts/cleanup-embeddings.ts` manually or schedule as a weekly cron.
 
