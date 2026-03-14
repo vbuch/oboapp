@@ -33,6 +33,8 @@ flowchart TD
 | `notificationSubscriptions` | FCM push tokens per user                  | userId + token (unique)                |
 | `notificationMatches`       | Notification delivery log                 | notified + userId + notifiedAt         |
 | `gtfsStops`                 | Bus stop locations (GTFS data)            | stopCode as `_id`                      |
+| `events`                    | Aggregated real-world incidents            | locality + timespanEnd, locality + categories + timespanEnd |
+| `eventMessages`             | Links between messages and events         | eventId + createdAt, messageId         |
 
 ## Operating Modes
 

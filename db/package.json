@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@oboapp/shared": "workspace:*",
+    "dotenv": "^17.3.1",
     "mongodb": "^6.16.0"
   },
   "peerDependencies": {

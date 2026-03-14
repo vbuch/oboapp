@@ -73,7 +73,7 @@ If you identify a recurring pattern or developer preference:
 The `@oboapp/db` package provides a unified interface (`OboDb`) over Firestore and MongoDB via typed collection repositories. It handles serialization (JSON strings, Timestamps) transparently.
 
 - **Initialization:** Use `getDb()` from `@/lib/db` (both `ingest/` and `web/`). It's a lazy singleton.
-- **Collections:** `db.messages`, `db.sources`, `db.interests`, `db.notificationMatches`, `db.notificationSubscriptions`, `db.gtfsStops`
+- **Collections:** `db.messages`, `db.sources`, `db.interests`, `db.notificationMatches`, `db.notificationSubscriptions`, `db.gtfsStops`, `db.events`, `db.eventMessages`
 - **Key methods:** `findById(id)`, `findMany(options)`, `insertOne(data)`, `updateOne(id, data)`, `deleteOne(id)`, `count(where)`
 - **Records:** All find methods return `Record<string, unknown>` with an `_id` field for the document ID.
 - **Dates:** The adapter converts Firestore Timestamps → `Date` objects. Consumers convert to ISO strings as needed.
