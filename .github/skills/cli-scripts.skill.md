@@ -1,7 +1,6 @@
 ---
 name: CLI Scripts with Commander.js
 description: Standard pattern for writing CLI scripts using Commander.js
-agent-name: copilot
 version: 1.0.0
 keywords:
   - cli
