@@ -1,0 +1,91 @@
+import type { OboDb } from "@oboapp/db";
+import type { GeoJSONFeatureCollection } from "@/lib/types";
+import { getSourceTrust, getGeometryQuality } from "@/lib/source-trust";
+import type { MatchSignals } from "./score";
+import { toISOString, toMs } from "./utils";
+
+/**
+ * Attach a message to an existing event.
+ * Updates the event: merge timespans, upgrade geometry if better quality,
+ * add source, increment messageCount, update confidence.
+ */
+export async function attachMessageToEvent(
+  db: OboDb,
+  message: {
+    _id: string;
+    geoJson?: GeoJSONFeatureCollection | null;
+    timespanStart?: string | Date | null;
+    timespanEnd?: string | Date | null;
+    source?: string;
+    categories?: string[];
+  },
+  event: Record<string, unknown>,
+  confidence: number,
+  signals: MatchSignals,
+): Promise<void> {
+  const source = (message.source as string) || "";
+  const hasPrecomputedGeoJson = getSourceTrust(source).geometryQuality === 3;
+  const newGeometryQuality = getGeometryQuality(source, hasPrecomputedGeoJson);
+  const now = new Date().toISOString();
+  const eventId = event._id as string;
+
+  // Create EventMessage link
+  await db.eventMessages.insertOne({
+    eventId,
+    messageId: message._id,
+    source,
+    confidence,
+    geometryQuality: newGeometryQuality,
+    matchSignals: signals,
+    createdAt: now,
+  });
+
+  // Build event update
+  const existingGeometryQuality = (event.geometryQuality as number) ?? 0;
+  const existingSources = (event.sources as string[]) ?? [];
+  const existingMessageCount = (event.messageCount as number) ?? 1;
+
+  const update: Record<string, unknown> = {
+    messageCount: existingMessageCount + 1,
+    updatedAt: now,
+  };
+
+  // Merge timespans (expand to union)
+  if (message.timespanStart) {
+    const msgStart = toMs(message.timespanStart);
+    const evtStart = event.timespanStart ? toMs(event.timespanStart as string) : Infinity;
+    if (msgStart < evtStart) {
+      update.timespanStart = toISOString(message.timespanStart);
+    }
+  }
+  if (message.timespanEnd) {
+    const msgEnd = toMs(message.timespanEnd);
+    const evtEnd = event.timespanEnd ? toMs(event.timespanEnd as string) : -Infinity;
+    if (msgEnd > evtEnd) {
+      update.timespanEnd = toISOString(message.timespanEnd);
+    }
+  }
+
+  // Upgrade geometry if new message has higher quality
+  if (newGeometryQuality > existingGeometryQuality && message.geoJson) {
+    update.geometry = message.geoJson;
+    update.geometryQuality = newGeometryQuality;
+  }
+
+  // Add source if not already present
+  if (source && !existingSources.includes(source)) {
+    update.sources = [...existingSources, source];
+  }
+
+  // Merge categories (union)
+  const msgCategories = message.categories;
+  if (msgCategories?.length) {
+    const existingCategories = (event.categories as string[]) ?? [];
+    const merged = [...new Set([...existingCategories, ...msgCategories])];
+    if (merged.length > existingCategories.length) {
+      update.categories = merged;
+    }
+  }
+
+  await db.events.updateOne(eventId, update);
+}

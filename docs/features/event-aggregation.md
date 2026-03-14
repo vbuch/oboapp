@@ -80,6 +80,59 @@ const candidates = await db.events.findCandidates("bg.sofia", startDate, endDate
 await db.eventMessages.insertOne({ eventId, messageId, source, confidence: 0.85 });
 ```
 
+## Event Matching (Phase 2)
+
+When a message is finalized with GeoJSON in the ingestion pipeline, it is automatically matched against existing events.
+
+### Pipeline Integration
+
+After `finalizeMessageWithResults()` stores the GeoJSON, `runEventMatching()` runs:
+
+1. **Find candidates** — queries events in the same locality within a ±2 day time window
+2. **Score each candidate** — computes a weighted match score
+3. **Decide** — if the best score exceeds 0.70, attach to that event; otherwise create a new event
+
+The matching step is wrapped in a try/catch so failures don't block the pipeline.
+
+### Scoring Formula
+
+$$
+\text{score} = 0.50 \times \text{locationSimilarity} + 0.35 \times \text{timeOverlap} + 0.15 \times \text{categoryMatch}
+$$
+
+| Signal              | How it's computed                                                   |
+| ------------------- | ------------------------------------------------------------------- |
+| locationSimilarity  | Inverse-linear distance between centroids. 1.0 at 0 m, 0.0 at ≥ 500 m. City-wide messages always score 1.0. |
+| timeOverlap         | Overlap / union ratio of timespan intervals. 0.0 if no overlap.    |
+| categoryMatch       | Jaccard similarity of category sets. 0.0 if both empty.            |
+
+### Attaching to an Existing Event
+
+When a message matches an event above threshold:
+
+- **Timespans** expand to the union (earlier start, later end)
+- **Geometry** upgrades if the new message has higher quality (per source trust)
+- **Sources** are added (deduplicated)
+- **Categories** merge as a set union
+- **messageCount** increments
+
+### City-Wide Handling
+
+City-wide messages (`cityWide: true`) only match against other city-wide events. Location similarity is always 1.0 for city-wide matches.
+
+### Configuration
+
+Constants in `ingest/lib/event-matching/constants.ts`:
+
+| Constant                    | Value | Purpose                          |
+| --------------------------- | ----- | -------------------------------- |
+| MATCH_THRESHOLD             | 0.70  | Minimum score to attach          |
+| CANDIDATE_TIME_WINDOW_DAYS  | 2     | ±days to search for candidates   |
+| CANDIDATE_DISTANCE_METERS   | 500   | Max centroid distance cutoff     |
+| LOCATION_WEIGHT             | 0.50  | Weight for spatial similarity    |
+| TIME_WEIGHT                 | 0.35  | Weight for temporal overlap      |
+| CATEGORY_WEIGHT             | 0.15  | Weight for category match        |
+
 ## Migration
 
 To create initial 1:1 events from existing finalized messages:

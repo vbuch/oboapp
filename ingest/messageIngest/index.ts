@@ -195,6 +195,11 @@ async function processSingleMessage(
 
   await finalizeMessageWithResults(messageId, geoJson, ingestErrors);
 
+  // Event matching: group this message into an event (create or attach)
+  if (geoJson) {
+    await runEventMatching(messageId);
+  }
+
   return await buildMessageResponse(
     messageId,
     text,
@@ -919,4 +924,28 @@ async function finalizeMessageWithoutGeoJson(
     finalizedAt: new Date(),
     ...buildIngestErrorsField(ingestErrors),
   });
+}
+
+/**
+ * Run event matching for a finalized message.
+ * Reads the full message from DB, finds or creates an event, and stores the eventId + audit trail.
+ */
+async function runEventMatching(messageId: string): Promise<void> {
+  try {
+    const { getDb } = await import("@/lib/db");
+    const { processEventMatching } = await import("@/lib/event-matching");
+
+    const db = await getDb();
+    const message = await db.messages.findById(messageId);
+    if (!message) return;
+
+    const result = await processEventMatching(message);
+
+    await updateMessage(messageId, {
+      eventId: result.eventId,
+    });
+  } catch (error) {
+    // Event matching failures should not break the ingest pipeline
+    logger.error("Event matching failed", { messageId, error });
+  }
 }
