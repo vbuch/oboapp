@@ -6,16 +6,6 @@ Multiple sources (crawlers) sometimes report the same real-world incident — fo
 
 The **Event Aggregation** layer groups related messages into a single **Event** representing one real-world incident. Each Event tracks which messages contributed to it, selects the best available geometry, and provides a canonical description.
 
-## Linking Model
-
-`eventMessages` is the authoritative source of truth for message-to-event links.
-
-- `eventMessages` defines which message belongs to which event
-- `messages.eventId` is a denormalized cache for convenience and fast reads
-- if `messages.eventId` is missing or stale, the canonical relationship is still taken from `eventMessages`
-
-Operational tooling should treat missing `eventMessages` links as integrity issues and treat `messages.eventId` mismatches as cache inconsistencies.
-
 ## How It Works
 
 When a message is finalized with GeoJSON, the pipeline automatically tries to match it against existing events:
@@ -47,13 +37,9 @@ Pre-geocoding scoring uses time overlap and category match (no spatial compariso
 
 ### Text Similarity (Embeddings)
 
-Messages and events store text embeddings generated via Gemini `gemini-embedding-001` (768 dimensions). When both a message and a candidate event have embeddings, cosine similarity is used as the text matching signal.
+Messages and events store text embeddings generated via Gemini `gemini-embedding-001` (768 dimensions). When both a message and a candidate event have embeddings, cosine similarity is included as a matching signal. Embeddings are optional — old messages/events without embeddings use fallback weights automatically.
 
-**Scoring formula:**
-- With embeddings: 0.35 location + 0.25 time + 0.25 text + 0.15 category
-- Without embeddings (fallback): 0.50 location + 0.35 time + 0.15 category
-
-Embeddings are optional — old messages/events without embeddings use fallback weights automatically.
+Scoring weights and fallback formulas are defined in `ingest/lib/event-matching/constants.ts`.
 
 **Configuration:** Set `GOOGLE_EMBEDDING_MODEL` environment variable (default: `gemini-embedding-001`).
 
@@ -86,7 +72,7 @@ The migration is idempotent — running it again skips already-linked messages.
 
 ## Related
 
-- [database-layer.md](database-layer.md) — DB access patterns for `events` and `eventMessages` collections
+- [database-layer.md](database-layer.md) — DB access patterns for `events` and `eventMessages` collections, and the linking model (`eventMessages` as authoritative source of truth vs `messages.eventId` as denormalized cache)
 - `ingest/lib/event-matching/` — matching implementation
 - `ingest/lib/event-matching/constants.ts` — scoring thresholds and weights
 - `ingest/evals/verify-event-match.yaml` — promptfoo evaluation for the LLM verification prompt

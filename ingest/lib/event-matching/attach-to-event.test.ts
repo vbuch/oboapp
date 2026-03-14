@@ -20,11 +20,9 @@ const mockCreateEventMessage = vi.fn().mockResolvedValue("msg-2");
 const mockUpdateEvent = vi.fn().mockResolvedValue(undefined);
 const mockFindByMessageId = vi.fn().mockResolvedValue([]);
 const mockDb = {
-  client: {
-    createOne: mockCreateEventMessage,
-  },
   eventMessages: {
     insertOne: mockInsertEventMessage,
+    createOne: mockCreateEventMessage,
     findByMessageId: mockFindByMessageId,
   },
   events: { updateOne: mockUpdateEvent },
@@ -64,12 +62,12 @@ describe("attachMessageToEvent", () => {
       baseSignals,
     );
 
-    const emData = mockCreateEventMessage.mock.calls[0][1];
+    const emData = mockCreateEventMessage.mock.calls[0][0];
     expect(emData.eventId).toBe("evt-1");
     expect(emData.messageId).toBe("msg-2");
     expect(emData.confidence).toBe(0.85);
     expect(emData.matchSignals).toEqual(baseSignals);
-    expect(mockCreateEventMessage.mock.calls[0][2]).toBe("msg-2");
+    expect(mockCreateEventMessage.mock.calls[0][1]).toBe("msg-2");
   });
 
   it("handles concurrent duplicate create without updating event", async () => {

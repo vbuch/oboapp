@@ -108,11 +108,9 @@ After AI processing (or for precomputed sources, after message creation), a text
 
 ### Event Matching
 
-After finalization, each message is matched against existing Events (real-world incidents). If a match is found above the threshold (0.70), the message attaches to that event; otherwise a new event is created. Matching uses four signals: location proximity, time overlap, text similarity (embedding cosine), and category overlap.
+After finalization, each message is matched against existing Events (real-world incidents) — either attaching to an existing event or creating a new one. Pre-geocode matching can reuse an event's geometry to skip geocoding entirely.
 
-Pre-geocode matching can happen _before_ the geocoding stage — if a high-quality event match is found (score ≥ 0.75–0.80), the event's geometry is reused and geocoding is skipped entirely.
-
-See [Event Aggregation](../../docs/features/event-aggregation.md) for full details.
+See [Event Aggregation](../../docs/features/event-aggregation.md) for matching thresholds, scoring, and details.
 
 ## Firestore Storage
 

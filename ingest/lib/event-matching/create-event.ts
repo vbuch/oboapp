@@ -66,8 +66,7 @@ export async function createEventFromMessage(
   });
 
   try {
-    await db.client.createOne(
-      "eventMessages",
+    await db.eventMessages.createOne(
       {
         eventId,
         messageId: message._id,

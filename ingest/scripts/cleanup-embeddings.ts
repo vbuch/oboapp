@@ -7,6 +7,9 @@ dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
 const BATCH_SIZE = 500;
 
+// NOTE: This script uses raw Firestore admin instead of @oboapp/db because
+// it needs FieldValue.delete() (field removal) and batch writes, which the
+// @oboapp/db abstraction layer doesn't support.
 async function cleanupEmbeddings() {
   const { adminDb } = await import("@/lib/firebase-admin");
   const { FieldValue } = await import("firebase-admin/firestore");

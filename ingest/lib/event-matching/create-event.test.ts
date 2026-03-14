@@ -21,12 +21,10 @@ const mockCreateEventMessage = vi.fn().mockResolvedValue("msg-1");
 const mockFindByMessageId = vi.fn().mockResolvedValue([]);
 const mockDeleteEvent = vi.fn().mockResolvedValue(undefined);
 const mockDb = {
-  client: {
-    createOne: mockCreateEventMessage,
-  },
   events: { insertOne: mockInsertEvent, deleteOne: mockDeleteEvent },
   eventMessages: {
     insertOne: mockInsertEventMessage,
+    createOne: mockCreateEventMessage,
     findByMessageId: mockFindByMessageId,
   },
 } as any;
@@ -75,7 +73,7 @@ describe("createEventFromMessage", () => {
       geoJson: { type: "FeatureCollection", features: [] },
     });
 
-    const emData = mockCreateEventMessage.mock.calls[0][1];
+    const emData = mockCreateEventMessage.mock.calls[0][0];
     expect(emData.eventId).toBe("evt-new");
     expect(emData.messageId).toBe("msg-1");
     expect(emData.source).toBe("toplo-bg");
@@ -87,7 +85,7 @@ describe("createEventFromMessage", () => {
       categoryMatch: 1.0,
       textSimilarity: 1.0,
     });
-    expect(mockCreateEventMessage.mock.calls[0][2]).toBe("msg-1");
+    expect(mockCreateEventMessage.mock.calls[0][1]).toBe("msg-1");
   });
 
   it("uses precomputed geometry quality for precomputed sources with geoJson", async () => {
