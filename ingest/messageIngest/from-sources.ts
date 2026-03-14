@@ -1,14 +1,12 @@
 #!/usr/bin/env node
 
-import * as dotenv from "dotenv";
+import { Command } from "commander";
+import dotenv from "dotenv";
 import { resolve } from "node:path";
 import type { OboDb } from "@oboapp/db";
 import { GeoJSONFeatureCollection } from "@/lib/types";
 import { isWithinBoundaries, loadBoundaries } from "@/lib/boundary-utils";
 import { logger } from "@/lib/logger";
-
-// Load environment variables
-dotenv.config({ path: resolve(process.cwd(), ".env.local"), debug: false });
 
 interface SourceDocument {
   url: string;
@@ -47,30 +45,7 @@ interface IngestSummary {
   errors: Array<{ url: string; error: string }>;
 }
 
-async function parseArguments(): Promise<IngestOptions> {
-  const args = process.argv.slice(2);
-  const options: IngestOptions = {};
 
-  for (const arg of args) {
-    if (arg.startsWith("--boundaries=")) {
-      options.boundariesPath = arg.split("=")[1];
-      continue;
-    }
-    if (arg === "--dry-run") {
-      options.dryRun = true;
-      continue;
-    }
-    if (arg.startsWith("--source-type=")) {
-      options.sourceType = arg.split("=")[1];
-      continue;
-    }
-    if (arg.startsWith("--limit=")) {
-      options.limit = Number.parseInt(arg.split("=")[1], 10);
-    }
-  }
-
-  return options;
-}
 
 function toDate(value: unknown): Date | undefined {
   if (value instanceof Date) return value;
@@ -452,10 +427,36 @@ function logSummary(summary: IngestSummary, dryRun: boolean): void {
 }
 // Run only when executed directly
 if (require.main === module) {
-  (async () => {
-    const options = await parseArguments();
-    await ingest(options);
-  })().catch((error) => {
+  const program = new Command();
+
+  program
+    .name("ingest:from-sources")
+    .description("Ingest source documents from the database into messages")
+    .option("-b, --boundaries <path>", "Path to GeoJSON boundaries file")
+    .option("--dry-run", "Preview ingestion without actually writing")
+    .option("-s, --source-type <type>", "Only ingest sources of this type")
+    .option("-l, --limit <n>", "Maximum number of sources to process", parseInt)
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ npx tsx ingest/messageIngest/from-sources
+  $ npx tsx ingest/messageIngest/from-sources --source-type rayon-oborishte-bg
+  $ npx tsx ingest/messageIngest/from-sources --dry-run --limit 10
+`,
+    )
+    .action(async (opts) => {
+      dotenv.config({ path: resolve(process.cwd(), ".env.local"), debug: false });
+      const options: IngestOptions = {
+        boundariesPath: opts.boundaries,
+        dryRun: opts.dryRun,
+        sourceType: opts.sourceType,
+        limit: opts.limit,
+      };
+      await ingest(options);
+    });
+
+  program.parseAsync().catch((error) => {
     logger.error("Ingestion failed", {
       error: error instanceof Error ? error.message : String(error),
     });

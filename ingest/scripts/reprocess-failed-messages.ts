@@ -11,17 +11,14 @@
  *     then re-run messageIngest directly against the source document.
  *
  * Usage:
- *   pnpm tsx ingest/tmp/reprocess-failed-messages.ts            # dry-run (safe)
- *   pnpm tsx ingest/tmp/reprocess-failed-messages.ts --execute  # actually run
+ *   pnpm tsx ingest/scripts/reprocess-failed-messages.ts            # dry-run (safe)
+ *   pnpm tsx ingest/scripts/reprocess-failed-messages.ts --execute  # actually run
  */
 
+import { Command } from "commander";
 import dotenv from "dotenv";
 import { resolve } from "node:path";
 import type { OboDb } from "@oboapp/db";
-
-dotenv.config({ path: resolve(process.cwd(), ".env.local") });
-
-const DRY_RUN = !process.argv.includes("--execute");
 
 type MsgDoc = Record<string, unknown>;
 
@@ -74,6 +71,7 @@ async function processSource(
   db: OboDb,
   sourceDocumentId: string,
   msgs: MsgDoc[],
+  dryRun: boolean,
 ): Promise<SourceResult> {
   console.log(`\n─── Source: ${sourceDocumentId}`);
   for (const m of msgs) {
@@ -90,7 +88,7 @@ async function processSource(
     throw new Error(`Source missing locality field`);
   }
 
-  if (DRY_RUN) {
+  if (dryRun) {
     console.log(
       `  [dry-run] Would delete ${msgs.length} message(s) and re-ingest from "${source.sourceType as string}"`,
     );
@@ -174,13 +172,10 @@ async function processSource(
   return { created: result.messages.length, withGeoJson, stillFailed };
 }
 
-async function main() {
+async function main(dryRun: boolean, daysBack: number) {
   const { getDb } = await import("../lib/db");
   const db = await getDb();
 
-  const daysBack = Number(
-    process.argv.find((a) => a.startsWith("--days="))?.split("=")[1] ?? "14",
-  );
   const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
 
   console.log(
@@ -224,24 +219,24 @@ async function main() {
   };
 
   for (const [sourceDocumentId, msgs] of bySource) {
-    if (!DRY_RUN) stats.attempted++;
+    if (!dryRun) stats.attempted++;
     try {
-      const result = await processSource(db, sourceDocumentId, msgs);
-      if (!DRY_RUN) {
+      const result = await processSource(db, sourceDocumentId, msgs, dryRun);
+      if (!dryRun) {
         stats.succeeded++;
         stats.messagesCreated += result.created;
         stats.messagesWithGeoJson += result.withGeoJson;
         stats.messagesStillFailed += result.stillFailed;
       }
     } catch (err) {
-      if (!DRY_RUN) stats.failed++;
+      if (!dryRun) stats.failed++;
       console.error(
         `  ❌ Failed for source ${sourceDocumentId}: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
 
-  if (DRY_RUN) {
+  if (dryRun) {
     console.log(
       `\n⚠️  DRY RUN — no changes made. Re-run with --execute to apply.`,
     );
@@ -265,7 +260,35 @@ async function main() {
   }
 }
 
-main().catch((error) => {
+const program = new Command();
+
+program
+  .name("reprocess-failed-messages")
+  .description(
+    "Re-process finalized messages that have no GeoJSON (ingest errors)",
+  )
+  .option(
+    "--execute",
+    "Actually apply changes (default is dry-run — safe to run without this flag)",
+  )
+  .option("--days <n>", "Number of days back to search for failed messages", "14")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ pnpm tsx ingest/scripts/reprocess-failed-messages          # dry-run
+  $ pnpm tsx ingest/scripts/reprocess-failed-messages --execute
+  $ pnpm tsx ingest/scripts/reprocess-failed-messages --execute --days 30
+`,
+  )
+  .action(async (opts) => {
+    dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+    const dryRun = !opts.execute;
+    const daysBack = Number(opts.days);
+    await main(dryRun, daysBack);
+  });
+
+program.parseAsync().catch((error) => {
   console.error(error);
   process.exit(1);
 });
