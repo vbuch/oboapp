@@ -274,13 +274,15 @@ flowchart LR
 
 After finalization, messages are matched to Events (real-world incidents) via `ingest/lib/event-matching/`. Scoring uses location, time, text similarity (embedding cosine), and category signals. Pre-geocode matching can reuse event geometry to skip geocoding. See `docs/features/event-aggregation.md` for details.
 
+- **Match thresholds**: score ≥ 0.70 auto-attaches; 0.55–0.70 triggers LLM verification (Gemini compares both texts); < 0.55 creates new event
+- **LLM verification**: `ingest/prompts/verify-event-match.md` — conservative fallback (on failure → new event)
 - Env var: `GOOGLE_EMBEDDING_MODEL` (default: `text-embedding-004`)
 - Embeddings are optional — graceful degradation when missing
 - Cleanup: `scripts/cleanup-embeddings.ts` removes embeddings from expired documents
 
 **Prompt Evaluation (promptfoo):**
 
-All three prompts have eval configs in `ingest/evals/` using [promptfoo](https://www.promptfoo.dev/). Run before merging prompt or schema changes:
+All four prompts have eval configs in `ingest/evals/` using [promptfoo](https://www.promptfoo.dev/). Run before merging prompt or schema changes:
 
 - `pnpm promptfoo` — evaluates all 3 prompts against source fixtures with schema + behavioral assertions
 - `pnpm promptfoo:redteam` — runs adversarial inputs (prompt injection, data exfiltration, off-topic steering)

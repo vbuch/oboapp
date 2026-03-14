@@ -11,11 +11,13 @@ export { findBestMatch } from "./match";
 export { createEventFromMessage } from "./create-event";
 export { attachMessageToEvent } from "./attach-to-event";
 export { preGeocodeMatch, type PreGeocodeMatchResult } from "./pre-geocode-match";
+export { verifyEventMatch } from "./llm-verify";
 
 export interface EventMatchResult {
   eventId: string;
   action: "created" | "attached";
   confidence: number;
+  llmVerified?: boolean;
 }
 
 /**
@@ -37,6 +39,8 @@ export async function processEventMatching(
     cityWide: message.cityWide as boolean | undefined,
     locality: (message.locality as string) || "bg.sofia",
     embedding: message.embedding as number[] | undefined,
+    text: message.text as string | undefined,
+    plainText: message.plainText as string | undefined,
   };
 
   const bestMatch = await findBestMatch(db, matchInput);
@@ -64,9 +68,15 @@ export async function processEventMatching(
       messageId,
       eventId,
       confidence: bestMatch.score,
+      llmVerified: bestMatch.llmVerified ?? false,
     });
 
-    return { eventId, action: "attached", confidence: bestMatch.score };
+    return {
+      eventId,
+      action: "attached",
+      confidence: bestMatch.score,
+      llmVerified: bestMatch.llmVerified,
+    };
   }
 
   // No match found — create a new event

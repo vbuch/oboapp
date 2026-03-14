@@ -24,6 +24,12 @@ export const FALLBACK_LOCATION_WEIGHT = 0.5;
 export const FALLBACK_TIME_WEIGHT = 0.35;
 export const FALLBACK_CATEGORY_WEIGHT = 0.15;
 
+/** LLM verification lower bound — scores below this are always a new event */
+export const LLM_VERIFY_LOWER = 0.55;
+
+/** LLM verification upper bound — scores above this auto-attach without LLM */
+export const LLM_VERIFY_UPPER = 0.7;
+
 /** Pre-geocode matching: higher threshold (no spatial comparison) */
 export const PRE_GEOCODE_MATCH_THRESHOLD = 0.8;
 

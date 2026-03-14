@@ -12,8 +12,13 @@ vi.mock("./score", () => ({
   }),
 }));
 
+vi.mock("./llm-verify", () => ({
+  verifyEventMatch: vi.fn().mockResolvedValue(null),
+}));
+
 import { findCandidateEvents } from "./candidates";
 import { computeMatchScore } from "./score";
+import { verifyEventMatch } from "./llm-verify";
 
 const mockDb = {} as any;
 
@@ -24,6 +29,7 @@ describe("findBestMatch", () => {
       score: 0,
       signals: { locationSimilarity: 0, timeOverlap: 0, categoryMatch: 0, textSimilarity: 0 },
     });
+    vi.mocked(verifyEventMatch).mockReset().mockResolvedValue(null);
   });
 
   it("returns null when no candidates", async () => {
@@ -34,13 +40,13 @@ describe("findBestMatch", () => {
     expect(result).toBeNull();
   });
 
-  it("returns null when all candidates score below threshold", async () => {
+  it("returns null when all candidates score below LLM_VERIFY_LOWER (0.55)", async () => {
     vi.mocked(findCandidateEvents).mockResolvedValueOnce([
       { _id: "evt-1" },
     ]);
     vi.mocked(computeMatchScore).mockReturnValueOnce({
-      score: 0.5,
-      signals: { locationSimilarity: 0.5, timeOverlap: 0.5, categoryMatch: 0, textSimilarity: 0 },
+      score: 0.4,
+      signals: { locationSimilarity: 0.5, timeOverlap: 0.3, categoryMatch: 0, textSimilarity: 0 },
     });
 
     const result = await findBestMatch(mockDb, {
@@ -48,9 +54,10 @@ describe("findBestMatch", () => {
       geoJson: null,
     });
     expect(result).toBeNull();
+    expect(verifyEventMatch).not.toHaveBeenCalled();
   });
 
-  it("returns best match when above threshold", async () => {
+  it("returns best match when above MATCH_THRESHOLD (0.70) without LLM call", async () => {
     vi.mocked(findCandidateEvents).mockResolvedValueOnce([
       { _id: "evt-1" },
     ]);
@@ -66,9 +73,10 @@ describe("findBestMatch", () => {
     expect(result).not.toBeNull();
     expect(result!.event._id).toBe("evt-1");
     expect(result!.score).toBe(0.85);
+    expect(verifyEventMatch).not.toHaveBeenCalled();
   });
 
-  it("picks highest scoring candidate when multiple match", async () => {
+  it("picks highest scoring candidate when multiple match above threshold", async () => {
     vi.mocked(findCandidateEvents).mockResolvedValueOnce([
       { _id: "evt-1" },
       { _id: "evt-2" },
@@ -89,5 +97,145 @@ describe("findBestMatch", () => {
     });
     expect(result!.event._id).toBe("evt-2");
     expect(result!.score).toBe(0.92);
+  });
+
+  // --- LLM verification zone tests ---
+
+  it("calls LLM verify when score is in uncertain zone (0.55-0.70) and attaches if confirmed", async () => {
+    vi.mocked(findCandidateEvents).mockResolvedValueOnce([
+      { _id: "evt-1", canonicalText: "Event text about water outage" },
+    ]);
+    vi.mocked(computeMatchScore).mockReturnValueOnce({
+      score: 0.6,
+      signals: { locationSimilarity: 0.6, timeOverlap: 0.7, categoryMatch: 1.0, textSimilarity: 0.4 },
+    });
+    vi.mocked(verifyEventMatch).mockResolvedValueOnce({
+      isSameEvent: true,
+      reasoning: "Both describe water outage on same street",
+    });
+
+    const result = await findBestMatch(mockDb, {
+      locality: "bg.sofia",
+      geoJson: null,
+      plainText: "Message text about water outage",
+    });
+
+    expect(verifyEventMatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageText: "Message text about water outage",
+        eventText: "Event text about water outage",
+      }),
+    );
+    expect(result).not.toBeNull();
+    expect(result!.event._id).toBe("evt-1");
+    expect(result!.score).toBe(0.6);
+    expect(result!.llmVerified).toBe(true);
+  });
+
+  it("returns null when LLM rejects match in uncertain zone", async () => {
+    vi.mocked(findCandidateEvents).mockResolvedValueOnce([
+      { _id: "evt-1", canonicalText: "Road repair on Vitosha" },
+    ]);
+    vi.mocked(computeMatchScore).mockReturnValueOnce({
+      score: 0.6,
+      signals: { locationSimilarity: 0.5, timeOverlap: 0.7, categoryMatch: 1.0, textSimilarity: 0.5 },
+    });
+    vi.mocked(verifyEventMatch).mockResolvedValueOnce({
+      isSameEvent: false,
+      reasoning: "Different locations despite similar categories",
+    });
+
+    const result = await findBestMatch(mockDb, {
+      locality: "bg.sofia",
+      geoJson: null,
+      plainText: "Heating outage in Lozenets",
+    });
+
+    expect(verifyEventMatch).toHaveBeenCalled();
+    expect(result).toBeNull();
+  });
+
+  it("returns null when LLM call fails in uncertain zone (conservative fallback)", async () => {
+    vi.mocked(findCandidateEvents).mockResolvedValueOnce([
+      { _id: "evt-1", canonicalText: "Some event text" },
+    ]);
+    vi.mocked(computeMatchScore).mockReturnValueOnce({
+      score: 0.6,
+      signals: { locationSimilarity: 0.6, timeOverlap: 0.6, categoryMatch: 1.0, textSimilarity: 0.5 },
+    });
+    vi.mocked(verifyEventMatch).mockResolvedValueOnce(null);
+
+    const result = await findBestMatch(mockDb, {
+      locality: "bg.sofia",
+      geoJson: null,
+      plainText: "Some message text",
+    });
+
+    expect(verifyEventMatch).toHaveBeenCalled();
+    expect(result).toBeNull();
+  });
+
+  it("skips LLM verify when message has no text", async () => {
+    vi.mocked(findCandidateEvents).mockResolvedValueOnce([
+      { _id: "evt-1", canonicalText: "Some event" },
+    ]);
+    vi.mocked(computeMatchScore).mockReturnValueOnce({
+      score: 0.6,
+      signals: { locationSimilarity: 0.6, timeOverlap: 0.6, categoryMatch: 1.0, textSimilarity: 0.5 },
+    });
+
+    const result = await findBestMatch(mockDb, {
+      locality: "bg.sofia",
+      geoJson: null,
+      // no text or plainText
+    });
+
+    expect(verifyEventMatch).not.toHaveBeenCalled();
+    expect(result).toBeNull();
+  });
+
+  it("skips LLM verify when event has no canonical text", async () => {
+    vi.mocked(findCandidateEvents).mockResolvedValueOnce([
+      { _id: "evt-1" }, // no canonicalText
+    ]);
+    vi.mocked(computeMatchScore).mockReturnValueOnce({
+      score: 0.6,
+      signals: { locationSimilarity: 0.6, timeOverlap: 0.6, categoryMatch: 1.0, textSimilarity: 0.5 },
+    });
+
+    const result = await findBestMatch(mockDb, {
+      locality: "bg.sofia",
+      geoJson: null,
+      plainText: "Some message",
+    });
+
+    expect(verifyEventMatch).not.toHaveBeenCalled();
+    expect(result).toBeNull();
+  });
+
+  it("uses text field as fallback when plainText is missing", async () => {
+    vi.mocked(findCandidateEvents).mockResolvedValueOnce([
+      { _id: "evt-1", canonicalText: "Event text" },
+    ]);
+    vi.mocked(computeMatchScore).mockReturnValueOnce({
+      score: 0.6,
+      signals: { locationSimilarity: 0.6, timeOverlap: 0.6, categoryMatch: 1.0, textSimilarity: 0.5 },
+    });
+    vi.mocked(verifyEventMatch).mockResolvedValueOnce({
+      isSameEvent: true,
+      reasoning: "Match",
+    });
+
+    await findBestMatch(mockDb, {
+      locality: "bg.sofia",
+      geoJson: null,
+      text: "Fallback text field",
+    });
+
+    expect(verifyEventMatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageText: "Fallback text field",
+      }),
+    );
   });
 });

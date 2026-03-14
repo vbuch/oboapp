@@ -2,11 +2,16 @@ import type { OboDb } from "@oboapp/db";
 import type { GeoJSONFeatureCollection } from "@/lib/types";
 import { findCandidateEvents } from "./candidates";
 import { computeMatchScore, type MatchSignals } from "./score";
-import { MATCH_THRESHOLD } from "./constants";
+import { MATCH_THRESHOLD, LLM_VERIFY_LOWER } from "./constants";
+import { verifyEventMatch } from "./llm-verify";
+import { logger } from "@/lib/logger";
 
 /**
  * Find the best matching event for a message, if any.
- * Returns the event and its match score, or null if no match above threshold.
+ * - Score >= MATCH_THRESHOLD (0.70): auto-match
+ * - Score in [LLM_VERIFY_LOWER, MATCH_THRESHOLD) (0.55–0.70): ask LLM to verify
+ * - Score < LLM_VERIFY_LOWER (0.55): no match
+ * Returns the event and its match score, or null if no match.
  */
 export async function findBestMatch(
   db: OboDb,
@@ -18,11 +23,14 @@ export async function findBestMatch(
     cityWide?: boolean;
     locality: string;
     embedding?: number[] | null;
+    text?: string;
+    plainText?: string;
   },
 ): Promise<{
   event: Record<string, unknown>;
   score: number;
   signals: MatchSignals;
+  llmVerified?: boolean;
 } | null> {
   const candidates = await findCandidateEvents(db, message);
 
@@ -54,10 +62,89 @@ export async function findBestMatch(
       },
     );
 
-    if (score >= MATCH_THRESHOLD && (!bestMatch || score > bestMatch.score)) {
+    if (score >= LLM_VERIFY_LOWER && (!bestMatch || score > bestMatch.score)) {
       bestMatch = { event: candidate, score, signals };
     }
   }
 
-  return bestMatch;
+  if (!bestMatch) return null;
+
+  // High-confidence match — auto-attach
+  if (bestMatch.score >= MATCH_THRESHOLD) {
+    return bestMatch;
+  }
+
+  // Uncertain zone (LLM_VERIFY_LOWER to MATCH_THRESHOLD) — ask LLM
+  const messageText = message.plainText || message.text || "";
+  const eventText =
+    (bestMatch.event.canonicalText as string) ||
+    (bestMatch.event.canonicalMarkdownText as string) ||
+    "";
+
+  if (!messageText || !eventText) {
+    logger.info("LLM verify skipped: missing text for comparison", {
+      hasMessageText: Boolean(messageText),
+      hasEventText: Boolean(eventText),
+    });
+    return null;
+  }
+
+  const locationContext = buildLocationContext(message, bestMatch.event);
+  const timeContext = buildTimeContext(message, bestMatch.event);
+
+  const llmResult = await verifyEventMatch({
+    messageText,
+    eventText,
+    locationContext,
+    timeContext,
+  });
+
+  if (llmResult?.isSameEvent) {
+    logger.info("LLM verified event match", {
+      score: bestMatch.score,
+      reasoning: llmResult.reasoning,
+    });
+    return { ...bestMatch, llmVerified: true };
+  }
+
+  // LLM rejected or failed — treat as no match (conservative)
+  logger.info("LLM rejected or failed event match", {
+    score: bestMatch.score,
+    reasoning: llmResult?.reasoning ?? "LLM call failed",
+    isSameEvent: llmResult?.isSameEvent,
+  });
+  return null;
+}
+
+function buildLocationContext(
+  message: { geoJson?: GeoJSONFeatureCollection | null; cityWide?: boolean },
+  event: Record<string, unknown>,
+): string {
+  const parts: string[] = [];
+  if (message.cityWide) parts.push("Message: city-wide");
+  if (event.cityWide) parts.push("Event: city-wide");
+  // We don't have street names readily available at this stage,
+  // but the texts themselves contain location references
+  return parts.join("; ") || "";
+}
+
+function buildTimeContext(
+  message: {
+    timespanStart?: string | Date | null;
+    timespanEnd?: string | Date | null;
+  },
+  event: Record<string, unknown>,
+): string {
+  const parts: string[] = [];
+  if (message.timespanStart || message.timespanEnd) {
+    parts.push(
+      `Message: ${message.timespanStart ?? "?"} to ${message.timespanEnd ?? "?"}`,
+    );
+  }
+  if (event.timespanStart || event.timespanEnd) {
+    parts.push(
+      `Event: ${event.timespanStart ?? "?"} to ${event.timespanEnd ?? "?"}`,
+    );
+  }
+  return parts.join("; ") || "";
 }

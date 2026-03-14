@@ -12,7 +12,10 @@ When a message is finalized with GeoJSON, the pipeline automatically tries to ma
 
 1. **Find candidates** — queries events in the same locality within a ±2 day time window
 2. **Score each candidate** — computes a weighted score based on location proximity, time overlap, text similarity (via embeddings), and category similarity
-3. **Decide** — if the best score exceeds the threshold (0.70), attach to that event; otherwise create a new event
+3. **Decide:**
+   - Score ≥ 0.70 → **auto-attach** to the event
+   - Score 0.55–0.70 → **ask Gemini to verify** whether both texts describe the same incident; attach only if confirmed
+   - Score < 0.55 → **create a new event**
 
 Matching never blocks the main pipeline — failures are logged but don't prevent message finalization.
 
@@ -46,6 +49,16 @@ Embeddings are optional — old messages/events without embeddings use fallback 
 
 **Cleanup:** Expired messages/events have their embedding fields removed to save Firestore storage. Run `cd ingest && pnpm tsx scripts/cleanup-embeddings.ts` manually or schedule as a weekly cron.
 
+### LLM Verification (Uncertain Matches)
+
+When a candidate scores between 0.55 and 0.70, the score alone isn't confident enough for automatic matching. The pipeline asks Gemini to compare the two texts and determine if they describe the same real-world incident.
+
+- **Input**: both message texts, plus optional location and time context
+- **Output**: `{ isSameEvent: boolean, reasoning: string }`
+- **Conservative fallback**: if the LLM call fails or returns invalid data, the match is rejected (new event created). This avoids incorrectly merging unrelated incidents.
+- **Prompt**: `ingest/prompts/verify-event-match.md`
+- **Cost**: only ~5–15% of messages fall in the uncertain zone, so LLM verify calls are infrequent
+
 ## Source Trust
 
 Higher-trust sources (e.g., utility companies with official GeoJSON) produce higher-quality geometry. When a more trusted source reports the same incident, its geometry replaces the existing one. See `ingest/lib/source-trust.ts` for the full trust table.
@@ -66,3 +79,4 @@ The migration is idempotent — running it again skips already-linked messages.
 - [database-layer.md](database-layer.md) — DB access patterns for `events` and `eventMessages` collections
 - `ingest/lib/event-matching/` — matching implementation
 - `ingest/lib/event-matching/constants.ts` — scoring thresholds and weights
+- `ingest/evals/verify-event-match.yaml` — promptfoo evaluation for the LLM verification prompt
