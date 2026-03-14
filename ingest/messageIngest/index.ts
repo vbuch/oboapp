@@ -875,15 +875,27 @@ async function handlePrecomputedGeoJsonData(
     ? [{ address: centroidAddress.originalText, timespans: [] }]
     : [];
 
+  const { validateAndFallback } = await import("@/lib/timespan-utils");
+  const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
+
   if (!markdownText) {
     if (addresses.length > 0) {
-      await updateMessage(messageId, { addresses, pins, streets: [], cadastralProperties: [] });
+      await updateMessage(messageId, {
+        addresses,
+        pins,
+        streets: [],
+        cadastralProperties: [],
+        timespanStart: validated.timespanStart,
+        timespanEnd: validated.timespanEnd,
+      });
+    } else {
+      await updateMessage(messageId, {
+        timespanStart: validated.timespanStart,
+        timespanEnd: validated.timespanEnd,
+      });
     }
     return addresses;
   }
-
-  const { validateAndFallback } = await import("@/lib/timespan-utils");
-  const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
 
   await updateMessage(messageId, {
     markdownText,

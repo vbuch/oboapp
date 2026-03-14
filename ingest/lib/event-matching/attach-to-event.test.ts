@@ -17,8 +17,12 @@ vi.mock("@/lib/source-trust", () => ({
 
 const mockInsertEventMessage = vi.fn().mockResolvedValue("em-new");
 const mockUpdateEvent = vi.fn().mockResolvedValue(undefined);
+const mockFindByMessageId = vi.fn().mockResolvedValue([]);
 const mockDb = {
-  eventMessages: { insertOne: mockInsertEventMessage },
+  eventMessages: {
+    insertOne: mockInsertEventMessage,
+    findByMessageId: mockFindByMessageId,
+  },
   events: { updateOne: mockUpdateEvent },
 } as any;
 
@@ -28,6 +32,22 @@ describe("attachMessageToEvent", () => {
   beforeEach(() => {
     mockInsertEventMessage.mockClear();
     mockUpdateEvent.mockClear();
+    mockFindByMessageId.mockClear().mockResolvedValue([]);
+  });
+
+  it("skips duplicate attach when message is already linked", async () => {
+    mockFindByMessageId.mockResolvedValueOnce([{ eventId: "evt-1" }]);
+
+    await attachMessageToEvent(
+      mockDb,
+      { _id: "msg-2", source: "sofia-bg" },
+      { _id: "evt-1", geometryQuality: 3, sources: ["toplo-bg"], messageCount: 1 },
+      0.85,
+      baseSignals,
+    );
+
+    expect(mockInsertEventMessage).not.toHaveBeenCalled();
+    expect(mockUpdateEvent).not.toHaveBeenCalled();
   });
 
   it("creates EventMessage link with signals", async () => {

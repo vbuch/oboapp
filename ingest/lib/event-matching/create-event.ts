@@ -24,6 +24,14 @@ export async function createEventFromMessage(
     embedding?: number[] | null;
   },
 ): Promise<{ eventId: string; confidence: number }> {
+  const existingLinks = await db.eventMessages.findByMessageId(message._id);
+  if (existingLinks.length > 0) {
+    return {
+      eventId: existingLinks[0].eventId as string,
+      confidence: 1.0,
+    };
+  }
+
   const source = (message.source as string) || "";
   const hasGeoJson = Boolean(message.geoJson);
   let geometryQuality = 0;

@@ -308,4 +308,29 @@ describe("messageIngest sourceDocumentId precedence", () => {
     expect(callArgs[5]).toBe(explicitId);
     expect(callArgs[5]).not.toBe(`encoded(${sourceUrl})`);
   });
+
+  it("stores timespans for precomputed GeoJSON even when markdownText is missing", async () => {
+    const sourceTimespanStart = new Date("2026-03-01T08:00:00Z");
+    const sourceTimespanEnd = new Date("2026-03-01T12:00:00Z");
+
+    await messageIngest("test text", "sofiyska-voda", {
+      precomputedGeoJson: PRECOMPUTED_GEOJSON,
+      locality: "bg.sofia",
+      timespanStart: sourceTimespanStart,
+      timespanEnd: sourceTimespanEnd,
+      // markdownText intentionally omitted
+    });
+
+    const updatePayloads = mockUpdateMessage.mock.calls.map((call) => call[1]);
+    const timespanUpdate = updatePayloads.find(
+      (payload) =>
+        payload &&
+        payload.timespanStart instanceof Date &&
+        payload.timespanEnd instanceof Date,
+    );
+
+    expect(timespanUpdate).toBeDefined();
+    expect(timespanUpdate.timespanStart).toEqual(sourceTimespanStart);
+    expect(timespanUpdate.timespanEnd).toEqual(sourceTimespanEnd);
+  });
 });

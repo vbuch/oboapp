@@ -17,15 +17,20 @@ vi.mock("@/lib/source-trust", () => ({
 
 const mockInsertEvent = vi.fn().mockResolvedValue("evt-new");
 const mockInsertEventMessage = vi.fn().mockResolvedValue("em-new");
+const mockFindByMessageId = vi.fn().mockResolvedValue([]);
 const mockDb = {
   events: { insertOne: mockInsertEvent },
-  eventMessages: { insertOne: mockInsertEventMessage },
+  eventMessages: {
+    insertOne: mockInsertEventMessage,
+    findByMessageId: mockFindByMessageId,
+  },
 } as any;
 
 describe("createEventFromMessage", () => {
   beforeEach(() => {
     mockInsertEvent.mockClear().mockResolvedValue("evt-new");
     mockInsertEventMessage.mockClear().mockResolvedValue("em-new");
+    mockFindByMessageId.mockClear().mockResolvedValue([]);
   });
 
   it("creates event with correct fields from message", async () => {
@@ -106,5 +111,19 @@ describe("createEventFromMessage", () => {
 
     const eventData = mockInsertEvent.mock.calls[0][0];
     expect(eventData.canonicalText).toBe("fallback text");
+  });
+
+  it("reuses existing event link for already-linked message", async () => {
+    mockFindByMessageId.mockResolvedValueOnce([{ eventId: "evt-existing" }]);
+
+    const result = await createEventFromMessage(mockDb, {
+      _id: "msg-1",
+      source: "sofia-bg",
+      geoJson: { type: "FeatureCollection", features: [] },
+    });
+
+    expect(result).toEqual({ eventId: "evt-existing", confidence: 1.0 });
+    expect(mockInsertEvent).not.toHaveBeenCalled();
+    expect(mockInsertEventMessage).not.toHaveBeenCalled();
   });
 });

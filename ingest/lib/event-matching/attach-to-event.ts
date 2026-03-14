@@ -3,6 +3,7 @@ import type { GeoJSONFeatureCollection } from "@/lib/types";
 import { getSourceTrust, getGeometryQuality } from "@/lib/source-trust";
 import type { MatchSignals } from "./score";
 import { toISOString, toMs } from "./utils";
+import { logger } from "@/lib/logger";
 
 /**
  * Attach a message to an existing event.
@@ -24,6 +25,16 @@ export async function attachMessageToEvent(
   confidence: number,
   signals: MatchSignals,
 ): Promise<void> {
+  const existingLinks = await db.eventMessages.findByMessageId(message._id);
+  if (existingLinks.length > 0) {
+    logger.info("Message already linked to an event, skipping duplicate attach", {
+      messageId: message._id,
+      existingEventId: existingLinks[0].eventId,
+      attemptedEventId: event._id,
+    });
+    return;
+  }
+
   const source = (message.source as string) || "";
   const hasPrecomputedGeoJson = getSourceTrust(source).geometryQuality === 3;
   const newGeometryQuality = getGeometryQuality(source, hasPrecomputedGeoJson);
