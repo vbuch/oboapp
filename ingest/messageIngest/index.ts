@@ -187,11 +187,19 @@ async function processSingleMessage(
     geoJson = geocodingResult.geoJson;
   }
 
-  geoJson = await applyBoundaryFilteringIfNeeded(
-    messageId,
-    geoJson,
-    options.boundaryFilter,
-  );
+  try {
+    geoJson = await applyBoundaryFilteringIfNeeded(
+      messageId,
+      geoJson,
+      options.boundaryFilter,
+    );
+  } catch (error) {
+    logger.warn("Boundary filtering failed, finalizing without geometry", {
+      messageId,
+      error,
+    });
+    geoJson = null;
+  }
 
   await finalizeMessageWithResults(messageId, geoJson, ingestErrors);
 
@@ -419,6 +427,20 @@ async function processWithAIPipeline(
       extractedLocations,
       crawledAt,
     );
+
+    // Pre-geocode matching: try to reuse geometry from an existing high-quality event
+    const preGeocodeResult = await tryPreGeocodeMatch(
+      storedMessageId,
+      filteredMessage.plainText,
+      options,
+      extractedLocations,
+      categorizationResult.categories,
+      ingestErrors,
+    );
+    if (preGeocodeResult) {
+      messages.push(preGeocodeResult);
+      continue;
+    }
 
     // Continue through geocoding pipeline
     const message = await processSingleMessage(
@@ -947,5 +969,95 @@ async function runEventMatching(messageId: string): Promise<void> {
   } catch (error) {
     // Event matching failures should not break the ingest pipeline
     logger.error("Event matching failed", { messageId, error });
+  }
+}
+
+/**
+ * Try to match a message to an existing event before geocoding.
+ * If a high-quality event is found, reuse its geometry, finalize, and attach.
+ * Returns the message response if reuse succeeded, null otherwise.
+ */
+async function tryPreGeocodeMatch(
+  messageId: string,
+  messageText: string,
+  options: MessageIngestOptions,
+  extractedLocations: ExtractedLocations,
+  categories: string[],
+  ingestErrors: IngestErrorCollector,
+): Promise<InternalMessage | null> {
+  try {
+    const { getDb } = await import("@/lib/db");
+    const { preGeocodeMatch, attachMessageToEvent } = await import(
+      "@/lib/event-matching"
+    );
+
+    const db = await getDb();
+
+    // Read message from DB to get timespans stored by storeExtractedLocations()
+    const storedMessage = await db.messages.findById(messageId);
+    if (!storedMessage) return null;
+
+    const match = await preGeocodeMatch(db, {
+      timespanStart: (storedMessage.timespanStart as string | Date) ?? null,
+      timespanEnd: (storedMessage.timespanEnd as string | Date) ?? null,
+      categories,
+      cityWide: extractedLocations.cityWide,
+      locality: options.locality || "bg.sofia",
+    });
+
+    if (!match) return null;
+
+    const eventId = match.event._id as string;
+    const geoJson = match.geometry;
+
+    logger.info("Pre-geocode match: reusing event geometry", {
+      messageId,
+      eventId,
+      geometryQuality: (match.event.geometryQuality as number) ?? 0,
+      score: match.score,
+    });
+
+    // Apply boundary filtering if needed
+    const filteredGeoJson = await applyBoundaryFilteringIfNeeded(
+      messageId,
+      geoJson,
+      options.boundaryFilter,
+    );
+
+    // Finalize with reused geometry
+    await finalizeMessageWithResults(messageId, filteredGeoJson, ingestErrors);
+
+    // Attach to the matched event
+    await attachMessageToEvent(
+      db,
+      {
+        _id: messageId,
+        geoJson: filteredGeoJson,
+        timespanStart: (storedMessage.timespanStart as string | Date) ?? null,
+        timespanEnd: (storedMessage.timespanEnd as string | Date) ?? null,
+        source: storedMessage.source as string | undefined,
+        categories,
+      },
+      match.event,
+      match.score,
+      match.signals,
+    );
+
+    await updateMessage(messageId, { eventId });
+
+    return await buildMessageResponse(
+      messageId,
+      messageText,
+      options.locality,
+      [],
+      filteredGeoJson,
+    );
+  } catch (error) {
+    // Pre-geocode match failures should not break the pipeline — fall through to normal geocoding
+    logger.error("Pre-geocode match aborted, proceeding with geocoding", {
+      messageId,
+      error,
+    });
+    return null;
   }
 }

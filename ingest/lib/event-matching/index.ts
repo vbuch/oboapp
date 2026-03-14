@@ -10,6 +10,7 @@ export { findCandidateEvents } from "./candidates";
 export { findBestMatch } from "./match";
 export { createEventFromMessage } from "./create-event";
 export { attachMessageToEvent } from "./attach-to-event";
+export { preGeocodeMatch, type PreGeocodeMatchResult } from "./pre-geocode-match";
 
 export interface EventMatchResult {
   eventId: string;

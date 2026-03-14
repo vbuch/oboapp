@@ -64,6 +64,10 @@ Some sources (e.g., Rayon Oborishte) provide explicit coordinates in their messa
 
 This optimization reduces API calls and processing time while maintaining accuracy for messages that already include precise coordinates.
 
+## Event-Based Geocoding Skip
+
+When [event aggregation](event-aggregation.md) finds a high-quality match before geocoding, the matched event's geometry is reused. This skips all geocoding API calls for messages describing incidents already tracked by a trusted source.
+
 ## Rate Limiting Strategy
 
 Each service applies rate limiting to respect API terms and manage costs:
