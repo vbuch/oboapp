@@ -8,7 +8,7 @@ vi.mock("./candidates", () => ({
 vi.mock("./score", () => ({
   computeMatchScore: vi.fn().mockReturnValue({
     score: 0,
-    signals: { locationSimilarity: 0, timeOverlap: 0, categoryMatch: 0 },
+    signals: { locationSimilarity: 0, timeOverlap: 0, categoryMatch: 0, textSimilarity: 0 },
   }),
 }));
 
@@ -22,7 +22,7 @@ describe("findBestMatch", () => {
     vi.mocked(findCandidateEvents).mockReset().mockResolvedValue([]);
     vi.mocked(computeMatchScore).mockReset().mockReturnValue({
       score: 0,
-      signals: { locationSimilarity: 0, timeOverlap: 0, categoryMatch: 0 },
+      signals: { locationSimilarity: 0, timeOverlap: 0, categoryMatch: 0, textSimilarity: 0 },
     });
   });
 
@@ -40,7 +40,7 @@ describe("findBestMatch", () => {
     ]);
     vi.mocked(computeMatchScore).mockReturnValueOnce({
       score: 0.5,
-      signals: { locationSimilarity: 0.5, timeOverlap: 0.5, categoryMatch: 0 },
+      signals: { locationSimilarity: 0.5, timeOverlap: 0.5, categoryMatch: 0, textSimilarity: 0 },
     });
 
     const result = await findBestMatch(mockDb, {
@@ -56,7 +56,7 @@ describe("findBestMatch", () => {
     ]);
     vi.mocked(computeMatchScore).mockReturnValueOnce({
       score: 0.85,
-      signals: { locationSimilarity: 0.9, timeOverlap: 0.8, categoryMatch: 1.0 },
+      signals: { locationSimilarity: 0.9, timeOverlap: 0.8, categoryMatch: 1.0, textSimilarity: 0 },
     });
 
     const result = await findBestMatch(mockDb, {
@@ -76,11 +76,11 @@ describe("findBestMatch", () => {
     vi.mocked(computeMatchScore)
       .mockReturnValueOnce({
         score: 0.75,
-        signals: { locationSimilarity: 0.7, timeOverlap: 0.7, categoryMatch: 1.0 },
+        signals: { locationSimilarity: 0.7, timeOverlap: 0.7, categoryMatch: 1.0, textSimilarity: 0 },
       })
       .mockReturnValueOnce({
         score: 0.92,
-        signals: { locationSimilarity: 1.0, timeOverlap: 0.9, categoryMatch: 1.0 },
+        signals: { locationSimilarity: 1.0, timeOverlap: 0.9, categoryMatch: 1.0, textSimilarity: 0 },
       });
 
     const result = await findBestMatch(mockDb, {

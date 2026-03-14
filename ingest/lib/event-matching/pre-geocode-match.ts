@@ -2,11 +2,16 @@ import type { OboDb } from "@oboapp/db";
 import type { GeoJSONFeatureCollection } from "@/lib/types";
 import { findCandidateEvents } from "./candidates";
 import { computeMatchScore, type MatchSignals } from "./score";
+import { cosineSimilarity } from "./cosine-similarity";
 import {
   PRE_GEOCODE_MATCH_THRESHOLD,
+  PRE_GEOCODE_MATCH_THRESHOLD_WITH_EMBEDDINGS,
   MIN_REUSABLE_GEOMETRY_QUALITY,
   PRE_GEOCODE_TIME_WEIGHT,
   PRE_GEOCODE_CATEGORY_WEIGHT,
+  PRE_GEOCODE_TIME_WEIGHT_WITH_EMBEDDINGS,
+  PRE_GEOCODE_CATEGORY_WEIGHT_WITH_EMBEDDINGS,
+  PRE_GEOCODE_TEXT_WEIGHT,
 } from "./constants";
 
 export interface PreGeocodeMatchResult {
@@ -33,6 +38,7 @@ export async function preGeocodeMatch(
     categories?: string[];
     cityWide?: boolean;
     locality: string;
+    embedding?: number[] | null;
   },
 ): Promise<PreGeocodeMatchResult | null> {
   const candidates = await findCandidateEvents(db, message);
@@ -68,12 +74,33 @@ export async function preGeocodeMatch(
       },
     );
 
-    // Re-weight without location signal: time and category only
-    const score =
-      PRE_GEOCODE_TIME_WEIGHT * signals.timeOverlap +
-      PRE_GEOCODE_CATEGORY_WEIGHT * signals.categoryMatch;
+    const hasEmbeddings = Boolean(
+      message.embedding?.length && (candidate.embedding as number[] | undefined)?.length,
+    );
 
-    if (score >= PRE_GEOCODE_MATCH_THRESHOLD && (!best || score > best.score)) {
+    let score: number;
+    let threshold: number;
+
+    if (hasEmbeddings) {
+      const raw = cosineSimilarity(
+        message.embedding!,
+        candidate.embedding as number[],
+      );
+      const textSimilarity = Math.max(0, raw);
+
+      score =
+        PRE_GEOCODE_TIME_WEIGHT_WITH_EMBEDDINGS * signals.timeOverlap +
+        PRE_GEOCODE_CATEGORY_WEIGHT_WITH_EMBEDDINGS * signals.categoryMatch +
+        PRE_GEOCODE_TEXT_WEIGHT * textSimilarity;
+      threshold = PRE_GEOCODE_MATCH_THRESHOLD_WITH_EMBEDDINGS;
+    } else {
+      score =
+        PRE_GEOCODE_TIME_WEIGHT * signals.timeOverlap +
+        PRE_GEOCODE_CATEGORY_WEIGHT * signals.categoryMatch;
+      threshold = PRE_GEOCODE_MATCH_THRESHOLD;
+    }
+
+    if (score >= threshold && (!best || score > best.score)) {
       best = { event: candidate, geometry, score, signals };
     }
   }

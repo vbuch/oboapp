@@ -36,6 +36,7 @@ export async function processEventMatching(
     categories: message.categories as string[] | undefined,
     cityWide: message.cityWide as boolean | undefined,
     locality: (message.locality as string) || "bg.sofia",
+    embedding: message.embedding as number[] | undefined,
   };
 
   const bestMatch = await findBestMatch(db, matchInput);
@@ -52,12 +53,7 @@ export async function processEventMatching(
         timespanEnd: message.timespanEnd as string | null,
         source: message.source as string | undefined,
         categories: message.categories as string[] | undefined,
-      } as Record<string, unknown> & {
-        _id: string;
-        geoJson?: GeoJSONFeatureCollection | null;
-        timespanStart?: string | Date | null;
-        timespanEnd?: string | Date | null;
-        source?: string;
+        embedding: message.embedding as number[] | undefined,
       },
       bestMatch.event,
       bestMatch.score,
@@ -86,6 +82,7 @@ export async function processEventMatching(
     source: message.source as string | undefined,
     locality: (message.locality as string) || "bg.sofia",
     cityWide: message.cityWide as boolean | undefined,
+    embedding: message.embedding as number[] | undefined,
   });
 
   logger.info("New event created for message", {

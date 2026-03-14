@@ -238,6 +238,7 @@ flowchart LR
     G --> J[Geocode]
     J --> H
     H --> I[Finalize]
+    I --> K[Event Matching]
 ```
 
 **Crawler Integration:**
@@ -257,6 +258,8 @@ flowchart LR
 - `process` - Array of debug/audit trail entries tracking each pipeline step
 - `timespanStart` - Denormalized MIN start time (enables Firestore queries)
 - `timespanEnd` - Denormalized MAX end time (enables Firestore queries)
+- `embedding` - Text embedding vector (768-dim, from Gemini `text-embedding-004`) for event matching similarity
+- `eventId` - Links message to its matched/created Event
 - `geoJson` - Final geometry (determines public visibility)
 - `finalizedAt` - Marks processing complete
 
@@ -266,6 +269,14 @@ flowchart LR
 - `timespanEnd` (descending) - Uncategorized time filtering
 - `categories` (array-contains) + `finalizedAt` (descending) - Legacy category filtering
 - Deploy via `firebase deploy --only firestore:indexes` before code changes
+
+**Event Aggregation:**
+
+After finalization, messages are matched to Events (real-world incidents) via `ingest/lib/event-matching/`. Scoring uses location, time, text similarity (embedding cosine), and category signals. Pre-geocode matching can reuse event geometry to skip geocoding. See `docs/features/event-aggregation.md` for details.
+
+- Env var: `GOOGLE_EMBEDDING_MODEL` (default: `text-embedding-004`)
+- Embeddings are optional — graceful degradation when missing
+- Cleanup: `scripts/cleanup-embeddings.ts` removes embeddings from expired documents
 
 **Prompt Evaluation (promptfoo):**
 
@@ -349,20 +360,20 @@ The UI is in Bulgarian. All Bulgarian text must use consistent register:
 - **When addressing the user directly, always use the informal (ти) form** — never the formal (Вие) form.
 - **Common formal → informal substitutions:**
 
-| Avoid (formal / Вие)       | Use (informal / ти)   |
-| -------------------------- | --------------------- |
-| Натиснете                  | Натисни               |
-| Въведете / въведете        | Въведи                |
-| Напишете / напишете        | Напиши                |
-| Изберете / изберете        | Избери                |
-| Копирайте / копирайте      | Копирай               |
-| Опитайте / опитайте        | Опитай                |
-| Свържете се                | Свържи се             |
-| Сигурни ли сте, че искате  | Сигурен ли си, че искаш |
-| Нямате / Имате             | Нямаш / Имаш          |
-| не сте абонирани           | не си абониран/а      |
-| всички ваши данни          | всичките ти данни     |
-| Моля, …те                  | (drop "Моля," and use informal) |
+| Avoid (formal / Вие)      | Use (informal / ти)             |
+| ------------------------- | ------------------------------- |
+| Натиснете                 | Натисни                         |
+| Въведете / въведете       | Въведи                          |
+| Напишете / напишете       | Напиши                          |
+| Изберете / изберете       | Избери                          |
+| Копирайте / копирайте     | Копирай                         |
+| Опитайте / опитайте       | Опитай                          |
+| Свържете се               | Свържи се                       |
+| Сигурни ли сте, че искате | Сигурен ли си, че искаш         |
+| Нямате / Имате            | Нямаш / Имаш                    |
+| не сте абонирани          | не си абониран/а                |
+| всички ваши данни         | всичките ти данни               |
+| Моля, …те                 | (drop "Моля," and use informal) |
 
 ### Web Components
 

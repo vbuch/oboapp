@@ -3,14 +3,20 @@ import type { GeoJSONFeatureCollection } from "@/lib/types";
 import {
   LOCATION_WEIGHT,
   TIME_WEIGHT,
+  TEXT_WEIGHT,
   CATEGORY_WEIGHT,
+  FALLBACK_LOCATION_WEIGHT,
+  FALLBACK_TIME_WEIGHT,
+  FALLBACK_CATEGORY_WEIGHT,
   CANDIDATE_DISTANCE_METERS,
 } from "./constants";
+import { cosineSimilarity } from "./cosine-similarity";
 
 export interface MatchSignals {
   locationSimilarity: number;
   timeOverlap: number;
   categoryMatch: number;
+  textSimilarity: number;
 }
 
 /**
@@ -24,6 +30,7 @@ export function computeMatchScore(
     timespanEnd?: string | Date | null;
     categories?: string[];
     cityWide?: boolean;
+    embedding?: number[] | null;
   },
   event: {
     geometry?: GeoJSONFeatureCollection | null;
@@ -31,6 +38,7 @@ export function computeMatchScore(
     timespanEnd?: string | Date | null;
     categories?: string[];
     cityWide?: boolean;
+    embedding?: number[] | null;
   },
 ): { score: number; signals: MatchSignals } {
   const locationSimilarity = computeLocationSimilarity(
@@ -50,14 +58,34 @@ export function computeMatchScore(
     event.categories,
   );
 
-  const score =
-    LOCATION_WEIGHT * locationSimilarity +
-    TIME_WEIGHT * timeOverlap +
-    CATEGORY_WEIGHT * categoryMatch;
+  const hasEmbeddings = Boolean(
+    message.embedding?.length && event.embedding?.length,
+  );
+
+  let textSimilarity = 0;
+  let score: number;
+
+  if (hasEmbeddings) {
+    // Cosine similarity returns [-1, 1]; clamp to [0, 1] for scoring
+    const raw = cosineSimilarity(message.embedding!, event.embedding!);
+    textSimilarity = Math.max(0, raw);
+
+    score =
+      LOCATION_WEIGHT * locationSimilarity +
+      TIME_WEIGHT * timeOverlap +
+      TEXT_WEIGHT * textSimilarity +
+      CATEGORY_WEIGHT * categoryMatch;
+  } else {
+    // Graceful fallback: use Phase 2 weights (no text signal)
+    score =
+      FALLBACK_LOCATION_WEIGHT * locationSimilarity +
+      FALLBACK_TIME_WEIGHT * timeOverlap +
+      FALLBACK_CATEGORY_WEIGHT * categoryMatch;
+  }
 
   return {
     score,
-    signals: { locationSimilarity, timeOverlap, categoryMatch },
+    signals: { locationSimilarity, timeOverlap, categoryMatch, textSimilarity },
   };
 }
 

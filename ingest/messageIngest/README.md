@@ -102,6 +102,18 @@ Sources with ready GeoJSON bypass the AI pipeline:
 - Validation against minimum date threshold
 - Fallback to `crawledAt` if source lacks valid timespans
 
+### Embedding Generation
+
+After AI processing (or for precomputed sources, after message creation), a text embedding is generated via Gemini `text-embedding-004` (768 dimensions). This embedding is stored on the message and used for text similarity during event matching. Embedding generation is non-blocking — failures are logged but don't affect the pipeline.
+
+### Event Matching
+
+After finalization, each message is matched against existing Events (real-world incidents). If a match is found above the threshold (0.70), the message attaches to that event; otherwise a new event is created. Matching uses four signals: location proximity, time overlap, text similarity (embedding cosine), and category overlap.
+
+Pre-geocode matching can happen _before_ the geocoding stage — if a high-quality event match is found (score ≥ 0.75–0.80), the event's geometry is reused and geocoding is skipped entirely.
+
+See [Event Aggregation](../../docs/features/event-aggregation.md) for full details.
+
 ## Firestore Storage
 
 Each pipeline step appends an entry to the message document's `process` array, creating an audit trail. Location data (pins, streets, cadastral properties, bus stops) is stored as denormalized root-level fields on the message document.

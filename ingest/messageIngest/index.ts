@@ -244,6 +244,9 @@ async function processPrecomputedGeoJsonMessage(
     });
   }
 
+  // Generate embedding from source text (non-blocking)
+  await storeEmbeddingForMessage(storedMessageId, text);
+
   const message = await processSingleMessage(
     storedMessageId,
     text,
@@ -352,6 +355,9 @@ async function processWithAIPipeline(
       messages.push(message);
       continue;
     }
+
+    // Generate embedding from plainText (non-blocking)
+    await storeEmbeddingForMessage(storedMessageId, filteredMessage.plainText);
 
     // Step 2: Categorize (using plainText which is now guaranteed non-empty)
     const categorizationResult = await categorize(
@@ -949,6 +955,25 @@ async function finalizeMessageWithoutGeoJson(
 }
 
 /**
+ * Generate and store a text embedding for a message.
+ * Failures are logged but don't block the pipeline.
+ */
+async function storeEmbeddingForMessage(
+  messageId: string,
+  text: string,
+): Promise<void> {
+  try {
+    const { generateEmbedding } = await import("@/lib/embeddings");
+    const embedding = await generateEmbedding(text);
+    if (embedding) {
+      await updateMessage(messageId, { embedding });
+    }
+  } catch (error) {
+    logger.error("Embedding generation failed", { messageId, error });
+  }
+}
+
+/**
  * Run event matching for a finalized message.
  * Reads the full message from DB, finds or creates an event, and stores the eventId + audit trail.
  */
@@ -1003,6 +1028,7 @@ async function tryPreGeocodeMatch(
       categories,
       cityWide: extractedLocations.cityWide,
       locality: options.locality || "bg.sofia",
+      embedding: (storedMessage.embedding as number[]) ?? null,
     });
 
     if (!match) return null;
@@ -1037,6 +1063,7 @@ async function tryPreGeocodeMatch(
         timespanEnd: (storedMessage.timespanEnd as string | Date) ?? null,
         source: storedMessage.source as string | undefined,
         categories,
+        embedding: (storedMessage.embedding as number[]) ?? null,
       },
       match.event,
       match.score,

@@ -161,4 +161,97 @@ describe("computeMatchScore", () => {
     // Jaccard: intersection=1 (water), union=3 → 1/3 ≈ 0.333
     expect(signals.categoryMatch).toBeCloseTo(1 / 3, 2);
   });
+
+  it("with identical embeddings → textSimilarity = 1.0 and higher score", () => {
+    const geoJson = pointGeoJson(23.3219, 42.6977);
+    const embedding = [0.1, 0.2, 0.3, 0.4];
+
+    const withEmb = computeMatchScore(
+      {
+        geoJson,
+        timespanStart: "2025-03-01T08:00:00Z",
+        timespanEnd: "2025-03-01T18:00:00Z",
+        categories: ["water"],
+        embedding,
+      },
+      {
+        geometry: geoJson,
+        timespanStart: "2025-03-01T08:00:00Z",
+        timespanEnd: "2025-03-01T18:00:00Z",
+        categories: ["water"],
+        embedding,
+      },
+    );
+
+    expect(withEmb.signals.textSimilarity).toBeCloseTo(1.0, 2);
+    // 0.35*1 + 0.25*1 + 0.25*1 + 0.15*1 = 1.0
+    expect(withEmb.score).toBeCloseTo(1.0, 1);
+  });
+
+  it("without embeddings → falls back to Phase 2 weights (no text signal)", () => {
+    const geoJson = pointGeoJson(23.3219, 42.6977);
+    const { score, signals } = computeMatchScore(
+      {
+        geoJson,
+        timespanStart: "2025-03-01T08:00:00Z",
+        timespanEnd: "2025-03-01T18:00:00Z",
+        categories: ["water"],
+      },
+      {
+        geometry: geoJson,
+        timespanStart: "2025-03-01T08:00:00Z",
+        timespanEnd: "2025-03-01T18:00:00Z",
+        categories: ["water"],
+      },
+    );
+
+    expect(signals.textSimilarity).toBe(0);
+    // Fallback: 0.50*1 + 0.35*1 + 0.15*1 = 1.0
+    expect(score).toBeCloseTo(1.0, 1);
+  });
+
+  it("orthogonal embeddings → textSimilarity = 0", () => {
+    const geoJson = pointGeoJson(23.3219, 42.6977);
+    const { signals } = computeMatchScore(
+      {
+        geoJson,
+        timespanStart: "2025-03-01T08:00:00Z",
+        timespanEnd: "2025-03-01T18:00:00Z",
+        categories: ["water"],
+        embedding: [1, 0, 0],
+      },
+      {
+        geometry: geoJson,
+        timespanStart: "2025-03-01T08:00:00Z",
+        timespanEnd: "2025-03-01T18:00:00Z",
+        categories: ["water"],
+        embedding: [0, 1, 0],
+      },
+    );
+
+    expect(signals.textSimilarity).toBeCloseTo(0.0, 2);
+  });
+
+  it("only message has embedding → falls back to Phase 2 weights", () => {
+    const geoJson = pointGeoJson(23.3219, 42.6977);
+    const { score, signals } = computeMatchScore(
+      {
+        geoJson,
+        timespanStart: "2025-03-01T08:00:00Z",
+        timespanEnd: "2025-03-01T18:00:00Z",
+        categories: ["water"],
+        embedding: [0.1, 0.2, 0.3],
+      },
+      {
+        geometry: geoJson,
+        timespanStart: "2025-03-01T08:00:00Z",
+        timespanEnd: "2025-03-01T18:00:00Z",
+        categories: ["water"],
+      },
+    );
+
+    expect(signals.textSimilarity).toBe(0);
+    // Should use fallback weights
+    expect(score).toBeCloseTo(1.0, 1);
+  });
 });

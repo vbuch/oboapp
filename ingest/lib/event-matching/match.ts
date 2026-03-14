@@ -1,7 +1,7 @@
 import type { OboDb } from "@oboapp/db";
 import type { GeoJSONFeatureCollection } from "@/lib/types";
 import { findCandidateEvents } from "./candidates";
-import { computeMatchScore } from "./score";
+import { computeMatchScore, type MatchSignals } from "./score";
 import { MATCH_THRESHOLD } from "./constants";
 
 /**
@@ -17,11 +17,12 @@ export async function findBestMatch(
     categories?: string[];
     cityWide?: boolean;
     locality: string;
+    embedding?: number[] | null;
   },
 ): Promise<{
   event: Record<string, unknown>;
   score: number;
-  signals: { locationSimilarity: number; timeOverlap: number; categoryMatch: number };
+  signals: MatchSignals;
 } | null> {
   const candidates = await findCandidateEvents(db, message);
 
@@ -30,7 +31,7 @@ export async function findBestMatch(
   let bestMatch: {
     event: Record<string, unknown>;
     score: number;
-    signals: { locationSimilarity: number; timeOverlap: number; categoryMatch: number };
+    signals: MatchSignals;
   } | null = null;
 
   for (const candidate of candidates) {
@@ -41,6 +42,7 @@ export async function findBestMatch(
         timespanEnd: message.timespanEnd,
         categories: message.categories,
         cityWide: message.cityWide,
+        embedding: message.embedding ?? undefined,
       },
       {
         geometry: candidate.geometry as GeoJSONFeatureCollection | null | undefined,
@@ -48,6 +50,7 @@ export async function findBestMatch(
         timespanEnd: candidate.timespanEnd as string | null,
         categories: candidate.categories as string[] | undefined,
         cityWide: candidate.cityWide as boolean | undefined,
+        embedding: candidate.embedding as number[] | undefined,
       },
     );
 

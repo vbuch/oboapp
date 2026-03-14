@@ -22,7 +22,7 @@ const mockDb = {
   events: { updateOne: mockUpdateEvent },
 } as any;
 
-const baseSignals = { locationSimilarity: 0.9, timeOverlap: 0.8, categoryMatch: 1.0 };
+const baseSignals = { locationSimilarity: 0.9, timeOverlap: 0.8, categoryMatch: 1.0, textSimilarity: 0 };
 
 describe("attachMessageToEvent", () => {
   beforeEach(() => {
@@ -184,5 +184,64 @@ describe("attachMessageToEvent", () => {
 
     const update = mockUpdateEvent.mock.calls[0][1];
     expect(update.categories).toEqual(["water", "traffic"]);
+  });
+
+  it("updates event embedding when new source has higher trust", async () => {
+    const embedding = [0.1, 0.2, 0.3];
+    await attachMessageToEvent(
+      mockDb,
+      { _id: "msg-2", source: "toplo-bg", embedding },
+      {
+        _id: "evt-1",
+        geometryQuality: 2,
+        sources: ["sofia-bg"],
+        messageCount: 1,
+        embedding: [0.4, 0.5, 0.6],
+      },
+      0.85,
+      baseSignals,
+    );
+
+    const update = mockUpdateEvent.mock.calls[0][1];
+    expect(update.embedding).toEqual(embedding);
+  });
+
+  it("keeps event embedding when new source has lower trust", async () => {
+    const embedding = [0.1, 0.2, 0.3];
+    await attachMessageToEvent(
+      mockDb,
+      { _id: "msg-2", source: "sofia-bg", embedding },
+      {
+        _id: "evt-1",
+        geometryQuality: 3,
+        sources: ["toplo-bg"],
+        messageCount: 1,
+        embedding: [0.4, 0.5, 0.6],
+      },
+      0.85,
+      baseSignals,
+    );
+
+    const update = mockUpdateEvent.mock.calls[0][1];
+    expect(update.embedding).toBeUndefined();
+  });
+
+  it("sets embedding when event has none", async () => {
+    const embedding = [0.1, 0.2, 0.3];
+    await attachMessageToEvent(
+      mockDb,
+      { _id: "msg-2", source: "sofia-bg", embedding },
+      {
+        _id: "evt-1",
+        geometryQuality: 3,
+        sources: ["toplo-bg"],
+        messageCount: 1,
+      },
+      0.85,
+      baseSignals,
+    );
+
+    const update = mockUpdateEvent.mock.calls[0][1];
+    expect(update.embedding).toEqual(embedding);
   });
 });

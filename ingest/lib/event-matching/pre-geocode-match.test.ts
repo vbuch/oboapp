@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { preGeocodeMatch } from "./pre-geocode-match";
 import {
   PRE_GEOCODE_MATCH_THRESHOLD,
+  PRE_GEOCODE_MATCH_THRESHOLD_WITH_EMBEDDINGS,
   MIN_REUSABLE_GEOMETRY_QUALITY,
 } from "./constants";
 
@@ -182,5 +183,77 @@ describe("preGeocodeMatch", () => {
     });
 
     expect(result).not.toBeNull();
+  });
+
+  it("uses lower threshold (0.75) when embeddings are available", async () => {
+    // Identical embeddings → textSimilarity = 1.0
+    const embedding = [0.1, 0.2, 0.3, 0.4];
+    mockFindCandidates.mockResolvedValueOnce([
+      {
+        _id: "evt-emb",
+        geometryQuality: 3,
+        geometry: sampleGeometry,
+        timespanStart: "2025-03-03T08:00:00Z",
+        timespanEnd: "2025-03-03T18:00:00Z",
+        categories: ["water-outage"],
+        embedding,
+      },
+    ]);
+
+    const result = await preGeocodeMatch(mockDb, {
+      ...baseMessage,
+      embedding,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(PRE_GEOCODE_MATCH_THRESHOLD_WITH_EMBEDDINGS);
+  });
+
+  it("includes text similarity signal in score with embeddings", async () => {
+    // Orthogonal embeddings → textSimilarity = 0
+    mockFindCandidates.mockResolvedValueOnce([
+      {
+        _id: "evt-ortho",
+        geometryQuality: 3,
+        geometry: sampleGeometry,
+        timespanStart: "2025-03-03T08:00:00Z",
+        timespanEnd: "2025-03-03T18:00:00Z",
+        categories: ["water-outage"],
+        embedding: [1, 0, 0],
+      },
+    ]);
+
+    const resultWithOrthogonal = await preGeocodeMatch(mockDb, {
+      ...baseMessage,
+      embedding: [0, 1, 0],
+    });
+
+    // With identical timespans + identical categories + orthogonal embeddings:
+    // score = 0.45 * 1.0 + 0.20 * 1.0 + 0.35 * 0 = 0.65 → below 0.75 threshold
+    expect(resultWithOrthogonal).toBeNull();
+  });
+
+  it("falls back to standard threshold without embeddings on event", async () => {
+    // Message has embedding but event doesn't → uses 0.80 threshold
+    mockFindCandidates.mockResolvedValueOnce([
+      {
+        _id: "evt-no-emb",
+        geometryQuality: 3,
+        geometry: sampleGeometry,
+        timespanStart: "2025-03-03T08:00:00Z",
+        timespanEnd: "2025-03-03T18:00:00Z",
+        categories: ["water-outage"],
+        // no embedding field
+      },
+    ]);
+
+    const result = await preGeocodeMatch(mockDb, {
+      ...baseMessage,
+      embedding: [0.1, 0.2, 0.3],
+    });
+
+    // Uses standard path: 0.7 * 1.0 + 0.3 * 1.0 = 1.0 → above 0.80
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(PRE_GEOCODE_MATCH_THRESHOLD);
   });
 });

@@ -20,6 +20,7 @@ export const EventSchema = z.object({
   confidence: z.number().min(0).max(1),
   locality: z.string(),
   cityWide: z.boolean().optional(),
+  embedding: z.array(z.number()).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

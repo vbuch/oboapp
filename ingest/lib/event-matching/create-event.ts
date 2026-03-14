@@ -21,6 +21,7 @@ export async function createEventFromMessage(
     source?: string;
     locality?: string;
     cityWide?: boolean;
+    embedding?: number[] | null;
   },
 ): Promise<{ eventId: string; confidence: number }> {
   const source = (message.source as string) || "";
@@ -49,6 +50,7 @@ export async function createEventFromMessage(
     confidence: 1.0,
     locality: message.locality || "bg.sofia",
     cityWide: message.cityWide || false,
+    ...(message.embedding && { embedding: message.embedding }),
     createdAt: now,
     updatedAt: now,
   });

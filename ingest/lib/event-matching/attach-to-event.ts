@@ -18,6 +18,7 @@ export async function attachMessageToEvent(
     timespanEnd?: string | Date | null;
     source?: string;
     categories?: string[];
+    embedding?: number[] | null;
   },
   event: Record<string, unknown>,
   confidence: number,
@@ -84,6 +85,16 @@ export async function attachMessageToEvent(
     const merged = [...new Set([...existingCategories, ...msgCategories])];
     if (merged.length > existingCategories.length) {
       update.categories = merged;
+    }
+  }
+
+  // Update embedding if new source has higher trust
+  if (message.embedding?.length) {
+    const newTrust = getSourceTrust(source).trust;
+    const existingPrimarySource = existingSources[0] ?? "";
+    const existingTrust = getSourceTrust(existingPrimarySource).trust;
+    if (newTrust >= existingTrust || !event.embedding) {
+      update.embedding = message.embedding;
     }
   }
 
