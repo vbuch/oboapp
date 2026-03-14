@@ -10,6 +10,8 @@
     "lint:fix": "eslint . --fix",
     "crawl": "tsx crawl",
     "ingest": "tsx ingest",
+    "ingestable": "tsx ingestable",
+    "geocode": "tsx geocode",
     "notify": "tsx notify",
     "sources:clean": "tsx sources-clean",
     "gtfs-stops": "tsx ingest gtfs-stops",
