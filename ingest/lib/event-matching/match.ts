@@ -123,8 +123,14 @@ function buildLocationContext(
   const parts: string[] = [];
   if (message.cityWide) parts.push("Message: city-wide");
   if (event.cityWide) parts.push("Event: city-wide");
-  // We don't have street names readily available at this stage,
-  // but the texts themselves contain location references
+
+  // Extract street names from event's stored fields for LLM context
+  const eventStreets = event.streets as Array<{ name?: string }> | undefined;
+  if (eventStreets?.length) {
+    const names = eventStreets.map((s) => s.name).filter(Boolean);
+    if (names.length) parts.push(`Event streets: ${names.join(", ")}`);
+  }
+
   return parts.join("; ") || "";
 }
 

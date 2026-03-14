@@ -107,6 +107,13 @@ function computeLocationSimilarity(
     return 0;
   }
 
+  // Safety: skip if any feature has null/missing geometry (turf.centroid would throw)
+  const hasValidGeometry = (fc: GeoJSONFeatureCollection) =>
+    fc.features.every((f) => f.geometry?.type && f.geometry?.coordinates);
+  if (!hasValidGeometry(messageGeoJson) || !hasValidGeometry(eventGeometry)) {
+    return 0;
+  }
+
   const msgCentroid = turf.centroid(messageGeoJson);
   const evtCentroid = turf.centroid(eventGeometry);
 
@@ -173,8 +180,7 @@ function computeCategoryMatch(
   return intersection / union;
 }
 
-// toMs is imported from ./utils for DRY, but kept local here for zero-import
-// overhead in the hot scoring path
 function toMs(value: string | Date): number {
-  return value instanceof Date ? value.getTime() : new Date(value).getTime();
+  const ms = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  return Number.isNaN(ms) ? 0 : ms;
 }

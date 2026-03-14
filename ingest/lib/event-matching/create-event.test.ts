@@ -68,7 +68,12 @@ describe("createEventFromMessage", () => {
     expect(emData.source).toBe("toplo-bg");
     expect(emData.confidence).toBe(1.0);
     expect(emData.geometryQuality).toBe(3); // toplo-bg = precomputed
-    expect(emData.matchSignals).toBeNull();
+    expect(emData.matchSignals).toEqual({
+      locationSimilarity: 1.0,
+      timeOverlap: 1.0,
+      categoryMatch: 1.0,
+      textSimilarity: 1.0,
+    });
   });
 
   it("uses precomputed geometry quality for precomputed sources with geoJson", async () => {
