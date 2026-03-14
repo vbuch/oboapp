@@ -5,11 +5,13 @@ const mockGenerateContent = vi.fn();
 
 // Mock the @google/genai module before imports
 vi.mock("@google/genai", () => ({
-  GoogleGenAI: vi.fn().mockImplementation(() => ({
-    models: {
-      generateContent: mockGenerateContent,
-    },
-  })),
+  GoogleGenAI: vi.fn().mockImplementation(function () {
+    return {
+      models: {
+        generateContent: mockGenerateContent,
+      },
+    };
+  }),
 }));
 
 // Mock the delay function to avoid actual waiting in tests
