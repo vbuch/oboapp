@@ -355,7 +355,6 @@ async function processWithAIPipeline(
       continue;
     }
 
-    // Generate embedding from plainText (non-blocking)
     await storeEmbeddingForMessage(storedMessageId, filteredMessage.plainText);
 
     // Step 2: Categorize (using plainText which is now guaranteed non-empty)
