@@ -127,13 +127,6 @@
         { "fieldPath": "eventId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "eventMessages",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "messageId", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []
