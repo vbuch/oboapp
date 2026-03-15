@@ -24,6 +24,10 @@ export async function createEventFromMessage(
     locality?: string;
     cityWide?: boolean;
     embedding?: number[] | null;
+    pins?: unknown[];
+    streets?: unknown[];
+    cadastralProperties?: unknown[];
+    busStops?: string[];
   },
 ): Promise<{ eventId: string; confidence: number; action: "created" | "attached" }> {
   const existingLinks = await db.eventMessages.findByMessageId(message._id);
@@ -62,6 +66,10 @@ export async function createEventFromMessage(
     locality: message.locality || getLocality(),
     cityWide: message.cityWide || false,
     ...(message.embedding && { embedding: message.embedding }),
+    ...(message.pins?.length && { pins: message.pins }),
+    ...(message.streets?.length && { streets: message.streets }),
+    ...(message.cadastralProperties?.length && { cadastralProperties: message.cadastralProperties }),
+    ...(message.busStops?.length && { busStops: message.busStops }),
     createdAt: now,
     updatedAt: now,
   });

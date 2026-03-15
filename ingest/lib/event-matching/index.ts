@@ -95,6 +95,10 @@ export async function processEventMatching(
     locality: (message.locality as string) || getLocality(),
     cityWide: message.cityWide as boolean | undefined,
     embedding: message.embedding as number[] | undefined,
+    pins: message.pins as unknown[] | undefined,
+    streets: message.streets as unknown[] | undefined,
+    cadastralProperties: message.cadastralProperties as unknown[] | undefined,
+    busStops: message.busStops as string[] | undefined,
   });
 
   logger.info("New event created for message", {
