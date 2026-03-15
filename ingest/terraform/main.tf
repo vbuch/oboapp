@@ -173,6 +173,13 @@ data "google_secret_manager_secret" "google_maps_api_key" {
   depends_on = [google_project_service.secretmanager]
 }
 
+data "google_secret_manager_secret" "google_embedding_model" {
+  secret_id = "google-embedding-model"
+  project   = var.project_id
+  
+  depends_on = [google_project_service.secretmanager]
+}
+
 # ── Cloud Workflows ───────────────────────────────────────────────────────────
 
 # Workflow for emergent crawler pipeline (runs every 30 minutes)
@@ -456,6 +463,16 @@ resource "google_cloud_run_v2_job" "ingest" {
           value_source {
             secret_key_ref {
               secret  = data.google_secret_manager_secret.google_maps_api_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+
+        env {
+          name = "GOOGLE_EMBEDDING_MODEL"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.google_embedding_model.secret_id
               version = "latest"
             }
           }
