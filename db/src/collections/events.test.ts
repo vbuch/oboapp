@@ -90,6 +90,8 @@ describe("EventsRepository", () => {
           { field: "locality", op: "==", value: "bg.sofia" },
           { field: "timespanEnd", op: ">=", value: start.toISOString() },
         ],
+        orderBy: [{ field: "timespanEnd", direction: "asc" }],
+        limit: 500,
       });
 
       // timespanStart > windowEnd filtered out in memory
@@ -125,6 +127,8 @@ describe("EventsRepository", () => {
           { field: "timespanEnd", op: ">=", value: start.toISOString() },
           { field: "cityWide", op: "==", value: true },
         ],
+        orderBy: [{ field: "timespanEnd", direction: "asc" }],
+        limit: 500,
       });
     });
 

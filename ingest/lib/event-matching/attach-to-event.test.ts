@@ -97,10 +97,12 @@ describe("attachMessageToEvent", () => {
     expect(mockCreateEventMessage.mock.calls[0][1]).toBe("msg-2");
   });
 
-  it("handles concurrent duplicate create without updating event", async () => {
+  it("repairs event doc when createOne throws already-exists (concurrent worker)", async () => {
     const duplicate = new Error("Document already exists");
     (duplicate as { code?: unknown }).code = "already-exists";
     mockCreateEventMessage.mockRejectedValueOnce(duplicate);
+    // Simulate 1 link already committed by the concurrent worker
+    mockFindByEventId.mockResolvedValueOnce([{ messageId: "msg-2" }]);
 
     await attachMessageToEvent(
       mockDb,
@@ -110,7 +112,11 @@ describe("attachMessageToEvent", () => {
       baseSignals,
     );
 
-    expect(mockUpdateEvent).not.toHaveBeenCalled();
+    // Event doc must be repaired with recount, not skipped
+    expect(mockUpdateEvent).toHaveBeenCalledTimes(1);
+    const update = mockUpdateEvent.mock.calls[0][1];
+    expect(update.$inc).toBeUndefined();
+    expect(update.$set.messageCount).toBe(1);
   });
 
   it("increments messageCount atomically", async () => {

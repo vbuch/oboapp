@@ -99,7 +99,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "locality", "order": "ASCENDING" },
-        { "fieldPath": "timespanEnd", "order": "DESCENDING" }
+        { "fieldPath": "timespanEnd", "order": "ASCENDING" }
       ]
     },
     {

@@ -57,34 +57,8 @@ export async function attachMessageToEvent(
   const now = new Date().toISOString();
   const eventId = event._id as string;
 
-  // Create EventMessage link (skipped on repair — link already exists).
-  if (!isRepair) {
-    try {
-      await db.eventMessages.createOne(
-        {
-          eventId,
-          messageId: message._id,
-          source,
-          confidence,
-          geometryQuality: newGeometryQuality,
-          matchSignals: signals,
-          createdAt: now,
-        },
-        message._id,
-      );
-    } catch (error) {
-      if (isAlreadyExistsError(error)) {
-        logger.info("Message link created concurrently, skipping duplicate attach", {
-          messageId: message._id,
-          attemptedEventId: eventId,
-        });
-        return;
-      }
-      throw error;
-    }
-  }
-
-  // Build atomic event update using UpdateOperators for concurrency safety
+  // Build event update fields up-front so they're available in the already-exists
+  // repair path as well as the normal path below.
   const setFields: Record<string, unknown> = { updatedAt: now };
   const addToSet: Record<string, unknown> = {};
 
@@ -124,6 +98,43 @@ export async function attachMessageToEvent(
     );
     if (newTrust >= maxExistingTrust || !event.embedding) {
       setFields.embedding = message.embedding;
+    }
+  }
+
+  // Create EventMessage link (skipped on repair — link already exists).
+  if (!isRepair) {
+    try {
+      await db.eventMessages.createOne(
+        {
+          eventId,
+          messageId: message._id,
+          source,
+          confidence,
+          geometryQuality: newGeometryQuality,
+          matchSignals: signals,
+          createdAt: now,
+        },
+        message._id,
+      );
+    } catch (error) {
+      if (isAlreadyExistsError(error)) {
+        // Link was created by a concurrent worker. Treat this the same as the
+        // repair path: fall through to update the event doc in case it is stale.
+        logger.info("Message link created concurrently; repairing event doc", {
+          messageId: message._id,
+          attemptedEventId: eventId,
+        });
+        // Switch to repair mode: recount messageCount from eventMessages
+        // (same as when findByMessageId found a pre-existing link above).
+        const allLinks = await db.eventMessages.findByEventId(eventId);
+        const repairUpdate: UpdateOperators = {
+          $set: { ...setFields, messageCount: allLinks.length },
+          ...(Object.keys(addToSet).length > 0 && { $addToSet: addToSet }),
+        };
+        await db.events.updateOne(eventId, repairUpdate);
+        return;
+      }
+      throw error;
     }
   }
 
