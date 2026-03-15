@@ -20,14 +20,25 @@ async function cleanupEmbeddings() {
   // Clean expired messages
   // Query only by timespanEnd (single inequality) and filter embedding in code,
   // because Firestore does not support != combined with another inequality filter.
+  // Uses orderBy + startAfter pagination to avoid infinite loops.
   const messagesRef = adminDb.collection("messages");
-  const msgQuery = messagesRef
-    .where("timespanEnd", "<", now)
-    .limit(BATCH_SIZE);
+  let msgLastDoc: FirebaseFirestore.QueryDocumentSnapshot | undefined;
 
-  let msgSnapshot = await msgQuery.get();
+  while (true) {
+    let msgQuery = messagesRef
+      .where("timespanEnd", "<", now)
+      .orderBy("timespanEnd")
+      .limit(BATCH_SIZE);
 
-  while (!msgSnapshot.empty) {
+    if (msgLastDoc) {
+      msgQuery = msgQuery.startAfter(msgLastDoc);
+    }
+
+    const msgSnapshot = await msgQuery.get();
+    if (msgSnapshot.empty) break;
+
+    msgLastDoc = msgSnapshot.docs[msgSnapshot.docs.length - 1];
+
     const batch = adminDb.batch();
     let batchCount = 0;
     for (const doc of msgSnapshot.docs) {
@@ -42,19 +53,28 @@ async function cleanupEmbeddings() {
       console.log(`  Cleaned ${batchCount} messages (total: ${totalCleaned})`);
     }
 
-    // Get next batch
-    msgSnapshot = await msgQuery.get();
+    if (msgSnapshot.size < BATCH_SIZE) break;
   }
 
   // Clean expired events
   const eventsRef = adminDb.collection("events");
-  const evtQuery = eventsRef
-    .where("timespanEnd", "<", now)
-    .limit(BATCH_SIZE);
+  let evtLastDoc: FirebaseFirestore.QueryDocumentSnapshot | undefined;
 
-  let evtSnapshot = await evtQuery.get();
+  while (true) {
+    let evtQuery = eventsRef
+      .where("timespanEnd", "<", now)
+      .orderBy("timespanEnd")
+      .limit(BATCH_SIZE);
 
-  while (!evtSnapshot.empty) {
+    if (evtLastDoc) {
+      evtQuery = evtQuery.startAfter(evtLastDoc);
+    }
+
+    const evtSnapshot = await evtQuery.get();
+    if (evtSnapshot.empty) break;
+
+    evtLastDoc = evtSnapshot.docs[evtSnapshot.docs.length - 1];
+
     const batch = adminDb.batch();
     let batchCount = 0;
     for (const doc of evtSnapshot.docs) {
@@ -69,7 +89,7 @@ async function cleanupEmbeddings() {
       console.log(`  Cleaned ${batchCount} events (total: ${totalCleaned})`);
     }
 
-    evtSnapshot = await evtQuery.get();
+    if (evtSnapshot.size < BATCH_SIZE) break;
   }
 
   console.log(`\nDone. Removed embeddings from ${totalCleaned} expired documents.`);

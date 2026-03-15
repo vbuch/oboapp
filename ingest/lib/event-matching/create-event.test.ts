@@ -79,12 +79,7 @@ describe("createEventFromMessage", () => {
     expect(emData.source).toBe("toplo-bg");
     expect(emData.confidence).toBe(1.0);
     expect(emData.geometryQuality).toBe(3); // toplo-bg = precomputed
-    expect(emData.matchSignals).toEqual({
-      locationSimilarity: 1.0,
-      timeOverlap: 1.0,
-      categoryMatch: 1.0,
-      textSimilarity: 1.0,
-    });
+    expect(emData.matchSignals).toBeNull(); // No matching process — new event
     expect(mockCreateEventMessage.mock.calls[0][1]).toBe("msg-1");
   });
 

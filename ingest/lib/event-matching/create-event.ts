@@ -82,12 +82,7 @@ export async function createEventFromMessage(
         source,
         confidence: 1.0,
         geometryQuality,
-        matchSignals: {
-          locationSimilarity: 1.0,
-          timeOverlap: 1.0,
-          categoryMatch: 1.0,
-          textSimilarity: 1.0,
-        },
+        matchSignals: null, // No matching process occurred — this is a new event,
         createdAt: now,
       },
       message._id,
