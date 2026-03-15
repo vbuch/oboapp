@@ -4,6 +4,7 @@ on:
   push:
     branches: [copilot/update-logos-pancharevo-ilinden]
     paths: ['.github/workflows/download-logos.yml']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -20,16 +21,18 @@ jobs:
 
       - name: Download Pancharevo logo
         run: |
-          curl -L --max-time 30 \
+          curl -fL --max-time 30 \
             "https://github.com/user-attachments/assets/a74e5266-30c6-4241-9704-43ccc8c56913" \
-            -o "web/public/sources/rayon-pancharevo-bg.png"
+            -o "web/public/sources/rayon-pancharevo-bg.png" \
+            || { echo "ERROR: Failed to download Pancharevo logo"; exit 1; }
           file web/public/sources/rayon-pancharevo-bg.png
 
       - name: Download Ilinden logo
         run: |
-          curl -L --max-time 30 \
+          curl -fL --max-time 30 \
             "https://github.com/user-attachments/assets/95f67033-16b2-4c55-a3c2-6a09ebac74c8" \
-            -o "web/public/sources/rayon-ilinden-bg.png"
+            -o "web/public/sources/rayon-ilinden-bg.png" \
+            || { echo "ERROR: Failed to download Ilinden logo"; exit 1; }
           file web/public/sources/rayon-ilinden-bg.png
 
       - name: Validate downloaded images
@@ -47,8 +50,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/download-logos.yml
           git add web/public/sources/rayon-pancharevo-bg.png
           git add web/public/sources/rayon-ilinden-bg.png
           git diff --staged --quiet || git commit -m "Update logos for Pancharevo and Ilinden districts"
+          git push
+          git rm .github/workflows/download-logos.yml
+          git commit -m "Remove one-time logo download workflow"
           git push
