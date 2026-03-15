@@ -25,6 +25,7 @@ program
   .option("--source-name <name>", "Filter messages by source type")
   .option("--event-id <id>", "Inspect a specific event")
   .option("--verbose", "Show full event/message documents")
+  .option("--limit <n>", "Maximum number of events to inspect (default: 50)", "50")
   .addHelpText(
     "after",
     `
@@ -32,6 +33,7 @@ Examples:
   $ pnpm verify-events
   $ pnpm verify-events --source-name toplo-bg
   $ pnpm verify-events --event-id abc123
+  $ pnpm verify-events --limit 20
   $ pnpm verify-events --verbose
 `,
   )
@@ -46,17 +48,19 @@ Examples:
       return;
     }
 
-    await showOverview(db, options.sourceName, options.verbose);
+    await showOverview(db, options.sourceName, options.verbose, parseInt(options.limit, 10));
   });
 
 async function showOverview(
   db: Awaited<ReturnType<typeof import("@/lib/db").getDb>>,
   sourceName?: string,
   verbose?: boolean,
+  limit = 50,
 ): Promise<void> {
-  // Fetch all events
+  // Fetch at most `limit` events to keep this tool safe to run on large datasets.
   const events = await db.events.findMany({
     orderBy: [{ field: "createdAt", direction: "desc" }],
+    limit,
   });
 
   if (events.length === 0) {

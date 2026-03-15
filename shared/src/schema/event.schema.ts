@@ -9,11 +9,14 @@ import { StreetSectionSchema } from "./street-section.schema";
  * EventSchema — represents a real-world incident aggregated from one or more messages.
  * Used by backend processing and future public APIs.
  *
- * DESIGN PRINCIPLE: Event fields intentionally mirror MessageSchema field names and types
- * (plainText, markdownText, geoJson, categories, timespanStart/End, cityWide, locality,
- * embedding, etc.). This alignment allows the map and public API to switch from exposing
- * messages to exposing events with no schema migration or API contract change.
- * Keep field names consistent with MessageSchema when adding new fields.
+ * DESIGN PRINCIPLE: Canonical public-facing fields (plainText, markdownText, geoJson,
+ * categories, timespanStart/End, cityWide, locality, embedding, etc.) intentionally use
+ * the same names and types as MessageSchema. This minimises divergence so that the map
+ * and public API can switch from exposing messages to exposing events with minimal
+ * migration effort. EventSchema also carries aggregation-only fields (sources,
+ * messageCount, geometryQuality, confidence, updatedAt) that have no counterpart in
+ * MessageSchema — so it is NOT a drop-in schema replacement.
+ * Keep shared field names consistent with MessageSchema when adding new fields.
  */
 export const EventSchema = z.object({
   id: z.string().optional(),

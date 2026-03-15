@@ -29,13 +29,24 @@ export async function attachMessageToEvent(
 ): Promise<void> {
   const existingLinks = await db.eventMessages.findByMessageId(message._id);
   if (existingLinks.length > 0) {
-    logger.info("Message already linked to an event, skipping duplicate attach", {
+    const linkedEventId = existingLinks[0].eventId as string;
+    if (linkedEventId !== (event._id as string)) {
+      // Message already attached to a *different* event — normal idempotency guard.
+      logger.info("Message already linked to a different event, skipping duplicate attach", {
+        messageId: message._id,
+        existingEventId: linkedEventId,
+        attemptedEventId: event._id,
+      });
+      return;
+    }
+    // Same event: link creation succeeded on a previous run but the event doc update
+    // may have been lost (transient DB error). Fall through to repair it.
+    logger.info("Message link already exists; repairing event doc in case it is stale", {
       messageId: message._id,
-      existingEventId: existingLinks[0].eventId,
-      attemptedEventId: event._id,
+      eventId: linkedEventId,
     });
-    return;
   }
+  const isRepair = existingLinks.length > 0;
 
   const source = (message.source as string) || "";
   const hasPrecomputedGeoJson = getSourceTrust(source).geometryQuality === 3;
@@ -46,29 +57,31 @@ export async function attachMessageToEvent(
   const now = new Date().toISOString();
   const eventId = event._id as string;
 
-  // Create EventMessage link
-  try {
-    await db.eventMessages.createOne(
-      {
-        eventId,
-        messageId: message._id,
-        source,
-        confidence,
-        geometryQuality: newGeometryQuality,
-        matchSignals: signals,
-        createdAt: now,
-      },
-      message._id,
-    );
-  } catch (error) {
-    if (isAlreadyExistsError(error)) {
-      logger.info("Message link created concurrently, skipping duplicate attach", {
-        messageId: message._id,
-        attemptedEventId: eventId,
-      });
-      return;
+  // Create EventMessage link (skipped on repair — link already exists).
+  if (!isRepair) {
+    try {
+      await db.eventMessages.createOne(
+        {
+          eventId,
+          messageId: message._id,
+          source,
+          confidence,
+          geometryQuality: newGeometryQuality,
+          matchSignals: signals,
+          createdAt: now,
+        },
+        message._id,
+      );
+    } catch (error) {
+      if (isAlreadyExistsError(error)) {
+        logger.info("Message link created concurrently, skipping duplicate attach", {
+          messageId: message._id,
+          attemptedEventId: eventId,
+        });
+        return;
+      }
+      throw error;
     }
-    throw error;
   }
 
   // Build atomic event update using UpdateOperators for concurrency safety
@@ -114,11 +127,22 @@ export async function attachMessageToEvent(
     }
   }
 
-  const atomicUpdate: UpdateOperators = {
-    $inc: { messageCount: 1 },
-    $set: setFields,
-    ...(Object.keys(addToSet).length > 0 && { $addToSet: addToSet }),
-  };
+  // On repair, recount messageCount from the authoritative eventMessages collection
+  // to correct any partial-failure drift rather than blindly incrementing.
+  let atomicUpdate: UpdateOperators;
+  if (isRepair) {
+    const allLinks = await db.eventMessages.findByEventId(eventId);
+    atomicUpdate = {
+      $set: { ...setFields, messageCount: allLinks.length },
+      ...(Object.keys(addToSet).length > 0 && { $addToSet: addToSet }),
+    };
+  } else {
+    atomicUpdate = {
+      $inc: { messageCount: 1 },
+      $set: setFields,
+      ...(Object.keys(addToSet).length > 0 && { $addToSet: addToSet }),
+    };
+  }
 
   await db.events.updateOne(eventId, atomicUpdate);
 

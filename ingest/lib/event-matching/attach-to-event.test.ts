@@ -19,12 +19,14 @@ const mockInsertEventMessage = vi.fn().mockResolvedValue("em-new");
 const mockCreateEventMessage = vi.fn().mockResolvedValue("msg-2");
 const mockUpdateEvent = vi.fn().mockResolvedValue(undefined);
 const mockFindByMessageId = vi.fn().mockResolvedValue([]);
+const mockFindByEventId = vi.fn().mockResolvedValue([]);
 const mockFindEventById = vi.fn().mockResolvedValue(null);
 const mockDb = {
   eventMessages: {
     insertOne: mockInsertEventMessage,
     createOne: mockCreateEventMessage,
     findByMessageId: mockFindByMessageId,
+    findByEventId: mockFindByEventId,
   },
   events: { updateOne: mockUpdateEvent, findById: mockFindEventById },
 } as any;
@@ -37,11 +39,12 @@ describe("attachMessageToEvent", () => {
     mockCreateEventMessage.mockClear().mockResolvedValue("msg-2");
     mockUpdateEvent.mockClear();
     mockFindByMessageId.mockClear().mockResolvedValue([]);
+    mockFindByEventId.mockClear().mockResolvedValue([]);
     mockFindEventById.mockClear().mockResolvedValue(null);
   });
 
-  it("skips duplicate attach when message is already linked", async () => {
-    mockFindByMessageId.mockResolvedValueOnce([{ eventId: "evt-1" }]);
+  it("skips when message is already linked to a different event", async () => {
+    mockFindByMessageId.mockResolvedValueOnce([{ eventId: "evt-other" }]);
 
     await attachMessageToEvent(
       mockDb,
@@ -51,8 +54,30 @@ describe("attachMessageToEvent", () => {
       baseSignals,
     );
 
-    expect(mockInsertEventMessage).not.toHaveBeenCalled();
+    expect(mockCreateEventMessage).not.toHaveBeenCalled();
     expect(mockUpdateEvent).not.toHaveBeenCalled();
+  });
+
+  it("repairs event doc when link already exists for the same event", async () => {
+    mockFindByMessageId.mockResolvedValueOnce([{ eventId: "evt-1" }]);
+    // Simulate 2 links already in the collection
+    mockFindByEventId.mockResolvedValueOnce([{ messageId: "msg-1" }, { messageId: "msg-2" }]);
+
+    await attachMessageToEvent(
+      mockDb,
+      { _id: "msg-2", source: "sofia-bg" },
+      { _id: "evt-1", geometryQuality: 3, sources: ["toplo-bg"], messageCount: 1 },
+      0.85,
+      baseSignals,
+    );
+
+    // Link creation skipped
+    expect(mockCreateEventMessage).not.toHaveBeenCalled();
+    // Event doc updated with recount instead of $inc
+    expect(mockUpdateEvent).toHaveBeenCalledTimes(1);
+    const update = mockUpdateEvent.mock.calls[0][1];
+    expect(update.$inc).toBeUndefined();
+    expect(update.$set.messageCount).toBe(2);
   });
 
   it("creates EventMessage link with signals", async () => {
