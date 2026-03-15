@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger";
 /**
  * Attach a message to an existing event.
  * Updates the event: merge timespans, upgrade geometry if better quality,
- * add source, increment messageCount, update confidence.
+ * add source, increment messageCount.
  *
  * Uses atomic operators ($inc, $addToSet) for concurrency-safe updates.
  */
