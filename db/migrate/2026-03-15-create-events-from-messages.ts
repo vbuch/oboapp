@@ -123,6 +123,14 @@ async function main() {
     let batch = adminDb.batch();
     let batchCount = 0;
 
+    // First pass: collect candidates, filtering out ineligible messages
+    const messagesToProcess: {
+      doc: FirebaseFirestore.QueryDocumentSnapshot;
+      data: FirebaseFirestore.DocumentData;
+      messageId: string;
+      geoJson: unknown;
+    }[] = [];
+
     for (const doc of snapshot.docs) {
       lastDocId = doc.id;
       totalProcessed++;
@@ -141,72 +149,98 @@ async function main() {
       }
 
       // Idempotent: skip messages already linked to an event.
-      // Check both the denormalized eventId cache AND the authoritative
-      // eventMessages link doc to avoid duplicates when the cache is stale.
       if (data.eventId) {
         skippedAlreadyLinked++;
         continue;
       }
 
-      const eventMessageRef = adminDb
-        .collection("eventMessages")
-        .doc(messageId);
+      messagesToProcess.push({ doc, data, messageId, geoJson });
+    }
 
-      const existingLink = await eventMessageRef.get();
-      if (existingLink.exists) {
-        skippedAlreadyLinked++;
-        continue;
-      }
+    // Batch-check eventMessages existence for all candidates in this page
+    // to avoid N+1 per-document reads.
+    if (messagesToProcess.length > 0) {
+      const eventMessageRefs = messagesToProcess.map((m) =>
+        adminDb.collection("eventMessages").doc(m.messageId),
+      );
+      const existingLinks = await adminDb.getAll(...eventMessageRefs);
+      const existsSet = new Set(
+        existingLinks.filter((d) => d.exists).map((d) => d.id),
+      );
 
-      const now = new Date().toISOString();
-      const source = (data.source as string) || "";
-      const geometryQuality = getGeometryQuality(source);
+      for (const { doc, data, messageId, geoJson } of messagesToProcess) {
+        if (existsSet.has(messageId)) {
+          skippedAlreadyLinked++;
+          continue;
+        }
 
-      // Create Event document — shape matches message closely
-      const eventRef = adminDb.collection("events").doc();
-      const eventData: Record<string, unknown> = {
-        plainText: data.plainText || data.text || "",
-        markdownText: data.markdownText || null,
-        geoJson,
-        geometryQuality,
-        timespanStart: convertTimestampToISO(data.timespanStart),
-        timespanEnd: convertTimestampToISO(data.timespanEnd),
-        categories: data.categories || [],
-        sources: source ? [source] : [],
-        messageCount: 1,
-        confidence: 1.0,
-        locality: data.locality || "bg.sofia",
-        cityWide: data.cityWide || false,
-        embedding: data.embedding || null,
-        createdAt: now,
-        updatedAt: now,
-      };
-      batch.set(eventRef, eventData);
+        const now = new Date().toISOString();
+        const source = (data.source as string) || "";
+        const geometryQuality = getGeometryQuality(source);
 
-      // Create EventMessage link document (deterministic ID)
-      const eventMessageData = {
-        eventId: eventRef.id,
-        messageId,
-        source,
-        confidence: 1.0,
-        geometryQuality,
-        matchSignals: null,
-        createdAt: now,
-      };
-      batch.create(eventMessageRef, eventMessageData);
+        // Fallback timespans: prefer message timespans, fall back to
+        // crawledAt/finalizedAt so events always have a usable timespanEnd
+        // (required for findCandidates queries).
+        const timespanStart =
+          convertTimestampToISO(data.timespanStart) ||
+          convertTimestampToISO(data.crawledAt) ||
+          convertTimestampToISO(data.finalizedAt) ||
+          now;
+        const timespanEnd =
+          convertTimestampToISO(data.timespanEnd) ||
+          convertTimestampToISO(data.crawledAt) ||
+          convertTimestampToISO(data.finalizedAt) ||
+          now;
 
-      // Store eventId on message
-      batch.update(doc.ref, { eventId: eventRef.id });
+        // Create Event document — shape matches message closely
+        const eventRef = adminDb.collection("events").doc();
+        const eventData: Record<string, unknown> = {
+          plainText: data.plainText || data.text || "",
+          markdownText: data.markdownText || null,
+          geoJson,
+          geometryQuality,
+          timespanStart,
+          timespanEnd,
+          categories: data.categories || [],
+          sources: source ? [source] : [],
+          messageCount: 1,
+          confidence: 1.0,
+          locality: data.locality || "bg.sofia",
+          cityWide: data.cityWide || false,
+          ...(data.embedding ? { embedding: data.embedding } : {}),
+          createdAt: now,
+          updatedAt: now,
+        };
+        batch.set(eventRef, eventData);
 
-      batchCount += 3;
-      eventsCreated++;
+        // Create EventMessage link document (deterministic ID)
+        const eventMessageRef = adminDb
+          .collection("eventMessages")
+          .doc(messageId);
+        const eventMessageData = {
+          eventId: eventRef.id,
+          messageId,
+          source,
+          confidence: 1.0,
+          geometryQuality,
+          matchSignals: null,
+          createdAt: now,
+        };
+        batch.create(eventMessageRef, eventMessageData);
 
-      // Firestore batches can have at most 500 operations
-      if (batchCount >= 498) {
-        await batch.commit();
-        console.log(`  Committed batch (${eventsCreated} events so far)...`);
-        batch = adminDb.batch();
-        batchCount = 0;
+        // Store eventId on message
+        batch.update(doc.ref, { eventId: eventRef.id });
+
+        batchCount += 3;
+        eventsCreated++;
+
+        // Firestore batches can have at most 500 operations
+        if (batchCount >= 498) {
+          await batch.commit();
+          console.log(`  Committed batch (${eventsCreated} events so far)...`);
+          batch = adminDb.batch();
+          batchCount = 0;
+        }
       }
     }
 

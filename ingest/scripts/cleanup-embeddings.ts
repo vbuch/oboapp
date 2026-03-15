@@ -57,12 +57,14 @@ async function cleanupEmbeddings() {
   }
 
   // Clean expired events
+  // Events store timespanEnd as ISO strings, so compare with ISO string
+  const nowISO = now.toISOString();
   const eventsRef = adminDb.collection("events");
   let evtLastDoc: FirebaseFirestore.QueryDocumentSnapshot | undefined;
 
   while (true) {
     let evtQuery = eventsRef
-      .where("timespanEnd", "<", now)
+      .where("timespanEnd", "<", nowISO)
       .orderBy("timespanEnd")
       .limit(BATCH_SIZE);
 
