@@ -215,7 +215,7 @@ async function main() {
         const eventData: Record<string, unknown> = {
           plainText: data.plainText || data.text || "",
           ...(data.markdownText ? { markdownText: data.markdownText } : {}),
-          ...(geoJson ? { geoJson } : {}),
+          ...(geoJson ? { geoJson: JSON.stringify(geoJson) } : {}),
           geometryQuality,
           timespanStart,
           timespanEnd,
