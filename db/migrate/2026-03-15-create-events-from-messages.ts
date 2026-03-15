@@ -107,7 +107,7 @@ async function main() {
   let skippedNotFinalized = 0;
   let skippedAlreadyLinked = 0;
   let totalProcessed = 0;
-  let lastDocId: string | undefined;
+  let lastDoc: FirebaseFirestore.QueryDocumentSnapshot | undefined;
 
   // Paginate through messages using orderBy(__name__) + startAfter
   while (true) {
@@ -116,8 +116,10 @@ async function main() {
       .orderBy("__name__")
       .limit(BATCH_SIZE);
 
-    if (lastDocId) {
-      query = query.startAfter(lastDocId);
+    if (lastDoc) {
+      // Use the DocumentSnapshot as cursor — required for __name__ ordering
+      // to avoid type mismatches with startAfter(string).
+      query = query.startAfter(lastDoc);
     }
 
     const snapshot = await query.get();
@@ -135,7 +137,7 @@ async function main() {
     }[] = [];
 
     for (const doc of snapshot.docs) {
-      lastDocId = doc.id;
+      lastDoc = doc;
       totalProcessed++;
       const data = doc.data();
       const messageId = doc.id;
