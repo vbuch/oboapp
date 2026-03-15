@@ -91,9 +91,40 @@ async function main() {
     `✓ Messages migration complete: ${messagesUpdated} updated, ${messagesSkipped} skipped`,
   );
 
+  // Migrate events collection
+  console.log("\n3. Migrating events collection...");
+  const eventsSnapshot = await adminDb.collection("events").get();
+  console.log(`Found ${eventsSnapshot.size} events`);
+
+  let eventsUpdated = 0;
+  let eventsSkipped = 0;
+
+  for (const doc of eventsSnapshot.docs) {
+    const data = doc.data();
+
+    // Skip if locality already exists
+    if (data.locality) {
+      eventsSkipped++;
+      continue;
+    }
+
+    // Update with default locality
+    await doc.ref.update({ locality: DEFAULT_LOCALITY });
+    eventsUpdated++;
+
+    if (eventsUpdated % 100 === 0) {
+      console.log(`  Updated ${eventsUpdated} events...`);
+    }
+  }
+
+  console.log(
+    `✓ Events migration complete: ${eventsUpdated} updated, ${eventsSkipped} skipped`,
+  );
+
   console.log("\n✓ Migration completed successfully!");
   console.log(`  Total sources updated: ${sourcesUpdated}`);
   console.log(`  Total messages updated: ${messagesUpdated}`);
+  console.log(`  Total events updated: ${eventsUpdated}`);
 }
 
 main().catch((error) => {

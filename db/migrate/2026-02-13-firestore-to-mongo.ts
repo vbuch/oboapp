@@ -31,6 +31,8 @@ const COLLECTIONS = [
   "notificationSubscriptions",
   "notificationMatches",
   "gtfsStops",
+  "events",
+  "eventMessages",
 ] as const;
 
 /** Fields that are stored as JSON strings in Firestore but should be native objects in MongoDB */
