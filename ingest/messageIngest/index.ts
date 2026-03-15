@@ -16,6 +16,7 @@ import {
 import { storeIncomingMessage, updateMessage } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
 import { logger } from "@/lib/logger";
+import { getLocality } from "@/lib/target-locality";
 
 export {
   geocodeAddressesFromExtractedData,
@@ -1040,7 +1041,7 @@ async function tryPreGeocodeMatch(
       timespanEnd: (storedMessage.timespanEnd as string | Date) ?? null,
       categories,
       cityWide: extractedLocations.cityWide,
-      locality: options.locality || "bg.sofia",
+      locality: options.locality || getLocality(),
       embedding: (storedMessage.embedding as number[]) ?? null,
     });
 

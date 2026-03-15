@@ -199,7 +199,7 @@ function printEventSummary(
   console.log(`   cityWide: ${event.cityWide ?? false}`);
   console.log(`   geometryQuality: ${event.geometryQuality ?? 0}`);
   console.log(`   timespan: ${event.timespanStart} → ${event.timespanEnd}`);
-  console.log(`   text: ${(event.canonicalText as string || "").substring(0, 120)}`);
+  console.log(`   text: ${(event.plainText as string || "").substring(0, 120)}`);
 
   if (verbose) {
     console.log(`   full document:`, JSON.stringify(event, null, 2));

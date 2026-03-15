@@ -274,6 +274,8 @@ flowchart LR
 
 After finalization, messages are matched to Events (real-world incidents) via `ingest/lib/event-matching/`. Scoring uses location, time, text similarity (embedding cosine), and category signals. Pre-geocode matching can reuse event geometry to skip geocoding. See `docs/features/event-aggregation.md` for details.
 
+**CRITICAL — Event schema mirrors Message schema:** `EventSchema` fields use the same names and types as `MessageSchema` (`plainText`, `markdownText`, `geoJson`, `categories`, `timespanStart/End`, `cityWide`, `locality`, `embedding`, etc.). This is intentional: the next phase will expose events instead of messages on the map and public API. Keep field names consistent with `MessageSchema` when adding new event fields.
+
 - **Match thresholds**: score ≥ 0.70 auto-attaches; 0.55–0.70 triggers LLM verification (Gemini compares both texts); < 0.55 creates new event
 - **LLM verification**: `ingest/prompts/verify-event-match.md` — conservative fallback (on failure → new event)
 - Env var: `GOOGLE_EMBEDDING_MODEL` (default: `gemini-embedding-001`)

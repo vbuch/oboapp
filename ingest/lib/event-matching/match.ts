@@ -25,6 +25,7 @@ export async function findBestMatch(
     embedding?: number[] | null;
     text?: string;
     plainText?: string;
+    streets?: Array<{ street: string }>;
   },
 ): Promise<{
   event: Record<string, unknown>;
@@ -77,8 +78,8 @@ export async function findBestMatch(
   // Uncertain zone (LLM_VERIFY_LOWER to MATCH_THRESHOLD) — ask LLM
   const messageText = message.plainText || message.text || "";
   const eventText =
-    (bestMatch.event.canonicalText as string) ||
-    (bestMatch.event.canonicalMarkdownText as string) ||
+    (bestMatch.event.plainText as string) ||
+    (bestMatch.event.markdownText as string) ||
     "";
 
   if (!messageText || !eventText) {
@@ -117,12 +118,17 @@ export async function findBestMatch(
 }
 
 function buildLocationContext(
-  message: { geoJson?: GeoJSONFeatureCollection | null; cityWide?: boolean },
+  message: { geoJson?: GeoJSONFeatureCollection | null; cityWide?: boolean; streets?: Array<{ street: string }> },
   event: Record<string, unknown>,
 ): string {
   const parts: string[] = [];
   if (message.cityWide) parts.push("Message: city-wide");
   if (event.cityWide) parts.push("Event: city-wide");
+
+  const streetNames = message.streets?.map((s) => s.street).filter(Boolean);
+  if (streetNames?.length) {
+    parts.push(`Streets: ${streetNames.join(", ")}`);
+  }
 
   return parts.join("; ") || "";
 }

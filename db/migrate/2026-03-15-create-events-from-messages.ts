@@ -140,16 +140,17 @@ async function main() {
         continue;
       }
 
-      // Idempotent: use deterministic eventMessage ID = messageId
-      const eventMessageRef = adminDb
-        .collection("eventMessages")
-        .doc(messageId);
-      const existingLink = await eventMessageRef.get();
-
-      if (existingLink.exists) {
+      // Idempotent: skip messages already linked to an event (eventId set by
+      // a previous migration run or by the live pipeline). This avoids an
+      // async Firestore read per document (N+1 pattern).
+      if (data.eventId) {
         skippedAlreadyLinked++;
         continue;
       }
+
+      const eventMessageRef = adminDb
+        .collection("eventMessages")
+        .doc(messageId);
 
       const now = new Date().toISOString();
       const source = (data.source as string) || "";
@@ -158,8 +159,8 @@ async function main() {
       // Create Event document — shape matches message closely
       const eventRef = adminDb.collection("events").doc();
       const eventData: Record<string, unknown> = {
-        canonicalText: data.plainText || data.text || "",
-        canonicalMarkdownText: data.markdownText || null,
+        plainText: data.plainText || data.text || "",
+        markdownText: data.markdownText || null,
         geoJson,
         geometryQuality,
         timespanStart: convertTimestampToISO(data.timespanStart),

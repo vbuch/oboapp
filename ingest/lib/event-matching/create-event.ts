@@ -3,6 +3,7 @@ import type { GeoJSONFeatureCollection } from "@/lib/types";
 import { getSourceTrust, getGeometryQuality } from "@/lib/source-trust";
 import { isAlreadyExistsError, toISOString } from "./utils";
 import { logger } from "@/lib/logger";
+import { getLocality } from "@/lib/target-locality";
 
 /**
  * Create a new event from a message that didn't match any existing event.
@@ -44,8 +45,8 @@ export async function createEventFromMessage(
   const now = new Date().toISOString();
 
   const eventId = await db.events.insertOne({
-    canonicalText: message.plainText || message.text || "",
-    canonicalMarkdownText: message.markdownText || null,
+    plainText: message.plainText || message.text || "",
+    markdownText: message.markdownText || null,
     geoJson: message.geoJson || null,
     geometryQuality,
     timespanStart: message.timespanStart
@@ -58,7 +59,7 @@ export async function createEventFromMessage(
     sources: source ? [source] : [],
     messageCount: 1,
     confidence: 1.0,
-    locality: message.locality || "bg.sofia",
+    locality: message.locality || getLocality(),
     cityWide: message.cityWide || false,
     ...(message.embedding && { embedding: message.embedding }),
     createdAt: now,

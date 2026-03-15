@@ -4,6 +4,7 @@ import { findBestMatch } from "./match";
 import { createEventFromMessage } from "./create-event";
 import { attachMessageToEvent } from "./attach-to-event";
 import type { GeoJSONFeatureCollection } from "@/lib/types";
+import { getLocality } from "@/lib/target-locality";
 
 export { computeMatchScore, type MatchSignals } from "./score";
 export { findCandidateEvents } from "./candidates";
@@ -37,10 +38,11 @@ export async function processEventMatching(
     timespanEnd: message.timespanEnd as string | null,
     categories: message.categories as string[] | undefined,
     cityWide: message.cityWide as boolean | undefined,
-    locality: (message.locality as string) || "bg.sofia",
+    locality: (message.locality as string) || getLocality(),
     embedding: message.embedding as number[] | undefined,
     text: message.text as string | undefined,
     plainText: message.plainText as string | undefined,
+    streets: message.streets as Array<{ street: string }> | undefined,
   };
 
   const bestMatch = await findBestMatch(db, matchInput);
@@ -90,7 +92,7 @@ export async function processEventMatching(
     timespanEnd: message.timespanEnd as string | null,
     categories: message.categories as string[] | undefined,
     source: message.source as string | undefined,
-    locality: (message.locality as string) || "bg.sofia",
+    locality: (message.locality as string) || getLocality(),
     cityWide: message.cityWide as boolean | undefined,
     embedding: message.embedding as number[] | undefined,
   });

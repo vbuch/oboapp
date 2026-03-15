@@ -41,14 +41,14 @@ describe("EventsRepository", () => {
   });
 
   it("insertOne without id", async () => {
-    const data = { canonicalText: "test" };
+    const data = { plainText: "test" };
     const id = await repo.insertOne(data);
     expect(db.insertOne).toHaveBeenCalledWith(EVENTS_COLLECTION, data, undefined);
     expect(id).toBe("auto-id");
   });
 
   it("insertOne with explicit id", async () => {
-    const data = { canonicalText: "test" };
+    const data = { plainText: "test" };
     await repo.insertOne(data, "custom-id");
     expect(db.insertOne).toHaveBeenCalledWith(EVENTS_COLLECTION, data, "custom-id");
   });

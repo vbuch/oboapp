@@ -103,7 +103,7 @@ describe("findBestMatch", () => {
 
   it("calls LLM verify when score is in uncertain zone (0.55-0.70) and attaches if confirmed", async () => {
     vi.mocked(findCandidateEvents).mockResolvedValueOnce([
-      { _id: "evt-1", canonicalText: "Event text about water outage" },
+      { _id: "evt-1", plainText: "Event text about water outage" },
     ]);
     vi.mocked(computeMatchScore).mockReturnValueOnce({
       score: 0.6,
@@ -134,7 +134,7 @@ describe("findBestMatch", () => {
 
   it("returns null when LLM rejects match in uncertain zone", async () => {
     vi.mocked(findCandidateEvents).mockResolvedValueOnce([
-      { _id: "evt-1", canonicalText: "Road repair on Vitosha" },
+      { _id: "evt-1", plainText: "Road repair on Vitosha" },
     ]);
     vi.mocked(computeMatchScore).mockReturnValueOnce({
       score: 0.6,
@@ -157,7 +157,7 @@ describe("findBestMatch", () => {
 
   it("returns null when LLM call fails in uncertain zone (conservative fallback)", async () => {
     vi.mocked(findCandidateEvents).mockResolvedValueOnce([
-      { _id: "evt-1", canonicalText: "Some event text" },
+      { _id: "evt-1", plainText: "Some event text" },
     ]);
     vi.mocked(computeMatchScore).mockReturnValueOnce({
       score: 0.6,
@@ -177,7 +177,7 @@ describe("findBestMatch", () => {
 
   it("skips LLM verify when message has no text", async () => {
     vi.mocked(findCandidateEvents).mockResolvedValueOnce([
-      { _id: "evt-1", canonicalText: "Some event" },
+      { _id: "evt-1", plainText: "Some event" },
     ]);
     vi.mocked(computeMatchScore).mockReturnValueOnce({
       score: 0.6,
@@ -196,7 +196,7 @@ describe("findBestMatch", () => {
 
   it("skips LLM verify when event has no canonical text", async () => {
     vi.mocked(findCandidateEvents).mockResolvedValueOnce([
-      { _id: "evt-1" }, // no canonicalText
+      { _id: "evt-1" }, // no plainText
     ]);
     vi.mocked(computeMatchScore).mockReturnValueOnce({
       score: 0.6,
@@ -215,7 +215,7 @@ describe("findBestMatch", () => {
 
   it("uses text field as fallback when plainText is missing", async () => {
     vi.mocked(findCandidateEvents).mockResolvedValueOnce([
-      { _id: "evt-1", canonicalText: "Event text" },
+      { _id: "evt-1", plainText: "Event text" },
     ]);
     vi.mocked(computeMatchScore).mockReturnValueOnce({
       score: 0.6,

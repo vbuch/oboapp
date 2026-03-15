@@ -56,8 +56,8 @@ describe("createEventFromMessage", () => {
     expect(result.action).toBe("created");
 
     const eventData = mockInsertEvent.mock.calls[0][0];
-    expect(eventData.canonicalText).toBe("Water outage on Vitosha blvd");
-    expect(eventData.canonicalMarkdownText).toBe("**Water outage** on Vitosha blvd");
+    expect(eventData.plainText).toBe("Water outage on Vitosha blvd");
+    expect(eventData.markdownText).toBe("**Water outage** on Vitosha blvd");
     expect(eventData.geometryQuality).toBe(2); // sofia-bg default
     expect(eventData.categories).toEqual(["water"]);
     expect(eventData.sources).toEqual(["sofia-bg"]);
@@ -117,7 +117,7 @@ describe("createEventFromMessage", () => {
     });
 
     const eventData = mockInsertEvent.mock.calls[0][0];
-    expect(eventData.canonicalText).toBe("fallback text");
+    expect(eventData.plainText).toBe("fallback text");
   });
 
   it("reuses existing event link for already-linked message", async () => {

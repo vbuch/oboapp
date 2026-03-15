@@ -6,6 +6,14 @@ Multiple sources (crawlers) sometimes report the same real-world incident — fo
 
 The **Event Aggregation** layer groups related messages into a single **Event** representing one real-world incident. Each Event tracks which messages contributed to it, selects the best available geometry, and provides a canonical description.
 
+## Design Principle: Events Mirror the Message Shape
+
+**Events intentionally use the same field names and types as messages.** Fields like `plainText`, `markdownText`, `geoJson`, `categories`, `timespanStart`, `timespanEnd`, `cityWide`, `locality`, and `embedding` exist on both documents with identical semantics.
+
+This is a deliberate forward-compatibility decision: the next phase will switch the map and public API from showing individual messages to showing events. Because the shapes are aligned, that switch requires only a data-source change — no schema migration, no API contract break, no frontend rewiring.
+
+When adding fields to the `EventSchema`, always check whether the same field belongs on `MessageSchema` too, and keep naming consistent.
+
 ## How It Works
 
 When a message is finalized with GeoJSON, the pipeline automatically tries to match it against existing events:

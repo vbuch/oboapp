@@ -5,11 +5,17 @@ import { GeoJsonFeatureCollectionSchema } from "./geojson.schema";
 /**
  * EventSchema — represents a real-world incident aggregated from one or more messages.
  * Used by backend processing and future public APIs.
+ *
+ * DESIGN PRINCIPLE: Event fields intentionally mirror MessageSchema field names and types
+ * (plainText, markdownText, geoJson, categories, timespanStart/End, cityWide, locality,
+ * embedding, etc.). This alignment allows the map and public API to switch from exposing
+ * messages to exposing events with no schema migration or API contract change.
+ * Keep field names consistent with MessageSchema when adding new fields.
  */
 export const EventSchema = z.object({
   id: z.string().optional(),
-  canonicalText: z.string(),
-  canonicalMarkdownText: z.string().nullable().optional(),
+  plainText: z.string(),
+  markdownText: z.string().nullable().optional(),
   geoJson: GeoJsonFeatureCollectionSchema.nullable().optional(),
   geometryQuality: z.number().int().min(0).max(3),
   timespanStart: z.string().nullable().optional(),
