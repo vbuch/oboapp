@@ -1,0 +1,54 @@
+name: Download Updated Logos
+
+on:
+  push:
+    branches: [copilot/update-logos-pancharevo-ilinden]
+    paths: ['.github/workflows/download-logos.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  download-logos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: copilot/update-logos-pancharevo-ilinden
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Pancharevo logo
+        run: |
+          curl -L --max-time 30 \
+            "https://github.com/user-attachments/assets/a74e5266-30c6-4241-9704-43ccc8c56913" \
+            -o "web/public/sources/rayon-pancharevo-bg.png"
+          file web/public/sources/rayon-pancharevo-bg.png
+
+      - name: Download Ilinden logo
+        run: |
+          curl -L --max-time 30 \
+            "https://github.com/user-attachments/assets/95f67033-16b2-4c55-a3c2-6a09ebac74c8" \
+            -o "web/public/sources/rayon-ilinden-bg.png"
+          file web/public/sources/rayon-ilinden-bg.png
+
+      - name: Validate downloaded images
+        run: |
+          for f in "web/public/sources/rayon-pancharevo-bg.png" "web/public/sources/rayon-ilinden-bg.png"; do
+            TYPE=$(file --mime-type -b "$f")
+            if [[ "$TYPE" != "image/png" && "$TYPE" != "image/jpeg" && "$TYPE" != "image/webp" ]]; then
+              echo "ERROR: $f is '$TYPE', expected an image"
+              exit 1
+            fi
+            echo "OK: $f ($TYPE, $(wc -c < "$f") bytes)"
+          done
+
+      - name: Commit logos and remove this workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/download-logos.yml
+          git add web/public/sources/rayon-pancharevo-bg.png
+          git add web/public/sources/rayon-ilinden-bg.png
+          git diff --staged --quiet || git commit -m "Update logos for Pancharevo and Ilinden districts"
+          git push
