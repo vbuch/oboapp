@@ -5,7 +5,12 @@
  * MongoDB stores native types — no JSON.stringify for geoJson/addresses.
  */
 
-import type { DbClient, FindManyOptions, WhereClause } from "../types";
+import type {
+  DbClient,
+  FindManyOptions,
+  UpdateOperators,
+  WhereClause,
+} from "../types";
 
 /** Collection name constant */
 export const MESSAGES_COLLECTION = "messages";
@@ -33,7 +38,10 @@ export class MessagesRepository {
     return this.db.insertOne(MESSAGES_COLLECTION, data, id);
   }
 
-  async updateOne(id: string, data: Record<string, unknown>): Promise<void> {
+  async updateOne(
+    id: string,
+    data: Record<string, unknown> | UpdateOperators,
+  ): Promise<void> {
     return this.db.updateOne(MESSAGES_COLLECTION, id, data);
   }
 

@@ -3,6 +3,8 @@ export * from "./address.schema";
 export * from "./api-client.schema";
 export * from "./category.schema";
 export * from "./coordinates.schema";
+export * from "./event.schema";
+export * from "./event-message.schema";
 export * from "./extracted-data.schema";
 export * from "./geojson.schema";
 export * from "./ingest-error.schema";

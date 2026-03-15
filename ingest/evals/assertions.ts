@@ -319,6 +319,69 @@ export function assertNotUnreadable(
   };
 }
 
+// ─── Verify Event Match Assertions ────────────────────────────────
+
+/**
+ * Validates that the output is valid JSON parseable by VerifyEventMatchResponseSchema.
+ */
+export async function validateVerifyEventMatchSchema(
+  output: string,
+  _context: AssertionValueFunctionContext,
+): Promise<GradingResult> {
+  const { VerifyEventMatchResponseSchema } = await import(
+    "../lib/verify-event-match.schema"
+  );
+  return validateWithSchema(
+    output,
+    VerifyEventMatchResponseSchema,
+    "VerifyEventMatch",
+  );
+}
+
+/**
+ * Asserts that the LLM judged the two texts as the same event.
+ */
+export function assertIsSameEvent(
+  output: string,
+  _context: AssertionValueFunctionContext,
+): GradingResult {
+  const parsed = parseOutput(output);
+  if (!parsed.success) return parsed.result;
+
+  const data = parsed.data as { isSameEvent?: boolean };
+
+  return {
+    pass: data.isSameEvent === true,
+    score: data.isSameEvent === true ? 1 : 0,
+    reason:
+      data.isSameEvent === true
+        ? "Correctly identified as the same event"
+        : "Expected isSameEvent=true, but got false",
+  };
+}
+
+/**
+ * Asserts that the LLM judged the two texts as different events.
+ */
+export function assertIsDifferentEvent(
+  output: string,
+  _context: AssertionValueFunctionContext,
+): GradingResult {
+  const parsed = parseOutput(output);
+  if (!parsed.success) return parsed.result;
+
+  const data = parsed.data as { isSameEvent?: boolean };
+
+  return {
+    pass: data.isSameEvent === false,
+    score: data.isSameEvent === false ? 1 : 0,
+    reason:
+      data.isSameEvent === false
+        ? "Correctly identified as different events"
+        : "Expected isSameEvent=false, but got true",
+  };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────
 
 function parseOutput(

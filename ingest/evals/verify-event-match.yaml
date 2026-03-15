@@ -1,0 +1,48 @@
+# promptfoo eval config for verify-event-match prompt
+# Evaluates whether the LLM correctly identifies same vs. different events.
+# Run: pnpm promptfoo
+
+description: "Verify Event Match — same/different incident detection"
+
+providers:
+  - id: "file://provider.ts"
+    config:
+      promptFile: "verify-event-match.md"
+    label: "Gemini (verify-event-match)"
+
+prompts:
+  - "{{input}}"
+
+defaultTest:
+  assert:
+    - type: javascript
+      value: "file://assertions.ts:validateVerifyEventMatchSchema"
+
+tests:
+  # Same event: water outage on same street with overlapping addresses/time
+  - vars:
+      input: "file://../__mocks__/fixtures/verify-match/same-event-water-outage.json"
+    assert:
+      - type: javascript
+        value: "file://assertions.ts:assertIsSameEvent"
+
+  # Different events: road repair vs heating outage in different areas
+  - vars:
+      input: "file://../__mocks__/fixtures/verify-match/different-events-road-vs-heating.json"
+    assert:
+      - type: javascript
+        value: "file://assertions.ts:assertIsDifferentEvent"
+
+  # Same event: road closure for filming on same street and dates
+  - vars:
+      input: "file://../__mocks__/fixtures/verify-match/same-event-road-closure.json"
+    assert:
+      - type: javascript
+        value: "file://assertions.ts:assertIsSameEvent"
+
+  # Different events: electricity outages in different neighborhoods and dates
+  - vars:
+      input: "file://../__mocks__/fixtures/verify-match/different-events-electricity-different-areas.json"
+    assert:
+      - type: javascript
+        value: "file://assertions.ts:assertIsDifferentEvent"

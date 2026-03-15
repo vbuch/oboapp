@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import type { UpdateOperators } from "@oboapp/db";
 
 /**
  * Update message document with multiple fields.
@@ -10,7 +11,7 @@ import { getDb } from "@/lib/db";
  */
 export async function updateMessage(
   messageId: string,
-  fields: Record<string, unknown>,
+  fields: Record<string, unknown> | UpdateOperators,
 ): Promise<void> {
   const db = await getDb();
   await db.messages.updateOne(messageId, fields);

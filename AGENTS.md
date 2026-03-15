@@ -73,7 +73,7 @@ If you identify a recurring pattern or developer preference:
 The `@oboapp/db` package provides a unified interface (`OboDb`) over Firestore and MongoDB via typed collection repositories. It handles serialization (JSON strings, Timestamps) transparently.
 
 - **Initialization:** Use `getDb()` from `@/lib/db` (both `ingest/` and `web/`). It's a lazy singleton.
-- **Collections:** `db.messages`, `db.sources`, `db.interests`, `db.notificationMatches`, `db.notificationSubscriptions`, `db.gtfsStops`
+- **Collections:** `db.messages`, `db.sources`, `db.interests`, `db.notificationMatches`, `db.notificationSubscriptions`, `db.gtfsStops`, `db.events`, `db.eventMessages`
 - **Key methods:** `findById(id)`, `findMany(options)`, `insertOne(data)`, `updateOne(id, data)`, `deleteOne(id)`, `count(where)`
 - **Records:** All find methods return `Record<string, unknown>` with an `_id` field for the document ID.
 - **Dates:** The adapter converts Firestore Timestamps → `Date` objects. Consumers convert to ISO strings as needed.
@@ -238,6 +238,7 @@ flowchart LR
     G --> J[Geocode]
     J --> H
     H --> I[Finalize]
+    I --> K[Event Matching]
 ```
 
 **Crawler Integration:**
@@ -257,6 +258,8 @@ flowchart LR
 - `process` - Array of debug/audit trail entries tracking each pipeline step
 - `timespanStart` - Denormalized MIN start time (enables Firestore queries)
 - `timespanEnd` - Denormalized MAX end time (enables Firestore queries)
+- `embedding` - Text embedding vector (768-dim, from Gemini `gemini-embedding-001`) for event matching similarity
+- `eventId` - Links message to its matched/created Event
 - `geoJson` - Final geometry (determines public visibility)
 - `finalizedAt` - Marks processing complete
 
@@ -267,11 +270,23 @@ flowchart LR
 - `categories` (array-contains) + `finalizedAt` (descending) - Legacy category filtering
 - Deploy via `firebase deploy --only firestore:indexes` before code changes
 
+**Event Aggregation:**
+
+After finalization, messages are matched to Events (real-world incidents) via `ingest/lib/event-matching/`. Scoring uses location, time, text similarity (embedding cosine), and category signals. Pre-geocode matching can reuse event geometry to skip geocoding. See `docs/features/event-aggregation.md` for details.
+
+**CRITICAL — Event schema mirrors Message schema:** `EventSchema` fields use the same names and types as `MessageSchema` (`plainText`, `markdownText`, `geoJson`, `categories`, `timespanStart/End`, `cityWide`, `locality`, `embedding`, etc.). This is intentional: the next phase will expose events instead of messages on the map and public API. Keep field names consistent with `MessageSchema` when adding new event fields.
+
+- **Match thresholds**: score ≥ 0.70 auto-attaches; 0.55–0.70 triggers LLM verification (Gemini compares both texts); < 0.55 creates new event
+- **LLM verification**: `ingest/prompts/verify-event-match.md` — conservative fallback (on failure → new event)
+- Env var: `GOOGLE_EMBEDDING_MODEL` (default: `gemini-embedding-001`)
+- Embeddings are optional — graceful degradation when missing
+- Cleanup: `scripts/cleanup-embeddings.ts` removes embeddings from expired documents
+
 **Prompt Evaluation (promptfoo):**
 
-All three prompts have eval configs in `ingest/evals/` using [promptfoo](https://www.promptfoo.dev/). Run before merging prompt or schema changes:
+All four prompts have eval configs in `ingest/evals/` using [promptfoo](https://www.promptfoo.dev/). Run before merging prompt or schema changes:
 
-- `pnpm promptfoo` — evaluates all 3 prompts against source fixtures with schema + behavioral assertions
+- `pnpm promptfoo` — evaluates all 4 prompts against source fixtures with schema + behavioral assertions
 - `pnpm promptfoo:redteam` — runs adversarial inputs (prompt injection, data exfiltration, off-topic steering)
 - `pnpm promptfoo:view` — opens the web dashboard to inspect results
 - Custom assertions in `ingest/evals/assertions.ts` reuse the same Zod schemas as production
@@ -349,20 +364,20 @@ The UI is in Bulgarian. All Bulgarian text must use consistent register:
 - **When addressing the user directly, always use the informal (ти) form** — never the formal (Вие) form.
 - **Common formal → informal substitutions:**
 
-| Avoid (formal / Вие)       | Use (informal / ти)   |
-| -------------------------- | --------------------- |
-| Натиснете                  | Натисни               |
-| Въведете / въведете        | Въведи                |
-| Напишете / напишете        | Напиши                |
-| Изберете / изберете        | Избери                |
-| Копирайте / копирайте      | Копирай               |
-| Опитайте / опитайте        | Опитай                |
-| Свържете се                | Свържи се             |
-| Сигурни ли сте, че искате  | Сигурен ли си, че искаш |
-| Нямате / Имате             | Нямаш / Имаш          |
-| не сте абонирани           | не си абониран/а      |
-| всички ваши данни          | всичките ти данни     |
-| Моля, …те                  | (drop "Моля," and use informal) |
+| Avoid (formal / Вие)      | Use (informal / ти)             |
+| ------------------------- | ------------------------------- |
+| Натиснете                 | Натисни                         |
+| Въведете / въведете       | Въведи                          |
+| Напишете / напишете       | Напиши                          |
+| Изберете / изберете       | Избери                          |
+| Копирайте / копирайте     | Копирай                         |
+| Опитайте / опитайте       | Опитай                          |
+| Свържете се               | Свържи се                       |
+| Сигурни ли сте, че искате | Сигурен ли си, че искаш         |
+| Нямате / Имате            | Нямаш / Имаш                    |
+| не сте абонирани          | не си абониран/а                |
+| всички ваши данни         | всичките ти данни               |
+| Моля, …те                 | (drop "Моля," and use informal) |
 
 ### Web Components
 

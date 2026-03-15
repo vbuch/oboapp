@@ -113,6 +113,35 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
     spec: { apiKey: 1 },
     options: { name: "apiKey", unique: true },
   },
+
+  // --- events ---
+  {
+    collection: "events",
+    spec: { locality: 1, timespanEnd: -1 },
+    options: { name: "locality_timespanEnd" },
+  },
+  {
+    collection: "events",
+    spec: { locality: 1, categories: 1, timespanEnd: -1 },
+    options: { name: "locality_categories_timespanEnd" },
+  },
+  {
+    collection: "events",
+    spec: { locality: 1, timespanStart: 1, timespanEnd: 1 },
+    options: { name: "locality_timeWindow" },
+  },
+
+  // --- eventMessages ---
+  {
+    collection: "eventMessages",
+    spec: { eventId: 1, createdAt: -1 },
+    options: { name: "eventId_createdAt" },
+  },
+  {
+    collection: "eventMessages",
+    spec: { messageId: 1 },
+    options: { name: "messageId" },
+  },
 ];
 
 /**

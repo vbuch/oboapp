@@ -21,6 +21,8 @@ import { NotificationSubscriptionsRepository } from "./collections/notification-
 import { GtfsStopsRepository } from "./collections/gtfs-stops";
 import { ApiClientsRepository } from "./collections/api-clients";
 import { UserPreferencesRepository } from "./collections/user-preferences";
+import { EventsRepository } from "./collections/events";
+import { EventMessagesRepository } from "./collections/event-messages";
 
 /** High-level database interface with typed collection repositories */
 export interface OboDb {
@@ -42,6 +44,10 @@ export interface OboDb {
   apiClients: ApiClientsRepository;
   /** User preferences (notification filters, etc.) */
   userPreferences: UserPreferencesRepository;
+  /** Aggregated real-world events */
+  events: EventsRepository;
+  /** Message-to-event links */
+  eventMessages: EventMessagesRepository;
   /** Close all database connections */
   close(): Promise<void>;
 }
@@ -71,6 +77,8 @@ function buildRepositories(client: DbClient): OboDb {
     gtfsStops: new GtfsStopsRepository(client),
     apiClients: new ApiClientsRepository(client),
     userPreferences: new UserPreferencesRepository(client),
+    events: new EventsRepository(client),
+    eventMessages: new EventMessagesRepository(client),
     close: () => client.close(),
   };
 }

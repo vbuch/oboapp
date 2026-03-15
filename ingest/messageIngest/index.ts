@@ -16,6 +16,7 @@ import {
 import { storeIncomingMessage, updateMessage } from "./db";
 import { encodeDocumentId } from "../crawlers/shared/firestore";
 import { logger } from "@/lib/logger";
+import { getLocality } from "@/lib/target-locality";
 
 export {
   geocodeAddressesFromExtractedData,
@@ -187,13 +188,34 @@ async function processSingleMessage(
     geoJson = geocodingResult.geoJson;
   }
 
-  geoJson = await applyBoundaryFilteringIfNeeded(
-    messageId,
-    geoJson,
-    options.boundaryFilter,
-  );
+  try {
+    geoJson = await applyBoundaryFilteringIfNeeded(
+      messageId,
+      geoJson,
+      options.boundaryFilter,
+    );
+  } catch (error) {
+    if (!(error instanceof BoundaryFilterRejectedError)) {
+      // Unexpected runtime error (e.g. import failure, bug inside filterFeaturesByBoundaries).
+      // Rethrow so the caller can handle it — do NOT silently delete the document.
+      throw error;
+    }
+    // Boundary filtering rejected this message — delete the unfinalized document
+    // to honor the boundaryFilter contract ("message is not stored").
+    logger.info("Message excluded by boundary filter, deleting document", { messageId, error });
+    const { getDb } = await import("@/lib/db");
+    const db = await getDb();
+    await db.messages.deleteOne(messageId);
+    return await buildMessageResponse(messageId, text, options.locality, addresses, null);
+  }
 
   await finalizeMessageWithResults(messageId, geoJson, ingestErrors);
+
+  // Event matching: group this message into an event (create or attach)
+  // Trigger for messages with geoJson OR city-wide messages (which may have no geometry)
+  if (geoJson || options.cityWide || extractedLocations?.cityWide) {
+    await runEventMatching(messageId);
+  }
 
   return await buildMessageResponse(
     messageId,
@@ -230,6 +252,8 @@ async function processPrecomputedGeoJsonMessage(
       ...(options.cityWide !== undefined && { cityWide: options.cityWide }),
     });
   }
+
+  await storeEmbeddingForMessage(storedMessageId, text);
 
   const message = await processSingleMessage(
     storedMessageId,
@@ -340,6 +364,8 @@ async function processWithAIPipeline(
       continue;
     }
 
+    await storeEmbeddingForMessage(storedMessageId, filteredMessage.plainText);
+
     // Step 2: Categorize (using plainText which is now guaranteed non-empty)
     const categorizationResult = await categorize(
       filteredMessage.plainText,
@@ -414,6 +440,20 @@ async function processWithAIPipeline(
       extractedLocations,
       crawledAt,
     );
+
+    // Pre-geocode matching: try to reuse geometry from an existing high-quality event
+    const preGeocodeResult = await tryPreGeocodeMatch(
+      storedMessageId,
+      filteredMessage.plainText,
+      options,
+      extractedLocations,
+      categorizationResult.categories,
+      ingestErrors,
+    );
+    if (preGeocodeResult) {
+      messages.push(preGeocodeResult);
+      continue;
+    }
 
     // Continue through geocoding pipeline
     const message = await processSingleMessage(
@@ -537,12 +577,13 @@ async function storeCategorization(
   messageId: string,
   categorizationResult: { categories: string[] },
 ): Promise<void> {
-  const { FieldValue } = await import("firebase-admin/firestore");
   await updateMessage(messageId, {
-    categories: categorizationResult.categories,
-    process: FieldValue.arrayUnion(
-      createCategorizationAudit(categorizationResult.categories),
-    ),
+    $set: {
+      categories: categorizationResult.categories,
+    },
+    $addToSet: {
+      process: createCategorizationAudit(categorizationResult.categories),
+    },
   });
 }
 
@@ -571,18 +612,19 @@ async function storeExtractedLocations(
   // Validate and fallback to crawledAt if invalid
   const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
 
-  const { FieldValue } = await import("firebase-admin/firestore");
   await updateMessage(messageId, {
-    pins,
-    streets,
-    cadastralProperties,
-    busStops,
-    cityWide,
-    timespanStart: validated.timespanStart,
-    timespanEnd: validated.timespanEnd,
-    process: FieldValue.arrayUnion(
-      createLocationExtractionAudit(extractedLocations),
-    ),
+    $set: {
+      pins,
+      streets,
+      cadastralProperties,
+      busStops,
+      cityWide,
+      timespanStart: validated.timespanStart,
+      timespanEnd: validated.timespanEnd,
+    },
+    $addToSet: {
+      process: createLocationExtractionAudit(extractedLocations),
+    },
   });
 }
 
@@ -842,15 +884,27 @@ async function handlePrecomputedGeoJsonData(
     ? [{ address: centroidAddress.originalText, timespans: [] }]
     : [];
 
+  const { validateAndFallback } = await import("@/lib/timespan-utils");
+  const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
+
   if (!markdownText) {
     if (addresses.length > 0) {
-      await updateMessage(messageId, { addresses, pins, streets: [], cadastralProperties: [] });
+      await updateMessage(messageId, {
+        addresses,
+        pins,
+        streets: [],
+        cadastralProperties: [],
+        timespanStart: validated.timespanStart,
+        timespanEnd: validated.timespanEnd,
+      });
+    } else {
+      await updateMessage(messageId, {
+        timespanStart: validated.timespanStart,
+        timespanEnd: validated.timespanEnd,
+      });
     }
     return addresses;
   }
-
-  const { validateAndFallback } = await import("@/lib/timespan-utils");
-  const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
 
   await updateMessage(messageId, {
     markdownText,
@@ -864,6 +918,17 @@ async function handlePrecomputedGeoJsonData(
   });
 
   return addresses;
+}
+
+/**
+ * Thrown when boundary filtering rejects a message (no features within boundaries).
+ * Distinguished from unexpected runtime errors so callers can safely delete the document.
+ */
+class BoundaryFilterRejectedError extends Error {
+  constructor(messageId: string) {
+    super(`Message ${messageId} has no features within specified boundaries`);
+    this.name = "BoundaryFilterRejectedError";
+  }
 }
 
 /**
@@ -885,7 +950,7 @@ async function applyBoundaryFilteringIfNeeded(
     logger.info("Message has no features within boundaries, skipping storage", {
       messageId,
     });
-    throw new Error("No features within specified boundaries");
+    throw new BoundaryFilterRejectedError(messageId);
   }
 
   return filteredGeoJson;
@@ -919,4 +984,139 @@ async function finalizeMessageWithoutGeoJson(
     finalizedAt: new Date(),
     ...buildIngestErrorsField(ingestErrors),
   });
+}
+
+/**
+ * Generate and store a text embedding for a message.
+ * Non-fatal: failures are logged but don't abort the pipeline.
+ */
+async function storeEmbeddingForMessage(
+  messageId: string,
+  text: string,
+): Promise<void> {
+  try {
+    const { generateEmbedding } = await import("@/lib/embeddings");
+    const embedding = await generateEmbedding(text);
+    if (embedding) {
+      await updateMessage(messageId, { embedding });
+    }
+  } catch (error) {
+    logger.error("Embedding generation failed", { messageId, error });
+  }
+}
+
+/**
+ * Run event matching for a finalized message.
+ * Reads the full message from DB, finds or creates an event, and stores the eventId cache.
+ */
+async function runEventMatching(messageId: string): Promise<void> {
+  try {
+    const { getDb } = await import("@/lib/db");
+    const { processEventMatching } = await import("@/lib/event-matching");
+
+    const db = await getDb();
+    const message = await db.messages.findById(messageId);
+    if (!message) return;
+
+    const result = await processEventMatching(db, message);
+
+    await updateMessage(messageId, {
+      eventId: result.eventId,
+    });
+  } catch (error) {
+    // Event matching failures should not break the ingest pipeline
+    logger.error("Event matching failed", { messageId, error });
+  }
+}
+
+/**
+ * Try to match a message to an existing event before geocoding.
+ * If a high-quality event is found, reuse its geometry, finalize, and attach.
+ * Returns the message response if reuse succeeded, null otherwise.
+ */
+async function tryPreGeocodeMatch(
+  messageId: string,
+  messageText: string,
+  options: MessageIngestOptions,
+  extractedLocations: ExtractedLocations,
+  categories: string[],
+  ingestErrors: IngestErrorCollector,
+): Promise<InternalMessage | null> {
+  try {
+    const { getDb } = await import("@/lib/db");
+    const { preGeocodeMatch, attachMessageToEvent } = await import(
+      "@/lib/event-matching"
+    );
+
+    const db = await getDb();
+
+    // Read message from DB to get timespans stored by storeExtractedLocations()
+    const storedMessage = await db.messages.findById(messageId);
+    if (!storedMessage) return null;
+
+    const match = await preGeocodeMatch(db, {
+      timespanStart: (storedMessage.timespanStart as string | Date) ?? null,
+      timespanEnd: (storedMessage.timespanEnd as string | Date) ?? null,
+      categories,
+      cityWide: extractedLocations.cityWide,
+      locality: options.locality || getLocality(),
+      embedding: (storedMessage.embedding as number[]) ?? null,
+    });
+
+    if (!match) return null;
+
+    const eventId = match.event._id as string;
+    const geoJson = match.geometry;
+
+    logger.info("Pre-geocode match: reusing event geometry", {
+      messageId,
+      eventId,
+      geometryQuality: (match.event.geometryQuality as number) ?? 0,
+      score: match.score,
+    });
+
+    // Apply boundary filtering if needed
+    const filteredGeoJson = await applyBoundaryFilteringIfNeeded(
+      messageId,
+      geoJson,
+      options.boundaryFilter,
+    );
+
+    // Finalize with reused geometry
+    await finalizeMessageWithResults(messageId, filteredGeoJson, ingestErrors);
+
+    // Attach to the matched event
+    await attachMessageToEvent(
+      db,
+      {
+        _id: messageId,
+        geoJson: filteredGeoJson,
+        timespanStart: (storedMessage.timespanStart as string | Date) ?? null,
+        timespanEnd: (storedMessage.timespanEnd as string | Date) ?? null,
+        source: storedMessage.source as string | undefined,
+        categories,
+        embedding: (storedMessage.embedding as number[]) ?? null,
+      },
+      match.event,
+      match.score,
+      match.signals,
+    );
+
+    await updateMessage(messageId, { eventId });
+
+    return await buildMessageResponse(
+      messageId,
+      messageText,
+      options.locality,
+      [],
+      filteredGeoJson,
+    );
+  } catch (error) {
+    // Pre-geocode match failures should not break the pipeline — fall through to normal geocoding
+    logger.error("Pre-geocode match aborted, proceeding with geocoding", {
+      messageId,
+      error,
+    });
+    return null;
+  }
 }

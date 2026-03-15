@@ -8,8 +8,15 @@ vi.mock("@/lib/firebase-admin", () => ({
 }));
 
 // Mock db to prevent Firebase initialization
+const mockFindById = vi.fn();
+const mockDeleteOne = vi.fn();
 vi.mock("@/lib/db", () => ({
-  getDb: vi.fn(),
+  getDb: vi.fn().mockResolvedValue({
+    messages: {
+      findById: (...args: unknown[]) => mockFindById(...args),
+      deleteOne: (...args: unknown[]) => mockDeleteOne(...args),
+    },
+  }),
 }));
 
 // Mock the messageIngest DB layer so tests don't hit Firestore
@@ -31,6 +38,25 @@ vi.mock("../crawlers/shared/firestore", () => ({
 // Mock logger to suppress output
 vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
+// Mock event matching
+const mockProcessEventMatching = vi.fn();
+vi.mock("@/lib/event-matching", () => ({
+  processEventMatching: (...args: unknown[]) =>
+    mockProcessEventMatching(...args),
+}));
+
+// Mock embeddings (non-fatal, return null by default)
+vi.mock("@/lib/embeddings", () => ({
+  generateEmbedding: vi.fn().mockResolvedValue(null),
+}));
+
+// Mock boundary-utils for boundary filtering tests
+const mockFilterFeaturesByBoundaries = vi.fn();
+vi.mock("../lib/boundary-utils", () => ({
+  filterFeaturesByBoundaries: (...args: unknown[]) =>
+    mockFilterFeaturesByBoundaries(...args),
 }));
 
 import { computeGeoJsonCentroidAddress, messageIngest } from "./index";
@@ -307,5 +333,114 @@ describe("messageIngest sourceDocumentId precedence", () => {
     const callArgs = mockStoreIncomingMessage.mock.calls[0];
     expect(callArgs[5]).toBe(explicitId);
     expect(callArgs[5]).not.toBe(`encoded(${sourceUrl})`);
+  });
+
+  it("stores timespans for precomputed GeoJSON even when markdownText is missing", async () => {
+    const sourceTimespanStart = new Date("2026-03-01T08:00:00Z");
+    const sourceTimespanEnd = new Date("2026-03-01T12:00:00Z");
+
+    await messageIngest("test text", "sofiyska-voda", {
+      precomputedGeoJson: PRECOMPUTED_GEOJSON,
+      locality: "bg.sofia",
+      timespanStart: sourceTimespanStart,
+      timespanEnd: sourceTimespanEnd,
+      // markdownText intentionally omitted
+    });
+
+    const updatePayloads = mockUpdateMessage.mock.calls.map((call) => call[1]);
+    const timespanUpdate = updatePayloads.find(
+      (payload) =>
+        payload &&
+        payload.timespanStart instanceof Date &&
+        payload.timespanEnd instanceof Date,
+    );
+
+    expect(timespanUpdate).toBeDefined();
+    expect(timespanUpdate.timespanStart).toEqual(sourceTimespanStart);
+    expect(timespanUpdate.timespanEnd).toEqual(sourceTimespanEnd);
+  });
+});
+
+const BOUNDARY_GEOJSON: GeoJSONFeatureCollection = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [23.0, 42.0],
+            [24.0, 42.0],
+            [24.0, 43.0],
+            [23.0, 43.0],
+            [23.0, 42.0],
+          ],
+        ],
+      },
+      properties: {},
+    },
+  ],
+};
+
+describe("event matching after finalization", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStoreIncomingMessage.mockResolvedValue("test-msg-id");
+    mockUpdateMessage.mockResolvedValue(undefined);
+    mockFindById.mockResolvedValue({
+      _id: "test-msg-id",
+      text: "test text",
+      geoJson: PRECOMPUTED_GEOJSON,
+      source: "toplo-bg",
+    });
+    mockProcessEventMatching.mockResolvedValue({
+      eventId: "evt-1",
+      action: "created",
+      confidence: 1.0,
+    });
+    mockDeleteOne.mockResolvedValue(undefined);
+  });
+
+  it("calls event matching after finalization when geoJson is present", async () => {
+    await messageIngest("test text", "toplo-bg", {
+      precomputedGeoJson: PRECOMPUTED_GEOJSON,
+      locality: "bg.sofia",
+    });
+
+    expect(mockProcessEventMatching).toHaveBeenCalledOnce();
+    // Verify eventId is stored on the message
+    expect(mockUpdateMessage).toHaveBeenCalledWith("test-msg-id", {
+      eventId: "evt-1",
+    });
+  });
+
+  it("does not call event matching when boundary filtering rejects", async () => {
+    mockFilterFeaturesByBoundaries.mockReturnValue(null);
+
+    const result = await messageIngest("test text", "toplo-bg", {
+      precomputedGeoJson: PRECOMPUTED_GEOJSON,
+      boundaryFilter: BOUNDARY_GEOJSON,
+      locality: "bg.sofia",
+    });
+
+    expect(mockProcessEventMatching).not.toHaveBeenCalled();
+    // Message document should be deleted (boundary filter contract: "not stored")
+    expect(mockDeleteOne).toHaveBeenCalledWith("test-msg-id");
+    // Result still returns a message response (informational only)
+    expect(result.messages).toHaveLength(1);
+  });
+
+  it("handles event matching failures without aborting ingest", async () => {
+    mockProcessEventMatching.mockRejectedValue(new Error("matching failed"));
+
+    const result = await messageIngest("test text", "toplo-bg", {
+      precomputedGeoJson: PRECOMPUTED_GEOJSON,
+      locality: "bg.sofia",
+    });
+
+    // Pipeline should complete successfully despite event matching failure
+    expect(result.messages).toHaveLength(1);
+    expect(result.totalRelevant).toBe(1);
   });
 });
