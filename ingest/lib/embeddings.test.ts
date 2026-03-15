@@ -84,4 +84,31 @@ describe("generateEmbedding", () => {
     expect(result).toBeNull();
     expect(mockEmbedContent).not.toHaveBeenCalled();
   });
+
+  it("serializes concurrent calls so only one is in-flight at a time", async () => {
+    const fakeValues = Array.from({ length: 768 }, (_, i) => i * 0.001);
+    const callOrder: number[] = [];
+    mockEmbedContent.mockImplementation(async () => {
+      // Record when each API call executes (not when the promise was created)
+      callOrder.push(Date.now());
+      return { embeddings: [{ values: fakeValues }] };
+    });
+
+    // Fire 3 concurrent calls
+    const results = await Promise.all([
+      generateEmbedding("text 1"),
+      generateEmbedding("text 2"),
+      generateEmbedding("text 3"),
+    ]);
+
+    expect(results).toHaveLength(3);
+    results.forEach((r) => expect(r).toEqual(fakeValues));
+    // All 3 calls must have been serialized (3 actual API hits)
+    expect(mockEmbedContent).toHaveBeenCalledTimes(3);
+    // Each call should have started sequentially (not simultaneously)
+    expect(callOrder).toHaveLength(3);
+    for (let i = 1; i < callOrder.length; i++) {
+      expect(callOrder[i]).toBeGreaterThanOrEqual(callOrder[i - 1]);
+    }
+  });
 });
