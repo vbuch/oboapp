@@ -101,13 +101,15 @@ export async function attachMessageToEvent(
     addToSet.categories = message.categories;
   }
 
-  // Update embedding if new source has higher trust
+  // Update embedding if new source has higher trust than all existing sources
   if (message.embedding?.length) {
     const existingSources = (event.sources as string[]) ?? [];
     const newTrust = getSourceTrust(source).trust;
-    const existingPrimarySource = existingSources[0] ?? "";
-    const existingTrust = getSourceTrust(existingPrimarySource).trust;
-    if (newTrust >= existingTrust || !event.embedding) {
+    const maxExistingTrust = existingSources.reduce(
+      (max, src) => Math.max(max, getSourceTrust(src).trust),
+      0,
+    );
+    if (newTrust >= maxExistingTrust || !event.embedding) {
       setFields.embedding = message.embedding;
     }
   }

@@ -14,6 +14,14 @@ import { GeoJsonFeatureCollectionSchema } from "./geojson.schema";
  */
 export const EventSchema = z.object({
   id: z.string().optional(),
+  /**
+   * Canonical normalized text for the event. Required on events (unlike MessageSchema
+   * where it's optional) because events are always created from processed messages.
+   *
+   * NOTE: MessageSchema.text is a transient ingestion field (raw crawler/user input)
+   * not intended for public display. Events intentionally omit it — plainText is the
+   * correct public-facing text field for both messages and events.
+   */
   plainText: z.string(),
   markdownText: z.string().nullable().optional(),
   geoJson: GeoJsonFeatureCollectionSchema.nullable().optional(),

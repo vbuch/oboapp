@@ -195,10 +195,12 @@ async function processSingleMessage(
       options.boundaryFilter,
     );
   } catch (error) {
-    // Boundary filtering rejected this message — do not finalize or run event matching.
-    // The message remains stored but unfinalized, matching the documented intent
-    // of boundaryFilter (message is not stored/visible when outside boundaries).
-    logger.info("Message excluded by boundary filter, skipping finalization", { messageId, error });
+    // Boundary filtering rejected this message — delete the unfinalized document
+    // to honor the boundaryFilter contract ("message is not stored").
+    logger.info("Message excluded by boundary filter, deleting document", { messageId, error });
+    const { getDb } = await import("@/lib/db");
+    const db = await getDb();
+    await db.messages.deleteOne(messageId);
     return await buildMessageResponse(messageId, text, options.locality, addresses, null);
   }
 
