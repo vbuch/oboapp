@@ -11,7 +11,7 @@
  * - An EventMessage link document (deterministic ID: messageId for idempotency)
  * - Updates the message with the eventId
  *
- * Idempotent: checks both message.eventId and eventMessages/{messageId} existence.
+ * Idempotent: skips messages that already have an eventId set.
  * Paginated: processes messages in batches to avoid loading entire collection.
  *
  * Run with: cd db && npx tsx migrate/2026-03-15-create-events-from-messages.ts
