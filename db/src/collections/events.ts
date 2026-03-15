@@ -67,7 +67,11 @@ export class EventsRepository {
       where.push({ field: "cityWide", op: "==", value: true });
     }
 
-    const results = await this.db.findMany(EVENTS_COLLECTION, { where });
+    const results = await this.db.findMany(EVENTS_COLLECTION, {
+      where,
+      orderBy: [{ field: "timespanEnd", direction: "asc" }],
+      limit: 500,
+    });
 
     // Filter timespanStart in memory (Firestore doesn't support range filters on two fields)
     const windowEndStr = timeWindowEnd.toISOString();
