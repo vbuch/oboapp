@@ -244,7 +244,6 @@ async function processPrecomputedGeoJsonMessage(
     });
   }
 
-  // Generate embedding from source text (non-blocking)
   await storeEmbeddingForMessage(storedMessageId, text);
 
   const message = await processSingleMessage(
