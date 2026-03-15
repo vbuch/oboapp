@@ -171,8 +171,8 @@ describe("attachMessageToEvent", () => {
     // Second call: geometry upgrade after fresh read
     expect(mockFindEventById).toHaveBeenCalledWith("evt-1");
     const geometryUpdate = mockUpdateEvent.mock.calls[1][1];
-    expect(geometryUpdate.geoJson).toBe(newGeoJson);
-    expect(geometryUpdate.geometryQuality).toBe(3);
+    expect(geometryUpdate.$set.geoJson).toBe(newGeoJson);
+    expect(geometryUpdate.$set.geometryQuality).toBe(3);
   });
 
   it("keeps existing geometry when existing quality >= new", async () => {

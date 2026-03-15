@@ -129,8 +129,7 @@ export async function attachMessageToEvent(
       const latestGeometryQuality = (freshEvent?.geometryQuality as number) ?? 0;
       if (newGeometryQuality > latestGeometryQuality) {
         await db.events.updateOne(eventId, {
-          geoJson: message.geoJson,
-          geometryQuality: newGeometryQuality,
+          $set: { geoJson: message.geoJson, geometryQuality: newGeometryQuality },
         });
       }
     }
