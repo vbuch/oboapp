@@ -11,11 +11,13 @@
 /** Fields that Firestore stores as JSON strings (per collection) */
 const STRINGIFY_ON_WRITE: Record<string, Set<string>> = {
   messages: new Set(["geoJson", "addresses"]),
+  events: new Set(["geoJson"]),
 };
 
 /** Fields that may be JSON strings when reading from Firestore (per collection) */
 const PARSE_ON_READ: Record<string, Set<string>> = {
   messages: new Set(["geoJson", "addresses", "ingestErrors"]),
+  events: new Set(["geoJson"]),
 };
 
 function isFirestoreTimestamp(
@@ -23,7 +25,8 @@ function isFirestoreTimestamp(
 ): value is { toDate(): Date } | { _seconds: number } {
   if (!value || typeof value !== "object") return false;
   return (
-    ("toDate" in value && typeof (value as Record<string, unknown>).toDate === "function") ||
+    ("toDate" in value &&
+      typeof (value as Record<string, unknown>).toDate === "function") ||
     "_seconds" in value
   );
 }
@@ -31,7 +34,10 @@ function isFirestoreTimestamp(
 function timestampToDate(value: unknown): Date {
   if (value instanceof Date) return value;
   if (typeof value === "object" && value !== null) {
-    if ("toDate" in value && typeof (value as Record<string, unknown>).toDate === "function") {
+    if (
+      "toDate" in value &&
+      typeof (value as Record<string, unknown>).toDate === "function"
+    ) {
       return (value as { toDate(): Date }).toDate();
     }
     if ("_seconds" in value) {

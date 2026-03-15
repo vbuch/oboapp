@@ -43,6 +43,16 @@ describe("transformForFirestoreWrite", () => {
     expect("missing" in result).toBe(false);
   });
 
+  it("stringifies geoJson for events collection", () => {
+    const data = {
+      plainText: "hello",
+      geoJson: { type: "FeatureCollection", features: [] },
+    };
+    const result = transformForFirestoreWrite("events", data);
+    expect(result.geoJson).toBe('{"type":"FeatureCollection","features":[]}');
+    expect(result.plainText).toBe("hello");
+  });
+
   it("does NOT stringify fields for non-messages collections", () => {
     const data = {
       geoJson: { type: "FeatureCollection", features: [] },
@@ -124,6 +134,16 @@ describe("transformFromFirestoreRead", () => {
     };
     const result = transformFromFirestoreRead("messages", data);
     expect(result.geoJson).toBe("not-valid-json{");
+  });
+
+  it("parses geoJson JSON string for events collection", () => {
+    const geoJson = { type: "FeatureCollection", features: [] };
+    const data = {
+      plainText: "hello",
+      geoJson: JSON.stringify(geoJson),
+    };
+    const result = transformFromFirestoreRead("events", data);
+    expect(result.geoJson).toEqual(geoJson);
   });
 
   it("does NOT parse JSON strings for non-messages collections", () => {
