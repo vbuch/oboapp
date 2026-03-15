@@ -3,8 +3,7 @@ export function toISOString(value: string | Date): string {
 }
 
 export function toMs(value: string | Date): number {
-  const ms = value instanceof Date ? value.getTime() : new Date(value).getTime();
-  return Number.isNaN(ms) ? 0 : ms;
+  return value instanceof Date ? value.getTime() : new Date(value).getTime();
 }
 
 export function isAlreadyExistsError(error: unknown): boolean {

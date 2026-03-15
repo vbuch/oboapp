@@ -144,6 +144,9 @@ function computeTimeOverlap(
   const es = toMs(evtStart);
   const ee = toMs(evtEnd);
 
+  // If any value is NaN (invalid date string), treat as no overlap
+  if (!Number.isFinite(ms) || !Number.isFinite(me) || !Number.isFinite(es) || !Number.isFinite(ee)) return 0;
+
   const overlapStart = Math.max(ms, es);
   const overlapEnd = Math.min(me, ee);
   const overlap = Math.max(0, overlapEnd - overlapStart);

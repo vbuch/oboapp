@@ -3,7 +3,10 @@
 /**
  * Migration: Create 1:1 events from existing finalized messages.
  *
- * For every finalized message with geoJson, creates:
+ * NOTE: Run this migration with ingestion paused (no active crawlers/pipeline)
+ * to avoid race conditions between the existence pre-check and batch commit.
+ *
+ * For every finalized message (with geoJson OR cityWide=true), creates:
  * - An Event document (inherits geoJson, timespans, categories, text fields, etc.)
  * - An EventMessage link document (deterministic ID: messageId for idempotency)
  * - Updates the message with the eventId
@@ -143,7 +146,8 @@ async function main() {
       }
 
       const geoJson = parseJsonField(data.geoJson);
-      if (!geoJson) {
+      const isCityWide = Boolean(data.cityWide);
+      if (!geoJson && !isCityWide) {
         skippedNoGeoJson++;
         continue;
       }
@@ -241,9 +245,11 @@ async function main() {
           matchSignals: null,
           createdAt: now,
         };
-        // Use set() instead of create() so repeated runs / concurrent writers
-        // do not cause ALREADY_EXISTS errors that abort the whole batch.
-        batch.set(eventMessageRef, eventMessageData);
+        // Use create() so that a concurrent write from the live pipeline (between
+        // the getAll() pre-check and batch.commit()) causes a hard failure rather
+        // than silently overwriting an existing link. Run this migration with
+        // ingestion paused; if it fails, re-run safely (idempotent via pre-check).
+        batch.create(eventMessageRef, eventMessageData);
 
         // Store eventId on message
         batch.update(doc.ref, { eventId: eventRef.id });
