@@ -69,8 +69,9 @@ export function computeMatchScore(
   if (hasEmbeddings) {
     // Cosine similarity returns [-1, 1]; clamp to [0, 1] for scoring.
     // Guard against NaN (e.g. if stored embeddings contain non-finite values).
+    // Also clamp upper bound: floating-point error can push cosine slightly above 1.
     const raw = cosineSimilarity(message.embedding!, event.embedding!);
-    textSimilarity = Number.isFinite(raw) ? Math.max(0, raw) : 0;
+    textSimilarity = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
 
     score =
       LOCATION_WEIGHT * locationSimilarity +

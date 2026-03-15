@@ -191,7 +191,8 @@ async function main() {
 
         const now = new Date().toISOString();
         const source = (data.source as string) || "";
-        const geometryQuality = getGeometryQuality(source);
+        // Only assign source-based quality when geometry is actually present
+        const geometryQuality = geoJson ? getGeometryQuality(source) : 0;
 
         // Fallback timespans: prefer message timespans, fall back to
         // crawledAt/finalizedAt so events always have a usable timespanEnd

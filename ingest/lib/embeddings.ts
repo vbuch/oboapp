@@ -27,6 +27,10 @@ export async function generateEmbedding(
 ): Promise<number[] | null> {
   if (!text.trim()) return null;
 
+  if (!process.env.GOOGLE_AI_API_KEY) {
+    return null;
+  }
+
   // Rate limiting
   const elapsed = Date.now() - lastCallTime;
   if (elapsed < RATE_LIMIT_MS) {
