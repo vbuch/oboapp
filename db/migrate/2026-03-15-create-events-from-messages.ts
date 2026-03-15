@@ -211,8 +211,8 @@ async function main() {
         const eventRef = adminDb.collection("events").doc();
         const eventData: Record<string, unknown> = {
           plainText: data.plainText || data.text || "",
-          markdownText: data.markdownText || null,
-          geoJson,
+          ...(data.markdownText ? { markdownText: data.markdownText } : {}),
+          ...(geoJson ? { geoJson } : {}),
           geometryQuality,
           timespanStart,
           timespanEnd,
