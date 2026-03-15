@@ -27,7 +27,7 @@ describe("computeMatchScore", () => {
         categories: ["water"],
       },
       {
-        geometry: geoJson,
+        geoJson: geoJson,
         timespanStart: "2025-03-01T08:00:00Z",
         timespanEnd: "2025-03-01T18:00:00Z",
         categories: ["water"],
@@ -52,7 +52,7 @@ describe("computeMatchScore", () => {
         categories: ["water"],
       },
       {
-        geometry: evtGeo,
+        geoJson: evtGeo,
         timespanStart: "2025-03-01T06:00:00Z",
         timespanEnd: "2025-03-01T20:00:00Z",
         categories: ["water"],
@@ -75,7 +75,7 @@ describe("computeMatchScore", () => {
         categories: ["water"],
       },
       {
-        geometry: evtGeo,
+        geoJson: evtGeo,
         timespanStart: "2025-03-01T08:00:00Z",
         timespanEnd: "2025-03-01T18:00:00Z",
         categories: ["water"],
@@ -95,7 +95,7 @@ describe("computeMatchScore", () => {
         categories: ["water"],
       },
       {
-        geometry: geoJson,
+        geoJson: geoJson,
         timespanStart: "2025-03-05T08:00:00Z",
         timespanEnd: "2025-03-05T18:00:00Z",
         categories: ["water"],
@@ -114,7 +114,7 @@ describe("computeMatchScore", () => {
         categories: [],
       },
       {
-        geometry: geoJson,
+        geoJson: geoJson,
         timespanStart: "2025-03-01T08:00:00Z",
         timespanEnd: "2025-03-01T18:00:00Z",
         categories: [],
@@ -133,7 +133,7 @@ describe("computeMatchScore", () => {
         cityWide: true,
       },
       {
-        geometry: null,
+        geoJson: null,
         timespanStart: "2025-03-01T08:00:00Z",
         timespanEnd: "2025-03-01T18:00:00Z",
         categories: ["weather"],
@@ -147,7 +147,7 @@ describe("computeMatchScore", () => {
     const geoJson = pointGeoJson(23.3219, 42.6977);
     const { signals } = computeMatchScore(
       { geoJson, categories: ["water"] },
-      { geometry: geoJson, categories: ["water"] },
+      { geoJson: geoJson, categories: ["water"] },
     );
     expect(signals.timeOverlap).toBe(0);
   });
@@ -156,7 +156,7 @@ describe("computeMatchScore", () => {
     const geoJson = pointGeoJson(23.3219, 42.6977);
     const { signals } = computeMatchScore(
       { geoJson, categories: ["water", "traffic"], timespanStart: "2025-03-01T08:00:00Z", timespanEnd: "2025-03-01T18:00:00Z" },
-      { geometry: geoJson, categories: ["water", "electricity"], timespanStart: "2025-03-01T08:00:00Z", timespanEnd: "2025-03-01T18:00:00Z" },
+      { geoJson: geoJson, categories: ["water", "electricity"], timespanStart: "2025-03-01T08:00:00Z", timespanEnd: "2025-03-01T18:00:00Z" },
     );
     // Jaccard: intersection=1 (water), union=3 → 1/3 ≈ 0.333
     expect(signals.categoryMatch).toBeCloseTo(1 / 3, 2);
@@ -175,7 +175,7 @@ describe("computeMatchScore", () => {
         embedding,
       },
       {
-        geometry: geoJson,
+        geoJson: geoJson,
         timespanStart: "2025-03-01T08:00:00Z",
         timespanEnd: "2025-03-01T18:00:00Z",
         categories: ["water"],
@@ -198,7 +198,7 @@ describe("computeMatchScore", () => {
         categories: ["water"],
       },
       {
-        geometry: geoJson,
+        geoJson: geoJson,
         timespanStart: "2025-03-01T08:00:00Z",
         timespanEnd: "2025-03-01T18:00:00Z",
         categories: ["water"],
@@ -221,7 +221,7 @@ describe("computeMatchScore", () => {
         embedding: [1, 0, 0],
       },
       {
-        geometry: geoJson,
+        geoJson: geoJson,
         timespanStart: "2025-03-01T08:00:00Z",
         timespanEnd: "2025-03-01T18:00:00Z",
         categories: ["water"],
@@ -243,7 +243,7 @@ describe("computeMatchScore", () => {
         embedding: [0.1, 0.2, 0.3],
       },
       {
-        geometry: geoJson,
+        geoJson: geoJson,
         timespanStart: "2025-03-01T08:00:00Z",
         timespanEnd: "2025-03-01T18:00:00Z",
         categories: ["water"],

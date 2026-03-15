@@ -49,7 +49,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-1",
         geometryQuality: 1, // below MIN_REUSABLE_GEOMETRY_QUALITY
-        geometry: sampleGeometry,
+        geoJson: sampleGeometry,
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["water-outage"],
@@ -65,7 +65,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-1",
         geometryQuality: 3,
-        geometry: { type: "FeatureCollection", features: [] },
+        geoJson: { type: "FeatureCollection", features: [] },
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["water-outage"],
@@ -81,7 +81,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-1",
         geometryQuality: 3,
-        geometry: sampleGeometry,
+        geoJson: sampleGeometry,
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["water-outage"],
@@ -102,7 +102,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-1",
         geometryQuality: 3,
-        geometry: sampleGeometry,
+        geoJson: sampleGeometry,
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["road-repair"], // no overlap with water-outage
@@ -127,7 +127,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-1",
         geometryQuality: MIN_REUSABLE_GEOMETRY_QUALITY,
-        geometry: sampleGeometry,
+        geoJson: sampleGeometry,
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["water-outage"],
@@ -144,7 +144,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-low",
         geometryQuality: 3,
-        geometry: sampleGeometry,
+        geoJson: sampleGeometry,
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["road-repair"], // no category overlap → lower score
@@ -152,7 +152,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-high",
         geometryQuality: 3,
-        geometry: sampleGeometry,
+        geoJson: sampleGeometry,
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["water-outage"], // perfect category match → higher score
@@ -169,7 +169,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-cw",
         geometryQuality: 3,
-        geometry: sampleGeometry,
+        geoJson: sampleGeometry,
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["water-outage"],
@@ -192,7 +192,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-emb",
         geometryQuality: 3,
-        geometry: sampleGeometry,
+        geoJson: sampleGeometry,
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["water-outage"],
@@ -215,7 +215,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-ortho",
         geometryQuality: 3,
-        geometry: sampleGeometry,
+        geoJson: sampleGeometry,
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["water-outage"],
@@ -239,7 +239,7 @@ describe("preGeocodeMatch", () => {
       {
         _id: "evt-no-emb",
         geometryQuality: 3,
-        geometry: sampleGeometry,
+        geoJson: sampleGeometry,
         timespanStart: "2025-03-03T08:00:00Z",
         timespanEnd: "2025-03-03T18:00:00Z",
         categories: ["water-outage"],

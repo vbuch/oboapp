@@ -128,4 +128,26 @@ describe("verifyEventMatch", () => {
     expect(parsed.locationContext).toBe("");
     expect(parsed.timeContext).toBe("");
   });
+
+  it("returns null when prompt loading fails", async () => {
+    // Reset the prompt cache by re-importing with a failing loadPrompt
+    vi.resetModules();
+    vi.doMock("../ai-prompts", () => ({
+      loadPrompt: vi.fn().mockImplementation(() => {
+        throw new Error("File not found");
+      }),
+    }));
+    vi.doMock("../ai-validation", () => ({
+      validateModelConfig: vi
+        .fn()
+        .mockReturnValue({ isValid: true, model: "gemini-2.0-flash" }),
+    }));
+    vi.doMock("../ai-client", () => ({
+      callGeminiApi: vi.fn().mockResolvedValue(null),
+    }));
+
+    const { verifyEventMatch: freshVerify } = await import("./llm-verify");
+    const result = await freshVerify(input);
+    expect(result).toBeNull();
+  });
 });

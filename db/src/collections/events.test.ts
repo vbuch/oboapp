@@ -72,24 +72,48 @@ describe("EventsRepository", () => {
   });
 
   describe("findCandidates", () => {
-    it("queries by locality and time window", async () => {
+    it("queries by locality and time window, filters timespanStart in memory", async () => {
       const start = new Date("2025-03-01T00:00:00Z");
       const end = new Date("2025-03-05T00:00:00Z");
 
-      await repo.findCandidates("bg.sofia", start, end);
+      // Mock returns events — one within range, one outside
+      vi.mocked(db.findMany).mockResolvedValueOnce([
+        { _id: "e1", timespanStart: "2025-03-02T00:00:00Z", timespanEnd: "2025-03-04T00:00:00Z" },
+        { _id: "e2", timespanStart: "2025-03-10T00:00:00Z", timespanEnd: "2025-03-12T00:00:00Z" },
+      ]);
 
+      const results = await repo.findCandidates("bg.sofia", start, end);
+
+      // Query uses only timespanEnd range (Firestore-compatible)
       expect(db.findMany).toHaveBeenCalledWith(EVENTS_COLLECTION, {
         where: [
           { field: "locality", op: "==", value: "bg.sofia" },
           { field: "timespanEnd", op: ">=", value: start.toISOString() },
-          { field: "timespanStart", op: "<=", value: end.toISOString() },
         ],
       });
+
+      // timespanStart > windowEnd filtered out in memory
+      expect(results).toHaveLength(1);
+      expect(results[0]._id).toBe("e1");
+    });
+
+    it("includes events with no timespanStart", async () => {
+      const start = new Date("2025-03-01T00:00:00Z");
+      const end = new Date("2025-03-05T00:00:00Z");
+
+      vi.mocked(db.findMany).mockResolvedValueOnce([
+        { _id: "e1", timespanStart: null, timespanEnd: "2025-03-04T00:00:00Z" },
+      ]);
+
+      const results = await repo.findCandidates("bg.sofia", start, end);
+      expect(results).toHaveLength(1);
     });
 
     it("adds cityWide filter when requested", async () => {
       const start = new Date("2025-03-01T00:00:00Z");
       const end = new Date("2025-03-05T00:00:00Z");
+
+      vi.mocked(db.findMany).mockResolvedValueOnce([]);
 
       await repo.findCandidates("bg.sofia", start, end, {
         cityWideOnly: true,
@@ -99,7 +123,6 @@ describe("EventsRepository", () => {
         where: [
           { field: "locality", op: "==", value: "bg.sofia" },
           { field: "timespanEnd", op: ">=", value: start.toISOString() },
-          { field: "timespanStart", op: "<=", value: end.toISOString() },
           { field: "cityWide", op: "==", value: true },
         ],
       });
@@ -109,13 +132,15 @@ describe("EventsRepository", () => {
       const start = new Date("2025-03-01T00:00:00Z");
       const end = new Date("2025-03-05T00:00:00Z");
 
+      vi.mocked(db.findMany).mockResolvedValueOnce([]);
+
       await repo.findCandidates("bg.sofia", start, end, {
         cityWideOnly: false,
       });
 
       const call = vi.mocked(db.findMany).mock.calls[0];
       const where = (call[1] as { where: unknown[] }).where;
-      expect(where).toHaveLength(3); // no cityWide clause
+      expect(where).toHaveLength(2); // locality + timespanEnd only
     });
   });
 });

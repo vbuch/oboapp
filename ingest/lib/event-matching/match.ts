@@ -53,7 +53,7 @@ export async function findBestMatch(
         embedding: message.embedding ?? undefined,
       },
       {
-        geometry: candidate.geometry as GeoJSONFeatureCollection | null | undefined,
+        geoJson: candidate.geoJson as GeoJSONFeatureCollection | null | undefined,
         timespanStart: candidate.timespanStart as string | null,
         timespanEnd: candidate.timespanEnd as string | null,
         categories: candidate.categories as string[] | undefined,
@@ -123,13 +123,6 @@ function buildLocationContext(
   const parts: string[] = [];
   if (message.cityWide) parts.push("Message: city-wide");
   if (event.cityWide) parts.push("Event: city-wide");
-
-  // Extract street names from event's stored fields for LLM context
-  const eventStreets = event.streets as Array<{ name?: string }> | undefined;
-  if (eventStreets?.length) {
-    const names = eventStreets.map((s) => s.name).filter(Boolean);
-    if (names.length) parts.push(`Event streets: ${names.join(", ")}`);
-  }
 
   return parts.join("; ") || "";
 }

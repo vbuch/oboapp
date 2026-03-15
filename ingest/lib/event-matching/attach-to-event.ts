@@ -94,7 +94,7 @@ export async function attachMessageToEvent(
 
   // Upgrade geometry if new message has higher quality
   if (newGeometryQuality > existingGeometryQuality && message.geoJson) {
-    update.geometry = message.geoJson;
+    update.geoJson = message.geoJson;
     update.geometryQuality = newGeometryQuality;
   }
 

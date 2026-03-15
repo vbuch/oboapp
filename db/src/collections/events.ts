@@ -44,6 +44,9 @@ export class EventsRepository {
   /**
    * Find candidate events for matching.
    * Queries by locality + time window. Spatial filtering is done in-memory.
+   *
+   * Uses a single range filter (timespanEnd >= windowStart) for Firestore compatibility,
+   * then filters timespanStart <= windowEnd in application code.
    */
   async findCandidates(
     locality: string,
@@ -58,17 +61,19 @@ export class EventsRepository {
         op: ">=",
         value: timeWindowStart.toISOString(),
       },
-      {
-        field: "timespanStart",
-        op: "<=",
-        value: timeWindowEnd.toISOString(),
-      },
     ];
 
     if (options?.cityWideOnly) {
       where.push({ field: "cityWide", op: "==", value: true });
     }
 
-    return this.db.findMany(EVENTS_COLLECTION, { where });
+    const results = await this.db.findMany(EVENTS_COLLECTION, { where });
+
+    // Filter timespanStart in memory (Firestore doesn't support range filters on two fields)
+    const windowEndStr = timeWindowEnd.toISOString();
+    return results.filter((event) => {
+      const start = event.timespanStart as string | null | undefined;
+      return !start || start <= windowEndStr;
+    });
   }
 }

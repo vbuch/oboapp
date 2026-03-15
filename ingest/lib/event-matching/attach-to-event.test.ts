@@ -162,7 +162,7 @@ describe("attachMessageToEvent", () => {
     );
 
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.geometry).toBe(newGeoJson);
+    expect(update.geoJson).toBe(newGeoJson);
     expect(update.geometryQuality).toBe(3);
   });
 
@@ -177,7 +177,7 @@ describe("attachMessageToEvent", () => {
     );
 
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.geometry).toBeUndefined();
+    expect(update.geoJson).toBeUndefined();
     expect(update.geometryQuality).toBeUndefined();
   });
 

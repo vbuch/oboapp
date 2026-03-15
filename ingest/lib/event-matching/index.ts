@@ -1,5 +1,5 @@
-import { getDb } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import type { OboDb } from "@oboapp/db";
 import { findBestMatch } from "./match";
 import { createEventFromMessage } from "./create-event";
 import { attachMessageToEvent } from "./attach-to-event";
@@ -26,9 +26,9 @@ export interface EventMatchResult {
  * Either creates a new event or attaches the message to an existing one.
  */
 export async function processEventMatching(
+  db: OboDb,
   message: Record<string, unknown>,
 ): Promise<EventMatchResult> {
-  const db = await getDb();
   const messageId = message._id as string;
 
   const matchInput = {

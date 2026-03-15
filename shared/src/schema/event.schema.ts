@@ -10,7 +10,7 @@ export const EventSchema = z.object({
   id: z.string().optional(),
   canonicalText: z.string(),
   canonicalMarkdownText: z.string().nullable().optional(),
-  geometry: GeoJsonFeatureCollectionSchema.nullable().optional(),
+  geoJson: GeoJsonFeatureCollectionSchema.nullable().optional(),
   geometryQuality: z.number().int().min(0).max(3),
   timespanStart: z.string().nullable().optional(),
   timespanEnd: z.string().nullable().optional(),

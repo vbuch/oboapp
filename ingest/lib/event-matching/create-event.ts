@@ -46,7 +46,7 @@ export async function createEventFromMessage(
   const eventId = await db.events.insertOne({
     canonicalText: message.plainText || message.text || "",
     canonicalMarkdownText: message.markdownText || null,
-    geometry: message.geoJson || null,
+    geoJson: message.geoJson || null,
     geometryQuality,
     timespanStart: message.timespanStart
       ? toISOString(message.timespanStart)

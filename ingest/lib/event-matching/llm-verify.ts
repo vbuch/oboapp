@@ -35,6 +35,14 @@ export async function verifyEventMatch(
     return null;
   }
 
+  let prompt: string;
+  try {
+    prompt = getVerifyPrompt();
+  } catch (error) {
+    logger.warn("LLM verify skipped: failed to load prompt", { error });
+    return null;
+  }
+
   const contents = JSON.stringify({
     messageA: input.messageText,
     messageB: input.eventText,
@@ -45,7 +53,7 @@ export async function verifyEventMatch(
   const responseText = await callGeminiApi({
     model: modelConfig.model!,
     contents,
-    systemInstruction: getVerifyPrompt(),
+    systemInstruction: prompt,
   });
 
   if (!responseText) {

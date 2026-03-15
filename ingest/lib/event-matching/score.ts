@@ -34,7 +34,7 @@ export function computeMatchScore(
     embedding?: number[] | null;
   },
   event: {
-    geometry?: GeoJSONFeatureCollection | null;
+    geoJson?: GeoJSONFeatureCollection | null;
     timespanStart?: string | Date | null;
     timespanEnd?: string | Date | null;
     categories?: string[];
@@ -44,7 +44,7 @@ export function computeMatchScore(
 ): { score: number; signals: MatchSignals } {
   const locationSimilarity = computeLocationSimilarity(
     message.geoJson,
-    event.geometry,
+    event.geoJson,
     message.cityWide,
     event.cityWide,
   );
@@ -97,26 +97,26 @@ export function computeMatchScore(
  */
 function computeLocationSimilarity(
   messageGeoJson: GeoJSONFeatureCollection | null | undefined,
-  eventGeometry: GeoJSONFeatureCollection | null | undefined,
+  eventGeoJson: GeoJSONFeatureCollection | null | undefined,
   messageCityWide?: boolean,
   eventCityWide?: boolean,
 ): number {
   // City-wide: spatial comparison not meaningful
   if (messageCityWide && eventCityWide) return 1.0;
 
-  if (!messageGeoJson?.features?.length || !eventGeometry?.features?.length) {
+  if (!messageGeoJson?.features?.length || !eventGeoJson?.features?.length) {
     return 0;
   }
 
   // Safety: skip if any feature has null/missing geometry (turf.centroid would throw)
   const hasValidGeometry = (fc: GeoJSONFeatureCollection) =>
     fc.features.every((f) => f.geometry?.type && f.geometry?.coordinates);
-  if (!hasValidGeometry(messageGeoJson) || !hasValidGeometry(eventGeometry)) {
+  if (!hasValidGeometry(messageGeoJson) || !hasValidGeometry(eventGeoJson)) {
     return 0;
   }
 
   const msgCentroid = turf.centroid(messageGeoJson);
-  const evtCentroid = turf.centroid(eventGeometry);
+  const evtCentroid = turf.centroid(eventGeoJson);
 
   const distanceMeters =
     turf.distance(msgCentroid, evtCentroid, { units: "meters" });

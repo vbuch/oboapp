@@ -53,7 +53,7 @@ export async function preGeocodeMatch(
     // Skip events with low-quality geometry — not worth reusing
     if (geometryQuality < MIN_REUSABLE_GEOMETRY_QUALITY) continue;
 
-    const geometry = candidate.geometry as GeoJSONFeatureCollection | undefined;
+    const geometry = candidate.geoJson as GeoJSONFeatureCollection | undefined;
     if (!geometry?.features?.length) continue;
 
     // Score using time + category only (re-weighted since no location signal)
@@ -66,7 +66,7 @@ export async function preGeocodeMatch(
         cityWide: message.cityWide,
       },
       {
-        geometry: candidate.geometry as GeoJSONFeatureCollection | null,
+        geoJson: candidate.geoJson as GeoJSONFeatureCollection | null,
         timespanStart: candidate.timespanStart as string | null,
         timespanEnd: candidate.timespanEnd as string | null,
         categories: candidate.categories as string[] | undefined,

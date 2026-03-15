@@ -204,7 +204,8 @@ async function processSingleMessage(
   await finalizeMessageWithResults(messageId, geoJson, ingestErrors);
 
   // Event matching: group this message into an event (create or attach)
-  if (geoJson) {
+  // Trigger for messages with geoJson OR city-wide messages (which may have no geometry)
+  if (geoJson || options.cityWide) {
     await runEventMatching(messageId);
   }
 
@@ -998,7 +999,7 @@ async function runEventMatching(messageId: string): Promise<void> {
     const message = await db.messages.findById(messageId);
     if (!message) return;
 
-    const result = await processEventMatching(message);
+    const result = await processEventMatching(db, message);
 
     await updateMessage(messageId, {
       eventId: result.eventId,
