@@ -67,9 +67,10 @@ export function computeMatchScore(
   let score: number;
 
   if (hasEmbeddings) {
-    // Cosine similarity returns [-1, 1]; clamp to [0, 1] for scoring
+    // Cosine similarity returns [-1, 1]; clamp to [0, 1] for scoring.
+    // Guard against NaN (e.g. if stored embeddings contain non-finite values).
     const raw = cosineSimilarity(message.embedding!, event.embedding!);
-    textSimilarity = Math.max(0, raw);
+    textSimilarity = Number.isFinite(raw) ? Math.max(0, raw) : 0;
 
     score =
       LOCATION_WEIGHT * locationSimilarity +

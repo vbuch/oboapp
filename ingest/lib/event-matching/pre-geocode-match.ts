@@ -86,7 +86,8 @@ export async function preGeocodeMatch(
         message.embedding!,
         candidate.embedding as number[],
       );
-      const textSimilarity = Math.max(0, raw);
+      // Guard against NaN (e.g. if stored embeddings contain non-finite values).
+      const textSimilarity = Number.isFinite(raw) ? Math.max(0, raw) : 0;
       signals.textSimilarity = textSimilarity;
 
       score =

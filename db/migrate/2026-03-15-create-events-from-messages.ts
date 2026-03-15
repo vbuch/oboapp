@@ -164,12 +164,23 @@ async function main() {
         adminDb.collection("eventMessages").doc(m.messageId),
       );
       const existingLinks = await adminDb.getAll(...eventMessageRefs);
-      const existsSet = new Set(
-        existingLinks.filter((d) => d.exists).map((d) => d.id),
+      // Build a map of messageId → existing link data for cache repair
+      const existingLinksMap = new Map(
+        existingLinks
+          .filter((d) => d.exists)
+          .map((d) => [d.id, d.data() as { eventId?: string }]),
       );
 
       for (const { doc, data, messageId, geoJson } of messagesToProcess) {
-        if (existsSet.has(messageId)) {
+        if (existingLinksMap.has(messageId)) {
+          // Link already exists — repair denormalized cache if message.eventId is missing
+          if (!data.eventId) {
+            const existingLink = existingLinksMap.get(messageId);
+            if (existingLink?.eventId) {
+              batch.update(doc.ref, { eventId: existingLink.eventId });
+              batchCount++;
+            }
+          }
           skippedAlreadyLinked++;
           continue;
         }

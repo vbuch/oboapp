@@ -10,6 +10,7 @@
  */
 
 import type { Firestore } from "firebase-admin/firestore";
+import { encodeDocumentId } from "@/crawlers/shared/firestore";
 
 // A point on ul. Shishman 14-20 in Oborishte (lat 42.693, lng 23.331)
 const SHARED_LOCATION = { lat: 42.693, lng: 23.331 };
@@ -100,12 +101,12 @@ export interface RawSourceFixture {
 
 export const RAW_SOURCE_FIXTURES: readonly RawSourceFixture[] = [
   {
-    id: Buffer.from(toploBgSource.url).toString("base64").replaceAll(/[/+=]/g, "_"),
+    id: encodeDocumentId(toploBgSource.url),
     data: toploBgSource as unknown as Record<string, unknown>,
     sourceType: "toplo-bg",
   },
   {
-    id: Buffer.from(oborishteSource.url).toString("base64").replaceAll(/[/+=]/g, "_"),
+    id: encodeDocumentId(oborishteSource.url),
     data: oborishteSource as unknown as Record<string, unknown>,
     sourceType: "rayon-oborishte-bg",
   },

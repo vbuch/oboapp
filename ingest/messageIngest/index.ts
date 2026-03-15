@@ -195,6 +195,11 @@ async function processSingleMessage(
       options.boundaryFilter,
     );
   } catch (error) {
+    if (!(error instanceof BoundaryFilterRejectedError)) {
+      // Unexpected runtime error (e.g. import failure, bug inside filterFeaturesByBoundaries).
+      // Rethrow so the caller can handle it — do NOT silently delete the document.
+      throw error;
+    }
     // Boundary filtering rejected this message — delete the unfinalized document
     // to honor the boundaryFilter contract ("message is not stored").
     logger.info("Message excluded by boundary filter, deleting document", { messageId, error });
@@ -916,6 +921,17 @@ async function handlePrecomputedGeoJsonData(
 }
 
 /**
+ * Thrown when boundary filtering rejects a message (no features within boundaries).
+ * Distinguished from unexpected runtime errors so callers can safely delete the document.
+ */
+class BoundaryFilterRejectedError extends Error {
+  constructor(messageId: string) {
+    super(`Message ${messageId} has no features within specified boundaries`);
+    this.name = "BoundaryFilterRejectedError";
+  }
+}
+
+/**
  * Apply boundary filtering to GeoJSON if boundary filter is provided
  */
 async function applyBoundaryFilteringIfNeeded(
@@ -934,7 +950,7 @@ async function applyBoundaryFilteringIfNeeded(
     logger.info("Message has no features within boundaries, skipping storage", {
       messageId,
     });
-    throw new Error("No features within specified boundaries");
+    throw new BoundaryFilterRejectedError(messageId);
   }
 
   return filteredGeoJson;
