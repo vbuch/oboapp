@@ -21,9 +21,20 @@ vi.mock("./logger", () => ({
 import { generateEmbedding, _testInternals } from "./embeddings";
 
 describe("generateEmbedding", () => {
+  const ORIGINAL_API_KEY = process.env.GOOGLE_AI_API_KEY;
+
   beforeEach(() => {
+    process.env.GOOGLE_AI_API_KEY = "test-key";
     mockEmbedContent.mockReset();
     _testInternals.resetClient();
+  });
+
+  afterEach(() => {
+    if (ORIGINAL_API_KEY === undefined) {
+      delete process.env.GOOGLE_AI_API_KEY;
+    } else {
+      process.env.GOOGLE_AI_API_KEY = ORIGINAL_API_KEY;
+    }
   });
 
   it("returns embedding values from API response", async () => {
@@ -65,5 +76,12 @@ describe("generateEmbedding", () => {
     });
     const result = await generateEmbedding("test");
     expect(result).toBeNull();
+  });
+
+  it("returns null when GOOGLE_AI_API_KEY is not set", async () => {
+    delete process.env.GOOGLE_AI_API_KEY;
+    const result = await generateEmbedding("test text");
+    expect(result).toBeNull();
+    expect(mockEmbedContent).not.toHaveBeenCalled();
   });
 });
