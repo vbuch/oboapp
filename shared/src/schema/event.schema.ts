@@ -26,11 +26,11 @@ export const EventSchema = z.object({
    * correct public-facing text field for both messages and events.
    */
   plainText: z.string(),
-  markdownText: z.string().nullable().optional(),
-  geoJson: GeoJsonFeatureCollectionSchema.nullable().optional(),
+  markdownText: z.string().optional(),
+  geoJson: GeoJsonFeatureCollectionSchema.optional(),
   geometryQuality: z.number().int().min(0).max(3),
-  timespanStart: z.string().nullable().optional(),
-  timespanEnd: z.string().nullable().optional(),
+  timespanStart: z.string().optional(),
+  timespanEnd: z.string().optional(),
   categories: z.array(CategoryEnum).optional(),
   pins: z.array(PinSchema).optional(),
   streets: z.array(StreetSectionSchema).optional(),

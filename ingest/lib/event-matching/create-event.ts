@@ -50,15 +50,11 @@ export async function createEventFromMessage(
 
   const eventId = await db.events.insertOne({
     plainText: message.plainText || message.text || "",
-    markdownText: message.markdownText || null,
-    geoJson: message.geoJson || null,
+    ...(message.markdownText && { markdownText: message.markdownText }),
+    ...(message.geoJson && { geoJson: message.geoJson }),
     geometryQuality,
-    timespanStart: message.timespanStart
-      ? toISOString(message.timespanStart)
-      : null,
-    timespanEnd: message.timespanEnd
-      ? toISOString(message.timespanEnd)
-      : null,
+    ...(message.timespanStart && { timespanStart: toISOString(message.timespanStart) }),
+    ...(message.timespanEnd && { timespanEnd: toISOString(message.timespanEnd) }),
     categories: message.categories || [],
     sources: source ? [source] : [],
     messageCount: 1,
