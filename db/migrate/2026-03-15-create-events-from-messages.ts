@@ -226,7 +226,9 @@ async function main() {
           matchSignals: null,
           createdAt: now,
         };
-        batch.create(eventMessageRef, eventMessageData);
+        // Use set() instead of create() so repeated runs / concurrent writers
+        // do not cause ALREADY_EXISTS errors that abort the whole batch.
+        batch.set(eventMessageRef, eventMessageData);
 
         // Store eventId on message
         batch.update(doc.ref, { eventId: eventRef.id });
