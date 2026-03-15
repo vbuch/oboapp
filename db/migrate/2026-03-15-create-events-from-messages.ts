@@ -8,7 +8,7 @@
  * - An EventMessage link document (deterministic ID: messageId for idempotency)
  * - Updates the message with the eventId
  *
- * Idempotent: uses deterministic eventMessage IDs (doc ID = messageId).
+ * Idempotent: checks both message.eventId and eventMessages/{messageId} existence.
  * Paginated: processes messages in batches to avoid loading entire collection.
  *
  * Run with: cd db && npx tsx migrate/2026-03-15-create-events-from-messages.ts
@@ -140,9 +140,9 @@ async function main() {
         continue;
       }
 
-      // Idempotent: skip messages already linked to an event (eventId set by
-      // a previous migration run or by the live pipeline). This avoids an
-      // async Firestore read per document (N+1 pattern).
+      // Idempotent: skip messages already linked to an event.
+      // Check both the denormalized eventId cache AND the authoritative
+      // eventMessages link doc to avoid duplicates when the cache is stale.
       if (data.eventId) {
         skippedAlreadyLinked++;
         continue;
@@ -151,6 +151,12 @@ async function main() {
       const eventMessageRef = adminDb
         .collection("eventMessages")
         .doc(messageId);
+
+      const existingLink = await eventMessageRef.get();
+      if (existingLink.exists) {
+        skippedAlreadyLinked++;
+        continue;
+      }
 
       const now = new Date().toISOString();
       const source = (data.source as string) || "";
@@ -187,7 +193,7 @@ async function main() {
         matchSignals: null,
         createdAt: now,
       };
-      batch.set(eventMessageRef, eventMessageData);
+      batch.create(eventMessageRef, eventMessageData);
 
       // Store eventId on message
       batch.update(doc.ref, { eventId: eventRef.id });

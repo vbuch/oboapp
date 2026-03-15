@@ -970,7 +970,7 @@ async function finalizeMessageWithoutGeoJson(
 
 /**
  * Generate and store a text embedding for a message.
- * Failures are logged but don't block the pipeline.
+ * Non-fatal: failures are logged but don't abort the pipeline.
  */
 async function storeEmbeddingForMessage(
   messageId: string,

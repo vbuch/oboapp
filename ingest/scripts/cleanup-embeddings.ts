@@ -14,26 +14,33 @@ async function cleanupEmbeddings() {
   const { adminDb } = await import("@/lib/firebase-admin");
   const { FieldValue } = await import("firebase-admin/firestore");
 
-  const now = new Date().toISOString();
+  const now = new Date();
   let totalCleaned = 0;
 
   // Clean expired messages
+  // Query only by timespanEnd (single inequality) and filter embedding in code,
+  // because Firestore does not support != combined with another inequality filter.
   const messagesRef = adminDb.collection("messages");
   const msgQuery = messagesRef
     .where("timespanEnd", "<", now)
-    .where("embedding", "!=", null)
     .limit(BATCH_SIZE);
 
   let msgSnapshot = await msgQuery.get();
 
   while (!msgSnapshot.empty) {
     const batch = adminDb.batch();
+    let batchCount = 0;
     for (const doc of msgSnapshot.docs) {
-      batch.update(doc.ref, { embedding: FieldValue.delete() });
+      if (doc.data().embedding != null) {
+        batch.update(doc.ref, { embedding: FieldValue.delete() });
+        batchCount++;
+      }
     }
-    await batch.commit();
-    totalCleaned += msgSnapshot.size;
-    console.log(`  Cleaned ${msgSnapshot.size} messages (total: ${totalCleaned})`);
+    if (batchCount > 0) {
+      await batch.commit();
+      totalCleaned += batchCount;
+      console.log(`  Cleaned ${batchCount} messages (total: ${totalCleaned})`);
+    }
 
     // Get next batch
     msgSnapshot = await msgQuery.get();
@@ -43,19 +50,24 @@ async function cleanupEmbeddings() {
   const eventsRef = adminDb.collection("events");
   const evtQuery = eventsRef
     .where("timespanEnd", "<", now)
-    .where("embedding", "!=", null)
     .limit(BATCH_SIZE);
 
   let evtSnapshot = await evtQuery.get();
 
   while (!evtSnapshot.empty) {
     const batch = adminDb.batch();
+    let batchCount = 0;
     for (const doc of evtSnapshot.docs) {
-      batch.update(doc.ref, { embedding: FieldValue.delete() });
+      if (doc.data().embedding != null) {
+        batch.update(doc.ref, { embedding: FieldValue.delete() });
+        batchCount++;
+      }
     }
-    await batch.commit();
-    totalCleaned += evtSnapshot.size;
-    console.log(`  Cleaned ${evtSnapshot.size} events (total: ${totalCleaned})`);
+    if (batchCount > 0) {
+      await batch.commit();
+      totalCleaned += batchCount;
+      console.log(`  Cleaned ${batchCount} events (total: ${totalCleaned})`);
+    }
 
     evtSnapshot = await evtQuery.get();
   }
