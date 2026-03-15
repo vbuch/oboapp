@@ -1,6 +1,9 @@
 import { z } from "../zod-openapi";
 import { CategoryEnum } from "./category.schema";
+import { CadastralPropertySchema } from "./extracted-data.schema";
 import { GeoJsonFeatureCollectionSchema } from "./geojson.schema";
+import { PinSchema } from "./pin.schema";
+import { StreetSectionSchema } from "./street-section.schema";
 
 /**
  * EventSchema — represents a real-world incident aggregated from one or more messages.
@@ -29,6 +32,10 @@ export const EventSchema = z.object({
   timespanStart: z.string().nullable().optional(),
   timespanEnd: z.string().nullable().optional(),
   categories: z.array(CategoryEnum).optional(),
+  pins: z.array(PinSchema).optional(),
+  streets: z.array(StreetSectionSchema).optional(),
+  cadastralProperties: z.array(CadastralPropertySchema).optional(),
+  busStops: z.array(z.string()).optional(),
   sources: z.array(z.string()),
   messageCount: z.number().int().min(1),
   confidence: z.number().min(0).max(1),

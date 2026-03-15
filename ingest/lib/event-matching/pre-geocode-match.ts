@@ -87,6 +87,7 @@ export async function preGeocodeMatch(
         candidate.embedding as number[],
       );
       const textSimilarity = Math.max(0, raw);
+      signals.textSimilarity = textSimilarity;
 
       score =
         PRE_GEOCODE_TIME_WEIGHT_WITH_EMBEDDINGS * signals.timeOverlap +
