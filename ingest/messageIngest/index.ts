@@ -194,19 +194,18 @@ async function processSingleMessage(
       geoJson,
       options.boundaryFilter,
     );
-  } catch (error) {
-    logger.warn("Boundary filtering failed, finalizing without geometry", {
-      messageId,
-      error,
-    });
-    geoJson = null;
+  } catch {
+    // Boundary filtering rejected this message — do not finalize or run event matching.
+    // The message remains stored but unfinalized, matching the documented intent
+    // of boundaryFilter (message is not stored/visible when outside boundaries).
+    return await buildMessageResponse(messageId, text, options.locality, addresses, null);
   }
 
   await finalizeMessageWithResults(messageId, geoJson, ingestErrors);
 
   // Event matching: group this message into an event (create or attach)
   // Trigger for messages with geoJson OR city-wide messages (which may have no geometry)
-  if (geoJson || options.cityWide) {
+  if (geoJson || options.cityWide || extractedLocations?.cityWide) {
     await runEventMatching(messageId);
   }
 

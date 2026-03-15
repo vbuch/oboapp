@@ -4,7 +4,7 @@
  * Stores aggregated real-world incidents composed of one or more messages.
  */
 
-import type { DbClient, FindManyOptions, WhereClause } from "../types";
+import type { DbClient, FindManyOptions, UpdateOperators, WhereClause } from "../types";
 
 /** Collection name constant */
 export const EVENTS_COLLECTION = "events";
@@ -29,7 +29,7 @@ export class EventsRepository {
     return this.db.insertOne(EVENTS_COLLECTION, data, id);
   }
 
-  async updateOne(id: string, data: Record<string, unknown>): Promise<void> {
+  async updateOne(id: string, data: Record<string, unknown> | UpdateOperators): Promise<void> {
     return this.db.updateOne(EVENTS_COLLECTION, id, data);
   }
 

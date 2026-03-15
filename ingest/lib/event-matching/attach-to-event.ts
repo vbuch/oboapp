@@ -1,4 +1,4 @@
-import type { OboDb } from "@oboapp/db";
+import type { OboDb, UpdateOperators } from "@oboapp/db";
 import type { GeoJSONFeatureCollection } from "@/lib/types";
 import { getSourceTrust, getGeometryQuality } from "@/lib/source-trust";
 import type { MatchSignals } from "./score";
@@ -9,6 +9,8 @@ import { logger } from "@/lib/logger";
  * Attach a message to an existing event.
  * Updates the event: merge timespans, upgrade geometry if better quality,
  * add source, increment messageCount, update confidence.
+ *
+ * Uses atomic operators ($inc, $addToSet) for concurrency-safe updates.
  */
 export async function attachMessageToEvent(
   db: OboDb,
@@ -37,7 +39,10 @@ export async function attachMessageToEvent(
 
   const source = (message.source as string) || "";
   const hasPrecomputedGeoJson = getSourceTrust(source).geometryQuality === 3;
-  const newGeometryQuality = getGeometryQuality(source, hasPrecomputedGeoJson);
+  // Geometry quality is 0 when the message has no geoJson (e.g., city-wide messages)
+  const newGeometryQuality = message.geoJson
+    ? getGeometryQuality(source, hasPrecomputedGeoJson)
+    : 0;
   const now = new Date().toISOString();
   const eventId = event._id as string;
 
@@ -66,62 +71,68 @@ export async function attachMessageToEvent(
     throw error;
   }
 
-  // Build event update
-  const existingGeometryQuality = (event.geometryQuality as number) ?? 0;
-  const existingSources = (event.sources as string[]) ?? [];
-  const existingMessageCount = (event.messageCount as number) ?? 1;
-
-  const update: Record<string, unknown> = {
-    messageCount: existingMessageCount + 1,
-    updatedAt: now,
-  };
+  // Build atomic event update using UpdateOperators for concurrency safety
+  const setFields: Record<string, unknown> = { updatedAt: now };
+  const addToSet: Record<string, unknown> = {};
 
   // Merge timespans (expand to union)
   if (message.timespanStart) {
     const msgStart = toMs(message.timespanStart);
     const evtStart = event.timespanStart ? toMs(event.timespanStart as string) : Infinity;
     if (msgStart < evtStart) {
-      update.timespanStart = toISOString(message.timespanStart);
+      setFields.timespanStart = toISOString(message.timespanStart);
     }
   }
   if (message.timespanEnd) {
     const msgEnd = toMs(message.timespanEnd);
     const evtEnd = event.timespanEnd ? toMs(event.timespanEnd as string) : -Infinity;
     if (msgEnd > evtEnd) {
-      update.timespanEnd = toISOString(message.timespanEnd);
+      setFields.timespanEnd = toISOString(message.timespanEnd);
     }
   }
 
-  // Upgrade geometry if new message has higher quality
-  if (newGeometryQuality > existingGeometryQuality && message.geoJson) {
-    update.geoJson = message.geoJson;
-    update.geometryQuality = newGeometryQuality;
+  // Add source atomically (dedup handled by arrayUnion/$addToSet)
+  if (source) {
+    addToSet.sources = source;
   }
 
-  // Add source if not already present
-  if (source && !existingSources.includes(source)) {
-    update.sources = [...existingSources, source];
-  }
-
-  // Merge categories (union)
-  const msgCategories = message.categories;
-  if (msgCategories?.length) {
-    const existingCategories = (event.categories as string[]) ?? [];
-    const merged = [...new Set([...existingCategories, ...msgCategories])];
-    if (merged.length > existingCategories.length) {
-      update.categories = merged;
-    }
+  // Add categories atomically (union via arrayUnion/$addToSet)
+  if (message.categories?.length) {
+    addToSet.categories = message.categories;
   }
 
   // Update embedding if new source has higher trust
   if (message.embedding?.length) {
+    const existingSources = (event.sources as string[]) ?? [];
     const newTrust = getSourceTrust(source).trust;
     const existingPrimarySource = existingSources[0] ?? "";
     const existingTrust = getSourceTrust(existingPrimarySource).trust;
     if (newTrust >= existingTrust || !event.embedding) {
-      update.embedding = message.embedding;
+      setFields.embedding = message.embedding;
     }
   }
 
-  await db.events.updateOne(eventId, update);
+  const atomicUpdate: UpdateOperators = {
+    $inc: { messageCount: 1 },
+    $set: setFields,
+    ...(Object.keys(addToSet).length > 0 && { $addToSet: addToSet }),
+  };
+
+  await db.events.updateOne(eventId, atomicUpdate);
+
+  // Geometry upgrade: separate step with fresh read to minimize stale-data window.
+  // Re-read the event to get the latest geometryQuality before overwriting.
+  if (message.geoJson && newGeometryQuality > 0) {
+    const existingGeometryQuality = (event.geometryQuality as number) ?? 0;
+    if (newGeometryQuality > existingGeometryQuality) {
+      const freshEvent = await db.events.findById(eventId);
+      const latestGeometryQuality = (freshEvent?.geometryQuality as number) ?? 0;
+      if (newGeometryQuality > latestGeometryQuality) {
+        await db.events.updateOne(eventId, {
+          geoJson: message.geoJson,
+          geometryQuality: newGeometryQuality,
+        });
+      }
+    }
+  }
 }

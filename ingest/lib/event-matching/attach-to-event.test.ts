@@ -19,13 +19,14 @@ const mockInsertEventMessage = vi.fn().mockResolvedValue("em-new");
 const mockCreateEventMessage = vi.fn().mockResolvedValue("msg-2");
 const mockUpdateEvent = vi.fn().mockResolvedValue(undefined);
 const mockFindByMessageId = vi.fn().mockResolvedValue([]);
+const mockFindEventById = vi.fn().mockResolvedValue(null);
 const mockDb = {
   eventMessages: {
     insertOne: mockInsertEventMessage,
     createOne: mockCreateEventMessage,
     findByMessageId: mockFindByMessageId,
   },
-  events: { updateOne: mockUpdateEvent },
+  events: { updateOne: mockUpdateEvent, findById: mockFindEventById },
 } as any;
 
 const baseSignals = { locationSimilarity: 0.9, timeOverlap: 0.8, categoryMatch: 1.0, textSimilarity: 0 };
@@ -36,6 +37,7 @@ describe("attachMessageToEvent", () => {
     mockCreateEventMessage.mockClear().mockResolvedValue("msg-2");
     mockUpdateEvent.mockClear();
     mockFindByMessageId.mockClear().mockResolvedValue([]);
+    mockFindEventById.mockClear().mockResolvedValue(null);
   });
 
   it("skips duplicate attach when message is already linked", async () => {
@@ -86,7 +88,7 @@ describe("attachMessageToEvent", () => {
     expect(mockUpdateEvent).not.toHaveBeenCalled();
   });
 
-  it("increments messageCount", async () => {
+  it("increments messageCount atomically", async () => {
     await attachMessageToEvent(
       mockDb,
       { _id: "msg-2", source: "sofia-bg" },
@@ -96,7 +98,7 @@ describe("attachMessageToEvent", () => {
     );
 
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.messageCount).toBe(2);
+    expect(update.$inc).toEqual({ messageCount: 1 });
   });
 
   it("merges timespans (expands to union)", async () => {
@@ -121,8 +123,8 @@ describe("attachMessageToEvent", () => {
     );
 
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.timespanStart).toBe("2025-03-01T06:00:00Z");
-    expect(update.timespanEnd).toBe("2025-03-01T20:00:00Z");
+    expect(update.$set.timespanStart).toBe("2025-03-01T06:00:00Z");
+    expect(update.$set.timespanEnd).toBe("2025-03-01T20:00:00Z");
   });
 
   it("does not shrink timespans when message is narrower", async () => {
@@ -147,12 +149,14 @@ describe("attachMessageToEvent", () => {
     );
 
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.timespanStart).toBeUndefined(); // not updated
-    expect(update.timespanEnd).toBeUndefined();   // not updated
+    expect(update.$set.timespanStart).toBeUndefined(); // not updated
+    expect(update.$set.timespanEnd).toBeUndefined();   // not updated
   });
 
-  it("upgrades geometry when new quality > existing", async () => {
+  it("upgrades geometry when new quality > existing (with fresh read)", async () => {
     const newGeoJson = { type: "FeatureCollection" as const, features: [{ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [23.3, 42.7] as [number, number] }, properties: {} as Record<string, unknown> }] };
+    mockFindEventById.mockResolvedValueOnce({ _id: "evt-1", geometryQuality: 2 });
+
     await attachMessageToEvent(
       mockDb,
       { _id: "msg-2", source: "toplo-bg", geoJson: newGeoJson },
@@ -161,9 +165,14 @@ describe("attachMessageToEvent", () => {
       baseSignals,
     );
 
-    const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.geoJson).toBe(newGeoJson);
-    expect(update.geometryQuality).toBe(3);
+    // First call: atomic update (no geometry)
+    const atomicUpdate = mockUpdateEvent.mock.calls[0][1];
+    expect(atomicUpdate.$inc).toEqual({ messageCount: 1 });
+    // Second call: geometry upgrade after fresh read
+    expect(mockFindEventById).toHaveBeenCalledWith("evt-1");
+    const geometryUpdate = mockUpdateEvent.mock.calls[1][1];
+    expect(geometryUpdate.geoJson).toBe(newGeoJson);
+    expect(geometryUpdate.geometryQuality).toBe(3);
   });
 
   it("keeps existing geometry when existing quality >= new", async () => {
@@ -176,12 +185,14 @@ describe("attachMessageToEvent", () => {
       baseSignals,
     );
 
+    // Only one updateOne call (atomic ops), no geometry upgrade
+    expect(mockUpdateEvent).toHaveBeenCalledTimes(1);
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.geoJson).toBeUndefined();
-    expect(update.geometryQuality).toBeUndefined();
+    expect(update.$set.geoJson).toBeUndefined();
+    expect(update.$set.geometryQuality).toBeUndefined();
   });
 
-  it("adds source to sources array (deduped)", async () => {
+  it("adds source atomically via $addToSet", async () => {
     await attachMessageToEvent(
       mockDb,
       { _id: "msg-2", source: "sofia-bg" },
@@ -191,23 +202,11 @@ describe("attachMessageToEvent", () => {
     );
 
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.sources).toEqual(["toplo-bg", "sofia-bg"]);
+    // $addToSet lets the DB handle deduplication
+    expect(update.$addToSet.sources).toBe("sofia-bg");
   });
 
-  it("does not duplicate existing source", async () => {
-    await attachMessageToEvent(
-      mockDb,
-      { _id: "msg-2", source: "toplo-bg" },
-      { _id: "evt-1", geometryQuality: 3, sources: ["toplo-bg"], messageCount: 1 },
-      0.85,
-      baseSignals,
-    );
-
-    const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.sources).toBeUndefined(); // not updated
-  });
-
-  it("merges categories (union)", async () => {
+  it("merges categories atomically via $addToSet", async () => {
     await attachMessageToEvent(
       mockDb,
       { _id: "msg-2", source: "sofia-bg", categories: ["water", "traffic"] },
@@ -223,7 +222,8 @@ describe("attachMessageToEvent", () => {
     );
 
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.categories).toEqual(["water", "traffic"]);
+    // $addToSet lets the DB handle deduplication
+    expect(update.$addToSet.categories).toEqual(["water", "traffic"]);
   });
 
   it("updates event embedding when new source has higher trust", async () => {
@@ -243,7 +243,7 @@ describe("attachMessageToEvent", () => {
     );
 
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.embedding).toEqual(embedding);
+    expect(update.$set.embedding).toEqual(embedding);
   });
 
   it("keeps event embedding when new source has lower trust", async () => {
@@ -263,7 +263,7 @@ describe("attachMessageToEvent", () => {
     );
 
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.embedding).toBeUndefined();
+    expect(update.$set.embedding).toBeUndefined();
   });
 
   it("sets embedding when event has none", async () => {
@@ -282,6 +282,6 @@ describe("attachMessageToEvent", () => {
     );
 
     const update = mockUpdateEvent.mock.calls[0][1];
-    expect(update.embedding).toEqual(embedding);
+    expect(update.$set.embedding).toEqual(embedding);
   });
 });
