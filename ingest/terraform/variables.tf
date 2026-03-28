@@ -40,12 +40,14 @@ variable "schedules" {
     pipeline_all                    = string
     gtfs_sync                       = string
     educational_facilities_sync     = optional(string, "0 4 1 * *")
+    air_quality_fetch               = optional(string, "*/15 * * * *")
   })
   default = {
     pipeline_emergent               = "*/30 7-22 * * *"    # Every 30 minutes, 7:00AM–10:30PM (hours 7-22)
     pipeline_all                    = "0 10,14,16 * * *"   # 3x daily: 10:00, 14:00, 16:00
     gtfs_sync                       = "0 3 * * *"          # Daily at 3:00 AM
     educational_facilities_sync     = "0 4 1 * *"          # Monthly on the 1st at 4:00 AM
+    air_quality_fetch               = "*/15 * * * *"       # Every 15 minutes, 24/7
   }
 }
 
@@ -68,4 +70,15 @@ variable "locality" {
 variable "ci_service_account_email" {
   description = "Email of the CI/CD service account that runs Terraform (needs workflows.admin to update workflow definitions)"
   type        = string
+}
+
+variable "gcs_readings_bucket" {
+  description = "GCS bucket name for raw air quality sensor readings"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.gcs_readings_bucket == "" || length(var.gcs_readings_bucket) > 3
+    error_message = "gcs_readings_bucket must be empty (disabled) or a valid GCS bucket name (>3 chars)."
+  }
 }

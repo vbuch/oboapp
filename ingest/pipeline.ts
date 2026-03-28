@@ -10,7 +10,7 @@ import { logger } from "@/lib/logger";
 const program = new Command();
 
 // Define crawler groups
-const EMERGENT_CRAWLERS = ["erm-zapad", "toplo-bg", "sofiyska-voda"];
+const EMERGENT_CRAWLERS = ["erm-zapad", "toplo-bg", "sofiyska-voda", "sensor-community"];
 
 /**
  * Get available crawler sources by reading the crawlers directory
