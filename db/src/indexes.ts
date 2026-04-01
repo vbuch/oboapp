@@ -117,6 +117,11 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
   // --- events ---
   {
     collection: "events",
+    spec: { cityWide: 1, locality: 1, timespanEnd: 1 },
+    options: { name: "cityWide_locality_timespanEnd" },
+  },
+  {
+    collection: "events",
     spec: { locality: 1, timespanEnd: -1 },
     options: { name: "locality_timespanEnd" },
   },
