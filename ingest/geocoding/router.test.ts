@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 
 // Mock Firebase-dependent imports to avoid initialization errors
+vi.mock("@/lib/logger", () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
 vi.mock("./gtfs/geocoding-service", () => ({
   geocodeBusStops: vi.fn(),
 }));
@@ -212,8 +216,7 @@ describe("hasHouseNumber", () => {
 
 describe("geocodeIntersectionsForStreets", () => {
   it("should skip endpoints already in preGeocodedMap", async () => {
-    const { geocodeIntersectionsForStreets } =
-      await import("./router");
+    const { geocodeIntersectionsForStreets } = await import("./router");
     const { overpassGeocodeIntersections, overpassGeocodeAddresses } =
       await import("./overpass/service");
 
@@ -261,8 +264,7 @@ describe("geocodeIntersectionsForStreets", () => {
   });
 
   it("should work without preGeocodedMap (backward compatibility)", async () => {
-    const { geocodeIntersectionsForStreets } =
-      await import("./router");
+    const { geocodeIntersectionsForStreets } = await import("./router");
     const { overpassGeocodeIntersections, overpassGeocodeAddresses } =
       await import("./overpass/service");
 
@@ -311,5 +313,54 @@ describe("geocodeIntersectionsForStreets", () => {
     expect(result.size).toBe(2);
     expect(result.get("Cross A")).toEqual({ lat: 42.0, lng: 23.0 });
     expect(result.get("Cross B")).toEqual({ lat: 42.7, lng: 23.3 });
+  });
+
+  it("should not call Overpass for empty or whitespace-only endpoints", async () => {
+    const { geocodeIntersectionsForStreets } = await import("./router");
+    const { overpassGeocodeIntersections, overpassGeocodeAddresses } =
+      await import("./overpass/service");
+    const { logger } = await import("@/lib/logger");
+
+    const mockOverpassGeocodeIntersections = vi.mocked(
+      overpassGeocodeIntersections,
+    );
+    const mockOverpassGeocodeAddresses = vi.mocked(overpassGeocodeAddresses);
+    const mockWarn = vi.mocked(logger.warn);
+
+    mockOverpassGeocodeIntersections.mockResolvedValue([]);
+    mockOverpassGeocodeAddresses.mockResolvedValue([]);
+
+    const streets = [
+      {
+        street: "ул. Main",
+        from: "", // empty — must be skipped
+        to: "Cross B",
+        timespans: [{ start: "2024-01-01", end: "2024-01-02" }],
+      },
+      {
+        street: "ул. Second",
+        from: "Cross C",
+        to: "   ", // whitespace-only — must be skipped
+        timespans: [{ start: "2024-01-01", end: "2024-01-02" }],
+      },
+    ];
+
+    await geocodeIntersectionsForStreets(streets);
+
+    // Valid endpoints still produce intersection queries; empty/blank ones do not
+    expect(mockOverpassGeocodeIntersections).toHaveBeenCalledWith([
+      "ул. Main ∩ Cross B",
+      "ул. Second ∩ Cross C",
+    ]);
+
+    // A warn must be emitted for each skipped endpoint
+    expect(mockWarn).toHaveBeenCalledWith(
+      "Skipping empty endpoint in intersection geocoding",
+      { street: "ул. Main", endpoint: "" },
+    );
+    expect(mockWarn).toHaveBeenCalledWith(
+      "Skipping empty endpoint in intersection geocoding",
+      { street: "ул. Second", endpoint: "   " },
+    );
   });
 });
