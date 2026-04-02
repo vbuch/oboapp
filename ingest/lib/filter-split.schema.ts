@@ -14,3 +14,6 @@ export const FilterSplitResponseSchema = z.array(FilteredMessageSchema);
 
 export type FilteredMessage = z.infer<typeof FilteredMessageSchema>;
 export type FilterSplitResult = z.infer<typeof FilterSplitResponseSchema>;
+
+export const FILTER_SPLIT_JSON_SCHEMA =
+  FilterSplitResponseSchema.toJSONSchema();

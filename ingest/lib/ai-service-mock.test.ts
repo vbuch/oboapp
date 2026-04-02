@@ -43,11 +43,9 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
       if (fnMatch) {
         const fnSource = fnMatch[0];
         expect(fnSource).toContain("if (USE_MOCK && mockService)");
+        expect(fnSource).toContain("Using Gemini mock for filter & split");
         expect(fnSource).toContain(
-          "Using Gemini mock for filter & split",
-        );
-        expect(fnSource).toContain(
-          "return mockService.filterAndSplit(text)",
+          "return mockService.filterAndSplit(processedText)",
         );
       }
     });
@@ -68,7 +66,7 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
           "Using Gemini mock for categorization",
         );
         expect(categorizeFnSource).toContain(
-          "return mockService.categorize(text)",
+          "return mockService.categorize(processedText)",
         );
       }
     });
@@ -89,7 +87,7 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
           "Using Gemini mock for location extraction",
         );
         expect(extractFnSource).toContain(
-          "return mockService.extractLocations(text)",
+          "return mockService.extractLocations(processedText)",
         );
       }
     });
@@ -129,17 +127,17 @@ describe("MOCK_GEMINI_API flag - integration tests", () => {
       const documentedBehavior = {
         filterAndSplit: {
           mockCheck: "if (USE_MOCK && mockService)",
-          mockReturn: "mockService.filterAndSplit(text)",
+          mockReturn: "mockService.filterAndSplit(processedText)",
           logMessage: "[MOCK] Using Gemini mock for filter & split",
         },
         categorize: {
           mockCheck: "if (USE_MOCK && mockService)",
-          mockReturn: "mockService.categorize(text)",
+          mockReturn: "mockService.categorize(processedText)",
           logMessage: "[MOCK] Using Gemini mock for categorization",
         },
         extractLocations: {
           mockCheck: "if (USE_MOCK && mockService)",
-          mockReturn: "mockService.extractLocations(text)",
+          mockReturn: "mockService.extractLocations(processedText)",
           logMessage: "[MOCK] Using Gemini mock for location extraction",
         },
       };

@@ -1,8 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+// Mock logger to suppress output during tests
+vi.mock("@/lib/logger", () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
 import {
   validateText,
   validateModelConfig,
   sanitizeText,
+  truncateText,
 } from "./ai-validation";
 
 describe("ai-validation", () => {
@@ -151,6 +158,52 @@ describe("ai-validation", () => {
       const text = "simple text";
       const result = sanitizeText(text);
       expect(result).toBe("simple text");
+    });
+  });
+
+  describe("truncateText", () => {
+    it("should return text unchanged when under limit", () => {
+      const text = "a".repeat(500);
+      const result = truncateText(text, { maxLength: 1000, truncateTo: 500 });
+      expect(result).toBe(text);
+    });
+
+    it("should return text unchanged when exactly at limit", () => {
+      const text = "a".repeat(1000);
+      const result = truncateText(text, { maxLength: 1000, truncateTo: 500 });
+      expect(result).toBe(text);
+    });
+
+    it("should truncate text exceeding limit and append notice", () => {
+      const text = "a".repeat(1500);
+      const result = truncateText(text, { maxLength: 1000, truncateTo: 500 });
+      expect(result).toContain("a".repeat(500));
+      expect(result).toContain(
+        "This message was originally 1500 characters long but was programmatically truncated",
+      );
+    });
+
+    it("should truncate to truncateTo length plus notice", () => {
+      const text = "a".repeat(2000);
+      const result = truncateText(text, { maxLength: 1000, truncateTo: 600 });
+      const notice =
+        "\n\n... [This message was originally 2000 characters long but was programmatically truncated. Some content is missing.]";
+      expect(result).toBe("a".repeat(600) + notice);
+    });
+
+    it("should ensure total output does not exceed maxLength", () => {
+      const text = "a".repeat(2000);
+      const result = truncateText(text, { maxLength: 1000, truncateTo: 600 });
+      expect(result.length).toBeLessThanOrEqual(1000);
+    });
+
+    it("should throw if truncateTo >= maxLength", () => {
+      expect(() =>
+        truncateText("test", { maxLength: 100, truncateTo: 100 }),
+      ).toThrow("truncateTo must be less than maxLength");
+      expect(() =>
+        truncateText("test", { maxLength: 100, truncateTo: 200 }),
+      ).toThrow("truncateTo must be less than maxLength");
     });
   });
 });

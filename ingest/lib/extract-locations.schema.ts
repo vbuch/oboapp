@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { PinSchema, StreetSectionSchema, CadastralPropertySchema, EducationalFacilityRefSchema } from "@oboapp/shared";
+import {
+  PinSchema,
+  StreetSectionSchema,
+  CadastralPropertySchema,
+  EducationalFacilityRefSchema,
+} from "@oboapp/shared";
 
 const ExtractedLocationsSchema = z.object({
   withSpecificAddress: z.boolean().default(false),
@@ -14,3 +19,6 @@ const ExtractedLocationsSchema = z.object({
 export { ExtractedLocationsSchema };
 
 export type ExtractedLocations = z.infer<typeof ExtractedLocationsSchema>;
+
+export const EXTRACT_LOCATIONS_JSON_SCHEMA =
+  ExtractedLocationsSchema.toJSONSchema();
