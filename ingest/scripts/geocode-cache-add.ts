@@ -138,7 +138,6 @@ async function cachePin(
         originalText: legacyMatch.originalText,
         formattedAddress: legacyMatch.formattedAddress,
         coordinates: legacyMatch.coordinates,
-        geoJson: legacyMatch.geoJson,
       };
     }
   }
@@ -179,18 +178,23 @@ async function cachePin(
     return;
   }
 
-  if (!match.geoJson) {
-    console.error(`❌ Matched address has no GeoJSON geometry stored.`);
+  if (!match.coordinates) {
+    console.error(`❌ Matched address has no coordinates stored.`);
     process.exitCode = 1;
     return;
   }
+
+  const pinGeoJson = {
+    type: "Point" as const,
+    coordinates: [match.coordinates.lng, match.coordinates.lat] as [number, number],
+  };
 
   await db.geocodeCachePins.insertOne({
     key: normalized,
     originalText: match.originalText,
     formattedAddress: match.formattedAddress,
     coordinates: match.coordinates,
-    geoJson: match.geoJson,
+    geoJson: pinGeoJson,
     sourceService: "google",
     sourceMessageId: messageId,
     cachedAt: new Date(),

@@ -4,6 +4,7 @@ import { normalizePinAddress } from "@oboapp/shared";
 import { updateMessage } from "./db/update-message";
 import { getDb } from "@/lib/db";
 import { isRecord } from "@/lib/record-fields";
+import { logger } from "@/lib/logger";
 
 const BATCH_SIZE = 10;
 
@@ -89,6 +90,14 @@ export function createGeocodingProgressTracker(
       streets: streetsToFlush,
     };
 
+    logger.debug("Flushing geocodingBatch to DB", {
+      messageId,
+      runId,
+      pins: pinsToFlush.length,
+      streets: streetsToFlush.length,
+      progress: { toDo, done },
+    });
+
     await updateMessage(messageId, {
       $addToSet: { process: batch },
     });
@@ -133,7 +142,18 @@ export function createGeocodingProgressTracker(
     async finalize(): Promise<void> {
       await flush();
 
-      if (allPins.length === 0 && allStreets.length === 0) return;
+      logger.debug("Finalizing geocoding progress tracker", {
+        messageId,
+        runId,
+        totalPins: allPins.length,
+        totalStreets: allStreets.length,
+        progress: { toDo, done },
+      });
+
+      if (allPins.length === 0 && allStreets.length === 0) {
+        logger.debug("No pins or streets resolved — skipping geocoding step write", { messageId });
+        return;
+      }
 
       const db = await getDb();
       const msg = await db.messages.findById(messageId);

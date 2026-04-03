@@ -777,57 +777,6 @@ async function performGeocodingWithErrorHandling(
       geocodedEducationalFacilities,
     );
 
-    // Record street geometries into the progress tracker.
-    // Reads from the in-memory cache populated during performGeocoding(). For streets geocoded via
-    // geotagged coordinates (Overpass was skipped), we make an explicit Overpass fetch here so their
-    // geometry ends up in the tracker too.
-    // Wrapped in its own try/catch so failures here don't invalidate the geocoding result above.
-    try {
-      if (extractedLocations.streets.length > 0) {
-        const {
-          getStreetGeometryCached,
-          getStreetGeometryFromOverpass,
-          hasStreetGeometryQueried,
-        } = await import("@/geocoding/overpass/service");
-        const { normalizePinAddress } = await import("@oboapp/shared");
-        const { delay } = await import("@/lib/delay");
-        let overpassFetchCount = 0;
-        for (const s of extractedLocations.streets) {
-          let geometry = getStreetGeometryCached(s.street);
-          if (!geometry && !hasStreetGeometryQueried(s.street)) {
-            // This street was geocoded via geotagged coordinates (Overpass was skipped).
-            // Fetch Overpass geometry explicitly so it can be pre-populated into the geocode cache.
-            if (overpassFetchCount > 0) {
-              await delay(500); // Respect Overpass fair-use rate limit between consecutive fetches
-            }
-            geometry = await getStreetGeometryFromOverpass(s.street);
-            overpassFetchCount++;
-          }
-          if (geometry) {
-            await tracker.recordStreet({
-              key: normalizePinAddress(s.street),
-              originalName: s.street,
-              // Stringify to avoid Firestore nested-array rejection (coordinates: number[][][])
-              geometry: JSON.stringify(geometry),
-            });
-          } else {
-            tracker.recordAttempted(1);
-          }
-        }
-      }
-    } catch (streetError) {
-      logger.warn(
-        "Failed to record street geometries in progress tracker — geocoding result unaffected",
-        {
-          messageId,
-          error:
-            streetError instanceof Error
-              ? streetError.message
-              : String(streetError),
-        },
-      );
-    }
-
     geocodingSucceeded = true;
     return { addresses: filteredAddresses, geoJson };
   } catch (error) {

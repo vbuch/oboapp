@@ -119,11 +119,14 @@ export function hasHouseNumber(endpoint: string): boolean {
 export async function geocodeIntersectionsForStreets(
   streets: StreetSection[],
   preGeocodedMap?: Map<string, Coordinates>,
+  seenIntersections?: Set<string>,
 ): Promise<Map<string, Coordinates>> {
   const geocodedMap = new Map<string, Coordinates>();
 
-  // Extract unique intersections, separating house-number endpoints
-  const intersectionSet = new Set<string>();
+  // Extract unique intersections, separating house-number endpoints.
+  // When seenIntersections is provided (per-street calls), it is shared across
+  // iterations to prevent the same intersection being queried more than once.
+  const intersectionSet = seenIntersections ?? new Set<string>();
   const intersections: string[] = [];
   const houseNumberEndpoints = new Map<string, string>(); // endpoint -> street name
 
