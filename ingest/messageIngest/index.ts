@@ -211,11 +211,20 @@ async function processSingleMessage(
     }
     // Boundary filtering rejected this message — delete the unfinalized document
     // to honor the boundaryFilter contract ("message is not stored").
-    logger.info("Message excluded by boundary filter, deleting document", { messageId, error });
+    logger.info("Message excluded by boundary filter, deleting document", {
+      messageId,
+      error,
+    });
     const { getDb } = await import("@/lib/db");
     const db = await getDb();
     await db.messages.deleteOne(messageId);
-    return await buildMessageResponse(messageId, text, options.locality, addresses, null);
+    return await buildMessageResponse(
+      messageId,
+      text,
+      options.locality,
+      addresses,
+      null,
+    );
   }
 
   await finalizeMessageWithResults(messageId, geoJson, ingestErrors);
@@ -264,7 +273,12 @@ async function processPrecomputedGeoJsonMessage(
 
   const precomputedIngestErrors = createIngestErrorCollector();
 
-  await storeEmbeddingForMessage(storedMessageId, text, source, precomputedIngestErrors);
+  await storeEmbeddingForMessage(
+    storedMessageId,
+    text,
+    source,
+    precomputedIngestErrors,
+  );
 
   const message = await processSingleMessage(
     storedMessageId,
@@ -375,7 +389,12 @@ async function processWithAIPipeline(
       continue;
     }
 
-    await storeEmbeddingForMessage(storedMessageId, filteredMessage.plainText, source, ingestErrors);
+    await storeEmbeddingForMessage(
+      storedMessageId,
+      filteredMessage.plainText,
+      source,
+      ingestErrors,
+    );
 
     // Step 2: Categorize (using plainText which is now guaranteed non-empty)
     const categorizationResult = await categorize(
@@ -557,7 +576,8 @@ function createLocationExtractionAudit(
       streetsCount: extractedLocations.streets?.length || 0,
       cadastralCount: extractedLocations.cadastralProperties?.length || 0,
       busStopsCount: extractedLocations.busStops?.length || 0,
-      educationalFacilitiesCount: extractedLocations.educationalFacilities?.length || 0,
+      educationalFacilitiesCount:
+        extractedLocations.educationalFacilities?.length || 0,
       cityWide: extractedLocations.cityWide || false,
     },
   };
@@ -687,7 +707,10 @@ async function performGeocoding(
 ) {
   const { geocodeAddressesFromExtractedData } =
     await import("./geocode-addresses");
-  return await geocodeAddressesFromExtractedData(extractedLocations, ingestErrors);
+  return await geocodeAddressesFromExtractedData(
+    extractedLocations,
+    ingestErrors,
+  );
 }
 
 /**
@@ -702,7 +725,10 @@ async function performGeocodingWithErrorHandling(
   geoJson: GeoJSONFeatureCollection | null;
 } | null> {
   try {
-    const geocodingResult = await performGeocoding(extractedLocations, ingestErrors);
+    const geocodingResult = await performGeocoding(
+      extractedLocations,
+      ingestErrors,
+    );
     const filteredAddresses = await filterAndStoreAddresses(
       messageId,
       geocodingResult.addresses,
@@ -734,6 +760,63 @@ async function performGeocodingWithErrorHandling(
       ingestErrors,
       geocodedEducationalFacilities,
     );
+
+    // Persist full street geometries to message.process for cache pre-population and reporting.
+    // Reads from the in-memory cache populated during performGeocoding(). For streets geocoded via
+    // geotagged coordinates (Overpass was skipped), we make an explicit Overpass fetch here so their
+    // geometry ends up in the cache too.
+    // Wrapped in its own try/catch so a failure here doesn't invalidate the geocoding result above.
+    try {
+      if (extractedLocations.streets.length > 0) {
+        const {
+          getStreetGeometryCached,
+          getStreetGeometryFromOverpass,
+          hasStreetGeometryQueried,
+        } = await import("@/geocoding/overpass/service");
+        const { normalizePinAddress } =
+          await import("@oboapp/shared");
+        const { delay } = await import("@/lib/delay");
+        const streetGeometries = [];
+        let overpassFetchCount = 0;
+        for (const s of extractedLocations.streets) {
+          let geometry = getStreetGeometryCached(s.street);
+          if (!geometry && !hasStreetGeometryQueried(s.street)) {
+            // This street was geocoded via geotagged coordinates (Overpass was skipped).
+            // Fetch Overpass geometry explicitly so it can be pre-populated into the geocode cache.
+            if (overpassFetchCount > 0) {
+              await delay(500); // Respect Overpass fair-use rate limit between consecutive fetches
+            }
+            geometry = await getStreetGeometryFromOverpass(s.street);
+            overpassFetchCount++;
+          }
+          if (geometry) {
+            streetGeometries.push({
+              key: normalizePinAddress(s.street),
+              originalName: s.street,
+              // Stringify to avoid Firestore nested-array rejection (coordinates: number[][][])
+              geometry: JSON.stringify(geometry),
+            });
+          }
+        }
+        if (streetGeometries.length > 0) {
+          await updateMessage(messageId, {
+            $addToSet: {
+              process: {
+                step: "streetGeometries",
+                timestamp: new Date().toISOString(),
+                result: streetGeometries,
+              },
+            },
+          });
+        }
+      }
+    } catch (geometryError) {
+      const { logger } = await import("@/lib/logger");
+      logger.warn("Failed to persist street geometries to message.process — geocoding result unaffected", {
+        messageId,
+        error: geometryError instanceof Error ? geometryError.message : String(geometryError),
+      });
+    }
 
     return { addresses: filteredAddresses, geoJson };
   } catch (error) {
@@ -869,9 +952,7 @@ export function computeGeoJsonCentroidAddress(
           const first = ring[0];
           const last = ring[ring.length - 1];
           const isClosed =
-            ring.length > 1 &&
-            first[0] === last[0] &&
-            first[1] === last[1];
+            ring.length > 1 && first[0] === last[0] && first[1] === last[1];
           const vertices = isClosed ? ring.slice(0, -1) : ring;
           for (const coord of vertices) {
             totalLng += coord[0];
@@ -972,7 +1053,8 @@ async function applyBoundaryFilteringIfNeeded(
     return geoJson;
   }
 
-  const { filterFeaturesByBoundaries } = await import("../geocoding/shared/boundary-utils");
+  const { filterFeaturesByBoundaries } =
+    await import("../geocoding/shared/boundary-utils");
   const filteredGeoJson = filterFeaturesByBoundaries(geoJson, boundaryFilter);
 
   if (!filteredGeoJson) {
@@ -1147,7 +1229,10 @@ async function runEventMatching(
     await updateMessage(messageId, {
       $addToSet: {
         process: createEventMatchingAudit(false, undefined, errorMessage),
-        ingestErrors: { text: `Event matching failed: ${errorMessage}`, type: "error" as const },
+        ingestErrors: {
+          text: `Event matching failed: ${errorMessage}`,
+          type: "error" as const,
+        },
       },
     }).catch(() => {
       // Best-effort — don't let audit storage failure mask the real error
@@ -1170,9 +1255,8 @@ async function tryPreGeocodeMatch(
 ): Promise<InternalMessage | null> {
   try {
     const { getDb } = await import("@/lib/db");
-    const { preGeocodeMatch, attachMessageToEvent } = await import(
-      "@/event-matching"
-    );
+    const { preGeocodeMatch, attachMessageToEvent } =
+      await import("@/event-matching");
 
     const db = await getDb();
 

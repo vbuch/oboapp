@@ -42,12 +42,66 @@ function makeStreetGeometryCacheKey(
   return `${featureType}:${normalizedStreetName}`;
 }
 
+function getStreetFeatureType(streetName: string): StreetGeometryFeatureType {
+  const lower = streetName.toLowerCase();
+  if (Boolean(lower.match(/^(площад|пл\.)\s*/))) return "square";
+  if (lower.includes("бул.")) return "boulevard";
+  if (lower.includes("ул.")) return "street";
+  return "boulevard";
+}
+
 // In-memory cache for street geometry lookups (keyed on type + normalized street name)
 const streetGeometryCache = new Map<string, Feature<MultiLineString> | null>();
 
 /** Clear the street geometry cache. Exported for test isolation. */
 export function clearStreetGeometryCache(): void {
   streetGeometryCache.clear();
+}
+
+/**
+ * Return a street geometry from the in-memory cache without making a network request.
+ * Returns null if the geometry was not fetched in the current run.
+ */
+export function getStreetGeometryCached(
+  streetName: string,
+): Feature<MultiLineString> | null {
+  const cacheKey = makeStreetGeometryCacheKey(
+    getStreetFeatureType(streetName),
+    normalizeStreetName(streetName),
+  );
+  return streetGeometryCache.get(cacheKey) ?? null;
+}
+
+/**
+ * Returns true if Overpass has already been queried for this street in the current run
+ * (regardless of whether it was found or not). Used to determine whether a rate-limiting
+ * delay is needed before a subsequent Overpass call.
+ */
+export function hasStreetGeometryQueried(streetName: string): boolean {
+  return streetGeometryCache.has(
+    makeStreetGeometryCacheKey(
+      getStreetFeatureType(streetName),
+      normalizeStreetName(streetName),
+    ),
+  );
+}
+
+/**
+ * Pre-populate the in-memory street geometry cache from externally stored entries
+ * (e.g. the geocode cache DB collection). Entries already present are not overwritten.
+ */
+export function seedStreetGeometryCache(
+  entries: Array<{ originalName: string; geometry: Feature<MultiLineString> }>,
+): void {
+  for (const { originalName, geometry } of entries) {
+    const cacheKey = makeStreetGeometryCacheKey(
+      getStreetFeatureType(originalName),
+      normalizeStreetName(originalName),
+    );
+    if (!streetGeometryCache.has(cacheKey)) {
+      streetGeometryCache.set(cacheKey, geometry);
+    }
+  }
 }
 
 /**
@@ -144,7 +198,7 @@ export function toOverpassRegex(normalizedName: string): string {
  * Get street geometry from Overpass API (OpenStreetMap)
  * Returns actual LineString geometries from OSM, preserving way structure
  */
-async function getStreetGeometryFromOverpass(
+export async function getStreetGeometryFromOverpass(
   streetName: string,
 ): Promise<Feature<MultiLineString> | null> {
   try {
@@ -152,17 +206,11 @@ async function getStreetGeometryFromOverpass(
     const normalizedName = normalizeStreetName(streetName);
 
     // Determine query variant — needed both for the cache key and the Overpass query.
-    // isSquare uses place=square OSM tags; isStreet broadens the highway filter to
+    // "square" uses place=square OSM tags; "street" broadens the highway filter to
     // include residential/unclassified/living_street (prefixed with "ул.").
-    const isSquare = Boolean(
-      streetName.toLowerCase().match(/^(площад|пл\.)\s*/),
-    );
-    const isStreet = !isSquare && streetName.toLowerCase().includes("ул.");
-    const featureType: StreetGeometryFeatureType = isSquare
-      ? "square"
-      : isStreet
-        ? "street"
-        : "boulevard";
+    const featureType = getStreetFeatureType(streetName);
+    const isSquare = featureType === "square";
+    const isStreet = featureType === "street";
     const cacheKey = makeStreetGeometryCacheKey(featureType, normalizedName);
 
     // Return cached result if available (includes null for streets not found in OSM)

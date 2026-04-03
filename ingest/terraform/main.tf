@@ -425,8 +425,8 @@ resource "google_cloud_run_v2_job" "crawlers" {
         }
         
         env {
-          name  = "GCS_READINGS_BUCKET"
-          value = var.gcs_readings_bucket
+          name  = "GCS_GENERIC_BUCKET"
+          value = var.gcs_generic_bucket
         }
       }
       
@@ -1081,9 +1081,9 @@ resource "google_cloud_scheduler_job" "educational_facilities_sync_schedule" {
 
 # ── Air Quality Fetch Job ─────────────────────────────────────────────────────
 
-resource "google_storage_bucket" "air_quality_readings" {
-  count         = var.gcs_readings_bucket != "" ? 1 : 0
-  name          = var.gcs_readings_bucket
+resource "google_storage_bucket" "generic" {
+  count         = var.gcs_generic_bucket != "" ? 1 : 0
+  name          = var.gcs_generic_bucket
   project       = var.project_id
   location      = var.region
   force_destroy = false
@@ -1100,16 +1100,16 @@ resource "google_storage_bucket" "air_quality_readings" {
   }
 }
 
-# Grant the ingest service account read/write access to the air quality readings bucket
-resource "google_storage_bucket_iam_member" "readings_bucket_object_admin" {
-  count  = var.gcs_readings_bucket != "" ? 1 : 0
-  bucket = google_storage_bucket.air_quality_readings[0].name
+# Grant the ingest service account read/write access to the generic data bucket
+resource "google_storage_bucket_iam_member" "generic_bucket_object_admin" {
+  count  = var.gcs_generic_bucket != "" ? 1 : 0
+  bucket = google_storage_bucket.generic[0].name
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.ingest_runner.email}"
 }
 
 resource "google_cloud_run_v2_job" "air_quality_fetch" {
-  count    = var.gcs_readings_bucket != "" ? 1 : 0
+  count    = var.gcs_generic_bucket != "" ? 1 : 0
   name     = "air-quality-fetch"
   location = var.region
 
@@ -1155,8 +1155,8 @@ resource "google_cloud_run_v2_job" "air_quality_fetch" {
         }
 
         env {
-          name  = "GCS_READINGS_BUCKET"
-          value = var.gcs_readings_bucket
+          name  = "GCS_GENERIC_BUCKET"
+          value = var.gcs_generic_bucket
         }
       }
 
@@ -1176,7 +1176,7 @@ resource "google_cloud_run_v2_job" "air_quality_fetch" {
 }
 
 resource "google_cloud_scheduler_job" "air_quality_fetch_schedule" {
-  count            = var.gcs_readings_bucket != "" ? 1 : 0
+  count            = var.gcs_generic_bucket != "" ? 1 : 0
   name             = "air-quality-fetch-schedule"
   description      = "Fetch sensor.community air quality data every 15 minutes"
   schedule         = var.schedules.air_quality_fetch
@@ -1199,6 +1199,103 @@ resource "google_cloud_scheduler_job" "air_quality_fetch_schedule" {
 
   depends_on = [
     google_project_service.cloudscheduler,
+  ]
+}
+
+# ── Geocode Cache Frequency Report ────────────────────────────────────────────
+
+resource "google_cloud_run_v2_job" "geocode_frequency_report" {
+  count    = var.gcs_generic_bucket != "" ? 1 : 0
+  name     = "geocode-frequency-report"
+  location = var.region
+
+  template {
+    template {
+      service_account = google_service_account.ingest_runner.email
+      timeout         = "600s"
+
+      containers {
+        image = local.full_image_url
+        args  = ["pnpm", "run", "prebuilt:geocode-cache-report"]
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
+
+        env {
+          name  = "NODE_ENV"
+          value = "production"
+        }
+
+        env {
+          name = "FIREBASE_SERVICE_ACCOUNT_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.firebase_sa_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+
+        env {
+          name  = "FIREBASE_PROJECT_ID"
+          value = var.firebase_project_id
+        }
+
+        env {
+          name  = "LOCALITY"
+          value = var.locality
+        }
+
+        env {
+          name  = "GCS_GENERIC_BUCKET"
+          value = var.gcs_generic_bucket
+        }
+      }
+
+      max_retries = 1
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      launch_stage,
+    ]
+  }
+
+  depends_on = [
+    google_project_service.run
+  ]
+}
+
+resource "google_cloud_scheduler_job" "geocode_frequency_report_schedule" {
+  count            = var.gcs_generic_bucket != "" ? 1 : 0
+  name             = "geocode-frequency-report-schedule"
+  description      = "Generate geocode cache frequency report weekly"
+  schedule         = var.schedules.geocode_cache_report
+  time_zone        = var.schedule_timezone
+  attempt_deadline = "620s"
+  region           = var.region
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/geocode-frequency-report:run"
+
+    oauth_token {
+      service_account_email = google_service_account.ingest_runner.email
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler,
+    google_cloud_run_v2_job.geocode_frequency_report,
   ]
 }
 

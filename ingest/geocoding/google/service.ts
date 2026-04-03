@@ -1,6 +1,6 @@
 import { Address } from "../../lib/types";
 import { isCenterFallback, isGenericCityAddress } from "./utils";
-import { isWithinBounds } from "@oboapp/shared";
+import { isWithinBounds, normalizePinAddress } from "@oboapp/shared";
 import { getLocality } from "../../lib/target-locality";
 import { delay } from "../../lib/delay";
 import { logger } from "@/lib/logger";
@@ -19,6 +19,14 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
   if (USE_MOCK && mockService) {
     logger.info("Using Google Geocoding mock", { address });
     return mockService.geocodeAddress(address);
+  }
+
+  // Check pin cache before calling Google Geocoding API
+  const { lookupCachedPin } = await import("../cache");
+  const cached = await lookupCachedPin(normalizePinAddress(address));
+  if (cached) {
+    logger.debug("Pin cache hit, skipping Google Geocoding API", { address });
+    return cached;
   }
 
   try {
