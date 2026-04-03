@@ -150,7 +150,6 @@ function shouldTryFallback(error: Error, statusCode?: number): boolean {
 const OVERPASS_INSTANCES = [
   "https://overpass.private.coffee/api/interpreter", // No rate limit
   "https://overpass-api.de/api/interpreter", // Main instance (10k queries/day)
-  "https://overpass.osm.jp/api/interpreter", // Japan instance
 ];
 
 /**
