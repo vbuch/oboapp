@@ -12,6 +12,7 @@ interface FrequencyEntry {
   count: number;
   cached: boolean;
   messageIds: string[];
+  partial?: boolean;
 }
 
 interface Report {
@@ -409,6 +410,11 @@ function FrequencyTable({
                 <td className="px-3 py-2">
                   <span className="text-neutral">{e.originalText}</span>
                   <span className="ml-2 text-xs text-neutral/50">{e.key}</span>
+                  {e.partial && (
+                    <span className="ml-2 text-xs font-medium text-warning bg-warning-light px-1.5 py-0.5 rounded">
+                      в процес
+                    </span>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{e.count}</td>
                 <td className="px-3 py-2 text-center">
@@ -520,10 +526,10 @@ export default function GeocodeCachePage() {
   }
 
   const pins = report.pins
-    .filter((p) => p.count > 1)
+    .filter((p) => p.count > 1 || p.partial)
     .filter((p) => !filterUncached || !p.cached);
   const streets = report.streets
-    .filter((s) => s.count > 1)
+    .filter((s) => s.count > 1 || s.partial)
     .filter((s) => !filterUncached || !s.cached);
 
   const cachedPinCount = report.pins.filter((p) => p.cached).length;

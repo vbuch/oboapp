@@ -83,6 +83,10 @@ The `/geocode-cache` page (linked from `/sources`) provides:
 - **Geometry visualization** — clicking an entry opens a side panel with a map showing markers (pins) or polylines (streets) from source messages. Partial results from interrupted runs appear here as soon as they are persisted.
 - **Copy command** — each message row has a button that copies the ready-to-run `geocode-cache:add` command to the clipboard
 
+## Historical Data Limitation
+
+The geocoding progress tracking described above (persisting incremental results into `process[]` on each message) was introduced on **3 April 2026**. Messages ingested before that date do not have `geocodingBatch` or `geocoding` entries in their `process[]` array. Their geocoded locations are only available via the top-level `pins` and `streets` fields, which are populated on finalization. Interrupted runs from before this date cannot be recovered via the admin page geometry panel.
+
 ## Related
 
 - [Geocoding](../../ingest/geocoding/README.md) — routing, services, and rate limits

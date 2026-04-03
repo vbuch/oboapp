@@ -11,6 +11,8 @@ export interface FrequencyEntry {
   count: number;
   cached: boolean;
   messageIds: string[];
+  /** True if at least one source message has geocoding data but is not yet finalized. */
+  partial?: true;
 }
 
 export interface GeocodeCacheFrequencyReport {
