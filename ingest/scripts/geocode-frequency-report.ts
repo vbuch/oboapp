@@ -159,7 +159,12 @@ async function buildReport(dryRun: boolean): Promise<void> {
       { originalText: string; count: number; messageIds: string[]; partial: boolean }
     >();
 
+    // Synthetic centroid key used for precomputed-GeoJSON messages — never a
+    // real geocodable address and has no cacheable value in the geocode cache.
+    const SYNTHETIC_CENTROID_KEY = normalizePinAddress("Местоположение");
+
     function addPin(key: string, originalText: string, msgId: string, isPartial: boolean) {
+      if (key === SYNTHETIC_CENTROID_KEY) return; // skip synthetic centroid
       const existing = pinCounts.get(key);
       if (existing) {
         existing.count++;
