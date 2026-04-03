@@ -12,6 +12,7 @@ import {
   StreetSection,
   Coordinates,
 } from "@/lib/types";
+import type { Feature, MultiLineString } from "geojson";
 import type { CadastralGeometry } from "@/geocoding/cadastre/service";
 import type { IngestErrorRecorder } from "@/lib/ingest-errors";
 import { logger } from "@/lib/logger";
@@ -304,6 +305,61 @@ function processStreetEndpointsWithPreResolvedCoordinates(
 }
 
 /**
+ * Fetch and record street geometry in the progress tracker.
+ * If `beforeFetch` is provided it is called immediately before any new Overpass
+ * network request (used by callers to apply per-request rate-limiting delays).
+ * Errors during Overpass fetching or progress-tracker recording are caught and
+ * logged without affecting geocoding results.
+ */
+async function recordStreetGeometryInTracker(
+  street: StreetSection,
+  tracker: GeocodingProgressTracker,
+  fetchers: {
+    getStreetGeometryCached: (name: string) => Feature<MultiLineString> | null;
+    getStreetGeometryFromOverpass: (name: string) => Promise<Feature<MultiLineString> | null>;
+    hasStreetGeometryQueried: (name: string) => boolean;
+  },
+  beforeFetch?: () => Promise<void>,
+): Promise<void> {
+  try {
+    let geometry = fetchers.getStreetGeometryCached(street.street);
+    const wasCached = !!geometry;
+    if (!geometry && !fetchers.hasStreetGeometryQueried(street.street)) {
+      if (beforeFetch) await beforeFetch();
+      geometry = await fetchers.getStreetGeometryFromOverpass(street.street);
+    }
+    if (geometry) {
+      logger.debug("Recording street geometry in progress tracker", {
+        street: street.street,
+        source: wasCached ? "cache" : "overpass",
+      });
+      await tracker.recordStreet({
+        key: normalizePinAddress(street.street),
+        originalName: street.street,
+        // Stringify to avoid Firestore nested-array rejection (coordinates: number[][][])
+        geometry: JSON.stringify(geometry),
+      });
+    } else {
+      logger.debug("No street geometry found; incrementing attempted count", {
+        street: street.street,
+      });
+      tracker.recordAttempted(1);
+    }
+  } catch (trackerError) {
+    logger.warn(
+      "Failed to fetch or record street geometry — geocoding result unaffected",
+      {
+        street: street.street,
+        error:
+          trackerError instanceof Error
+            ? trackerError.message
+            : String(trackerError),
+      },
+    );
+  }
+}
+
+/**
  * Helper: Geocode street intersections using Overpass
  */
 async function geocodeStreetIntersections(
@@ -321,6 +377,20 @@ async function geocodeStreetIntersections(
     addresses,
   );
 
+  // Snapshot streets whose BOTH endpoints were successfully pre-resolved from source
+  // geotags. Must be captured here, before Overpass geocoding adds more entries to
+  // preGeocodedMap. Streets with invalid geotagged coordinates (rejected by bounds
+  // validation) will not have their endpoints in the map and will not appear here.
+  const fullyPreResolvedStreets = extractedData.streets.filter(
+    (street) => preGeocodedMap.has(street.from) && preGeocodedMap.has(street.to),
+  );
+
+  // Import Overpass service only when a tracker is active — these fetchers are only used
+  // for tracker recording; the static overpassGeocodeAddresses handles the geocoding itself
+  const overpassFetchers = tracker
+    ? await import("@/geocoding/overpass/service")
+    : undefined;
+
   // Filter to streets that still need Overpass geocoding
   const streetsNeedingGeocoding = extractedData.streets.filter(
     (street) =>
@@ -328,9 +398,6 @@ async function geocodeStreetIntersections(
   );
 
   if (streetsNeedingGeocoding.length > 0) {
-    const { getStreetGeometryCached, getStreetGeometryFromOverpass, hasStreetGeometryQueried } =
-      await import("@/geocoding/overpass/service");
-
     logger.debug("Geocoding streets via Overpass (per-street)", {
       total: streetsNeedingGeocoding.length,
       trackerActive: !!tracker,
@@ -357,93 +424,38 @@ async function geocodeStreetIntersections(
       });
 
       if (tracker) {
-        try {
-          // getStreetGeometryCached is populated as a side-effect of
-          // geocodeSingleIntersection (which calls getStreetGeometryFromOverpass
-          // on both street names to find their geometric crossing). If the street
-          // geometry still isn't cached, the street's endpoints were resolved via
-          // geotagged coordinates (Overpass intersection queries were skipped).
-          // In that case fetch the geometry explicitly — same as the original
-          // post-geocoding loop in index.ts used to do.
-          let geometry = getStreetGeometryCached(street.street);
-          const wasCached = !!geometry;
-          if (!geometry && !hasStreetGeometryQueried(street.street)) {
-            logger.debug("Fetching street geometry explicitly (geotagged endpoints)", { street: street.street });
-            geometry = await getStreetGeometryFromOverpass(street.street);
-          }
-          if (geometry) {
-            logger.debug("Recording street geometry in progress tracker", {
-              street: street.street,
-              source: wasCached ? "cache" : "overpass",
-            });
-            await tracker.recordStreet({
-              key: normalizePinAddress(street.street),
-              originalName: street.street,
-              // Stringify to avoid Firestore nested-array rejection (coordinates: number[][][])
-              geometry: JSON.stringify(geometry),
-            });
-          } else {
-            logger.debug("No street geometry found; incrementing attempted count", { street: street.street });
-            tracker.recordAttempted(1);
-          }
-        } catch (trackerError) {
-          logger.warn("Failed to record street in progress tracker — geocoding result unaffected", {
-            street: street.street,
-            error: trackerError instanceof Error ? trackerError.message : String(trackerError),
-          });
-        }
+        // getStreetGeometryCached is populated as a side-effect of
+        // geocodeSingleIntersection (which calls getStreetGeometryFromOverpass
+        // on both street names to find their geometric crossing). If the street
+        // geometry still isn't cached, the street's endpoints were resolved via
+        // geotagged coordinates (Overpass intersection queries were skipped).
+        // In that case fetch the geometry explicitly.
+        await recordStreetGeometryInTracker(street, tracker, overpassFetchers!);
       }
     }
   }
 
   // Streets whose both endpoints were pre-resolved from geotagged coordinates
   // never enter streetsNeedingGeocoding, so their geometry wasn't fetched above.
-  // Record them now using an explicit Overpass lookup (same rate-limit guard as
-  // the per-street loop to avoid hitting an already-queried street twice).
-  if (tracker && extractedData.streets.length > 0) {
-    const geotaggedStreets = extractedData.streets.filter(
-      (street) =>
-        preGeocodedMap.has(street.from) && preGeocodedMap.has(street.to),
-    );
-    if (geotaggedStreets.length > 0) {
-      logger.debug("Recording geotagged streets in progress tracker", {
-        count: geotaggedStreets.length,
-      });
-      const { getStreetGeometryCached, getStreetGeometryFromOverpass, hasStreetGeometryQueried } =
-        await import("@/geocoding/overpass/service");
-      const { delay } = await import("@/lib/delay");
-      let fetchCount = 0;
-      for (const street of geotaggedStreets) {
-        try {
-          let geometry = getStreetGeometryCached(street.street);
-          const wasCached = !!geometry;
-          if (!geometry && !hasStreetGeometryQueried(street.street)) {
-            logger.debug("Fetching geometry for geotagged street", { street: street.street });
-            if (fetchCount > 0) await delay(500);
-            geometry = await getStreetGeometryFromOverpass(street.street);
-            fetchCount++;
-          }
-          if (geometry) {
-            logger.debug("Recording geotagged street geometry in progress tracker", {
-              street: street.street,
-              source: wasCached ? "cache" : "overpass",
-            });
-            await tracker.recordStreet({
-              key: normalizePinAddress(street.street),
-              originalName: street.street,
-              geometry: JSON.stringify(geometry),
-            });
-          } else {
-            logger.debug("No geometry for geotagged street; incrementing attempted count", { street: street.street });
-            tracker.recordAttempted(1);
-          }
-        } catch (trackerError) {
-          logger.warn("Failed to record geotagged street in progress tracker — geocoding result unaffected", {
-            street: street.street,
-            error: trackerError instanceof Error ? trackerError.message : String(trackerError),
-          });
-        }
-      }
+  // Record them now using an explicit Overpass lookup with per-request rate limiting.
+  if (tracker && fullyPreResolvedStreets.length > 0) {
+    logger.debug("Recording geotagged streets in progress tracker", {
+      count: fullyPreResolvedStreets.length,
+    });
+
+    const { delay } = await import("@/lib/delay");
+    let fetchCount = 0;
+
+    for (const street of fullyPreResolvedStreets) {
+      await recordStreetGeometryInTracker(
+        street,
+        tracker,
+        overpassFetchers!,
+        async () => {
+          if (fetchCount > 0) await delay(500);
+          fetchCount++;
+        },
+      );
     }
   }
 
@@ -467,6 +479,7 @@ async function geocodeStreetIntersections(
  */
 async function geocodeCadastralProperties(
   extractedData: ExtractedLocations,
+  tracker?: GeocodingProgressTracker,
 ): Promise<Map<string, CadastralGeometry> | undefined> {
   if (
     !extractedData.cadastralProperties ||
@@ -486,6 +499,7 @@ async function geocodeCadastralProperties(
     total: identifiers.length,
   });
 
+  tracker?.recordAttempted(identifiers.length);
   return cadastralGeometries;
 }
 
@@ -496,6 +510,7 @@ async function geocodeBusStopsFromExtractedData(
   extractedData: ExtractedLocations,
   preGeocodedMap: Map<string, Coordinates>,
   addresses: Address[],
+  tracker?: GeocodingProgressTracker,
 ): Promise<void> {
   if (!extractedData.busStops || extractedData.busStops.length === 0) {
     return;
@@ -512,6 +527,8 @@ async function geocodeBusStopsFromExtractedData(
     geocoded: geocodedBusStops.length,
     total: extractedData.busStops.length,
   });
+
+  tracker?.recordAttempted(extractedData.busStops.length);
 }
 
 /**
@@ -522,6 +539,7 @@ async function geocodeEducationalFacilitiesFromExtractedData(
   preGeocodedMap: Map<string, Coordinates>,
   addresses: Address[],
   ingestErrors?: IngestErrorRecorder,
+  tracker?: GeocodingProgressTracker,
 ): Promise<void> {
   if (
     !extractedData.educationalFacilities ||
@@ -539,6 +557,8 @@ async function geocodeEducationalFacilitiesFromExtractedData(
   geocoded.forEach((addr) => {
     preGeocodedMap.set(addr.originalText, addr.coordinates);
   });
+
+  tracker?.recordAttempted(extractedData.educationalFacilities.length);
 }
 
 /**
@@ -565,21 +585,9 @@ export async function geocodeAddressesFromExtractedData(
   // Geocode each location type using specialized services
   await geocodePins(extractedData, preGeocodedMap, addresses, tracker);
   await geocodeStreetIntersections(extractedData, preGeocodedMap, addresses, tracker);
-  const cadastralGeometries = await geocodeCadastralProperties(extractedData);
-  tracker?.recordAttempted(extractedData.cadastralProperties?.length ?? 0);
-  await geocodeBusStopsFromExtractedData(
-    extractedData,
-    preGeocodedMap,
-    addresses,
-  );
-  tracker?.recordAttempted(extractedData.busStops?.length ?? 0);
-  await geocodeEducationalFacilitiesFromExtractedData(
-    extractedData,
-    preGeocodedMap,
-    addresses,
-    ingestErrors,
-  );
-  tracker?.recordAttempted(extractedData.educationalFacilities?.length ?? 0);
+  const cadastralGeometries = await geocodeCadastralProperties(extractedData, tracker);
+  await geocodeBusStopsFromExtractedData(extractedData, preGeocodedMap, addresses, tracker);
+  await geocodeEducationalFacilitiesFromExtractedData(extractedData, preGeocodedMap, addresses, ingestErrors, tracker);
 
   // Deduplicate addresses before returning
   const deduplicatedAddresses = deduplicateAddresses(addresses);
