@@ -12,12 +12,16 @@
 const STRINGIFY_ON_WRITE: Record<string, Set<string>> = {
   messages: new Set(["geoJson", "addresses"]),
   events: new Set(["geoJson"]),
+  geocodeCacheStreets: new Set(["geoJson"]),
+  geocodeCachePins: new Set(["geoJson"]),
 };
 
 /** Fields that may be JSON strings when reading from Firestore (per collection) */
 const PARSE_ON_READ: Record<string, Set<string>> = {
   messages: new Set(["geoJson", "addresses", "ingestErrors"]),
   events: new Set(["geoJson"]),
+  geocodeCacheStreets: new Set(["geoJson"]),
+  geocodeCachePins: new Set(["geoJson"]),
 };
 
 function hasToDate(v: object): v is { toDate(): Date } {
