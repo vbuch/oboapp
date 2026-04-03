@@ -97,6 +97,7 @@
   --color-link-hover: var(--color-link-hover);
 
   --font-sans: var(--font-family-sofia);
+  --font-sofia: var(--font-family-sofia);
   --font-mono: var(--font-geist-mono);
 
   /* Font utilities */
