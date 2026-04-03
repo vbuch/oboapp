@@ -332,6 +332,38 @@ describe("overpass-geocoding-service", () => {
       vi.unstubAllGlobals();
     });
 
+    it("retries deferred intersections after transient network failures", async () => {
+      const attemptsByInstanceAndQuery = new Map<string, number>();
+      const fetchMock = vi.fn(async (input: string | URL, init?: RequestInit) => {
+        const instance = input instanceof URL ? input.toString() : String(input);
+        const query = typeof init?.body === "string" ? init.body : "";
+        const key = `${instance}|${query}`;
+        const attempts = attemptsByInstanceAndQuery.get(key) ?? 0;
+        attemptsByInstanceAndQuery.set(key, attempts + 1);
+
+        if (attempts === 0) {
+          throw new Error("Network request failed");
+        }
+
+        return {
+          ok: true,
+          text: () => Promise.resolve(wayResponse),
+        };
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const results = await overpassGeocodeIntersections([
+        "ул. Пример ∩ ул. Фоо",
+      ]);
+
+      expect(
+        [...attemptsByInstanceAndQuery.values()].some(
+          (attempts) => attempts > 1,
+        ),
+      ).toBe(true);
+      expect(results).toHaveLength(1);
+    });
+
     it("deduplicates Overpass fetches when the same street appears in multiple intersections", async () => {
       vi.stubGlobal("fetch", mockFetch(wayResponse));
 

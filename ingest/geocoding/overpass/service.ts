@@ -4,6 +4,7 @@ import {
   OverpassGeometry,
   Coordinates,
 } from "../../lib/types";
+import { AsyncLocalStorage } from "node:async_hooks";
 import * as turf from "@turf/turf";
 import type { Feature, MultiLineString, Position } from "geojson";
 import {
@@ -52,6 +53,14 @@ function getStreetFeatureType(streetName: string): StreetGeometryFeatureType {
 
 // In-memory cache for street geometry lookups (keyed on type + normalized street name)
 const streetGeometryCache = new Map<string, Feature<MultiLineString> | null>();
+const deferredScopeStorage = new AsyncLocalStorage<Set<string>>();
+
+function getStreetGeometryCacheKey(streetName: string): string {
+  return makeStreetGeometryCacheKey(
+    getStreetFeatureType(streetName),
+    normalizeStreetName(streetName),
+  );
+}
 
 /** Clear the street geometry cache. Exported for test isolation. */
 export function clearStreetGeometryCache(): void {
@@ -65,10 +74,7 @@ export function clearStreetGeometryCache(): void {
 export function getStreetGeometryCached(
   streetName: string,
 ): Feature<MultiLineString> | null {
-  const cacheKey = makeStreetGeometryCacheKey(
-    getStreetFeatureType(streetName),
-    normalizeStreetName(streetName),
-  );
+  const cacheKey = getStreetGeometryCacheKey(streetName);
   return streetGeometryCache.get(cacheKey) ?? null;
 }
 
@@ -78,11 +84,11 @@ export function getStreetGeometryCached(
  * delay is needed before a subsequent Overpass call.
  */
 export function hasStreetGeometryQueried(streetName: string): boolean {
-  return streetGeometryCache.has(
-    makeStreetGeometryCacheKey(
-      getStreetFeatureType(streetName),
-      normalizeStreetName(streetName),
-    ),
+  const cacheKey = getStreetGeometryCacheKey(streetName);
+  const deferredKeys = getCurrentDeferredStreetGeometryKeys();
+  return (
+    streetGeometryCache.has(cacheKey) ||
+    Boolean(deferredKeys?.has(cacheKey))
   );
 }
 
@@ -102,6 +108,47 @@ export function seedStreetGeometryCache(
       streetGeometryCache.set(cacheKey, geometry);
     }
   }
+}
+
+function isStreetGeometryDeferred(streetName: string): boolean {
+  const deferredKeys = getCurrentDeferredStreetGeometryKeys();
+  return Boolean(deferredKeys?.has(getStreetGeometryCacheKey(streetName)));
+}
+
+function clearDeferredStreetGeometryKeys(): void {
+  const deferredKeys = getCurrentDeferredStreetGeometryKeys();
+  deferredKeys?.clear();
+}
+
+function getCurrentDeferredStreetGeometryKeys(): Set<string> | undefined {
+  return deferredScopeStorage.getStore();
+}
+
+async function runWithDeferredRetryScope<T>(
+  work: () => Promise<T>,
+): Promise<T> {
+  const existingScope = deferredScopeStorage.getStore();
+  if (existingScope !== undefined) {
+    return work();
+  }
+
+  const deferredKeys = new Set<string>();
+  return deferredScopeStorage.run(deferredKeys, work);
+}
+
+function parseIntersectionStreetNames(intersection: string): [string, string] {
+  const [street1Name = "", street2Name = ""] = intersection
+    .split("\u2229")
+    .map((s) => s.trim());
+  return [street1Name, street2Name];
+}
+
+function shouldRetryIntersectionLater(intersection: string): boolean {
+  const [street1Name, street2Name] = parseIntersectionStreetNames(intersection);
+  return (
+    (Boolean(street1Name) && isStreetGeometryDeferred(street1Name)) ||
+    (Boolean(street2Name) && isStreetGeometryDeferred(street2Name))
+  );
 }
 
 /**
@@ -145,6 +192,8 @@ function shouldTryFallback(error: Error, statusCode?: number): boolean {
   // All other errors = server-side, should retry
   return true;
 }
+
+type ErrorWithStatusCode = Error & { statusCode?: number };
 
 // Multiple Overpass API instances for fallback
 const OVERPASS_INSTANCES = [
@@ -200,6 +249,14 @@ export function toOverpassRegex(normalizedName: string): string {
 export async function getStreetGeometryFromOverpass(
   streetName: string,
 ): Promise<Feature<MultiLineString> | null> {
+  const cacheKey = getStreetGeometryCacheKey(streetName);
+  const deferredKeys = getCurrentDeferredStreetGeometryKeys();
+
+  if (deferredKeys?.has(cacheKey)) {
+    logger.debug("Street geometry deferred for retry", { streetName });
+    return null;
+  }
+
   try {
     // Normalize street name for better OSM matching
     const normalizedName = normalizeStreetName(streetName);
@@ -210,8 +267,6 @@ export async function getStreetGeometryFromOverpass(
     const featureType = getStreetFeatureType(streetName);
     const isSquare = featureType === "square";
     const isStreet = featureType === "street";
-    const cacheKey = makeStreetGeometryCacheKey(featureType, normalizedName);
-
     // Return cached result if available (includes null for streets not found in OSM)
     if (streetGeometryCache.has(cacheKey)) {
       logger.debug("Street geometry cache hit", { streetName, normalizedName });
@@ -282,7 +337,10 @@ export async function getStreetGeometryFromOverpass(
           // Try to extract XML error message
           const text = await response.text();
           const errorMsg = parseOverpassError(text) || response.statusText;
-          const error = new Error(`HTTP ${response.status}: ${errorMsg}`);
+          const error: ErrorWithStatusCode = new Error(
+            `HTTP ${response.status}: ${errorMsg}`,
+          );
+          error.statusCode = response.status;
 
           if (!shouldTryFallback(error, response.status)) {
             // Client-side error - don't try other servers
@@ -322,10 +380,11 @@ export async function getStreetGeometryFromOverpass(
       } catch (error) {
         clearTimeout(timeoutId);
 
-        const err = error instanceof Error ? error : new Error(String(error));
+        const err: ErrorWithStatusCode =
+          error instanceof Error ? error : new Error(String(error));
 
         // Check if this is a client-side error
-        if (!shouldTryFallback(err)) {
+        if (!shouldTryFallback(err, err.statusCode)) {
           logger.error("Client error (query issue)", { error: err.message });
           throw err;
         }
@@ -354,6 +413,7 @@ export async function getStreetGeometryFromOverpass(
       // No OSM ways found - API request succeeded but no data for this street name
       logger.info("Could not find street in OSM", { streetName });
       streetGeometryCache.set(cacheKey, null);
+      deferredKeys?.delete(cacheKey);
       return null;
     }
 
@@ -397,6 +457,7 @@ export async function getStreetGeometryFromOverpass(
     if (lineStrings.length === 0) {
       logger.info("No valid geometries in response", { streetName });
       streetGeometryCache.set(cacheKey, null);
+      deferredKeys?.delete(cacheKey);
       return null;
     }
 
@@ -416,11 +477,28 @@ export async function getStreetGeometryFromOverpass(
     };
 
     streetGeometryCache.set(cacheKey, multiLineString);
+    deferredKeys?.delete(cacheKey);
     return multiLineString;
   } catch (error) {
+    const err: ErrorWithStatusCode =
+      error instanceof Error ? error : new Error(String(error));
     logger.error("Error fetching from Overpass", {
       streetName,
-      error: error instanceof Error ? error.message : String(error),
+      error: err.message,
+    });
+
+    if (shouldTryFallback(err, err.statusCode)) {
+      if (deferredKeys) {
+        deferredKeys.add(cacheKey);
+        logger.info("Deferring street geometry after transient failure", {
+          streetName,
+        });
+      }
+      return null;
+    }
+    logger.error("Non-retryable Overpass error while resolving street", {
+      streetName,
+      error: err.message,
     });
     return null;
   }
@@ -559,9 +637,7 @@ function findGeometricIntersection(
 async function geocodeSingleIntersection(
   intersection: string,
 ): Promise<Address | null> {
-  const [street1Name, street2Name] = intersection
-    .split("∩")
-    .map((s) => s.trim());
+  const [street1Name, street2Name] = parseIntersectionStreetNames(intersection);
 
   if (!street1Name || !street2Name) {
     logger.error("Invalid intersection format", { intersection });
@@ -605,27 +681,51 @@ export async function overpassGeocodeIntersections(
     return mockService.overpassGeocodeIntersections(intersections);
   }
 
-  const results: Address[] = [];
+  return runWithDeferredRetryScope(async () => {
+    const results: Address[] = [];
+    const retryIntersections: string[] = [];
 
-  for (let i = 0; i < intersections.length; i++) {
-    const intersection = intersections[i];
-    try {
-      const result = await geocodeSingleIntersection(intersection);
-      if (result) results.push(result);
-    } catch (error) {
-      logger.error("Error processing intersection", {
-        intersection,
-        error: error instanceof Error ? error.message : String(error),
+    async function processIntersections(
+      queue: string[],
+      collectRetryCandidates: boolean,
+    ): Promise<void> {
+      for (let i = 0; i < queue.length; i++) {
+        const intersection = queue[i];
+        try {
+          const result = await geocodeSingleIntersection(intersection);
+          if (result) {
+            results.push(result);
+          } else if (
+            collectRetryCandidates &&
+            shouldRetryIntersectionLater(intersection)
+          ) {
+            retryIntersections.push(intersection);
+          }
+        } catch (error) {
+          logger.error("Error processing intersection", {
+            intersection,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+
+        if (i < queue.length - 1) {
+          await delay(OVERPASS_DELAY_MS);
+        }
+      }
+    }
+
+    await processIntersections(intersections, true);
+
+    if (retryIntersections.length > 0) {
+      logger.info("Retrying deferred intersections", {
+        count: retryIntersections.length,
       });
+      clearDeferredStreetGeometryKeys();
+      await processIntersections(retryIntersections, false);
     }
 
-    // Rate limiting between requests
-    if (i < intersections.length - 1) {
-      await delay(OVERPASS_DELAY_MS);
-    }
-  }
-
-  return results;
+    return results;
+  });
 }
 
 /**
@@ -647,31 +747,32 @@ export async function getStreetSectionGeometry(
     );
   }
 
-  try {
-    logger.info("Finding street section", {
-      streetName,
-      from: { lat: startCoords.lat, lng: startCoords.lng },
-      to: { lat: endCoords.lat, lng: endCoords.lng },
-    });
+  return runWithDeferredRetryScope(async () => {
+    try {
+      logger.info("Finding street section", {
+        streetName,
+        from: { lat: startCoords.lat, lng: startCoords.lng },
+        to: { lat: endCoords.lat, lng: endCoords.lng },
+      });
 
-    // Get full street geometry
-    const streetGeometry = await getStreetGeometryFromOverpass(streetName);
-    if (!streetGeometry) {
-      logger.warn("No geometry found for street", { streetName });
-      return null;
-    }
+      // Get full street geometry
+      const streetGeometry = await getStreetGeometryFromOverpass(streetName);
+      if (!streetGeometry) {
+        logger.warn("No geometry found for street", { streetName });
+        return null;
+      }
 
-    // Create points from coordinates
-    const startPoint = turf.point([startCoords.lng, startCoords.lat]);
-    const endPoint = turf.point([endCoords.lng, endCoords.lat]);
+      // Create points from coordinates
+      const startPoint = turf.point([startCoords.lng, startCoords.lat]);
+      const endPoint = turf.point([endCoords.lng, endCoords.lat]);
 
-    // Find which segments contain or are near our start/end points
-    const allSegments = streetGeometry.geometry.coordinates;
-    let bestSection: Position[] | null = null;
-    let minTotalDistance = Infinity;
+      // Find which segments contain or are near our start/end points
+      const allSegments = streetGeometry.geometry.coordinates;
+      let bestSection: Position[] | null = null;
+      let minTotalDistance = Infinity;
 
-    // Try each segment as a potential section
-    for (const segment of allSegments) {
+      // Try each segment as a potential section
+      for (const segment of allSegments) {
       if (segment.length < 2) continue;
 
       const line = turf.lineString(segment);
@@ -714,20 +815,20 @@ export async function getStreetSectionGeometry(
       }
     }
 
-    if (bestSection && bestSection.length >= 2) {
-      logger.info("Found street section", { points: bestSection.length });
-      return bestSection;
-    }
+      if (bestSection && bestSection.length >= 2) {
+        logger.info("Found street section", { points: bestSection.length });
+        return bestSection;
+      }
 
-    // Fallback: try to connect multiple segments
-    logger.info("No single segment found, trying to connect segments");
+      // Fallback: try to connect multiple segments
+      logger.info("No single segment found, trying to connect segments");
 
-    // Build a path by connecting segments
-    const connectedPath: Position[] = [];
-    let currentPoint = startPoint;
-    const usedSegments = new Set<number>();
+      // Build a path by connecting segments
+      const connectedPath: Position[] = [];
+      let currentPoint = startPoint;
+      const usedSegments = new Set<number>();
 
-    while (
+      while (
       connectedPath.length === 0 ||
       turf.distance(
         turf.point(connectedPath[connectedPath.length - 1]),
@@ -800,22 +901,23 @@ export async function getStreetSectionGeometry(
       }
     }
 
-    if (connectedPath.length >= 2) {
-      logger.info("Connected segments into path", {
-        segments: usedSegments.size,
-        points: connectedPath.length,
-      });
-      return connectedPath;
-    }
+      if (connectedPath.length >= 2) {
+        logger.info("Connected segments into path", {
+          segments: usedSegments.size,
+          points: connectedPath.length,
+        });
+        return connectedPath;
+      }
 
-    logger.info("Could not extract street section");
-    return null;
-  } catch (error) {
-    logger.error("Error getting street section geometry", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
-  }
+      logger.info("Could not extract street section");
+      return null;
+    } catch (error) {
+      logger.error("Error getting street section geometry", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  });
 }
 
 /**
@@ -933,38 +1035,40 @@ export async function overpassGeocodeAddresses(
     return mockService.overpassGeocodeAddresses(addresses);
   }
 
-  const results: Address[] = [];
+  return runWithDeferredRetryScope(async () => {
+    const results: Address[] = [];
 
-  for (let i = 0; i < addresses.length; i++) {
-    const address = addresses[i];
+    for (let i = 0; i < addresses.length; i++) {
+      const address = addresses[i];
 
-    try {
-      const coords = await resolveSingleAddress(address);
-      if (coords) {
-        results.push({
-          originalText: address,
-          formattedAddress: address,
-          coordinates: coords,
-          geoJson: {
-            type: "Point",
-            coordinates: [coords.lng, coords.lat],
-          },
+      try {
+        const coords = await resolveSingleAddress(address);
+        if (coords) {
+          results.push({
+            originalText: address,
+            formattedAddress: address,
+            coordinates: coords,
+            geoJson: {
+              type: "Point",
+              coordinates: [coords.lng, coords.lat],
+            },
+          });
+        } else {
+          logger.warn("Failed to geocode address", { address });
+        }
+      } catch (error) {
+        logger.error("Error geocoding address", {
+          address,
+          error: error instanceof Error ? error.message : String(error),
         });
-      } else {
-        logger.warn("Failed to geocode address", { address });
       }
-    } catch (error) {
-      logger.error("Error geocoding address", {
-        address,
-        error: error instanceof Error ? error.message : String(error),
-      });
+
+      // Rate limiting
+      if (i < addresses.length - 1) {
+        await delay(OVERPASS_DELAY_MS);
+      }
     }
 
-    // Rate limiting
-    if (i < addresses.length - 1) {
-      await delay(OVERPASS_DELAY_MS);
-    }
-  }
-
-  return results;
+    return results;
+  });
 }
