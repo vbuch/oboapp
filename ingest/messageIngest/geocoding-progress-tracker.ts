@@ -12,7 +12,6 @@ export interface GeocodingPinEntry {
   originalText: string;
   formattedAddress: string;
   coordinates: { lat: number; lng: number };
-  geoJson?: { type: "Point"; coordinates: [number, number] };
 }
 
 export interface GeocodingStreetEntry {
@@ -67,16 +66,12 @@ export function createGeocodingProgressTracker(
   let done = 0;
 
   function addressToPinEntry(addr: Address): GeocodingPinEntry {
-    const entry: GeocodingPinEntry = {
+    return {
       key: normalizePinAddress(addr.originalText),
       originalText: addr.originalText,
       formattedAddress: addr.formattedAddress,
       coordinates: addr.coordinates,
     };
-    if (addr.geoJson) {
-      entry.geoJson = addr.geoJson;
-    }
-    return entry;
   }
 
   async function flush(): Promise<void> {
