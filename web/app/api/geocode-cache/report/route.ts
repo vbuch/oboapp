@@ -7,7 +7,12 @@ let storage: import("@google-cloud/storage").Storage | null = null;
 async function getStorage() {
   if (!storage) {
     const { Storage } = await import("@google-cloud/storage");
-    storage = new Storage();
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+      const credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+      storage = new Storage({ credentials });
+    } else {
+      storage = new Storage();
+    }
   }
   return storage;
 }
