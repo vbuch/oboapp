@@ -68,8 +68,8 @@ Both scripts run from the `ingest/` directory:
 pnpm geocode-cache:report
 
 # Pre-cache a pin or street geometry from an existing message
-pnpm geocode-cache:add -- --message <id> --address "ул. Граф Игнатиев 10" --type pin
-pnpm geocode-cache:add -- --message <id> --address "бул. Витоша" --type street
+pnpm geocode-cache:add --message <id> --address "ул. Граф Игнатиев 10" --type pin
+pnpm geocode-cache:add --message <id> --address "бул. Витоша" --type street
 ```
 
 The frequency report script supports `--dry-run` to print results to stdout without uploading to GCS.

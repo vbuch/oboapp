@@ -56,7 +56,7 @@ pnpm pipeline:all
 pnpm geocode-cache:report
 
 # Pre-cache a geocoded address/street from an existing message
-pnpm geocode-cache:add -- --message <id> --address "..." --type pin|street
+pnpm geocode-cache:add --message <id> --address "..." --type pin|street
 ```
 
 ## Pipeline Schedules

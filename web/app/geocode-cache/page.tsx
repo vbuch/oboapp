@@ -87,10 +87,26 @@ const MAP_OPTIONS: google.maps.MapOptions = {
 
 // Distinct colors for up to 20 source messages
 const COLORS = [
-  "#3B82F6", "#EF4444", "#10B981", "#F59E0B", "#8B5CF6",
-  "#EC4899", "#06B6D4", "#84CC16", "#F97316", "#6366F1",
-  "#14B8A6", "#F43F5E", "#A855F7", "#22C55E", "#EAB308",
-  "#0EA5E9", "#D946EF", "#64748B", "#E11D48", "#7C3AED",
+  "#3B82F6",
+  "#EF4444",
+  "#10B981",
+  "#F59E0B",
+  "#8B5CF6",
+  "#EC4899",
+  "#06B6D4",
+  "#84CC16",
+  "#F97316",
+  "#6366F1",
+  "#14B8A6",
+  "#F43F5E",
+  "#A855F7",
+  "#22C55E",
+  "#EAB308",
+  "#0EA5E9",
+  "#D946EF",
+  "#64748B",
+  "#E11D48",
+  "#7C3AED",
 ];
 
 function GeometryPanel({
@@ -250,7 +266,9 @@ function GeometryPanel({
       {/* Message list */}
       <div className="flex-1 overflow-y-auto px-4 py-3">
         {loading && <p className="text-base text-neutral">Зарежда се...</p>}
-        {fetchError && <p className="text-base text-destructive">{fetchError}</p>}
+        {fetchError && (
+          <p className="text-base text-destructive">{fetchError}</p>
+        )}
         {!loading && !fetchError && data && data.items.length === 0 && (
           <p className="text-base text-neutral">
             Няма запазена геометрия в тези съобщения. Вероятно са по-стари от
@@ -274,9 +292,15 @@ function GeometryPanel({
                     >
                       {item.messageId}
                     </a>
-                    <span className="text-neutral truncate flex-1">{item.formattedAddress}</span>
+                    <span className="text-neutral truncate flex-1">
+                      {item.formattedAddress}
+                    </span>
                     {!entry.cached && (
-                      <CopyCommand entry={entry} messageId={item.messageId} type={type} />
+                      <CopyCommand
+                        entry={entry}
+                        messageId={item.messageId}
+                        type={type}
+                      />
                     )}
                   </li>
                 ))
@@ -299,7 +323,11 @@ function GeometryPanel({
                       {item.coordinates.length !== 1 ? "а" : ""}
                     </span>
                     {!entry.cached && (
-                      <CopyCommand entry={entry} messageId={item.messageId} type={type} />
+                      <CopyCommand
+                        entry={entry}
+                        messageId={item.messageId}
+                        type={type}
+                      />
                     )}
                   </li>
                 ))}
@@ -321,7 +349,7 @@ function CopyCommand({
 }) {
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cmd = `pnpm geocode-cache:add -- --message ${messageId} --address "${entry.originalText}" --type ${type}`;
+  const cmd = `pnpm geocode-cache:add --message ${messageId} --address "${entry.originalText}" --type ${type}`;
 
   useEffect(() => {
     return () => {
@@ -473,7 +501,12 @@ export default function GeocodeCachePage() {
     })();
   }, []);
 
-  if (error === "not-generated" || error === "bucket-missing" || error || !report) {
+  if (
+    error === "not-generated" ||
+    error === "bucket-missing" ||
+    error ||
+    !report
+  ) {
     return (
       <div className="min-h-screen bg-neutral-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -511,11 +544,13 @@ export default function GeocodeCachePage() {
                 Хранилището GCS не е конфигурирано (липсва GCS_GENERIC_BUCKET).
               </p>
             )}
-            {error && error !== "not-generated" && error !== "bucket-missing" && (
-              <div className="rounded-md border border-error-border bg-error-light p-4 text-error text-sm">
-                {error}
-              </div>
-            )}
+            {error &&
+              error !== "not-generated" &&
+              error !== "bucket-missing" && (
+                <div className="rounded-md border border-error-border bg-error-light p-4 text-error text-sm">
+                  {error}
+                </div>
+              )}
             {!error && !report && (
               <p className="text-sm text-neutral/60">Зарежда се...</p>
             )}
