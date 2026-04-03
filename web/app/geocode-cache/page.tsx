@@ -603,17 +603,17 @@ export default function GeocodeCachePage() {
 
           <div className="flex flex-wrap gap-6 mb-6 text-sm">
             <div>
-              <span className="font-semibold">{cachedPinCount}</span>
-              <span className="text-neutral/60">
-                {" "}
-                / {report.pins.length} адреса кеширани
-              </span>
-            </div>
-            <div>
               <span className="font-semibold">{cachedStreetCount}</span>
               <span className="text-neutral/60">
                 {" "}
                 / {report.streets.length} улици кеширани
+              </span>
+            </div>
+            <div>
+              <span className="font-semibold">{cachedPinCount}</span>
+              <span className="text-neutral/60">
+                {" "}
+                / {report.pins.length} адреса кеширани
               </span>
             </div>
           </div>
@@ -657,19 +657,19 @@ export default function GeocodeCachePage() {
         </div>
 
         <FrequencyTable
-          title={`Адреси (пинове) — ${pins.length}`}
-          entries={pins}
-          type="pin"
-          showAll={showAll}
-          selectedKey={selected?.type === "pin" ? selected.entry.key : null}
-          onSelect={handleSelect}
-        />
-        <FrequencyTable
           title={`Улици — ${streets.length}`}
           entries={streets}
           type="street"
           showAll={showAll}
           selectedKey={selected?.type === "street" ? selected.entry.key : null}
+          onSelect={handleSelect}
+        />
+        <FrequencyTable
+          title={`Адреси (пинове) — ${pins.length}`}
+          entries={pins}
+          type="pin"
+          showAll={showAll}
+          selectedKey={selected?.type === "pin" ? selected.entry.key : null}
           onSelect={handleSelect}
         />
 
