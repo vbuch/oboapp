@@ -88,3 +88,21 @@ For scripts with async actions use `program.parseAsync()` instead of `program.pa
 - [ ] `program.parse()` or `program.parseAsync()` is the last statement
 - [ ] `.name()` and `.description()` are set
 - [ ] Help text includes at least one usage example
+
+---
+
+## Finding Existing Scripts
+
+All one-off / maintenance scripts live in `ingest/scripts/`. **Before writing a new script, check whether one already exists.**
+
+Every script in that directory has its purpose, steps, and usage documented in the first ~20 lines as a JSDoc/block comment. To discover what's available, read just those headers:
+
+```bash
+# List all scripts
+ls ingest/scripts/
+
+# Skim the header of any candidate
+head -20 ingest/scripts/<name>.ts
+```
+
+When asked to perform a data operation (delete messages, reprocess sources, seed the emulator, manage geocode cache, etc.), always list `ingest/scripts/` and read the top of relevant files before writing anything new.
