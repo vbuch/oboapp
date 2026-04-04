@@ -75,7 +75,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://maps.googleapis.com" />
         <link rel="dns-prefetch" href="https://maps.gstatic.com" />
       </head>
-      <body className={`${sofiaSans.variable} font-sofia`}>
+      <body className={`${sofiaSans.className} ${sofiaSans.variable} font-sofia`}>
         {gaId && (
           <>
             <Script
