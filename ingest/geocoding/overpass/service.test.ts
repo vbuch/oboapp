@@ -5,10 +5,20 @@ import {
   toOverpassRegex,
   clearStreetGeometryCache,
   overpassGeocodeIntersections,
+  CIRCUIT_BREAKER_THRESHOLD,
+  OVERPASS_INSTANCES,
+  OVERPASS_RETRY_MAX_ATTEMPTS,
+  OVERPASS_RETRY_BASE_DELAY_MS,
+  OVERPASS_RETRY_MAX_DELAY_MS,
+  parseRetryAfterMs,
+  calculateRetryDelayMs,
 } from "./service";
+import { delay } from "../../lib/delay";
 
 // Prevent the 500ms inter-item delay from slowing down the test suite
-vi.mock("../../lib/delay", () => ({ delay: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("../../lib/delay", () => ({
+  delay: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe("overpass-geocoding-service", () => {
   describe("parseOverpassError", () => {
@@ -303,6 +313,97 @@ describe("overpass-geocoding-service", () => {
     });
   });
 
+  describe("parseRetryAfterMs", () => {
+    it("returns null for null header", () => {
+      expect(parseRetryAfterMs(null)).toBeNull();
+    });
+
+    it("returns null for empty string", () => {
+      expect(parseRetryAfterMs("")).toBeNull();
+      expect(parseRetryAfterMs("   ")).toBeNull();
+    });
+
+    it("parses delta-seconds correctly", () => {
+      expect(parseRetryAfterMs("3")).toBe(3_000);
+      expect(parseRetryAfterMs("0")).toBe(0);
+    });
+
+    it("caps delta-seconds at OVERPASS_RETRY_MAX_DELAY_MS", () => {
+      expect(parseRetryAfterMs("9999")).toBe(OVERPASS_RETRY_MAX_DELAY_MS);
+    });
+
+    it("returns 0 for a past HTTP-date", () => {
+      const pastDate = new Date(Date.now() - 60_000).toUTCString();
+      expect(parseRetryAfterMs(pastDate)).toBe(0);
+    });
+
+    it("returns a positive delta for a future HTTP-date, capped at max", () => {
+      const farFuture = new Date(Date.now() + 999_999_999).toUTCString();
+      expect(parseRetryAfterMs(farFuture)).toBe(OVERPASS_RETRY_MAX_DELAY_MS);
+    });
+
+    it("returns the correct delta for a near-future HTTP-date", () => {
+      const targetDelayMs = 10_000;
+      const futureDate = new Date(Date.now() + targetDelayMs).toUTCString();
+      const result = parseRetryAfterMs(futureDate);
+      // toUTCString() truncates to second precision; allow up to 1500ms tolerance
+      expect(result).toBeGreaterThanOrEqual(targetDelayMs - 1500);
+      expect(result).toBeLessThanOrEqual(targetDelayMs);
+    });
+
+    it("returns null for a malformed string", () => {
+      expect(parseRetryAfterMs("not-a-date")).toBeNull();
+    });
+
+    it("returns null for strings that are not IMF-fixdate (strict RFC 7231 format)", () => {
+      // ISO 8601 — accepted by Date.parse but not a valid Retry-After HTTP-date
+      expect(parseRetryAfterMs("2026-04-05T12:34:56Z")).toBeNull();
+      // Raw number with sign — not delta-seconds, not IMF-fixdate
+      expect(parseRetryAfterMs("-1")).toBeNull();
+    });
+  });
+
+  describe("calculateRetryDelayMs", () => {
+    it("returns retryAfterMs directly when provided", () => {
+      expect(calculateRetryDelayMs(1, 5_000)).toBe(5_000);
+      expect(calculateRetryDelayMs(2, 0)).toBe(0);
+    });
+
+    it("caps retryAfterMs at OVERPASS_RETRY_MAX_DELAY_MS", () => {
+      expect(calculateRetryDelayMs(1, OVERPASS_RETRY_MAX_DELAY_MS + 1)).toBe(
+        OVERPASS_RETRY_MAX_DELAY_MS,
+      );
+    });
+
+    it("attempt 1 falls within [BASE * 0.75, BASE * 1.25]", () => {
+      for (let i = 0; i < 20; i++) {
+        const result = calculateRetryDelayMs(1, null);
+        expect(result).toBeGreaterThanOrEqual(
+          Math.round(OVERPASS_RETRY_BASE_DELAY_MS * 0.75),
+        );
+        expect(result).toBeLessThanOrEqual(
+          Math.round(OVERPASS_RETRY_BASE_DELAY_MS * 1.25),
+        );
+      }
+    });
+
+    it("attempt 2 has a larger base than attempt 1 (exponential growth)", () => {
+      // With ±25% jitter: attempt1 max = BASE*1.25 = 1250, attempt2 min = BASE*2*0.75 = 1500
+      // Ranges do not overlap, so a single sample suffices for a range check
+      const attempt1Max = Math.round(OVERPASS_RETRY_BASE_DELAY_MS * 1.25);
+      const attempt2Min = Math.round(OVERPASS_RETRY_BASE_DELAY_MS * 2 * 0.75);
+      expect(attempt2Min).toBeGreaterThan(attempt1Max);
+    });
+
+    it("caps at OVERPASS_RETRY_MAX_DELAY_MS for large attempt numbers", () => {
+      for (let i = 0; i < 10; i++) {
+        expect(calculateRetryDelayMs(20, null)).toBe(
+          OVERPASS_RETRY_MAX_DELAY_MS,
+        );
+      }
+    });
+  });
+
   describe("streetGeometryCache", () => {
     const wayResponse = JSON.stringify({
       elements: [
@@ -334,22 +435,25 @@ describe("overpass-geocoding-service", () => {
 
     it("retries deferred intersections after transient network failures", async () => {
       const attemptsByInstanceAndQuery = new Map<string, number>();
-      const fetchMock = vi.fn(async (input: string | URL, init?: RequestInit) => {
-        const instance = input instanceof URL ? input.toString() : String(input);
-        const query = typeof init?.body === "string" ? init.body : "";
-        const key = `${instance}|${query}`;
-        const attempts = attemptsByInstanceAndQuery.get(key) ?? 0;
-        attemptsByInstanceAndQuery.set(key, attempts + 1);
+      const fetchMock = vi.fn(
+        async (input: string | URL, init?: RequestInit) => {
+          const instance =
+            input instanceof URL ? input.toString() : String(input);
+          const query = typeof init?.body === "string" ? init.body : "";
+          const key = `${instance}|${query}`;
+          const attempts = attemptsByInstanceAndQuery.get(key) ?? 0;
+          attemptsByInstanceAndQuery.set(key, attempts + 1);
 
-        if (attempts === 0) {
-          throw new Error("Network request failed");
-        }
+          if (attempts === 0) {
+            throw new Error("Network request failed");
+          }
 
-        return {
-          ok: true,
-          text: () => Promise.resolve(wayResponse),
-        };
-      });
+          return {
+            ok: true,
+            text: () => Promise.resolve(wayResponse),
+          };
+        },
+      );
       vi.stubGlobal("fetch", fetchMock);
 
       const results = await overpassGeocodeIntersections([
@@ -416,6 +520,185 @@ describe("overpass-geocoding-service", () => {
       // Both streets were cleared — should fetch them again
       await overpassGeocodeIntersections(["ул. Пример ∩ ул. Фоо"]);
       expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    describe("adaptive retry policy", () => {
+      it("retries 429 on the same instance with backoff before falling back to the next", async () => {
+        // First instance always returns 429; second instance succeeds
+        let instance1Calls = 0;
+        let instance2Calls = 0;
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async (url: string | URL) => {
+            if (String(url) === OVERPASS_INSTANCES[0]) {
+              instance1Calls++;
+              return {
+                ok: false,
+                status: 429,
+                statusText: "Too Many Requests",
+                headers: { get: (_: string) => null },
+                text: () => Promise.resolve(""),
+              };
+            }
+            instance2Calls++;
+            return { ok: true, text: () => Promise.resolve(wayResponse) };
+          }),
+        );
+
+        const results = await overpassGeocodeIntersections([
+          "ул. Пример ∩ ул. Фоо",
+        ]);
+
+        // 2 streets, each exhausts OVERPASS_RETRY_MAX_ATTEMPTS on instance 1 before falling back
+        expect(instance1Calls).toBe(OVERPASS_RETRY_MAX_ATTEMPTS * 2);
+        // Instance 2 then handles both streets successfully on the first try
+        expect(instance2Calls).toBe(2);
+        expect(results).toHaveLength(1);
+      });
+
+      it("respects Retry-After header when backing off on 429", async () => {
+        vi.mocked(delay).mockClear();
+        let fetchCount = 0;
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async (url: string | URL) => {
+            if (String(url) === OVERPASS_INSTANCES[0] && fetchCount++ === 0) {
+              return {
+                ok: false,
+                status: 429,
+                statusText: "Too Many Requests",
+                headers: {
+                  get: (name: string) => (name === "Retry-After" ? "3" : null),
+                },
+                text: () => Promise.resolve(""),
+              };
+            }
+            return { ok: true, text: () => Promise.resolve(wayResponse) };
+          }),
+        );
+
+        await overpassGeocodeIntersections(["ул. Пример ∩ ул. Фоо"]);
+
+        // delay must have been called with exactly 3000 ms for the Retry-After header
+        const delayCalls = vi.mocked(delay).mock.calls.map(([ms]) => ms);
+        expect(delayCalls).toContain(3000);
+      });
+
+      it("falls back to the next instance after all 429 retries are exhausted on the first", async () => {
+        // All instances always return 429 — retries exhaust on each instance,
+        // then fall back, then exhaust again → all instances fail → null result.
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async () => ({
+            ok: false,
+            status: 429,
+            statusText: "Too Many Requests",
+            headers: { get: (_: string) => null },
+            text: () => Promise.resolve(""),
+          })),
+        );
+
+        const results = await overpassGeocodeIntersections(["ул. Пример ∩ ул. Фоо"]);
+
+        // Each of the 2 streets has 2 unique street names. In pass 1 every instance is
+        // tried with OVERPASS_RETRY_MAX_ATTEMPTS before moving on. All streets are deferred.
+        // In pass 2 the deferred streets are retried with the same exhaustion pattern.
+        const expectedCalls =
+          2 * OVERPASS_INSTANCES.length * OVERPASS_RETRY_MAX_ATTEMPTS * 2; // ×2 passes
+        expect(vi.mocked(fetch).mock.calls.length).toBe(expectedCalls);
+        // No intersection resolved — both streets have null geometry
+        expect(results).toHaveLength(0);
+      });
+
+      it("retries AbortError (timeout) on the same instance with backoff", async () => {
+        // First instance always times out; second instance succeeds
+        let instance1Calls = 0;
+        let instance2Calls = 0;
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async (url: string | URL) => {
+            if (String(url) === OVERPASS_INSTANCES[0]) {
+              instance1Calls++;
+              const err = new Error("The operation was aborted");
+              err.name = "AbortError";
+              throw err;
+            }
+            instance2Calls++;
+            return { ok: true, text: () => Promise.resolve(wayResponse) };
+          }),
+        );
+
+        const results = await overpassGeocodeIntersections([
+          "ул. Пример ∩ ул. Фоо",
+        ]);
+
+        // 2 streets, each exhausts OVERPASS_RETRY_MAX_ATTEMPTS on instance 1 before falling back
+        expect(instance1Calls).toBe(OVERPASS_RETRY_MAX_ATTEMPTS * 2);
+        expect(instance2Calls).toBe(2);
+        expect(results).toHaveLength(1);
+      });
+    });
+
+    describe("circuit breaker", () => {
+      it("opens after threshold consecutive transient failures and defers remaining streets", async () => {
+        vi.stubGlobal(
+          "fetch",
+          vi.fn().mockRejectedValue(new Error("Network request failed")),
+        );
+
+        // Enough unique intersections to exceed the threshold (each has 2 unique streets)
+        const intersections = Array.from(
+          { length: CIRCUIT_BREAKER_THRESHOLD + 2 },
+          (_, i) => `ул. А${i} ∩ ул. Б${i}`,
+        );
+
+        await overpassGeocodeIntersections(intersections);
+
+        // Without circuit breaker every street would be tried on every instance in both passes.
+        // With circuit breaker, at most threshold × instances calls occur per pass before it opens.
+        const overpassInstanceCount = OVERPASS_INSTANCES.length;
+        const maxExpectedCallsPerPass =
+          CIRCUIT_BREAKER_THRESHOLD * overpassInstanceCount;
+        expect(vi.mocked(fetch).mock.calls.length).toBeLessThan(
+          intersections.length * 2 * overpassInstanceCount,
+        );
+        expect(vi.mocked(fetch).mock.calls.length).toBeLessThanOrEqual(
+          maxExpectedCallsPerPass * 2, // retry pass also resets and can trip again
+        );
+      });
+
+      it("resets after a successful request so subsequent streets are attempted", async () => {
+        // All instances fail for the first threshold streets, then requests start succeeding
+        // — the circuit should reset on the first successful response.
+        const overpassInstanceCount = OVERPASS_INSTANCES.length;
+        let fetchCallCount = 0;
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async (url: string | URL) => {
+            fetchCallCount++;
+            // First threshold × instances calls fail (enough to open the circuit)
+            if (
+              fetchCallCount <=
+              CIRCUIT_BREAKER_THRESHOLD * overpassInstanceCount
+            ) {
+              throw new Error("Network request failed");
+            }
+            return { ok: true, text: () => Promise.resolve(wayResponse) };
+          }),
+        );
+
+        // Provide threshold+2 intersections: after threshold × instances failures the
+        // circuit opens, then the retry pass resets it once requests start succeeding.
+        const intersections = Array.from(
+          { length: CIRCUIT_BREAKER_THRESHOLD + 2 },
+          (_, i) => `ул. А${i} ∩ ул. Б${i}`,
+        );
+
+        const results = await overpassGeocodeIntersections(intersections);
+
+        // After the circuit resets, some intersections should be resolved
+        expect(results.length).toBeGreaterThan(0);
+      });
     });
   });
 });

@@ -28,6 +28,17 @@ const OVERPASS_DELAY_MS = 500; // 500ms for Overpass API (generous limits)
 const OVERPASS_TIMEOUT_MS = 25000; // 25 seconds timeout for HTTP requests
 const BUFFER_DISTANCE_METERS = 30; // Buffer distance for street geometries
 
+// Adaptive retry policy for per-instance 429 / AbortError retries
+export const OVERPASS_RETRY_MAX_ATTEMPTS = 3; // Total attempts per instance (including first)
+export const OVERPASS_RETRY_BASE_DELAY_MS = 1_000;
+export const OVERPASS_RETRY_MAX_DELAY_MS = 30_000;
+const OVERPASS_RETRY_BACKOFF_FACTOR = 2;
+const OVERPASS_RETRY_JITTER_FACTOR = 0.25;
+
+// Number of consecutive per-street transient failures (i.e. streets that exhausted every
+// instance) needed to open the circuit. One increment per street, not per individual request.
+export const CIRCUIT_BREAKER_THRESHOLD = 5;
+
 type StreetGeometryFeatureType = "street" | "boulevard" | "square";
 
 /**
@@ -53,7 +64,83 @@ function getStreetFeatureType(streetName: string): StreetGeometryFeatureType {
 
 // In-memory cache for street geometry lookups (keyed on type + normalized street name)
 const streetGeometryCache = new Map<string, Feature<MultiLineString> | null>();
-const deferredScopeStorage = new AsyncLocalStorage<Set<string>>();
+
+interface OverpassRunContext {
+  deferredKeys: Set<string>;
+  consecutiveTransientFailures: number;
+  circuitOpen: boolean;
+}
+
+const runContextStorage = new AsyncLocalStorage<OverpassRunContext>();
+
+function getRunContext(): OverpassRunContext | undefined {
+  return runContextStorage.getStore();
+}
+
+function recordTransientFailure(ctx: OverpassRunContext): void {
+  ctx.consecutiveTransientFailures++;
+  if (
+    ctx.consecutiveTransientFailures >= CIRCUIT_BREAKER_THRESHOLD &&
+    !ctx.circuitOpen
+  ) {
+    ctx.circuitOpen = true;
+    logger.warn(
+      "Overpass circuit breaker opened after consecutive transient failures",
+      {
+        threshold: CIRCUIT_BREAKER_THRESHOLD,
+      },
+    );
+  }
+}
+
+function recordSuccess(ctx: OverpassRunContext): void {
+  if (ctx.consecutiveTransientFailures > 0 || ctx.circuitOpen) {
+    if (ctx.circuitOpen) {
+      logger.info("Overpass circuit breaker closed after successful request");
+    }
+    ctx.consecutiveTransientFailures = 0;
+    ctx.circuitOpen = false;
+  }
+}
+
+export function parseRetryAfterMs(header: string | null): number | null {
+  if (header === null) return null;
+  const trimmed = header.trim();
+  if (trimmed.length === 0) return null;
+
+  // Delta-seconds format: "42"
+  if (/^\d+$/.test(trimmed)) {
+    const seconds = Number.parseInt(trimmed, 10);
+    return Math.min(seconds * 1_000, OVERPASS_RETRY_MAX_DELAY_MS);
+  }
+
+  // HTTP-date format (RFC 7231 IMF-fixdate only): "Sat, 05 Apr 2026 12:34:56 GMT"
+  // Reject anything that isn't a strict IMF-fixdate to avoid accepting ISO 8601 or
+  // other Date.parse-parseable strings that aren't valid Retry-After values.
+  if (
+    !/^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(trimmed)
+  )
+    return null;
+  const retryAtMs = Date.parse(trimmed);
+  if (Number.isNaN(retryAtMs)) return null;
+  return Math.min(
+    Math.max(retryAtMs - Date.now(), 0),
+    OVERPASS_RETRY_MAX_DELAY_MS,
+  );
+}
+
+export function calculateRetryDelayMs(
+  attempt: number,
+  retryAfterMs: number | null,
+): number {
+  if (retryAfterMs !== null)
+    return Math.min(retryAfterMs, OVERPASS_RETRY_MAX_DELAY_MS);
+  const base =
+    OVERPASS_RETRY_BASE_DELAY_MS *
+    Math.pow(OVERPASS_RETRY_BACKOFF_FACTOR, attempt - 1);
+  const jitter = base * OVERPASS_RETRY_JITTER_FACTOR * (Math.random() * 2 - 1);
+  return Math.min(Math.round(base + jitter), OVERPASS_RETRY_MAX_DELAY_MS);
+}
 
 function getStreetGeometryCacheKey(streetName: string): string {
   return makeStreetGeometryCacheKey(
@@ -85,10 +172,10 @@ export function getStreetGeometryCached(
  */
 export function hasStreetGeometryQueried(streetName: string): boolean {
   const cacheKey = getStreetGeometryCacheKey(streetName);
-  const deferredKeys = getCurrentDeferredStreetGeometryKeys();
+  const ctx = getRunContext();
   return (
     streetGeometryCache.has(cacheKey) ||
-    Boolean(deferredKeys?.has(cacheKey))
+    Boolean(ctx?.deferredKeys.has(cacheKey))
   );
 }
 
@@ -111,29 +198,34 @@ export function seedStreetGeometryCache(
 }
 
 function isStreetGeometryDeferred(streetName: string): boolean {
-  const deferredKeys = getCurrentDeferredStreetGeometryKeys();
-  return Boolean(deferredKeys?.has(getStreetGeometryCacheKey(streetName)));
+  const ctx = getRunContext();
+  return Boolean(ctx?.deferredKeys.has(getStreetGeometryCacheKey(streetName)));
 }
 
 function clearDeferredStreetGeometryKeys(): void {
-  const deferredKeys = getCurrentDeferredStreetGeometryKeys();
-  deferredKeys?.clear();
-}
-
-function getCurrentDeferredStreetGeometryKeys(): Set<string> | undefined {
-  return deferredScopeStorage.getStore();
+  const ctx = getRunContext();
+  if (ctx) {
+    ctx.deferredKeys.clear();
+    // Reset circuit breaker for the retry pass so deferred streets get a fair attempt
+    ctx.consecutiveTransientFailures = 0;
+    ctx.circuitOpen = false;
+  }
 }
 
 async function runWithDeferredRetryScope<T>(
   work: () => Promise<T>,
 ): Promise<T> {
-  const existingScope = deferredScopeStorage.getStore();
+  const existingScope = runContextStorage.getStore();
   if (existingScope !== undefined) {
     return work();
   }
 
-  const deferredKeys = new Set<string>();
-  return deferredScopeStorage.run(deferredKeys, work);
+  const ctx: OverpassRunContext = {
+    deferredKeys: new Set<string>(),
+    consecutiveTransientFailures: 0,
+    circuitOpen: false,
+  };
+  return runContextStorage.run(ctx, work);
 }
 
 function parseIntersectionStreetNames(intersection: string): [string, string] {
@@ -196,7 +288,7 @@ function shouldTryFallback(error: Error, statusCode?: number): boolean {
 type ErrorWithStatusCode = Error & { statusCode?: number };
 
 // Multiple Overpass API instances for fallback
-const OVERPASS_INSTANCES = [
+export const OVERPASS_INSTANCES = [
   "https://overpass.private.coffee/api/interpreter", // No rate limit
   "https://overpass-api.de/api/interpreter", // Main instance (10k queries/day)
 ];
@@ -250,10 +342,32 @@ export async function getStreetGeometryFromOverpass(
   streetName: string,
 ): Promise<Feature<MultiLineString> | null> {
   const cacheKey = getStreetGeometryCacheKey(streetName);
-  const deferredKeys = getCurrentDeferredStreetGeometryKeys();
+
+  // Check the in-memory cache first — cached results are always usable regardless
+  // of circuit-breaker or deferred-retry state (no network call needed).
+  if (streetGeometryCache.has(cacheKey)) {
+    const normalizedName = normalizeStreetName(streetName);
+    logger.debug("Street geometry cache hit", { streetName, normalizedName });
+    return streetGeometryCache.get(cacheKey)!;
+  }
+
+  const runCtx = getRunContext();
+  const deferredKeys = runCtx?.deferredKeys;
 
   if (deferredKeys?.has(cacheKey)) {
     logger.debug("Street geometry deferred for retry", { streetName });
+    return null;
+  }
+
+  // Circuit breaker — stop hammering Overpass when saturated
+  if (runCtx?.circuitOpen) {
+    deferredKeys?.add(cacheKey);
+    logger.debug(
+      "Overpass circuit open, deferring street without network attempt",
+      {
+        streetName,
+      },
+    );
     return null;
   }
 
@@ -267,11 +381,6 @@ export async function getStreetGeometryFromOverpass(
     const featureType = getStreetFeatureType(streetName);
     const isSquare = featureType === "square";
     const isStreet = featureType === "street";
-    // Return cached result if available (includes null for streets not found in OSM)
-    if (streetGeometryCache.has(cacheKey)) {
-      logger.debug("Street geometry cache hit", { streetName, normalizedName });
-      return streetGeometryCache.get(cacheKey)!;
-    }
 
     const queryRegex = toOverpassRegex(normalizedName);
 
@@ -312,102 +421,139 @@ export async function getStreetGeometryFromOverpass(
       `;
     }
 
-    // Try each Overpass instance until one works
+    // Try each Overpass instance; retry within the same instance for 429 and AbortError (timeout)
     let responseData: OverpassResponse | null = null;
     let lastError: Error | null = null;
 
-    for (const instance of OVERPASS_INSTANCES) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(
-        () => controller.abort(),
-        OVERPASS_TIMEOUT_MS,
-      );
+    outerLoop: for (const instance of OVERPASS_INSTANCES) {
+      for (let attempt = 1; attempt <= OVERPASS_RETRY_MAX_ATTEMPTS; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          OVERPASS_TIMEOUT_MS,
+        );
 
-      try {
-        const response = await fetch(instance, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: `data=${encodeURIComponent(query)}`,
-          signal: controller.signal,
-        });
+        try {
+          const response = await fetch(instance, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: `data=${encodeURIComponent(query)}`,
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          // Try to extract XML error message
-          const text = await response.text();
-          const errorMsg = parseOverpassError(text) || response.statusText;
-          const error: ErrorWithStatusCode = new Error(
-            `HTTP ${response.status}: ${errorMsg}`,
-          );
-          error.statusCode = response.status;
+          if (!response.ok) {
+            const text = await response.text();
+            const errorMsg = parseOverpassError(text) || response.statusText;
+            const err: ErrorWithStatusCode = new Error(
+              `HTTP ${response.status}: ${errorMsg}`,
+            );
+            err.statusCode = response.status;
 
-          if (!shouldTryFallback(error, response.status)) {
-            // Client-side error - don't try other servers
-            clearTimeout(timeoutId);
-            logger.error("Client error (query issue)", { errorMsg });
-            throw error;
+            if (!shouldTryFallback(err, response.status)) {
+              logger.debug("Client error (query issue)", { errorMsg });
+              throw err;
+            }
+
+            // 429: retry this instance with backoff
+            if (
+              response.status === 429 &&
+              attempt < OVERPASS_RETRY_MAX_ATTEMPTS
+            ) {
+              const retryAfterMs = parseRetryAfterMs(
+                response.headers.get("Retry-After"),
+              );
+              const waitMs = calculateRetryDelayMs(attempt, retryAfterMs);
+              logger.info(
+                "Rate limited by Overpass instance, retrying with backoff",
+                {
+                  hostname: new URL(instance).hostname,
+                  attempt,
+                  waitMs,
+                },
+              );
+              await delay(waitMs);
+              continue; // retry this instance
+            }
+
+            logger.info("Server error from Overpass instance", {
+              hostname: new URL(instance).hostname,
+              errorMsg,
+            });
+            lastError = err;
+            continue outerLoop; // try next instance
           }
 
-          logger.info("Server error from Overpass instance", {
-            hostname: new URL(instance).hostname,
-            errorMsg,
-          });
-          lastError = error;
-          clearTimeout(timeoutId);
-          continue;
-        }
+          // Parse JSON defensively - buffer as text first
+          const text = await response.text();
+          try {
+            responseData = JSON.parse(text);
+          } catch {
+            // Failed to parse JSON — might be an upstream HTML/XML error page with HTTP 200.
+            // Re-throw with a transient/server-oriented message so fallback/deferred retry
+            // can apply. parseOverpassError handles real Overpass XML errors (e.g. query
+            // syntax errors) which remain non-retryable via shouldTryFallback.
+            const errorMsg = parseOverpassError(text);
+            if (errorMsg) throw new Error(errorMsg);
+            throw new Error(
+              "Overpass instance returned a non-JSON success response; treating as transient upstream failure",
+            );
+          }
 
-        // Parse JSON defensively - buffer as text first
-        const text = await response.text();
-        try {
-          responseData = JSON.parse(text);
           logger.info("Response from Overpass instance", {
             hostname: new URL(instance).hostname,
           });
-        } catch (parseError) {
-          // Failed to parse JSON - might be XML error with HTTP 200
-          const errorMsg = parseOverpassError(text);
-          if (errorMsg) {
-            throw new Error(errorMsg);
+          break outerLoop; // success
+        } catch (error) {
+          clearTimeout(timeoutId);
+
+          const err: ErrorWithStatusCode =
+            error instanceof Error ? error : new Error(String(error));
+
+          if (!shouldTryFallback(err, err.statusCode)) {
+            logger.debug("Client error (query issue)", { error: err.message });
+            throw err;
           }
-          // Re-throw the original parse error
-          throw parseError;
+
+          // AbortError (timeout): retry this instance with backoff
+          const isAbort = err.name === "AbortError";
+          if (isAbort && attempt < OVERPASS_RETRY_MAX_ATTEMPTS) {
+            const waitMs = calculateRetryDelayMs(attempt, null);
+            logger.info(
+              "Timeout from Overpass instance, retrying with backoff",
+              {
+                hostname: new URL(instance).hostname,
+                attempt,
+                waitMs,
+              },
+            );
+            await delay(waitMs);
+            continue; // retry this instance
+          }
+
+          logger.info(
+            isAbort
+              ? "Timeout with Overpass instance"
+              : "Failed with Overpass instance",
+            {
+              hostname: new URL(instance).hostname,
+              ...(isAbort ? {} : { error: err.message }),
+            },
+          );
+          lastError = err;
+          continue outerLoop; // try next instance
         }
-
-        clearTimeout(timeoutId);
-        break; // Success, exit loop
-      } catch (error) {
-        clearTimeout(timeoutId);
-
-        const err: ErrorWithStatusCode =
-          error instanceof Error ? error : new Error(String(error));
-
-        // Check if this is a client-side error
-        if (!shouldTryFallback(err, err.statusCode)) {
-          logger.error("Client error (query issue)", { error: err.message });
-          throw err;
-        }
-
-        // Server-side error or timeout - try next instance
-        if (err.name === "AbortError") {
-          logger.info("Timeout with Overpass instance", {
-            hostname: new URL(instance).hostname,
-          });
-        } else {
-          logger.info("Failed with Overpass instance", {
-            hostname: new URL(instance).hostname,
-            error: err.message,
-          });
-        }
-        lastError = err;
-        continue; // Try next instance
       }
     }
 
     if (!responseData) {
       throw lastError || new Error("All Overpass instances failed");
     }
+
+    // API responded — count as success to reset the circuit breaker
+    if (runCtx) recordSuccess(runCtx);
 
     if (!responseData.elements || responseData.elements.length === 0) {
       // No OSM ways found - API request succeeded but no data for this street name
@@ -490,10 +636,11 @@ export async function getStreetGeometryFromOverpass(
     if (shouldTryFallback(err, err.statusCode)) {
       if (deferredKeys) {
         deferredKeys.add(cacheKey);
-        logger.info("Deferring street geometry after transient failure", {
-          streetName,
-        });
       }
+      if (runCtx) recordTransientFailure(runCtx);
+      logger.info("Deferring street geometry after transient failure", {
+        streetName,
+      });
       return null;
     }
     logger.error("Non-retryable Overpass error while resolving street", {
@@ -773,47 +920,49 @@ export async function getStreetSectionGeometry(
 
       // Try each segment as a potential section
       for (const segment of allSegments) {
-      if (segment.length < 2) continue;
+        if (segment.length < 2) continue;
 
-      const line = turf.lineString(segment);
+        const line = turf.lineString(segment);
 
-      // Check if both points are close to this segment
-      const startSnapped = turf.nearestPointOnLine(line, startPoint);
-      const endSnapped = turf.nearestPointOnLine(line, endPoint);
+        // Check if both points are close to this segment
+        const startSnapped = turf.nearestPointOnLine(line, startPoint);
+        const endSnapped = turf.nearestPointOnLine(line, endPoint);
 
-      const startDist = turf.distance(startPoint, startSnapped, {
-        units: "meters",
-      });
-      const endDist = turf.distance(endPoint, endSnapped, { units: "meters" });
+        const startDist = turf.distance(startPoint, startSnapped, {
+          units: "meters",
+        });
+        const endDist = turf.distance(endPoint, endSnapped, {
+          units: "meters",
+        });
 
-      // If both points are within 50m of this segment, it might be our section
-      if (startDist < 50 && endDist < 50) {
-        const totalDist = startDist + endDist;
+        // If both points are within 50m of this segment, it might be our section
+        if (startDist < 50 && endDist < 50) {
+          const totalDist = startDist + endDist;
 
-        if (totalDist < minTotalDistance) {
-          minTotalDistance = totalDist;
+          if (totalDist < minTotalDistance) {
+            minTotalDistance = totalDist;
 
-          // Extract the subsection between the two snapped points
-          const startIndex = startSnapped.properties.index || 0;
-          const endIndex = endSnapped.properties.index || segment.length - 1;
+            // Extract the subsection between the two snapped points
+            const startIndex = startSnapped.properties.index || 0;
+            const endIndex = endSnapped.properties.index || segment.length - 1;
 
-          const minIndex = Math.min(startIndex, endIndex);
-          const maxIndex = Math.max(startIndex, endIndex);
+            const minIndex = Math.min(startIndex, endIndex);
+            const maxIndex = Math.max(startIndex, endIndex);
 
-          // Extract coordinates between the indices
-          let section = segment.slice(minIndex, maxIndex + 2);
+            // Extract coordinates between the indices
+            let section = segment.slice(minIndex, maxIndex + 2);
 
-          // CRITICAL: Preserve directionality from start→end
-          // If startIndex > endIndex, we need to reverse the section
-          // to maintain the semantic order (from start coords to end coords)
-          if (startIndex > endIndex) {
-            section = section.slice().reverse();
+            // CRITICAL: Preserve directionality from start→end
+            // If startIndex > endIndex, we need to reverse the section
+            // to maintain the semantic order (from start coords to end coords)
+            if (startIndex > endIndex) {
+              section = section.slice().reverse();
+            }
+
+            bestSection = section;
           }
-
-          bestSection = section;
         }
       }
-    }
 
       if (bestSection && bestSection.length >= 2) {
         logger.info("Found street section", { points: bestSection.length });
@@ -829,77 +978,79 @@ export async function getStreetSectionGeometry(
       const usedSegments = new Set<number>();
 
       while (
-      connectedPath.length === 0 ||
-      turf.distance(
-        turf.point(connectedPath[connectedPath.length - 1]),
-        endPoint,
-        { units: "meters" },
-      ) > 10
-    ) {
-      // Find nearest unused segment to current point
-      let nearestSegmentIdx = -1;
-      let nearestDist = Infinity;
+        connectedPath.length === 0 ||
+        turf.distance(
+          turf.point(connectedPath[connectedPath.length - 1]),
+          endPoint,
+          { units: "meters" },
+        ) > 10
+      ) {
+        // Find nearest unused segment to current point
+        let nearestSegmentIdx = -1;
+        let nearestDist = Infinity;
 
-      for (let i = 0; i < allSegments.length; i++) {
-        if (usedSegments.has(i)) continue;
+        for (let i = 0; i < allSegments.length; i++) {
+          if (usedSegments.has(i)) continue;
 
-        const segment = allSegments[i];
-        if (segment.length < 2) continue;
+          const segment = allSegments[i];
+          if (segment.length < 2) continue;
 
-        const line = turf.lineString(segment);
-        const snapped = turf.nearestPointOnLine(line, currentPoint);
-        const dist = turf.distance(currentPoint, snapped, { units: "meters" });
+          const line = turf.lineString(segment);
+          const snapped = turf.nearestPointOnLine(line, currentPoint);
+          const dist = turf.distance(currentPoint, snapped, {
+            units: "meters",
+          });
 
-        if (dist < nearestDist) {
-          nearestDist = dist;
-          nearestSegmentIdx = i;
-          // nearestSnap = snapped; // unused but kept for potential debugging
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestSegmentIdx = i;
+            // nearestSnap = snapped; // unused but kept for potential debugging
+          }
         }
-      }
 
-      if (nearestSegmentIdx === -1 || nearestDist > 50) {
-        logger.info("Cannot connect segments", {
-          minDistanceMeters: nearestDist,
-        });
-        break;
-      }
+        if (nearestSegmentIdx === -1 || nearestDist > 50) {
+          logger.info("Cannot connect segments", {
+            minDistanceMeters: nearestDist,
+          });
+          break;
+        }
 
-      // Add this segment
-      usedSegments.add(nearestSegmentIdx);
-      const segment = allSegments[nearestSegmentIdx];
+        // Add this segment
+        usedSegments.add(nearestSegmentIdx);
+        const segment = allSegments[nearestSegmentIdx];
 
-      // Determine direction and add coordinates
-      if (connectedPath.length === 0) {
-        connectedPath.push(...segment);
-      } else {
-        // Check if we need to reverse
-        const lastPoint = turf.point(connectedPath[connectedPath.length - 1]);
-        const segmentStart = turf.point(segment[0]);
-        const segmentEnd = turf.point(segment[segment.length - 1]);
-
-        const distToStart = turf.distance(lastPoint, segmentStart, {
-          units: "meters",
-        });
-        const distToEnd = turf.distance(lastPoint, segmentEnd, {
-          units: "meters",
-        });
-
-        if (distToEnd < distToStart) {
-          // Reverse and add
-          connectedPath.push(...segment.slice().reverse());
-        } else {
+        // Determine direction and add coordinates
+        if (connectedPath.length === 0) {
           connectedPath.push(...segment);
+        } else {
+          // Check if we need to reverse
+          const lastPoint = turf.point(connectedPath[connectedPath.length - 1]);
+          const segmentStart = turf.point(segment[0]);
+          const segmentEnd = turf.point(segment[segment.length - 1]);
+
+          const distToStart = turf.distance(lastPoint, segmentStart, {
+            units: "meters",
+          });
+          const distToEnd = turf.distance(lastPoint, segmentEnd, {
+            units: "meters",
+          });
+
+          if (distToEnd < distToStart) {
+            // Reverse and add
+            connectedPath.push(...segment.slice().reverse());
+          } else {
+            connectedPath.push(...segment);
+          }
+        }
+
+        currentPoint = turf.point(connectedPath[connectedPath.length - 1]);
+
+        // Safety check
+        if (usedSegments.size > 10) {
+          logger.info("Too many segments, giving up");
+          break;
         }
       }
-
-      currentPoint = turf.point(connectedPath[connectedPath.length - 1]);
-
-      // Safety check
-      if (usedSegments.size > 10) {
-        logger.info("Too many segments, giving up");
-        break;
-      }
-    }
 
       if (connectedPath.length >= 2) {
         logger.info("Connected segments into path", {
