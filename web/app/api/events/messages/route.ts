@@ -2,17 +2,34 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { recordToMessage } from "@/lib/doc-to-message";
 import { toRequiredISOString } from "@/lib/date-serialization";
+import { MatchSignalsSchema } from "@oboapp/shared";
 import type { EventMessage } from "@oboapp/shared";
 
+function getString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function getOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function getNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" ? value : fallback;
+}
+
 function recordToEventMessage(record: Record<string, unknown>): EventMessage {
+  const parsedSignals = MatchSignalsSchema.nullable().optional().safeParse(
+    record.matchSignals,
+  );
+
   return {
-    id: record._id as string,
-    eventId: record.eventId as string,
-    messageId: record.messageId as string,
-    source: record.source as string,
-    confidence: (record.confidence as number) ?? 0,
-    geometryQuality: (record.geometryQuality as number) ?? 0,
-    matchSignals: record.matchSignals as EventMessage["matchSignals"],
+    id: getOptionalString(record._id),
+    eventId: getString(record.eventId),
+    messageId: getString(record.messageId),
+    source: getString(record.source),
+    confidence: getNumber(record.confidence, 0),
+    geometryQuality: getNumber(record.geometryQuality, 0),
+    matchSignals: parsedSignals.success ? parsedSignals.data : undefined,
     createdAt: toRequiredISOString(record.createdAt, "createdAt"),
   };
 }
@@ -39,9 +56,10 @@ export async function GET(request: Request) {
     }
 
     // Batch fetch messages
-    const messagePromises = eventMessageDocs.map((em) =>
-      db.messages.findById(em.messageId as string),
-    );
+    const messagePromises = eventMessageDocs.map((em) => {
+      const messageId = typeof em.messageId === "string" ? em.messageId : null;
+      return messageId ? db.messages.findById(messageId) : Promise.resolve(null);
+    });
     const messageRecords = await Promise.all(messagePromises);
 
     // Filter out nulls (deleted messages) and convert

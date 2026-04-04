@@ -5,6 +5,14 @@ import {
   toRequiredISOString,
   toOptionalISOString,
 } from "@/lib/date-serialization";
+import {
+  getBusStops,
+  getCadastralProperties,
+  getCategories,
+  getFeatureCollection,
+  getPins,
+  getStreets,
+} from "@/lib/typed-arrays";
 import { getLocality } from "@/lib/bounds-utils";
 import type { Event } from "@oboapp/shared";
 
@@ -17,27 +25,46 @@ function getCutoffDate(): Date {
   return cutoff;
 }
 
+function getString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function getOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function getNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" ? value : fallback;
+}
+
+function getBoolean(value: unknown, fallback = false): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function getStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
 function recordToEvent(record: Record<string, unknown>): Event {
   return {
-    id: record._id as string,
-    plainText: record.plainText as string,
-    markdownText: record.markdownText as string | undefined,
-    geoJson: record.geoJson as Event["geoJson"],
-    geometryQuality: (record.geometryQuality as number) ?? 0,
+    id: getOptionalString(record._id),
+    plainText: getString(record.plainText),
+    markdownText: getOptionalString(record.markdownText),
+    geoJson: getFeatureCollection(record.geoJson),
+    geometryQuality: getNumber(record.geometryQuality, 0),
     timespanStart: toOptionalISOString(record.timespanStart, "timespanStart"),
     timespanEnd: toOptionalISOString(record.timespanEnd, "timespanEnd"),
-    categories: Array.isArray(record.categories) ? record.categories : [],
-    pins: Array.isArray(record.pins) ? record.pins : undefined,
-    streets: Array.isArray(record.streets) ? record.streets : undefined,
-    cadastralProperties: Array.isArray(record.cadastralProperties)
-      ? record.cadastralProperties
-      : undefined,
-    busStops: Array.isArray(record.busStops) ? record.busStops : undefined,
-    sources: Array.isArray(record.sources) ? record.sources : [],
-    messageCount: (record.messageCount as number) ?? 1,
-    confidence: (record.confidence as number) ?? 0,
-    locality: (record.locality as string) ?? "",
-    cityWide: (record.cityWide as boolean) || false,
+    categories: getCategories(record.categories),
+    pins: getPins(record.pins),
+    streets: getStreets(record.streets),
+    cadastralProperties: getCadastralProperties(record.cadastralProperties),
+    busStops: getBusStops(record.busStops),
+    sources: getStringArray(record.sources),
+    messageCount: getNumber(record.messageCount, 1),
+    confidence: getNumber(record.confidence, 0),
+    locality: getString(record.locality),
+    cityWide: getBoolean(record.cityWide, false),
     createdAt: toRequiredISOString(record.createdAt, "createdAt"),
     updatedAt: toRequiredISOString(record.updatedAt, "updatedAt"),
   };
@@ -92,7 +119,9 @@ export async function GET(request: Request) {
     if (cursorUpdatedAt && cursorId) {
       const cursorTime = new Date(cursorUpdatedAt).getTime();
       filtered = fetchedDocs.filter((doc) => {
-        const docTime = new Date(doc.updatedAt as string).getTime();
+        const docTime = new Date(
+          toRequiredISOString(doc.updatedAt, "updatedAt"),
+        ).getTime();
         if (docTime < cursorTime) return true;
         if (docTime > cursorTime) return false;
         return String(doc._id).localeCompare(cursorId) < 0;

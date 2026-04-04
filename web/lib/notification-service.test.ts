@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { removeSubscriptionFromBackend } from "./notification-service";
 
 // Mock Firebase modules before importing the notification service
 vi.mock("firebase/app", () => ({
@@ -30,9 +31,6 @@ vi.mock("./firebase", () => ({
 
 // Mock global fetch
 global.fetch = vi.fn();
-
-// Now import the function to test
-import { removeSubscriptionFromBackend } from "./notification-service";
 
 describe("removeSubscriptionFromBackend", () => {
   const mockToken = "test-fcm-token-12345";
