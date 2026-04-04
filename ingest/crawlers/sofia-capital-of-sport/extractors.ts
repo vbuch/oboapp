@@ -13,14 +13,19 @@ export async function extractPostLinks(page: Page): Promise<PostLink[]> {
 export async function extractPostDetails(
   page: Page,
 ): Promise<{ title: string; dateText: string; contentHtml: string }> {
-  return extractPostDetailsGeneric(page, SELECTORS.POST, [
-    "script",
-    "style",
-    "nav",
-    "header",
-    "footer",
-    ".tribe-events-c-subscribe-dropdown",
-    ".tribe-events-event-meta",
-    ".sharedaddy",
-  ]);
+  return extractPostDetailsGeneric(
+    page,
+    SELECTORS.POST,
+    [
+      "script",
+      "style",
+      "nav",
+      "header",
+      "footer",
+      ".tribe-events-c-subscribe-dropdown",
+      ".tribe-events-event-meta",
+      ".sharedaddy",
+    ],
+    "#tribe-events-content",
+  );
 }

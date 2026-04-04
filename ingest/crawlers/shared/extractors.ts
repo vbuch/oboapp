@@ -30,7 +30,7 @@ interface Selectors {
 export async function extractPostLinks(
   page: Page,
   selectors: Selectors,
-  urlFilter?: (url: string) => boolean
+  urlFilter?: (url: string) => boolean,
 ): Promise<PostLink[]> {
   logger.debug("Extracting post links from index page");
 
@@ -39,7 +39,7 @@ export async function extractPostLinks(
 
     // Find all article containers
     const containers = document.querySelectorAll(
-      selectors.INDEX.POST_CONTAINER
+      selectors.INDEX.POST_CONTAINER,
     );
 
     containers.forEach((container) => {
@@ -47,8 +47,7 @@ export async function extractPostLinks(
       const linkEl = container.querySelector(selectors.INDEX.POST_LINK);
       if (!linkEl) return;
 
-      const url =
-        linkEl instanceof HTMLAnchorElement ? linkEl.href : "";
+      const url = linkEl instanceof HTMLAnchorElement ? linkEl.href : "";
 
       // Extract title
       const titleEl = container.querySelector(selectors.INDEX.POST_TITLE);
@@ -88,26 +87,32 @@ export async function extractPostDetailsGeneric(
     DATE: string;
     CONTENT: string;
   },
-  unwantedElements: string[] = ["script", "style"]
+  unwantedElements: string[] = ["script", "style"],
+  rootSelector?: string,
 ): Promise<{ title: string; dateText: string; contentHtml: string }> {
   const details = await page.evaluate(
-    ({ selectors, unwantedElements }) => {
+    ({ selectors, unwantedElements, rootSelector }) => {
+      const root = rootSelector
+        ? (document.querySelector(rootSelector) ?? document)
+        : document;
+
       // Extract title
-      const titleEl = document.querySelector(selectors.TITLE);
+      const titleEl = root.querySelector(selectors.TITLE);
       const title = titleEl?.textContent?.trim() || "";
 
       // Extract date
-      const dateEl = document.querySelector(selectors.DATE);
+      const dateEl = root.querySelector(selectors.DATE);
       const dateText = dateEl?.textContent?.trim() || "";
 
       // Extract main content
-      const contentEl = document.querySelector(selectors.CONTENT);
+      const contentEl = root.querySelector(selectors.CONTENT);
 
       let contentHtml = "";
       if (contentEl) {
         // Clone the element to avoid modifying the page
         const clone = contentEl.cloneNode(true);
-        if (!(clone instanceof HTMLElement)) return { title: "", dateText: "", contentHtml: "" };
+        if (!(clone instanceof HTMLElement))
+          return { title: "", dateText: "", contentHtml: "" };
 
         // Remove unwanted elements
         const selector = unwantedElements.join(", ");
@@ -124,7 +129,7 @@ export async function extractPostDetailsGeneric(
         contentHtml,
       };
     },
-    { selectors, unwantedElements }
+    { selectors, unwantedElements, rootSelector },
   );
 
   return details;

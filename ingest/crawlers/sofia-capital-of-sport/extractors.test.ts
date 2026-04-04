@@ -59,6 +59,20 @@ describe("sofia-capital-of-sport/extractors", () => {
       expect(details.title).toBe("Sofia Half Marathon 2026");
       expect(details.dateText).toBe("април 5");
       expect(details.contentHtml).toContain("Event description");
+      expect(mockEvaluate).toHaveBeenCalledWith(expect.any(Function), {
+        selectors: SELECTORS.POST,
+        unwantedElements: [
+          "script",
+          "style",
+          "nav",
+          "header",
+          "footer",
+          ".tribe-events-c-subscribe-dropdown",
+          ".tribe-events-event-meta",
+          ".sharedaddy",
+        ],
+        rootSelector: "#tribe-events-content",
+      });
     });
   });
 });

@@ -40,7 +40,7 @@ describe("shared/extractors", () => {
       expect(result).toEqual(mockPosts);
       expect(mockPage.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        selectors
+        selectors,
       );
     });
 
@@ -175,6 +175,7 @@ describe("shared/extractors", () => {
       expect(mockPage.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         selectors,
         unwantedElements: ["script", "style"],
+        rootSelector: undefined,
       });
     });
 
@@ -200,13 +201,46 @@ describe("shared/extractors", () => {
       const result = await extractPostDetailsGeneric(
         mockPage,
         selectors,
-        unwantedElements
+        unwantedElements,
       );
 
       expect(result).toEqual(mockDetails);
       expect(mockPage.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         selectors,
         unwantedElements,
+        rootSelector: undefined,
+      });
+    });
+
+    it("should pass root selector when provided", async () => {
+      const mockDetails = {
+        title: "Scoped title",
+        dateText: "01.01.2026",
+        contentHtml: "<p>Scoped content</p>",
+      };
+
+      const mockPage = {
+        evaluate: vi.fn().mockResolvedValue(mockDetails),
+      } as unknown as Page;
+
+      const selectors = {
+        TITLE: "h1",
+        DATE: ".date",
+        CONTENT: ".content",
+      };
+
+      const result = await extractPostDetailsGeneric(
+        mockPage,
+        selectors,
+        ["script", "style"],
+        "#content-root",
+      );
+
+      expect(result).toEqual(mockDetails);
+      expect(mockPage.evaluate).toHaveBeenCalledWith(expect.any(Function), {
+        selectors,
+        unwantedElements: ["script", "style"],
+        rootSelector: "#content-root",
       });
     });
 
