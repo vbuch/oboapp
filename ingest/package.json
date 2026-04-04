@@ -26,6 +26,7 @@
     "emulator:clear": "tsx scripts/clear-emulator-data.ts",
     "capture-fixtures": "tsx scripts/capture-api-responses.ts",
     "capture:firestore": "tsx scripts/capture-from-firestore.ts",
+    "fetch-message": "tsx scripts/fetch-message.ts",
     "reprocess-failed-messages": "tsx scripts/reprocess-failed-messages.ts",
     "reprocess-message": "tsx scripts/reprocess-message.ts",
     "geocode-cache:report": "tsx scripts/geocode-frequency-report.ts",
