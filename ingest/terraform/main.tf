@@ -337,6 +337,12 @@ locals {
       description  = "Evaluate sensor.community air quality data"
       emergent     = true
     }
+    sofia-capital-of-sport = {
+      source       = "sofia-capital-of-sport"
+      memory       = "1Gi"
+      timeout      = "1800s"
+      description  = "Crawl Sofia Capital of Sport events"
+    }
   }
 }
 
