@@ -322,6 +322,51 @@ export function assertNotUnreadable(
   };
 }
 
+/**
+ * Asserts that coordinate literals from input survive in filter-split output text.
+ * Usage in YAML: config.value should be comma-separated coordinates, e.g.
+ * "42.695651944172944,23.334014496305734|42.7016435,23.3370536"
+ */
+export function assertCoordinatesPreserved(
+  output: string,
+  context: AssertionValueFunctionContext,
+): GradingResult {
+  const parsed = parseOutput(output);
+  if (!parsed.success) return parsed.result;
+
+  const items = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
+  const expectedRaw = String(context.config?.value ?? "").trim();
+  const expected = expectedRaw
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (expected.length === 0) {
+    return {
+      pass: false,
+      score: 0,
+      reason:
+        "assertCoordinatesPreserved requires config.value with expected coordinate literals separated by '|'",
+    };
+  }
+
+  const searchableText = items
+    .filter(isRecord)
+    .map((item) => `${String(item.plainText ?? "")}\n${String(item.markdownText ?? "")}`)
+    .join("\n");
+
+  const missing = expected.filter((coord) => !searchableText.includes(coord));
+  const pass = missing.length === 0;
+
+  return {
+    pass,
+    score: pass ? 1 : 0,
+    reason: pass
+      ? `All expected coordinates were preserved: ${expected.join(", ")}`
+      : `Missing coordinates in output: ${missing.join(", ")}`,
+  };
+}
+
 // ─── Verify Event Match Assertions ────────────────────────────────
 
 /**

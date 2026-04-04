@@ -121,3 +121,14 @@ tests:
         value: "file://assertions.ts:assertRelevant"
       - type: javascript
         value: "file://assertions.ts:assertNotUnreadable"
+
+  # Multi-message with inline coordinates — coordinates must survive split output
+  - vars:
+      input: "file://../../__mocks__/fixtures/sources/multi-message-inline-coordinates.md"
+    assert:
+      - type: javascript
+        value: "file://assertions.ts:assertRelevant"
+      - type: javascript
+        value: "file://assertions.ts:assertCoordinatesPreserved"
+        config:
+          value: "42.695651944172944, 23.334014496305734|42.7016435, 23.3370536"

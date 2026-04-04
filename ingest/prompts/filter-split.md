@@ -97,6 +97,16 @@ There are no made-up facts only a meaningful extraction from the bigger harder-t
 It is informative and provides value to the end user.
 </single-message>
 
+<coordinates-preservance>
+
+**ALWAYS Preserve coordinate literals exactly when present in the source text.**
+
+- If a message section contains inline coordinates (for example: `42.695651944172944, 23.334014496305734` or `(42.70164, 23.33705)`), keep those numeric coordinate strings in the corresponding split message.
+- Do NOT normalize, round, reformat, or drop coordinate literals.
+- Keep coordinates attached to the correct split item; do not move a coordinate from one split message into another.
+
+</coordinates-preservance>
+
 <translation>
 
 - **NEVER translate messages**
