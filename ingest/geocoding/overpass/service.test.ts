@@ -5,6 +5,8 @@ import {
   toOverpassRegex,
   clearStreetGeometryCache,
   overpassGeocodeIntersections,
+  getStreetGeometryFromOverpass,
+  preFetchStreetGeometries,
   CIRCUIT_BREAKER_THRESHOLD,
   OVERPASS_INSTANCES,
   OVERPASS_RETRY_MAX_ATTEMPTS,
@@ -699,6 +701,119 @@ describe("overpass-geocoding-service", () => {
         // After the circuit resets, some intersections should be resolved
         expect(results.length).toBeGreaterThan(0);
       });
+    });
+  });
+
+  describe("preFetchStreetGeometries", () => {
+    const wayResponse = JSON.stringify({
+      elements: [
+        {
+          type: "way",
+          geometry: [
+            { lat: 42.6977, lon: 23.3219 },
+            { lat: 42.698, lon: 23.3225 },
+          ],
+        },
+      ],
+    });
+
+    function mockFetch(responseBody: string) {
+      return vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(responseBody),
+      });
+    }
+
+    beforeEach(() => {
+      clearStreetGeometryCache();
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("deduplicates by normalized cache key: three names → two Overpass calls", async () => {
+      vi.stubGlobal("fetch", mockFetch(wayResponse));
+
+      // "ул. Оборище" and "ул.Оборище" normalize to the same key
+      await preFetchStreetGeometries([
+        "ул. Оборище",
+        "ул.Оборище",
+        "ул. Раковски",
+      ]);
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("skips names already present in the geometry cache", async () => {
+      vi.stubGlobal("fetch", mockFetch(wayResponse));
+
+      // Warm up the cache for "ул. Оборище"
+      await preFetchStreetGeometries(["ул. Оборище"]);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      vi.mocked(fetch).mockClear();
+
+      // Second call: already cached → no new fetch
+      await preFetchStreetGeometries(["ул. Оборище", "ул. Оборище"]);
+      expect(fetch).toHaveBeenCalledTimes(0);
+    });
+
+    it("retries deferred streets in a second pass", async () => {
+      // Fail on ALL instances in pass 1 so the street is actually deferred (not satisfied
+      // by the fallback instance), then succeed in pass 2 (after clearDeferredStreetGeometryKeys).
+      // The inter-pass delay mock is overridden to flip the pass1Done flag.
+      let pass1Done = false;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => {
+          if (!pass1Done) throw new Error("Network request failed");
+          return { ok: true, text: () => Promise.resolve(wayResponse) };
+        }),
+      );
+      vi.mocked(delay).mockImplementation(async () => {
+        pass1Done = true;
+      });
+
+      await preFetchStreetGeometries(["ул. Пример"]);
+
+      // Pass 1: OVERPASS_INSTANCES.length calls all fail → street deferred
+      // Pass 2: 1 call succeeds on the first instance
+      expect(vi.mocked(fetch).mock.calls.length).toBe(OVERPASS_INSTANCES.length + 1);
+      // The second-pass result must have been cached — no further fetch needed
+      vi.mocked(fetch).mockClear();
+      const cached = await getStreetGeometryFromOverpass("ул. Пример");
+      expect(cached).not.toBeNull();
+      expect(vi.mocked(fetch).mock.calls.length).toBe(0);
+
+      // Restore default delay mock
+      vi.mocked(delay).mockResolvedValue(undefined);
+    });
+
+    it("caches persistently unavailable streets as null after retry exhaustion", async () => {
+      // All instances always fail → passes through both passes → cached as null
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockRejectedValue(new Error("Network request failed")),
+      );
+
+      await preFetchStreetGeometries(["ул. Пример"]);
+      const fetchCallsDuringPreFetch = vi.mocked(fetch).mock.calls.length;
+      vi.mocked(fetch).mockClear();
+
+      // getStreetGeometryFromOverpass should now return null from cache — no new fetch
+      const geometry = await getStreetGeometryFromOverpass("ул. Пример");
+      expect(geometry).toBeNull();
+      expect(vi.mocked(fetch).mock.calls.length).toBe(0);
+      expect(fetchCallsDuringPreFetch).toBeGreaterThan(0);
+    });
+
+    it("is a no-op for empty input and blank strings", async () => {
+      vi.stubGlobal("fetch", mockFetch(wayResponse));
+
+      await preFetchStreetGeometries([]);
+      await preFetchStreetGeometries(["", "  "]);
+
+      expect(fetch).not.toHaveBeenCalled();
     });
   });
 });

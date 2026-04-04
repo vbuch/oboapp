@@ -197,6 +197,108 @@ export function seedStreetGeometryCache(
   }
 }
 
+/**
+ * Pre-fetch street geometries for a batch of names, populating the in-memory cache
+ * before intersection geocoding begins.
+ *
+ * Deduplicates by full cache key (inferred feature type + normalised street name) so
+ * each unique query variant is fetched at most once — e.g. "\u0443\u043b. \u041e\u0431\u043e\u0440\u0438\u0449\u0435" (street) and
+ * "\u0431\u0443\u043b. \u041e\u0431\u043e\u0440\u0438\u0449\u0435" (boulevard) produce different keys and are each fetched once.
+ * Runs an internal two-pass retry (identical in structure to overpassGeocodeIntersections):
+ * streets that fail transiently in the first pass are retried once.  Streets still
+ * deferred after the retry pass are written into the cache as null, which converts
+ * future lookups into immediate cache hits and prevents repeated Overpass calls for the
+ * same unavailable street across multiple sections.
+ *
+ * Includes OVERPASS_DELAY_MS between requests (Overpass rate-limiting constraint).
+ */
+/**
+ * PRECONDITION: must not be called from within an existing runWithDeferredRetryScope.
+ * The function creates its own isolated scope and calls clearDeferredStreetGeometryKeys()
+ * internally; if an outer scope exists those calls would corrupt its deferred-key state,
+ * breaking the outer retry logic. A defensive guard is applied at runtime.
+ */
+export async function preFetchStreetGeometries(
+  streetNames: string[],
+): Promise<void> {
+  if (getRunContext() !== undefined) {
+    logger.warn(
+      "preFetchStreetGeometries called inside an existing retry scope — skipping pre-fetch",
+    );
+    return;
+  }
+
+  // Deduplicate by cache key; skip names already resolved (success, null, or pending dedup)
+  const keyToName = new Map<string, string>();
+  for (const name of streetNames) {
+    if (!name.trim()) continue;
+    const key = getStreetGeometryCacheKey(name);
+    if (keyToName.has(key) || streetGeometryCache.has(key)) continue;
+    keyToName.set(key, name);
+  }
+
+  if (keyToName.size === 0) return;
+
+  const toFetch = [...keyToName.values()];
+  logger.debug("Pre-fetching street geometries", { count: toFetch.length });
+
+  await runWithDeferredRetryScope(async () => {
+    // First pass: fetch each unique name
+    for (let i = 0; i < toFetch.length; i++) {
+      if (i > 0) await delay(OVERPASS_DELAY_MS);
+      await getStreetGeometryFromOverpass(toFetch[i]);
+    }
+
+    // Second pass: retry names that were deferred by transient failures
+    const ctx = getRunContext();
+    if (!ctx || ctx.deferredKeys.size === 0) return;
+
+    // Snapshot before clearing — clearDeferredStreetGeometryKeys empties the Set
+    const deferredKeys = [...ctx.deferredKeys];
+    const deferredNames = deferredKeys
+      .map((k) => keyToName.get(k))
+      .filter((n): n is string => n !== undefined);
+    const unknownDeferredCount = deferredKeys.filter(
+      (k) => !keyToName.has(k),
+    ).length;
+
+    clearDeferredStreetGeometryKeys();
+
+    if (unknownDeferredCount > 0) {
+      logger.warn(
+        "preFetchStreetGeometries: deferred keys with no matching name — streets will not be retried",
+        { count: unknownDeferredCount },
+      );
+    }
+
+    logger.debug("Retrying deferred street geometry pre-fetches", {
+      count: deferredNames.length,
+    });
+
+    // Respect rate limiting between the last request of pass 1 and the first of pass 2
+    if (deferredNames.length > 0) await delay(OVERPASS_DELAY_MS);
+
+    for (let i = 0; i < deferredNames.length; i++) {
+      if (i > 0) await delay(OVERPASS_DELAY_MS);
+      await getStreetGeometryFromOverpass(deferredNames[i]);
+    }
+
+    // Any streets still deferred after retry are unlikely to succeed in the current run.
+    // Cache them as null so that subsequent intersection processing gets an immediate
+    // cache hit instead of issuing another Overpass request per section.
+    const ctxAfterRetry = getRunContext();
+    if (ctxAfterRetry && ctxAfterRetry.deferredKeys.size > 0) {
+      logger.debug("Marking persistently unavailable streets in cache", {
+        count: ctxAfterRetry.deferredKeys.size,
+      });
+      for (const key of ctxAfterRetry.deferredKeys) {
+        streetGeometryCache.set(key, null);
+      }
+      ctxAfterRetry.deferredKeys.clear();
+    }
+  });
+}
+
 function isStreetGeometryDeferred(streetName: string): boolean {
   const ctx = getRunContext();
   return Boolean(ctx?.deferredKeys.has(getStreetGeometryCacheKey(streetName)));
