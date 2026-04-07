@@ -2,6 +2,7 @@ import center from "@turf/center";
 import { lineString, polygon } from "@turf/helpers";
 import { roundCoordinate } from "@oboapp/shared";
 import type { GeoJSONGeometry, GeoJSONFeatureCollection } from "@/lib/types";
+import type { ViewportBounds } from "@/lib/bounds-utils";
 
 /**
  * Convert GeoJSON coordinate to Google Maps LatLng format
@@ -210,4 +211,99 @@ export const getFeaturesCentroid = (
     centroids.reduce((sum, c) => sum + c.lng, 0) / centroids.length;
 
   return { lat: roundCoordinate(avgLat), lng: roundCoordinate(avgLng) };
+};
+
+const collectCoordinates = (
+  geometry: GeoJSONGeometry | null | undefined,
+): number[][] => {
+  if (!geometry) {
+    return [];
+  }
+
+  const toCoordinatePairs = (value: unknown): number[][] => {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.filter((coord): coord is number[] => {
+      if (!Array.isArray(coord) || coord.length < 2) {
+        return false;
+      }
+
+      const [lng, lat] = coord;
+      return Number.isFinite(lng) && Number.isFinite(lat);
+    });
+  };
+
+  switch (geometry.type) {
+    case "Point":
+      return toCoordinatePairs([geometry.coordinates]);
+    case "MultiPoint":
+    case "LineString":
+      return toCoordinatePairs(geometry.coordinates);
+    case "Polygon":
+      if (!Array.isArray(geometry.coordinates)) {
+        return [];
+      }
+
+      return geometry.coordinates.flatMap((ring) => toCoordinatePairs(ring));
+    default:
+      return [];
+  }
+};
+
+const BOUNDS_ROUNDING_DECIMALS = 6;
+
+const roundOutward = (
+  value: number,
+  direction: "up" | "down",
+  decimals: number = BOUNDS_ROUNDING_DECIMALS,
+): number => {
+  const rounded = roundCoordinate(value, decimals);
+  const step = 10 ** -decimals;
+
+  if (direction === "up") {
+    return rounded < value ? rounded + step : rounded;
+  }
+
+  return rounded > value ? rounded - step : rounded;
+};
+
+/**
+ * Calculate geographic bounds that contain all coordinates in a FeatureCollection.
+ * If those bounds are visible, the convex hull is also fully visible.
+ */
+export const getFeaturesBounds = (
+  geoJson: GeoJSONFeatureCollection | undefined | null,
+): ViewportBounds | null => {
+  const features = geoJson?.features;
+  if (!features || features.length === 0) return null;
+
+  let north = -Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let west = Infinity;
+  let hasValidCoordinate = false;
+
+  features.forEach((feature) => {
+    const coordinates = collectCoordinates(feature.geometry);
+
+    coordinates.forEach((coord) => {
+      const [lng, lat] = coord;
+      north = Math.max(north, lat);
+      south = Math.min(south, lat);
+      east = Math.max(east, lng);
+      west = Math.min(west, lng);
+      hasValidCoordinate = true;
+    });
+  });
+
+  if (!hasValidCoordinate) return null;
+
+  return {
+    north: roundOutward(north, "up"),
+    south: roundOutward(south, "down"),
+    east: roundOutward(east, "up"),
+    west: roundOutward(west, "down"),
+  };
 };

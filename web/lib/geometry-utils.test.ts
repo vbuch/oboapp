@@ -4,6 +4,7 @@ import {
   getCentroid,
   createFeatureKey,
   jitterDuplicatePositions,
+  getFeaturesBounds,
   getFeaturesCentroid,
 } from "./geometry-utils";
 
@@ -865,6 +866,176 @@ describe("geometry-utils", () => {
       expect(result).toBeDefined();
       expect(result!.lat).toBeCloseTo(42.6977, 4);
       expect(result!.lng).toBeCloseTo(23.3219, 4);
+    });
+  });
+
+  describe("getFeaturesBounds", () => {
+    it("should calculate bounds for mixed supported geometries", () => {
+      const geoJson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [23.3219, 42.6977],
+            },
+            properties: {},
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [23.31, 42.68],
+                [23.35, 42.72],
+              ],
+            },
+            properties: {},
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [23.30, 42.69],
+                  [23.37, 42.69],
+                  [23.37, 42.73],
+                  [23.30, 42.73],
+                  [23.30, 42.69],
+                ],
+              ],
+            },
+            properties: {},
+          },
+        ],
+      } as any;
+
+      const result = getFeaturesBounds(geoJson);
+
+      expect(result).toEqual({
+        north: 42.73,
+        south: 42.68,
+        east: 23.37,
+        west: 23.3,
+      });
+    });
+
+    it("should include MultiPoint coordinates in bounds", () => {
+      const geoJson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "MultiPoint",
+              coordinates: [
+                [23.20, 42.60],
+                [23.40, 42.80],
+              ],
+            },
+            properties: {},
+          },
+        ],
+      } as any;
+
+      const result = getFeaturesBounds(geoJson);
+
+      expect(result).toEqual({
+        north: 42.8,
+        south: 42.6,
+        east: 23.4,
+        west: 23.2,
+      });
+    });
+
+    it("should round bounds outward to avoid clipping coordinates", () => {
+      const geoJson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "MultiPoint",
+              coordinates: [
+                [23.1234564, 42.1234564],
+                [23.1234566, 42.1234566],
+              ],
+            },
+            properties: {},
+          },
+        ],
+      } as any;
+
+      const result = getFeaturesBounds(geoJson);
+
+      expect(result).toEqual({
+        north: 42.123457,
+        south: 42.123456,
+        east: 23.123457,
+        west: 23.123456,
+      });
+
+      const coordinates = geoJson.features[0].geometry.coordinates;
+      coordinates.forEach(([lng, lat]: [number, number]) => {
+        expect(result!.north).toBeGreaterThanOrEqual(lat);
+        expect(result!.south).toBeLessThanOrEqual(lat);
+        expect(result!.east).toBeGreaterThanOrEqual(lng);
+        expect(result!.west).toBeLessThanOrEqual(lng);
+      });
+    });
+
+    it("should return null for empty or invalid inputs", () => {
+      expect(getFeaturesBounds(null)).toBeNull();
+      expect(getFeaturesBounds(undefined)).toBeNull();
+      expect(
+        getFeaturesBounds({ type: "FeatureCollection", features: [] } as any),
+      ).toBeNull();
+
+      const invalidOnly = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [NaN, Infinity],
+            },
+            properties: {},
+          },
+        ],
+      } as any;
+
+      expect(getFeaturesBounds(invalidOnly)).toBeNull();
+    });
+
+    it("should ignore malformed geometries and malformed coordinates", () => {
+      const malformed = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: null,
+            properties: {},
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "LineString",
+              coordinates: [null, [23.35], ["23.37", 42.73], [23.36, 42.72]],
+            },
+            properties: {},
+          },
+        ],
+      } as any;
+
+      expect(getFeaturesBounds(malformed)).toEqual({
+        north: 42.72,
+        south: 42.72,
+        east: 23.36,
+        west: 23.36,
+      });
     });
   });
 });

@@ -31,7 +31,7 @@ import { useSourceFilter } from "@/lib/hooks/useSourceFilter";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { classifyMessage } from "@/lib/message-classification";
 import { createMessageUrl } from "@/lib/url-utils";
-import { getFeaturesCentroid } from "@/lib/geometry-utils";
+import { getFeaturesBounds, getFeaturesCentroid } from "@/lib/geometry-utils";
 import { zIndex } from "@/lib/colors";
 import { buttonStyles, buttonSizes, borderRadius } from "@/lib/theme";
 import PlusIcon from "@/components/icons/PlusIcon";
@@ -49,6 +49,7 @@ import { useMessageByIdFallback } from "@/lib/hooks/useMessageByIdFallback";
 type ViewMode = "zones" | "events";
 const WIDE_DESKTOP_MEDIA_QUERY =
   "(min-width: 1280px) and (min-aspect-ratio: 4/3)";
+const MESSAGE_FIT_BOUNDS_PADDING_PX = 56;
 
 const VIEW_MODE_OPTIONS = [
   { value: "events" as const, label: "Събития" },
@@ -455,22 +456,29 @@ export default function HomeContent() {
 
   // Center map on selected message's geometry when detail view opens (only once per message)
   useEffect(() => {
-    // Require a selected message with valid id, geometry and a ready map/navigation handler
-    if (
-      !selectedMessage?.id ||
-      !selectedMessage.geoJson ||
-      !handleAddressClick ||
-      !centerMapFn ||
-      !mapInstance
-    ) {
+    // Require only selected message geometry and a ready map instance for bounds fitting.
+    if (!selectedMessage?.id || !selectedMessage.geoJson || !mapInstance) {
       return;
     }
 
     // Skip if we've already centered on this message
     if (lastCenteredMessageIdRef.current === selectedMessage.id) return;
 
+    const bounds = getFeaturesBounds(selectedMessage.geoJson);
+    if (bounds) {
+      const mapBounds = new google.maps.LatLngBounds(
+        { lat: bounds.south, lng: bounds.west },
+        { lat: bounds.north, lng: bounds.east },
+      );
+
+      suppressNextViewportFetch();
+      mapInstance.fitBounds(mapBounds, MESSAGE_FIT_BOUNDS_PADDING_PX);
+      lastCenteredMessageIdRef.current = selectedMessage.id;
+      return;
+    }
+
     const centroid = getFeaturesCentroid(selectedMessage.geoJson);
-    if (centroid) {
+    if (centroid && handleAddressClick) {
       suppressNextViewportFetch();
       handleAddressClick(centroid.lat, centroid.lng);
       lastCenteredMessageIdRef.current = selectedMessage.id;
@@ -478,7 +486,6 @@ export default function HomeContent() {
   }, [
     selectedMessage,
     handleAddressClick,
-    centerMapFn,
     mapInstance,
     suppressNextViewportFetch,
   ]);
