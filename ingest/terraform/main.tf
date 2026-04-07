@@ -324,6 +324,12 @@ locals {
       timeout      = "1800s"
       description  = "Crawl Nadezhda district website"
     }
+    inspectorat-so = {
+      source       = "inspectorat-so-org"
+      memory       = "1Gi"
+      timeout      = "1800s"
+      description  = "Crawl Stolichen inspektorat news"
+    }
     nimh-severe-weather = {
       source       = "nimh-severe-weather"
       memory       = "512Mi"

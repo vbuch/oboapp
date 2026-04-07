@@ -122,6 +122,12 @@ export const SOURCES: readonly SourceDefinition[] = [
     localities: ["bg.sofia"],
   },
   {
+    id: "inspectorat-so-org",
+    url: "https://inspectorat-so.org/%D0%BD%D0%BE%D0%B2%D0%B8%D0%BD%D0%B8",
+    name: "Столичен инспекторат",
+    localities: ["bg.sofia"],
+  },
+  {
     id: "sensor-community",
     url: "https://sensor.community/",
     name: "sensor.community",
