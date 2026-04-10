@@ -46,8 +46,9 @@ without requiring a page refresh.
 permission prompt. When permission is not granted, logout skips FCM token cleanup
 to avoid requesting permission during sign-out.
 
-**Authenticated Users:** Land in the appropriate state based on their progress
-(`zoneCreation`, `notificationPrompt`, `blocked`, or `complete`).
+**Authenticated Users:** Signed-in (non-anonymous) users land in the appropriate state based on their progress
+(`zoneCreation`, `notificationPrompt`, `blocked`, or `complete`). Anonymous users are treated as unauthenticated
+and land in `idle` — the same clean state as first-time visitors.
 
 ## State Machine Diagram
 
@@ -55,36 +56,39 @@ to avoid requesting permission during sign-out.
 stateDiagram-v2
     [*] --> loading
 
-    loading --> idle : LOADED [!user]
-    loading --> zoneCreation : LOADED [user, zones=0]
-    loading --> notificationPrompt : LOADED [user, zones>0, permission=default]
-    loading --> blocked : LOADED [user, zones>0, permission=denied]
-    loading --> complete : LOADED [user, zones>0, permission=granted OR noAPI]
+    loading --> idle : LOADED [!signed-in user]
+    loading --> zoneCreation : LOADED [signed-in user, zones=0]
+    loading --> notificationPrompt : LOADED [signed-in user, zones>0, permission=default]
+    loading --> blocked : LOADED [signed-in user, zones>0, permission=denied]
+    loading --> complete : LOADED [signed-in user, zones>0, permission=granted OR noAPI]
 
     notificationPrompt --> blocked : PERMISSION_RESULT [denied]
-    notificationPrompt --> loginPrompt : PERMISSION_RESULT [granted, !user]
-    notificationPrompt --> complete : PERMISSION_RESULT [granted, user, zones>0]
+    notificationPrompt --> zoneCreation : PERMISSION_RESULT [granted, zones=0, guestAvailable]
+    notificationPrompt --> loginPrompt : PERMISSION_RESULT [granted, zones=0, !guestAvailable]
+    notificationPrompt --> complete : PERMISSION_RESULT [granted, zones>0]
     notificationPrompt --> idle : DISMISS
 
-    blocked --> zoneCreation : RE_EVALUATE [user logged in, zones=0]
-    blocked --> complete : RE_EVALUATE [user, zones>0, permission=granted]
+    blocked --> zoneCreation : RE_EVALUATE [signed-in user, zones=0]
+    blocked --> complete : RE_EVALUATE [signed-in user, zones>0, permission=granted]
 
     loginPrompt --> idle : DISMISS
-    loginPrompt --> zoneCreation : RE_EVALUATE [user, zones=0]
-    loginPrompt --> notificationPrompt : RE_EVALUATE [user, zones>0, permission=default]
-    loginPrompt --> complete : RE_EVALUATE [user, zones>0, permission=granted]
+    loginPrompt --> zoneCreation : RE_EVALUATE [signed-in user, zones=0]
+    loginPrompt --> notificationPrompt : RE_EVALUATE [signed-in user, zones>0, permission=default]
+    loginPrompt --> complete : RE_EVALUATE [signed-in user, zones>0, permission=granted]
 
     zoneCreation --> notificationPrompt : RE_EVALUATE [zones>0, permission=default]
     zoneCreation --> blocked : RE_EVALUATE [zones>0, permission=denied]
     zoneCreation --> complete : RE_EVALUATE [zones>0, permission=granted OR noAPI]
     zoneCreation --> idle : DISMISS
 
-    idle --> notificationPrompt : RESTART [permission=default, !user]
-    idle --> loginPrompt : RESTART [permission!=default OR noAPI, !user]
-    idle --> zoneCreation : RESTART [user, zones=0]
-    idle --> notificationPrompt : RESTART [user, zones>0, permission=default]
-    idle --> blocked : RESTART [user, zones>0, permission=denied]
-    idle --> complete : RESTART [user, zones>0, permission=granted OR noAPI]
+    idle --> notificationPrompt : RESTART [permission=default, !signed-in user]
+    idle --> blocked : RESTART [permission=denied, !signed-in user]
+    idle --> zoneCreation : RESTART [permission=granted OR noAPI, !signed-in user, guestAvailable]
+    idle --> loginPrompt : RESTART [permission=granted OR noAPI, !signed-in user, !guestAvailable]
+    idle --> zoneCreation : RESTART [signed-in user, zones=0]
+    idle --> notificationPrompt : RESTART [signed-in user, zones>0, permission=default]
+    idle --> blocked : RESTART [signed-in user, zones>0, permission=denied]
+    idle --> complete : RESTART [signed-in user, zones>0, permission=granted OR noAPI]
 
     complete --> [*]
 ```

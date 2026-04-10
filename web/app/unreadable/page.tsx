@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -48,7 +48,7 @@ const fetchUnreadable = async ({
   return response.json();
 };
 
-export default function UnreadablePage() {
+function UnreadablePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -116,7 +116,8 @@ export default function UnreadablePage() {
             </h1>
             <p className="text-sm text-neutral">
               Съобщения, за които не беше възможно да се определи географско
-              местоположение — без адреси или координати за показване на картата.
+              местоположение — без адреси или координати за показване на
+              картата.
             </p>
           </div>
         </div>
@@ -181,5 +182,13 @@ export default function UnreadablePage() {
         }}
       />
     </div>
+  );
+}
+
+export default function UnreadablePage() {
+  return (
+    <Suspense>
+      <UnreadablePageContent />
+    </Suspense>
   );
 }

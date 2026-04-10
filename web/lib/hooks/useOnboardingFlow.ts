@@ -39,7 +39,7 @@ export type OnboardingAction =
 export interface OnboardingContext {
   /** Browser notification permission status, undefined if API not available */
   permission: NotificationPermission | undefined;
-  /** Whether user is authenticated */
+  /** Whether a non-anonymous user is signed in. Firebase anonymous users are treated as unauthenticated. */
   isLoggedIn: boolean;
   /** Number of interest zones the user has */
   zonesCount: number;
@@ -407,7 +407,9 @@ export function useOnboardingFlow(
     }
     return {
       permission: getNotificationPermission(),
-      isLoggedIn: user !== null,
+      // Anonymous Firebase users are treated as unauthenticated so they land in
+      // idle state like a first-time visitor rather than triggering the zone-creation prompt.
+      isLoggedIn: user !== null && !user.isAnonymous,
       zonesCount: interests.length,
       hasSubscriptions,
       guestAvailable,
