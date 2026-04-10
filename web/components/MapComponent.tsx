@@ -7,10 +7,11 @@ import React, {
   useState,
   useEffect,
 } from "react";
-import { GoogleMap, Circle } from "@react-google-maps/api";
+import { GoogleMap, Circle, useJsApiLoader } from "@react-google-maps/api";
 import { Message, Interest } from "@/lib/types";
 import { getLocalityBounds, getLocalityCenter } from "@/lib/bounds-utils";
 import { roundCoordinate } from "@oboapp/shared";
+import { getButtonClasses } from "@/lib/theme";
 import GeoJSONLayer from "./GeoJSONLayer";
 import InterestCircles from "./InterestCircles";
 import InterestTargetMode from "./InterestTargetMode";
@@ -105,7 +106,7 @@ const mapStyles = [
   },
 ];
 
-export default function MapComponent({
+function MapLoaded({
   messages,
   onFeatureClick,
   onMapReady,
@@ -122,6 +123,11 @@ export default function MapComponent({
   // Get locality bounds and center
   const localityBounds = getLocalityBounds();
   const localityCenter = getLocalityCenter();
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    preventGoogleFontsLoading: true,
+  });
 
   const mapRef = useRef<google.maps.Map | null>(null);
   const latestCenterRef = useRef(localityCenter);
@@ -280,7 +286,23 @@ export default function MapComponent({
 
   return (
     <div className="absolute inset-0">
-      {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+      {loadError ? (
+        <div
+          role="status"
+          className="w-full h-full flex flex-col items-center justify-center bg-neutral-light gap-3"
+        >
+          <p className="text-neutral">Картата не е достъпна</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className={getButtonClasses("ghost", "md")}
+          >
+            Опитай отново
+          </button>
+        </div>
+      ) : !isLoaded ? (
+        <div className="w-full h-full bg-neutral-border animate-pulse" />
+      ) : (
         <GoogleMap
           mapContainerStyle={mapContainerStyle}
           options={dynamicMapOptions}
@@ -379,11 +401,18 @@ export default function MapComponent({
               );
             })()}
         </GoogleMap>
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-gray-100">
-          <p className="text-red-600">Няма настроен ключ за Google Maps API</p>
-        </div>
       )}
     </div>
   );
+}
+
+export default function MapComponent(props: MapComponentProps) {
+  if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-neutral-light">
+        <p className="text-destructive">Няма настроен ключ за Google Maps API</p>
+      </div>
+    );
+  }
+  return <MapLoaded {...props} />;
 }
