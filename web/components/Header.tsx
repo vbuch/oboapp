@@ -57,7 +57,7 @@ export default function Header() {
                 )}
               </Link>
               <div>
-                <h1 className="text-sm sm:text-base md:text-lg font-bold">
+                <h1 className="text-sm sm:text-base md:text-lg font-bold" translate="no">
                   OboApp
                 </h1>
               </div>

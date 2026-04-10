@@ -13,7 +13,7 @@ export default function Footer({ className = "" }: FooterProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation links — 1 col mobile, 2 col sm, 3 col lg */}
         <div>
-          <h3 className="font-bold text-lg mb-4 text-foreground">За OboApp</h3>
+          <h3 className="font-bold text-lg mb-4 text-foreground">За <span translate="no">OboApp</span></h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-2 text-sm">
             <div>
               <Link

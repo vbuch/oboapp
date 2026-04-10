@@ -76,7 +76,7 @@ export default function ApiAccessSection({
         Публичен API достъп
       </h2>
       <p className="text-neutral text-sm mb-4">
-        API ключът ви позволява достъп до публичните данни на OboApp от ваши
+        API ключът ви позволява достъп до публичните данни на <span translate="no">OboApp</span> от ваши
         приложения. Вижте{" "}
         <a
           href="https://api.oboapp.online/v1/docs"
