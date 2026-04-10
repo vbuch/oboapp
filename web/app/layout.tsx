@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Sofia_Sans } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "@/components/ClientLayout";
 import {
@@ -10,12 +9,6 @@ import {
   PWA_MANIFEST_PATH,
 } from "@/lib/pwa-metadata";
 import { getConfiguredLocalityDescription } from "@/lib/locality-metadata";
-
-const sofiaSans = Sofia_Sans({
-  subsets: ["latin", "cyrillic"],
-  variable: "--font-sofia-sans",
-  display: "swap",
-});
 
 const description = getConfiguredLocalityDescription();
 
@@ -75,7 +68,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://maps.googleapis.com" />
         <link rel="dns-prefetch" href="https://maps.gstatic.com" />
       </head>
-      <body className={`${sofiaSans.className} ${sofiaSans.variable} font-sofia`}>
+      <body className="font-sofia">
         {gaId && (
           <>
             <Script
