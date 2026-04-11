@@ -3,6 +3,9 @@ import { sourcesRoute } from "./routes/sources";
 import { messagesRoute } from "./routes/messages";
 import { messageByIdRoute } from "./routes/messages-by-id";
 import { openapiRoute } from "./routes/openapi";
+import { initSentry, captureException } from "./lib/sentry";
+
+initSentry();
 
 const app = new Hono();
 
@@ -17,7 +20,8 @@ app.route("/v1", openapiRoute);
 
 // Global error handler
 app.onError((err, c) => {
-  console.error("Unhandled error:", err);
+  captureException(err);
+  console.warn("Unhandled error:", err);
   return c.json({ error: "Internal server error" }, 500);
 });
 

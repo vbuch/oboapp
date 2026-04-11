@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -53,4 +54,18 @@ const withMDX = createMDX({
   // Add markdown plugins here, as desired
 });
 
-export default withMDX(nextConfig);
+const config = withMDX(nextConfig);
+
+// Always apply withSentryConfig so the client bundle is correctly instrumented
+// (sentry.client.config.ts is injected by the wrapper, not loaded automatically).
+// Source map uploads only happen in CI when SENTRY_AUTH_TOKEN is present.
+export default withSentryConfig(config, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  disableLogger: true,
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+});
