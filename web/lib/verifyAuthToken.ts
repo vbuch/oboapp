@@ -32,8 +32,7 @@ export async function verifyAuthToken(authHeader: string | null): Promise<{
       userId: decodedToken.uid,
       userEmail: decodedToken.email || null,
     };
-  } catch (error) {
-    console.error("Error verifying auth token:", error);
+  } catch {
     throw new Error("Invalid auth token");
   }
 }
