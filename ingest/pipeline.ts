@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { verifyEnvSet, verifyDbEnv } from "@/lib/verify-env";
 import { readdirSync, statSync } from "node:fs";
 import { logger } from "@/lib/logger";
-import { initSentry } from "@/lib/sentry";
+import { initSentry, flushSentry } from "@/lib/sentry";
 
 const program = new Command();
 
@@ -123,11 +123,13 @@ async function runPipeline(crawlers: string[], pipelineName: string) {
           failedCrawlers: failed.map((r) => r.source),
         },
       );
+      await flushSentry();
       process.exit(1); // Exit with error to signal partial failure
     } else {
       logger.info(`${pipelineName} pipeline completed successfully`, {
         pipeline: pipelineName,
       });
+      await flushSentry();
       process.exit(0);
     }
   } catch (error) {
@@ -137,6 +139,7 @@ async function runPipeline(crawlers: string[], pipelineName: string) {
         pipeline: pipelineName,
       },
     );
+    await flushSentry();
     process.exit(1);
   }
 }

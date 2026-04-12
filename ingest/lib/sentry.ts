@@ -2,6 +2,14 @@ import * as Sentry from "@sentry/node";
 import { setErrorReporter } from "@/lib/logger";
 
 /**
+ * Flush pending Sentry events before process exit.
+ * Cloud Run jobs exit immediately — without flushing, queued events are lost.
+ */
+export async function flushSentry(): Promise<void> {
+  await Sentry.flush(5000);
+}
+
+/**
  * Initialize Sentry error monitoring for the ingest pipeline.
  *
  * No-ops when SENTRY_DSN is not set, so self-hosters without a Sentry

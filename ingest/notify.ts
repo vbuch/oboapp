@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { verifyEnvSet, verifyDbEnv } from "@/lib/verify-env";
 import { logger } from "@/lib/logger";
-import { initSentry } from "@/lib/sentry";
+import { initSentry, flushSentry } from "@/lib/sentry";
 
 const program = new Command();
 
@@ -41,6 +41,7 @@ Examples:
 
       await main();
 
+      await flushSentry();
       process.exit(0);
     } catch (error) {
       logger.error(
@@ -49,6 +50,7 @@ Examples:
           step: "notify",
         },
       );
+      await flushSentry();
       process.exit(1);
     }
   });

@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import dotenv from "dotenv";
 import { verifyDbEnv } from "@/lib/verify-env";
 import { logger } from "@/lib/logger";
-import { initSentry } from "@/lib/sentry";
+import { initSentry, flushSentry } from "@/lib/sentry";
 
 const program = new Command();
 
@@ -74,6 +74,7 @@ Examples:
         step: "crawl",
         source: options.source,
       });
+      await flushSentry();
       process.exit(0);
     } catch (error) {
       logger.error(
@@ -83,6 +84,7 @@ Examples:
           source: options.source,
         },
       );
+      await flushSentry();
       process.exit(1);
     }
   });

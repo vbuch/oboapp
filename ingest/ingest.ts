@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { verifyEnvSet, verifyDbEnv } from "@/lib/verify-env";
 import { logger } from "@/lib/logger";
-import { initSentry } from "@/lib/sentry";
+import { initSentry, flushSentry } from "@/lib/sentry";
 import type { IngestOptions } from "@/lib/types";
 
 const program = new Command();
@@ -72,6 +72,7 @@ Examples:
 
       await ingest(ingestOptions);
 
+      await flushSentry();
       process.exit(0);
     } catch (error) {
       logger.error(
@@ -80,6 +81,7 @@ Examples:
           step: "ingest",
         },
       );
+      await flushSentry();
       process.exit(1);
     }
   });
@@ -101,6 +103,7 @@ program
       logger.info("✅ GTFS stops sync completed successfully", {
         step: "gtfs-sync",
       });
+      await flushSentry();
       process.exit(0);
     } catch (error) {
       logger.error(
@@ -109,6 +112,7 @@ program
           step: "gtfs-sync",
         },
       );
+      await flushSentry();
       process.exit(1);
     }
   });
@@ -130,6 +134,7 @@ program
       logger.info("✅ Educational facilities sync completed successfully", {
         step: "educational-facilities-sync",
       });
+      await flushSentry();
       process.exit(0);
     } catch (error) {
       logger.error(
@@ -138,6 +143,7 @@ program
           step: "educational-facilities-sync",
         },
       );
+      await flushSentry();
       process.exit(1);
     }
   });
