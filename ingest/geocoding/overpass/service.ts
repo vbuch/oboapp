@@ -414,6 +414,26 @@ export function normalizeStreetName(streetName: string): string {
 }
 
 /**
+ * Normalize street name for Overpass query regex construction.
+ * Same as normalizeStreetName but preserves original case so that the generated
+ * regex matches OSM's title-cased names.
+ *
+ * Background: Overpass QL's ",i" case-insensitive flag uses POSIX REG_ICASE which
+ * only folds ASCII characters. Lowercase Cyrillic in a regex like
+ * ["name"~"тодор каблешков",i] returns 0 results, while
+ * ["name"~"Тодор Каблешков",i] correctly returns all matching ways.
+ */
+export function normalizeStreetNameForQuery(streetName: string): string {
+  return streetName
+    .replaceAll(/^(бул\.|ул\.|площад|пл\.)\s*/gi, "")
+    .replaceAll(/(?<=\d)-(?:ти|ви|и|ри|ма|то)(?=\s|$|[^а-яa-z])/gi, "") // Strip ordinal suffixes: 20-ти → 20
+    .replaceAll(/["\u201c\u201d\u201e'`\u2018\u2019\u201a«»‹›]/g, "") // Remove ALL quote styles
+    .replaceAll(/\.([а-яa-z])/gi, ". $1") // Space after dot-letter: Г.С.Раковски → Г. С. Раковски
+    .replaceAll(/\s+/g, " ") // Normalize whitespace
+    .trim();
+}
+
+/**
  * Convert a normalized street name into a flexible Overpass QL regex pattern.
  * Handles OSM naming quirks:
  * - Hyphen spacing: "Данчов-Зографина" query also matches OSM "Данчов - Зографина"
@@ -474,8 +494,10 @@ export async function getStreetGeometryFromOverpass(
   }
 
   try {
-    // Normalize street name for better OSM matching
-    const normalizedName = normalizeStreetName(streetName);
+    // Normalize street name for the Overpass regex query.
+    // normalizeStreetNameForQuery preserves original case because Overpass's ,i flag
+    // uses POSIX REG_ICASE which does not fold Cyrillic characters.
+    const queryName = normalizeStreetNameForQuery(streetName);
 
     // Determine query variant — needed both for the cache key and the Overpass query.
     // "square" uses place=square OSM tags; "street" broadens the highway filter to
@@ -484,7 +506,7 @@ export async function getStreetGeometryFromOverpass(
     const isSquare = featureType === "square";
     const isStreet = featureType === "street";
 
-    const queryRegex = toOverpassRegex(normalizedName);
+    const queryRegex = toOverpassRegex(queryName);
 
     // Overpass QL query to find the street by name
     // For squares, search for place=square nodes/areas

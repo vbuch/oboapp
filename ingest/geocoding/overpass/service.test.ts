@@ -2,6 +2,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   normalizeAddressForNominatim,
   normalizeStreetName,
+  normalizeStreetNameForQuery,
   toOverpassRegex,
   clearStreetGeometryCache,
   overpassGeocodeIntersections,
@@ -195,6 +196,38 @@ describe("overpass-geocoding-service", () => {
         const error = new Error("Invalid Query Structure");
         expect(shouldTryFallback(error)).toBe(false);
       });
+    });
+  });
+
+  describe("normalizeStreetNameForQuery", () => {
+    it("strips ул. prefix while preserving case", () => {
+      expect(normalizeStreetNameForQuery("ул. Луи Айер")).toBe("Луи Айер");
+    });
+
+    it("strips бул. prefix while preserving case", () => {
+      expect(normalizeStreetNameForQuery("бул. Тодор Каблешков")).toBe(
+        "Тодор Каблешков",
+      );
+    });
+
+    it("strips ordinal suffix while preserving case", () => {
+      expect(normalizeStreetNameForQuery("ул. 20-ти Април")).toBe("20 Април");
+    });
+
+    it("removes quote styles while preserving case", () => {
+      // eslint-disable-next-line no-useless-escape
+      expect(normalizeStreetNameForQuery('ул. \u201eЦар Самуил\u201c')).toBe("Цар Самуил");
+    });
+
+    it("inserts spaces after dots in abbreviations while preserving case", () => {
+      expect(normalizeStreetNameForQuery("ул. Г.С.Раковски")).toBe(
+        "Г. С. Раковски",
+      );
+    });
+
+    it("differs from normalizeStreetName: does NOT lowercase", () => {
+      expect(normalizeStreetName("ул. Луи Айер")).toBe("луи айер");
+      expect(normalizeStreetNameForQuery("ул. Луи Айер")).toBe("Луи Айер");
     });
   });
 
