@@ -299,7 +299,7 @@ export default function MessageDetailView({
           </DetailItem>
         )}
 
-        {"plainText" in message && (
+        {message.plainText && (
           <AiProcessedNotice sourceUrl={message.sourceUrl} />
         )}
 
