@@ -22,6 +22,12 @@ await build({
   target: "node22",
   minify: false,
   sourcemap: false,
+  // @sentry/node pulls in @opentelemetry/core which uses CommonJS dynamic
+  // require() for Node built-ins. This banner creates a CJS-compatible
+  // require() so those calls don't throw at runtime.
+  banner: {
+    js: `import { createRequire } from "module"; const require = createRequire(import.meta.url);`,
+  },
 });
 
 // Ensure Node.js treats the bundle as ESM
