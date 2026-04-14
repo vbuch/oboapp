@@ -12,10 +12,11 @@ Thank you for your interest in contributing!
 
 ## Project Structure
 
-Monorepo with two main directories:
+Monorepo with three main directories:
 
 - **`/web`** - Next.js application (frontend + API routes)
 - **`/ingest`** - Data pipeline (crawlers, AI processing, geocoding)
+- **`/api`** - Public REST API server (Hono, `/v1` routes)
 
 Each has its own `.env.local` configuration.
 
@@ -39,5 +40,5 @@ Each has its own `.env.local` configuration.
 1. Fork and create feature branch
 2. Follow [AGENTS.md](AGENTS.md) patterns
 3. Add tests for new functionality
-4. Run `pnpm test:run` in both `web/` and `ingest/`
+4. Run `pnpm test:run` in `web/`, `ingest/`, and `api/`
 5. Submit PR with clear description
