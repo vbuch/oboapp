@@ -203,7 +203,7 @@ function processPinsWithPreResolvedCoordinates(
   pins: Array<{
     address: string;
     coordinates?: Coordinates;
-    timespans: Array<{ start: string; end: string | null }>;
+    timespans: Array<{ start: string | null; end: string | null }>;
   }>,
   preGeocodedMap: Map<string, Coordinates>,
   addresses: Address[],
