@@ -6,6 +6,7 @@ import PromptCard from "../PromptCard";
 import { useAuth } from "@/lib/auth-context";
 import BellIcon from "@/components/icons/BellIcon";
 import { zIndex } from "@/lib/colors";
+import { toast } from "sonner";
 
 interface LoginPromptProps {
   /** Called when user clicks "Later" */
@@ -24,7 +25,7 @@ export default function LoginPrompt({ onDismiss }: LoginPromptProps) {
     try {
       await signInWithGoogle();
     } catch {
-      window.alert("Неуспешно влизане. Опитай отново.");
+      toast.error("Неуспешно влизане. Опитай отново.");
     }
   }, [signInWithGoogle]);
 

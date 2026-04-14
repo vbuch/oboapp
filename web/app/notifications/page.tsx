@@ -19,6 +19,7 @@ import {
 import { formatNotificationDateTime } from "@/lib/notification-history";
 import { useNotificationHistory } from "@/lib/hooks/useNotificationHistory";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { toast } from "sonner";
 
 export default function NotificationsPage() {
   const { user } = useAuth();
@@ -46,7 +47,7 @@ export default function NotificationsPage() {
     try {
       const result = await subscribeCurrentDeviceForUser(user);
       if (!result.ok) {
-        alert(getEnableNotificationsMessage(result.reason));
+        toast.error(getEnableNotificationsMessage(result.reason));
         return;
       }
 
@@ -54,7 +55,7 @@ export default function NotificationsPage() {
       await subscriptionStatus.checkStatus();
     } catch (error) {
       console.error("Error subscribing:", error);
-      alert("Грешка при абонирането");
+      toast.error("Грешка при абонирането");
     }
   };
 
@@ -67,14 +68,14 @@ export default function NotificationsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-neutral-light">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Back button */}
           <div className="mb-6">
             <BackButton />
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Известия</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-8">Известия</h1>
           <div className="flex justify-center items-center py-12">
             <LoadingSpinner size="lg" />
           </div>
@@ -84,7 +85,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-light">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Back button */}
         <div className="mb-6">
@@ -92,7 +93,7 @@ export default function NotificationsPage() {
         </div>
 
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Известия</h1>
+          <h1 className="text-3xl font-bold text-foreground">Известия</h1>
           {notifications.length > 0 && (
             <button
               type="button"

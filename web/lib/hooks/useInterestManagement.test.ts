@@ -12,6 +12,16 @@ import { useInterestManagement } from "./useInterestManagement";
 import type { Interest } from "@/lib/types";
 import { DEFAULT_ZONE_COLOR } from "@/lib/zoneTypes";
 
+const { toastMock } = vi.hoisted(() => ({
+  toastMock: {
+    error: vi.fn(),
+  },
+}));
+
+vi.mock("sonner", () => ({
+  toast: toastMock,
+}));
+
 type CenterMapFn = (
   lat: number,
   lng: number,
@@ -54,7 +64,6 @@ describe("useInterestManagement", () => {
   let deleteInterest: Mock<(id: string) => Promise<void>>;
   let originalInnerWidth: number;
   let originalInnerHeight: number;
-  let mockAlert: typeof globalThis.alert;
   let mockReload: () => void;
 
   beforeEach(() => {
@@ -78,10 +87,8 @@ describe("useInterestManagement", () => {
       value: 768,
     });
 
-    // Mock alert and reload
-    mockAlert = vi.fn() as any;
+    // Mock reload
     mockReload = vi.fn() as any;
-    globalThis.alert = mockAlert;
     Object.defineProperty(globalThis.location, "reload", {
       writable: true,
       configurable: true,
@@ -119,6 +126,8 @@ describe("useInterestManagement", () => {
 
       expect(result.current.targetMode).toEqual({ active: false });
       expect(result.current.pendingNewInterest).toBeNull();
+      expect(result.current.pendingDeleteInterest).toBeNull();
+      expect(result.current.isDeletingInterest).toBe(false);
       expect(result.current.selectedInterest).toBeNull();
       expect(result.current.interestMenuPosition).toBeNull();
     });
@@ -288,7 +297,7 @@ describe("useInterestManagement", () => {
 
       expect(centerMapFn).not.toHaveBeenCalled();
       expect(result.current.targetMode.active).toBe(false);
-      expect(mockAlert).toHaveBeenCalledWith(
+      expect(toastMock.error).toHaveBeenCalledWith(
         "Не успях да преместя зоната. Опитай пак.",
       );
     });
@@ -306,14 +315,14 @@ describe("useInterestManagement", () => {
         ),
       );
 
-      await act(async () => {
-        await result.current.handleDeleteInterest();
+      act(() => {
+        result.current.handleDeleteInterest();
       });
 
       expect(deleteInterest).not.toHaveBeenCalled();
     });
 
-    it("should delete interest and clear menu", async () => {
+    it("should request delete confirmation and delete after confirm", async () => {
       const { trackEvent } = await import("@/lib/analytics");
 
       const { result } = renderHook(() =>
@@ -332,13 +341,20 @@ describe("useInterestManagement", () => {
         result.current.handleInterestClick(mockInterest);
       });
 
+      act(() => {
+        result.current.handleDeleteInterest();
+      });
+
+      expect(result.current.pendingDeleteInterest?.id).toBe("test-id");
+
       await act(async () => {
-        await result.current.handleDeleteInterest();
+        await result.current.handleConfirmDeleteInterest();
       });
 
       expect(deleteInterest).toHaveBeenCalledWith("test-id");
       expect(result.current.interestMenuPosition).toBeNull();
       expect(result.current.selectedInterest).toBeNull();
+      expect(result.current.pendingDeleteInterest).toBeNull();
       expect(trackEvent).toHaveBeenCalledWith({
         name: "zone_deleted",
         params: {
@@ -348,7 +364,7 @@ describe("useInterestManagement", () => {
       });
     });
 
-    it("should delete a provided interest without requiring prior selection", async () => {
+    it("should delete a provided interest after explicit confirm", async () => {
       const { result } = renderHook(() =>
         useInterestManagement(
           centerMapFn,
@@ -361,13 +377,20 @@ describe("useInterestManagement", () => {
 
       const mockInterest = createMockInterest({ id: "from-list-delete" });
 
+      act(() => {
+        result.current.handleDeleteInterest(mockInterest);
+      });
+
+      expect(result.current.pendingDeleteInterest?.id).toBe("from-list-delete");
+
       await act(async () => {
-        await result.current.handleDeleteInterest(mockInterest);
+        await result.current.handleConfirmDeleteInterest();
       });
 
       expect(deleteInterest).toHaveBeenCalledWith("from-list-delete");
       expect(result.current.selectedInterest).toBeNull();
       expect(result.current.interestMenuPosition).toBeNull();
+      expect(result.current.pendingDeleteInterest).toBeNull();
     });
 
     it("should handle 404 error gracefully and reload", async () => {
@@ -389,17 +412,21 @@ describe("useInterestManagement", () => {
         result.current.handleInterestClick(mockInterest);
       });
 
+      act(() => {
+        result.current.handleDeleteInterest();
+      });
+
       await act(async () => {
-        await result.current.handleDeleteInterest();
+        await result.current.handleConfirmDeleteInterest();
       });
 
       expect(result.current.interestMenuPosition).toBeNull();
       expect(result.current.selectedInterest).toBeNull();
       expect(mockReload).toHaveBeenCalled();
-      expect(mockAlert).not.toHaveBeenCalled();
+      expect(toastMock.error).not.toHaveBeenCalled();
     });
 
-    it("should show alert for non-404 errors", async () => {
+    it("should show toast for non-404 errors", async () => {
       deleteInterest.mockRejectedValue(new Error("Server error"));
 
       const { result } = renderHook(() =>
@@ -418,14 +445,101 @@ describe("useInterestManagement", () => {
         result.current.handleInterestClick(mockInterest);
       });
 
-      await act(async () => {
-        await result.current.handleDeleteInterest();
+      act(() => {
+        result.current.handleDeleteInterest();
       });
 
-      expect(mockAlert).toHaveBeenCalledWith(
+      await act(async () => {
+        await result.current.handleConfirmDeleteInterest();
+      });
+
+      expect(toastMock.error).toHaveBeenCalledWith(
         "Не успях да изтрия зоната. Опитай пак.",
       );
       expect(mockReload).not.toHaveBeenCalled();
+      expect(result.current.pendingDeleteInterest?.id).toBe("test-id");
+    });
+
+    it("should clear pending delete when cancelled", async () => {
+      const { result } = renderHook(() =>
+        useInterestManagement(
+          centerMapFn,
+          mapInstance,
+          addInterest,
+          updateInterest,
+          deleteInterest,
+        ),
+      );
+
+      const mockInterest = createMockInterest({ id: "cancel-delete" });
+
+      act(() => {
+        result.current.handleDeleteInterest(mockInterest);
+      });
+
+      expect(result.current.pendingDeleteInterest?.id).toBe("cancel-delete");
+
+      act(() => {
+        result.current.handleCancelDeleteInterest();
+      });
+
+      expect(result.current.pendingDeleteInterest).toBeNull();
+      expect(deleteInterest).not.toHaveBeenCalled();
+    });
+
+    it("should ignore duplicate confirm while delete is in flight", async () => {
+      let resolveDelete: (() => void) | undefined;
+      deleteInterest.mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveDelete = resolve;
+          }),
+      );
+
+      const { result } = renderHook(() =>
+        useInterestManagement(
+          centerMapFn,
+          mapInstance,
+          addInterest,
+          updateInterest,
+          deleteInterest,
+        ),
+      );
+
+      const mockInterest = createMockInterest({ id: "dup-confirm" });
+
+      act(() => {
+        result.current.handleDeleteInterest(mockInterest);
+      });
+
+      expect(result.current.pendingDeleteInterest?.id).toBe("dup-confirm");
+
+      act(() => {
+        void result.current.handleConfirmDeleteInterest();
+      });
+
+      expect(result.current.isDeletingInterest).toBe(true);
+
+      act(() => {
+        void result.current.handleConfirmDeleteInterest();
+      });
+
+      expect(deleteInterest).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        result.current.handleCancelDeleteInterest();
+      });
+
+      expect(result.current.pendingDeleteInterest?.id).toBe("dup-confirm");
+
+      await act(async () => {
+        resolveDelete?.();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isDeletingInterest).toBe(false);
+      });
+      expect(result.current.pendingDeleteInterest).toBeNull();
     });
   });
 
@@ -535,7 +649,7 @@ describe("useInterestManagement", () => {
       expect(addInterest).not.toHaveBeenCalled();
     });
 
-    it("should show alert when updating interest fails", async () => {
+    it("should show toast when updating interest fails", async () => {
       updateInterest.mockRejectedValue(new Error("Failed to update"));
 
       const { result } = renderHook(() =>
@@ -566,7 +680,7 @@ describe("useInterestManagement", () => {
       });
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith(
+        expect(toastMock.error).toHaveBeenCalledWith(
           "Не успях да запазя зоната. Опитай пак.",
         );
       });
@@ -633,7 +747,7 @@ describe("useInterestManagement", () => {
       expect(addInterest).not.toHaveBeenCalled();
     });
 
-    it("should show alert when adding interest fails", async () => {
+    it("should show toast when adding interest fails", async () => {
       addInterest.mockRejectedValue(new Error("Failed to add"));
 
       const { result } = renderHook(() =>
@@ -665,7 +779,7 @@ describe("useInterestManagement", () => {
       });
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith(
+        expect(toastMock.error).toHaveBeenCalledWith(
           "Не успях да запазя зоната. Опитай пак.",
         );
       });

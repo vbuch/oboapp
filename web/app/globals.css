@@ -114,6 +114,12 @@ body {
   padding: 0;
 }
 
+[data-sonner-toaster],
+[data-sonner-toast] {
+  font-family: var(--font-family-sofia) !important;
+  font-size: 0.875rem !important;
+}
+
 html,
 body {
   height: 100%;

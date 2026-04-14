@@ -5,6 +5,7 @@ import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { APP_NAME } from "@/lib/pwa-metadata";
 import { borderRadius } from "@/lib/colors";
 import type { ApiClient } from "@/lib/types";
+import { toast } from "sonner";
 
 interface ApiAccessSectionProps {
   readonly apiClient: ApiClient | null;
@@ -58,7 +59,7 @@ export default function ApiAccessSection({
   const handleCopy = async () => {
     if (!apiClient?.apiKey) return;
     if (!navigator.clipboard?.writeText) {
-      alert("Копирането не се поддържа в този браузър. Копирай ключа ръчно.");
+      toast.error("Копирането не се поддържа в този браузър. Копирай ключа ръчно.");
       return;
     }
     try {
@@ -67,7 +68,7 @@ export default function ApiAccessSection({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
-      alert("Неуспешно копиране. Копирай ключа ръчно.");
+      toast.error("Неуспешно копиране. Копирай ключа ръчно.");
     }
   };
 

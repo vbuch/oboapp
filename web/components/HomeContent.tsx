@@ -18,6 +18,7 @@ import GeolocationPrompt from "@/components/GeolocationPrompt";
 import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
 import UpgradeConflictPrompt from "@/components/onboarding/UpgradeConflictPrompt";
 import AddZoneModal from "@/components/onboarding/AddZoneModal";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import type { PendingZone } from "@/components/onboarding/AddZoneModal";
 import SegmentedControl from "@/components/SegmentedControl";
 import ZoneBadges from "@/components/ZoneBadges";
@@ -38,6 +39,7 @@ import { buttonStyles, buttonSizes, borderRadius } from "@/lib/theme";
 import PlusIcon from "@/components/icons/PlusIcon";
 import { navigateBackOrReplace } from "@/lib/navigation-utils";
 import { trackEvent } from "@/lib/analytics";
+import { toast } from "sonner";
 import {
   PENDING_GUEST_UPGRADE_UID_KEY,
   PENDING_GUEST_UPGRADE_TOKEN_KEY,
@@ -331,14 +333,14 @@ function HomeContentInner() {
         }
 
         setPendingGuestUpgradeUid(null);
-        alert("Данните бяха обработени успешно.");
+        toast.success("Данните бяха обработени успешно.");
       } catch (error) {
         console.error("Failed to resolve upgrade choice:", error);
         trackEvent({
           name: "upgrade_outcome",
           params: { option, status: "failure" },
         });
-        alert("Неуспешна обработка. Няма промени в текущото състояние.");
+        toast.error("Неуспешна обработка. Няма промени в текущото състояние.");
       } finally {
         setIsApplyingUpgradeOption(false);
       }
@@ -350,11 +352,15 @@ function HomeContentInner() {
   const {
     targetMode,
     pendingNewInterest,
+    pendingDeleteInterest,
+    isDeletingInterest,
     selectedInterest,
     interestMenuPosition,
     handleInterestClick,
     handleMoveInterest,
     handleDeleteInterest,
+    handleConfirmDeleteInterest,
+    handleCancelDeleteInterest,
     handleStartAddInterest,
     handleSaveInterest,
     handleConfirmPendingInterest,
@@ -635,7 +641,7 @@ function HomeContentInner() {
                         try {
                           await signInWithGoogle();
                         } catch {
-                          globalThis.alert("Неуспешно влизане. Опитай отново.");
+                          toast.error("Неуспешно влизане. Опитай отново.");
                         }
                       }}
                       className={`${buttonSizes.sm} ${buttonStyles.ghost} ${borderRadius.sm}`}
@@ -713,6 +719,18 @@ function HomeContentInner() {
           onCancel={handleCancelPendingInterest}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={pendingDeleteInterest !== null}
+        title="Наистина ли искаш да изтриеш зоната?"
+        description={`Това действие ще изтрие зоната "${pendingDeleteInterest?.label?.trim() || "тази зона"}".`}
+        confirmText="Изтрий зоната"
+        isConfirming={isDeletingInterest}
+        onConfirm={() => {
+          void handleConfirmDeleteInterest();
+        }}
+        onCancel={handleCancelDeleteInterest}
+      />
 
       {pendingGuestUpgradeUid && (
         <UpgradeConflictPrompt

@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { trackEvent } from "@/lib/analytics";
 import { zIndex } from "@/lib/colors";
 import UserSilhouetteIcon from "@/components/icons/UserSilhouetteIcon";
+import { toast } from "sonner";
 
 interface UserMenuProps {
   readonly id: string;
@@ -78,7 +79,7 @@ export default function UserMenu({ id, isOpen, onClose }: UserMenuProps) {
     try {
       await signInWithGoogle();
     } catch {
-      window.alert("Неуспешно влизане. Опитай отново.");
+      toast.error("Неуспешно влизане. Опитай отново.");
     }
     onClose();
   };

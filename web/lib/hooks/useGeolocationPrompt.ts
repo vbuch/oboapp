@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
+import { toast } from "sonner";
 
 interface GeolocationPromptState {
   show: boolean;
@@ -101,7 +102,7 @@ export function useGeolocationPrompt() {
           return; // Return early after successful location
         } catch (error) {
           console.error("Geolocation error:", error);
-          alert(
+          toast.error(
             error instanceof Error
               ? error.message
               : "Грешка при определяне на местоположението",
@@ -143,7 +144,7 @@ export function useGeolocationPrompt() {
             resolve();
           } catch (error) {
             console.error("Geolocation error:", error);
-            alert(
+            toast.error(
               error instanceof Error
                 ? error.message
                 : "Грешка при определяне на местоположението",

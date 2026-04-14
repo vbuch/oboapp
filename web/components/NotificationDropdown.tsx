@@ -17,6 +17,7 @@ import {
 import { formatNotificationDateTime } from "@/lib/notification-history";
 import { useNotificationHistory } from "@/lib/hooks/useNotificationHistory";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { toast } from "sonner";
 
 interface NotificationDropdownProps {
   readonly isOpen: boolean;
@@ -78,7 +79,7 @@ export default function NotificationDropdown({
     try {
       const result = await subscribeCurrentDeviceForUser(user);
       if (!result.ok) {
-        alert(getEnableNotificationsMessage(result.reason));
+        toast.error(getEnableNotificationsMessage(result.reason));
         return;
       }
 
@@ -86,7 +87,7 @@ export default function NotificationDropdown({
       await subscriptionStatus.checkStatus();
     } catch (error) {
       console.error("Error subscribing:", error);
-      alert("Грешка при абонирането");
+      toast.error("Грешка при абонирането");
     }
   };
 

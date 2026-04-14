@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function HistoryPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-neutral-light flex flex-col">
       {/* Page header */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-6">
@@ -23,7 +23,7 @@ export default function HistoryPage() {
             <span>Начало</span>
           </Link>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+        <h1 className="text-3xl font-bold text-foreground mb-4">
           Исторически данни
         </h1>
         <p className="text-sm text-neutral">

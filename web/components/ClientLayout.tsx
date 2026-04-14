@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -7,6 +8,7 @@ import CookieConsent from "@/components/CookieConsent";
 import { AuthProvider } from "@/lib/auth-context";
 import QueryProvider from "@/components/QueryProvider";
 import { MSWProvider } from "@/components/MSWProvider";
+import { Toaster, toast } from "sonner";
 
 export default function ClientLayout({
   children,
@@ -21,6 +23,49 @@ export default function ClientLayout({
     isClient &&
     new URLSearchParams(window.location.search).has("messageId");
 
+  useEffect(() => {
+    // Deduplicate toasts while visible: repeated clicks update the same toast
+    // instead of stacking duplicates. After dismiss, the same id can be shown again.
+    const originalError = toast.error.bind(toast);
+    const originalSuccess = toast.success.bind(toast);
+    const originalInfo = toast.info.bind(toast);
+    const originalWarning = toast.warning.bind(toast);
+
+    const buildId = (type: string, message: string) =>
+      `dedup:${type}:${message.trim()}`;
+
+    toast.error = (message, data) =>
+      originalError(message, {
+        ...data,
+        id: data?.id ?? buildId("error", String(message)),
+      });
+
+    toast.success = (message, data) =>
+      originalSuccess(message, {
+        ...data,
+        id: data?.id ?? buildId("success", String(message)),
+      });
+
+    toast.info = (message, data) =>
+      originalInfo(message, {
+        ...data,
+        id: data?.id ?? buildId("info", String(message)),
+      });
+
+    toast.warning = (message, data) =>
+      originalWarning(message, {
+        ...data,
+        id: data?.id ?? buildId("warning", String(message)),
+      });
+
+    return () => {
+      toast.error = originalError;
+      toast.success = originalSuccess;
+      toast.info = originalInfo;
+      toast.warning = originalWarning;
+    };
+  }, []);
+
   return (
     <MSWProvider>
       <div className="antialiased flex flex-col h-screen overflow-hidden">
@@ -34,6 +79,7 @@ export default function ClientLayout({
               />
             </div>
             <CookieConsent />
+            <Toaster position="top-center" richColors />
           </AuthProvider>
         </QueryProvider>
       </div>

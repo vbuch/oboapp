@@ -23,6 +23,8 @@ import type { ApiClient } from "@/lib/types";
 import { buttonStyles, buttonSizes } from "@/lib/theme";
 import { borderRadius } from "@/lib/colors";
 import { fetchWithAuth } from "@/lib/auth-fetch";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const {
@@ -52,6 +54,9 @@ export default function SettingsPage() {
   // Delete account state
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [showUnsubscribeAllConfirm, setShowUnsubscribeAllConfirm] =
+    useState(false);
+  const [isUnsubscribingAll, setIsUnsubscribingAll] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -146,7 +151,7 @@ export default function SettingsPage() {
     try {
       const result = await subscribeCurrentDeviceForUser(user);
       if (!result.ok) {
-        alert(getEnableNotificationsMessage(result.reason));
+        toast.error(getEnableNotificationsMessage(result.reason));
         if (user.isAnonymous) {
           trackEvent({
             name: "guest_push_failed",
@@ -171,7 +176,7 @@ export default function SettingsPage() {
           params: { source: "settings" },
         });
       }
-      alert("Грешка при абонирането");
+      toast.error("Грешка при абонирането");
     }
   };
 
@@ -199,17 +204,21 @@ export default function SettingsPage() {
       await fetchData(); // Refresh subscriptions
     } catch (error) {
       console.error("Error unsubscribing:", error);
-      alert("Грешка при отписването");
+      toast.error("Грешка при отписването");
     }
   };
 
-  const handleUnsubscribeAll = async () => {
-    if (!user) return;
-    if (
-      !confirm("Наистина ли искаш да отпишеш всички устройства?")
-    ) {
+  const handleUnsubscribeAll = () => {
+    setShowUnsubscribeAllConfirm(true);
+  };
+
+  const handleConfirmUnsubscribeAll = async () => {
+    if (!user) {
+      setShowUnsubscribeAllConfirm(false);
+      setIsUnsubscribingAll(false);
       return;
     }
+    setIsUnsubscribingAll(true);
 
     try {
       const response = await fetchWithAuth(
@@ -230,13 +239,16 @@ export default function SettingsPage() {
       await fetchData(); // Refresh subscriptions
     } catch (error) {
       console.error("Error unsubscribing all:", error);
-      alert("Грешка при отписването от всички устройства");
+      toast.error("Грешка при отписването от всички устройства");
+    } finally {
+      setIsUnsubscribingAll(false);
+      setShowUnsubscribeAllConfirm(false);
     }
   };
 
   const handleDeleteAccount = async (confirmText: string) => {
     if (confirmText !== "ИЗТРИЙ") {
-      alert("Напиши 'ИЗТРИЙ' за потвърждение");
+      toast.error("Напиши 'ИЗТРИЙ' за потвърждение");
       return;
     }
 
@@ -248,7 +260,7 @@ export default function SettingsPage() {
         await reauthenticateWithGoogle();
       } catch (reauthError) {
         console.error("Re-authentication failed:", reauthError);
-        alert("Необходима е повторна идентификация. Опитай отново.");
+        toast.error("Необходима е повторна идентификация. Опитай отново.");
         setIsDeleting(false);
         return;
       }
@@ -271,7 +283,7 @@ export default function SettingsPage() {
       }, 2000);
     } catch (error) {
       console.error("Error deleting account:", error);
-      alert("Грешка при изтриването на профила");
+      toast.error("Грешка при изтриването на профила");
       setIsDeleting(false);
     }
   };
@@ -289,7 +301,7 @@ export default function SettingsPage() {
       });
       if (!response.ok) {
         const data = await response.json();
-        alert(data.error ?? "Грешка при генериране на API ключ");
+        toast.error(data.error ?? "Грешка при генериране на API ключ");
         return false;
       }
       const data = await response.json();
@@ -297,7 +309,7 @@ export default function SettingsPage() {
       return true;
     } catch (error) {
       console.error("Error generating API key:", error);
-      alert("Грешка при генериране на API ключ");
+      toast.error("Грешка при генериране на API ключ");
       return false;
     } finally {
       setIsApiClientLoading(false);
@@ -312,14 +324,14 @@ export default function SettingsPage() {
         method: "DELETE",
       });
       if (!response.ok) {
-        alert("Грешка при отмяна на API ключа");
+        toast.error("Грешка при отмяна на API ключа");
         return false;
       }
       setApiClient(null);
       return true;
     } catch (error) {
       console.error("Error revoking API key:", error);
-      alert("Грешка при отмяна на API ключа");
+      toast.error("Грешка при отмяна на API ключа");
       return false;
     } finally {
       setIsApiClientLoading(false);
@@ -332,7 +344,7 @@ export default function SettingsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-neutral-light">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <SettingsHeader />
           <section className="bg-white rounded-lg shadow mb-6 p-6">
@@ -357,7 +369,7 @@ export default function SettingsPage() {
                   try {
                     await signInWithGoogle();
                   } catch {
-                    window.alert("Неуспешно влизане. Опитай отново.");
+                    toast.error("Неуспешно влизане. Опитай отново.");
                   }
                 }}
                 className={`${buttonStyles.primary} ${buttonSizes.md} ${borderRadius.md}`}
@@ -387,7 +399,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-light">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <SettingsHeader />
 
@@ -421,7 +433,7 @@ export default function SettingsPage() {
                 try {
                   await signInWithGoogle();
                 } catch {
-                  window.alert("Неуспешно влизане. Опитай отново.");
+                  toast.error("Неуспешно влизане. Опитай отново.");
                 }
               }}
               className={`${buttonStyles.primary} ${buttonSizes.md} ${borderRadius.md}`}
@@ -430,6 +442,18 @@ export default function SettingsPage() {
             </button>
           </section>
         )}
+
+        <ConfirmDialog
+          isOpen={showUnsubscribeAllConfirm}
+          title="Наистина ли искаш да отпишеш всички устройства?"
+          description="Всички устройства ще спрат да получават известия, докато не ги абонираш отново."
+          confirmText="Отпиши всички"
+          isConfirming={isUnsubscribingAll}
+          onConfirm={() => {
+            void handleConfirmUnsubscribeAll();
+          }}
+          onCancel={() => setShowUnsubscribeAllConfirm(false)}
+        />
 
         {!isGuestUser && (
           <ApiAccessSection

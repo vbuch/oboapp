@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { Interest } from "@/lib/types";
+import { toast } from "sonner";
 
 type CenterMapFn = (
   lat: number,
@@ -20,6 +21,8 @@ interface PendingInterestSelection {
   readonly coordinates: { lat: number; lng: number };
   readonly radius: number;
 }
+
+type InterestWithId = Interest & { id: string };
 
 function hasValidCoordinates(
   coordinates: Interest["coordinates"] | undefined,
@@ -61,10 +64,51 @@ export function useInterestManagement(
   const [selectedInterest, setSelectedInterest] = useState<Interest | null>(
     null,
   );
+  const [pendingDeleteInterest, setPendingDeleteInterest] =
+    useState<InterestWithId | null>(null);
+  const [isDeletingInterest, setIsDeletingInterest] = useState(false);
   const [interestMenuPosition, setInterestMenuPosition] = useState<{
     x: number;
     y: number;
   } | null>(null);
+
+  const executeDeleteInterest = useCallback(
+    async (interest: InterestWithId) => {
+      try {
+        trackEvent({
+          name: "zone_deleted",
+          params: {
+            zone_id: interest.id,
+            radius: interest.radius,
+          },
+        });
+        await deleteInterest(interest.id);
+        setInterestMenuPosition(null);
+        setSelectedInterest(null);
+        return true;
+      } catch (error) {
+        console.error("Failed to delete interest:", error);
+
+        // Check if it's a 404 (already deleted, likely a duplicate)
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes("404")) {
+          console.warn(
+            "Interest already deleted (likely a duplicate), removing from local state",
+          );
+          setInterestMenuPosition(null);
+          setSelectedInterest(null);
+          // Refresh to sync state
+          globalThis.location.reload();
+          return true;
+        }
+
+        toast.error("Не успях да изтрия зоната. Опитай пак.");
+        return false;
+      }
+    },
+    [deleteInterest],
+  );
 
   const handleInterestClick = useCallback(
     (interest: Interest) => {
@@ -122,7 +166,7 @@ export function useInterestManagement(
         console.error("Cannot move interest with invalid coordinates", {
           interest,
         });
-        alert("Не успях да преместя зоната. Опитай пак.");
+        toast.error("Не успях да преместя зоната. Опитай пак.");
         return;
       }
 
@@ -155,56 +199,44 @@ export function useInterestManagement(
   );
 
   const handleDeleteInterest = useCallback(
-    async (interestToDelete?: Interest) => {
+    (interestToDelete?: Interest) => {
       const interest = interestToDelete ?? selectedInterest;
       if (!interest?.id) {
         console.error("Cannot delete interest without id", { interest });
         return;
       }
 
-      const zoneLabel = interest.label?.trim() || "тази зона";
-      const shouldDelete =
-        typeof globalThis.confirm === "function"
-          ? globalThis.confirm(
-              `Наистина ли искаш да изтриеш ${zoneLabel}?`,
-            )
-          : true;
-      if (!shouldDelete) {
-        return;
-      }
+      const interestWithId: InterestWithId = { ...interest, id: interest.id };
 
-      try {
-        trackEvent({
-          name: "zone_deleted",
-          params: {
-            zone_id: interest.id,
-            radius: interest.radius,
-          },
-        });
-        await deleteInterest(interest.id);
-        setInterestMenuPosition(null);
-        setSelectedInterest(null);
-      } catch (error) {
-        console.error("Failed to delete interest:", error);
-
-        // Check if it's a 404 (already deleted, likely a duplicate)
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        if (errorMessage.includes("404")) {
-          console.warn(
-            "Interest already deleted (likely a duplicate), removing from local state",
-          );
-          setInterestMenuPosition(null);
-          setSelectedInterest(null);
-          // Refresh to sync state
-          globalThis.location.reload();
-        } else {
-          alert("Не успях да изтрия зоната. Опитай пак.");
-        }
-      }
+      setInterestMenuPosition(null);
+      setPendingDeleteInterest(interestWithId);
     },
-    [selectedInterest, deleteInterest],
+    [selectedInterest],
   );
+
+  const handleConfirmDeleteInterest = useCallback(async () => {
+    if (!pendingDeleteInterest || isDeletingInterest) {
+      return;
+    }
+
+    setIsDeletingInterest(true);
+    try {
+      const deleteSucceeded = await executeDeleteInterest(pendingDeleteInterest);
+      if (deleteSucceeded) {
+        setPendingDeleteInterest(null);
+      }
+    } finally {
+      setIsDeletingInterest(false);
+    }
+  }, [pendingDeleteInterest, executeDeleteInterest, isDeletingInterest]);
+
+  const handleCancelDeleteInterest = useCallback(() => {
+    if (isDeletingInterest) {
+      return;
+    }
+
+    setPendingDeleteInterest(null);
+  }, [isDeletingInterest]);
 
   const handleStartAddInterest = useCallback(
     (config?: { color?: string; radius?: number }) => {
@@ -239,7 +271,7 @@ export function useInterestManagement(
           }
         } catch (error) {
           console.error("Failed to save interest:", error);
-          alert("Не успях да запазя зоната. Опитай пак.");
+          toast.error("Не успях да запазя зоната. Опитай пак.");
         }
       })();
     },
@@ -264,7 +296,7 @@ export function useInterestManagement(
           // Intentionally keep pendingNewInterest set so AddZoneModal stays
           // open and the user can retry without re-entering zone details.
           console.error("Failed to create interest:", error);
-          alert("Не успях да запазя зоната. Опитай пак.");
+          toast.error("Не успях да запазя зоната. Опитай пак.");
         }
       })();
     },
@@ -287,11 +319,15 @@ export function useInterestManagement(
   return {
     targetMode,
     pendingNewInterest,
+    pendingDeleteInterest,
+    isDeletingInterest,
     selectedInterest,
     interestMenuPosition,
     handleInterestClick,
     handleMoveInterest,
     handleDeleteInterest,
+    handleConfirmDeleteInterest,
+    handleCancelDeleteInterest,
     handleStartAddInterest,
     handleSaveInterest,
     handleConfirmPendingInterest,

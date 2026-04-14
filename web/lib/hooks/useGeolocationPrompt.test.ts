@@ -2,6 +2,16 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useGeolocationPrompt } from "./useGeolocationPrompt";
 
+const { toastMock } = vi.hoisted(() => ({
+  toastMock: {
+    error: vi.fn(),
+  },
+}));
+
+vi.mock("sonner", () => ({
+  toast: toastMock,
+}));
+
 // Mock the analytics
 vi.mock("@/lib/analytics", () => ({
   trackEvent: vi.fn(),
@@ -33,12 +43,6 @@ describe("useGeolocationPrompt", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.getItem.mockReturnValue(null);
-
-    // Mock alert function
-    Object.defineProperty(window, "alert", {
-      value: vi.fn(),
-      writable: true,
-    });
   });
 
   it("should initialize with correct default state", () => {
@@ -91,7 +95,6 @@ describe("useGeolocationPrompt", () => {
   it("should handle geolocation errors gracefully", async () => {
     const { result } = renderHook(() => useGeolocationPrompt());
     const mockCenterMap = vi.fn();
-    const alertSpy = vi.spyOn(window, "alert");
 
     localStorageMock.getItem.mockReturnValue("true");
     mockGetCurrentPosition.mockImplementation((success, error) => {
@@ -109,7 +112,7 @@ describe("useGeolocationPrompt", () => {
       }
     });
 
-    expect(alertSpy).toHaveBeenCalled();
+    expect(toastMock.error).toHaveBeenCalled();
     expect(mockCenterMap).not.toHaveBeenCalled();
   });
 
@@ -188,8 +191,8 @@ describe("useGeolocationPrompt", () => {
 
     expect(consoleSpy).toHaveBeenCalled();
     expect(mockCenterMap).not.toHaveBeenCalled();
-    // No alert should be shown for auto-center
-    expect(window.alert).not.toHaveBeenCalled();
+    // No toast should be shown for auto-center
+    expect(toastMock.error).not.toHaveBeenCalled();
 
     consoleSpy.mockRestore();
   });

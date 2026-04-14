@@ -105,7 +105,7 @@ function SourcePageContent() {
   const logoPath = `/sources/${source.id}.png`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-light">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Back link */}
         <div className="mb-6">
@@ -126,7 +126,7 @@ function SourcePageContent() {
               {logoError ? (
                 <div className="w-24 h-24 sm:w-32 sm:h-32 bg-neutral-light rounded-lg flex items-center justify-center">
                   <svg
-                    className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400"
+                    className="w-12 h-12 sm:w-16 sm:h-16 text-neutral"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -153,7 +153,7 @@ function SourcePageContent() {
 
             {/* Name and URL */}
             <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
                 {source.name}
               </h1>
               <a
@@ -170,7 +170,7 @@ function SourcePageContent() {
 
         {/* Messages grid */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          <h2 className="text-2xl font-bold text-foreground mb-6">
             Последни съобщения
           </h2>
           <MessagesGrid
