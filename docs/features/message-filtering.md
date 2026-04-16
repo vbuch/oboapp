@@ -115,7 +115,7 @@ Beyond time-based relevance, several filters operate at different pipeline stage
 
 - **Boundary Filter**: Applied twice - pre-check during source ingestion for pre-geocoded data, and post-check after geocoding for AI-extracted locations. Uses geometric intersection with defined boundary polygons to ensure geographic relevance to the target region.
 
-- **GeoJSON Validation**: Applied at the API endpoint before returning messages to frontend. Only messages with valid, non-null GeoJSON containing at least one feature are displayed. Messages that failed geocoding are filtered out here.
+- **GeoJSON Validation**: Applied at the API endpoint before returning messages to frontend. Only messages with valid, non-null GeoJSON containing at least one feature are displayed. Messages finalized without usable geometry are filtered out here.
 
 - **Source Age**: Applied during source ingestion, before message processing begins. Announcements older than 90 days from publication are ignored to reduce processing load on archived content.
 
@@ -124,6 +124,12 @@ Beyond time-based relevance, several filters operate at different pipeline stage
 Messages that reach finalization (with or without GeoJSON) store internal ingestion issues in `ingestErrors`. Each entry has a human-readable `text` and a `type` (`warning`, `error`, or `exception`). This allows later inspection of why a message was finalized without appearing on the map.
 
 **Operational view**: The /ingest-errors page lists finalized messages missing GeoJSON and displays any recorded `ingestErrors`.
+
+Typical examples include:
+
+- content judged irrelevant and finalized early
+- extracted locations that could not be converted into valid geometry
+- transient external geocoding issues that did not crash the ingest job
 
 ## Frontend Display
 

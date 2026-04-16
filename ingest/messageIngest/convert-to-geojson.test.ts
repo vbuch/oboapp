@@ -245,7 +245,7 @@ describe("convertMessageGeocodingToGeoJson", () => {
     );
   });
 
-  it("should throw error if no features can be geocoded", async () => {
+  it("should return null if no features can be geocoded", async () => {
     const extractedData: ExtractedData = {
       pins: [{ address: "Address 1", timespans: [] }],
       streets: [{ street: "Main St", from: "A", to: "B", timespans: [] }],
@@ -255,7 +255,7 @@ describe("convertMessageGeocodingToGeoJson", () => {
 
     await expect(
       convertMessageGeocodingToGeoJson(extractedData, geocodedMap),
-    ).rejects.toThrow("Failed to geocode all locations");
+    ).resolves.toBeNull();
   });
 
   it("should handle all pins geocoded but streets missing endpoints", async () => {
@@ -362,7 +362,7 @@ describe("convertMessageGeocodingToGeoJson", () => {
     });
   });
 
-  it("should throw with bus stop details when only bus stops fail to geocode", async () => {
+  it("should return null with bus stop-only misses", async () => {
     const extractedData: ExtractedData = {
       pins: [],
       streets: [],
@@ -378,10 +378,10 @@ describe("convertMessageGeocodingToGeoJson", () => {
         undefined,
         [], // no geocoded bus stops
       ),
-    ).rejects.toThrow("Failed to geocode all locations: Спирка 0123, Спирка 0456");
+    ).resolves.toBeNull();
   });
 
-  it("should throw with educational facility details when only facilities fail to geocode", async () => {
+  it("should return null with educational facility-only misses", async () => {
     const extractedData: ExtractedData = {
       pins: [],
       streets: [],
@@ -402,9 +402,7 @@ describe("convertMessageGeocodingToGeoJson", () => {
         undefined,
         [], // no geocoded facilities
       ),
-    ).rejects.toThrow(
-      "Failed to geocode all locations: Учебно заведение school:93, Учебно заведение kindergarten:5",
-    );
+    ).resolves.toBeNull();
   });
 
   it("should include missing bus stops and facilities in partial geocoding warning", async () => {

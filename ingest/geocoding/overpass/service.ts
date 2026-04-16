@@ -752,12 +752,14 @@ export async function getStreetGeometryFromOverpass(
   } catch (error) {
     const err: ErrorWithStatusCode =
       error instanceof Error ? error : new Error(String(error));
-    logger.error("Error fetching from Overpass", {
+    const retryable = shouldTryFallback(err, err.statusCode);
+    const log = retryable ? logger.warn : logger.error;
+    log("Error fetching from Overpass", {
       streetName,
       error: err.message,
     });
 
-    if (shouldTryFallback(err, err.statusCode)) {
+    if (retryable) {
       if (deferredKeys) {
         deferredKeys.add(cacheKey);
       }

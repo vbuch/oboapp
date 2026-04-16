@@ -142,8 +142,8 @@ export async function convertMessageGeocodingToGeoJson(
       allMissing.length > 0
         ? `Failed to geocode all locations: ${allMissing.join(", ")}`
         : "No geocodable locations found in extracted data";
-    recorder.error(`❌ ${detail}`);
-    throw new Error(detail);
+    recorder.warn(`⚠️  ${detail}`);
+    return null;
   }
 
   // Log partial failures as warnings

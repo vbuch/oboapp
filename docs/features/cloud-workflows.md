@@ -61,6 +61,8 @@ After all crawlers complete (success or failure), the `ingest-messages` job runs
 
 **Failure behavior**: If ingest fails, workflow logs an ERROR and continues to notify step.
 
+**Handled geocoding misses**: Not every message-level geocoding problem is a workflow failure. Messages that cannot produce valid geometry can still be finalized without GeoJSON and inspected later through `ingestErrors`. Temporary Overpass saturation is expected to surface mainly as warnings unless it aborts the job.
+
 ### Step 3: Sequential Notify
 
 After ingest completes, the `send-notifications` job runs:
@@ -254,5 +256,6 @@ Adding a new crawler requires updating both the crawler implementation and the T
 ## Related Documentation
 
 - [Geocoding](../../ingest/geocoding/README.md) - How addresses/streets are geocoded during ingest
+- [Error Monitoring](./error-monitoring.md) - How Cloud Logging, alerting, and Sentry divide responsibility
 - [Message Filtering](./message-filtering.md) - AI categorization and data extraction
 - [Terraform Setup](../../ingest/terraform/README.md) - Infrastructure deployment guide
