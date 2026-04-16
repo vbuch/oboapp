@@ -107,6 +107,72 @@ describe("GET /v1/messages", () => {
     const body: any = await res.json();
     expect(body.messages).toEqual([]);
   });
+
+  it("skips malformed records instead of failing the whole response", async () => {
+    const { getDb } = await import("@/lib/db");
+    const mockedGetDb = vi.mocked(getDb);
+    mockedGetDb.mockResolvedValue({
+      messages: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            _id: "broken-message",
+            text: "Broken",
+            createdAt: null,
+            locality: "bg.sofia",
+            source: "sofia-bg",
+            geoJson: {
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  geometry: {
+                    type: "Point",
+                    coordinates: [23.32, 42.69],
+                  },
+                  properties: {},
+                },
+              ],
+            },
+            timespanEnd: new Date("2099-12-31"),
+          },
+          {
+            _id: "valid-message",
+            text: "Valid message",
+            createdAt: new Date("2025-01-01"),
+            locality: "bg.sofia",
+            source: "sofia-bg",
+            geoJson: {
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  geometry: {
+                    type: "Point",
+                    coordinates: [23.33, 42.7],
+                  },
+                  properties: {},
+                },
+              ],
+            },
+            timespanEnd: new Date("2099-12-31"),
+          },
+        ]),
+        findById: vi.fn(),
+        findBySourceDocumentIds: vi.fn(),
+      },
+      apiClients: {
+        findByApiKey: vi.fn(),
+      },
+    } as any);
+
+    const res = await app.request("/v1/messages", {
+      headers: API_KEY_HEADER,
+    });
+    expect(res.status).toBe(200);
+    const body: any = await res.json();
+    expect(body.messages).toHaveLength(1);
+    expect(body.messages[0]).toHaveProperty("id", "valid-message");
+  });
 });
 
 describe("GET /v1/messages/by-id", () => {

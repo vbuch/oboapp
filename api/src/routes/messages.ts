@@ -21,6 +21,23 @@ const FIRESTORE_IN_OPERATOR_LIMIT = 10;
 type DbClient = Awaited<ReturnType<typeof getDb>>;
 type MessageRecord = Record<string, unknown>;
 
+function tryRecordToMessage(
+  record: MessageRecord,
+  context: string,
+): Message | null {
+  try {
+    return recordToMessage(record);
+  } catch (error) {
+    const recordId = typeof record._id === "string" ? record._id : "unknown";
+    console.warn("Skipping malformed message record", {
+      context,
+      recordId,
+      error,
+    });
+    return null;
+  }
+}
+
 function sortMessagesByRelevance(messages: Message[]): Message[] {
   return [...messages].sort((a, b) => {
     const aFinalizedAt = a.finalizedAt ?? "";
@@ -142,7 +159,10 @@ async function findMessagesBySources(
   for (const doc of results) {
     const docId = typeof doc._id === "string" ? doc._id : "";
     if (docId && !messagesMap.has(docId)) {
-      messagesMap.set(docId, recordToMessage(doc));
+      const message = tryRecordToMessage(doc, "findMessagesBySources");
+      if (message) {
+        messagesMap.set(docId, message);
+      }
     }
   }
 
@@ -173,7 +193,10 @@ function dedupeAndMapMessages(docs: MessageRecord[]): Message[] {
   for (const doc of docs) {
     const docId = typeof doc._id === "string" ? doc._id : "";
     if (docId && !messagesMap.has(docId)) {
-      messagesMap.set(docId, recordToMessage(doc));
+      const message = tryRecordToMessage(doc, "dedupeAndMapMessages");
+      if (message) {
+        messagesMap.set(docId, message);
+      }
     }
   }
 
@@ -299,7 +322,10 @@ async function findMessagesByCategoryFilters(
 
       const docId = typeof doc._id === "string" ? doc._id : "";
       if (docId && !messagesMap.has(docId)) {
-        messagesMap.set(docId, recordToMessage(doc));
+        const message = tryRecordToMessage(doc, "findMessagesByCategoryFilters");
+        if (message) {
+          messagesMap.set(docId, message);
+        }
       }
     }
   }
@@ -472,7 +498,9 @@ messagesRoute.get("/messages", apiKeyAuth, async (c) => {
         orderBy: [{ field: "timespanEnd", direction: "desc" }],
       });
 
-      allMessages = docs.map(recordToMessage);
+      allMessages = docs
+        .map((doc) => tryRecordToMessage(doc, "messagesRoute.defaultQuery"))
+        .filter((message): message is Message => message !== null);
     }
 
     let messages = filterMessagesByGeoAndViewport(allMessages, viewportBounds);
