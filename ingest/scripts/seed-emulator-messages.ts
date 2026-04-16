@@ -9,6 +9,7 @@ import {
   generateLineStringPoints,
 } from "./seed-emulator-utils";
 import type { GeoJSONFeatureCollection, Point } from "./seed-emulator-utils";
+import { getLocality } from "@/lib/target-locality";
 
 // SourceDocument structure matches what's stored in Firestore's sources collection
 interface SourceDocument {
@@ -54,6 +55,7 @@ function createMessageData(
     finalizedAt: new Date(),
     timespanStart: timespan.start,
     timespanEnd: timespan.end,
+    locality: getLocality(),
     geoJson: JSON.stringify(geoJson), // Stringify for Firestore
   };
 
