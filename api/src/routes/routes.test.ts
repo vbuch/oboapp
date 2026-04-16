@@ -108,6 +108,104 @@ describe("GET /v1/messages", () => {
     expect(body.messages).toEqual([]);
   });
 
+  it("backfills missing timespanStart from timespanEnd", async () => {
+    const { getDb } = await import("@/lib/db");
+    const mockedGetDb = vi.mocked(getDb);
+    const endDate = new Date("2026-04-20T10:00:00.000Z");
+
+    mockedGetDb.mockResolvedValue({
+      messages: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            _id: "msg-timespan-end-only",
+            text: "Timespan fallback message",
+            createdAt: new Date("2026-04-15T10:00:00.000Z"),
+            locality: "bg.sofia",
+            source: "sofia-bg",
+            geoJson: {
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  geometry: {
+                    type: "Point",
+                    coordinates: [23.32, 42.69],
+                  },
+                  properties: {},
+                },
+              ],
+            },
+            timespanEnd: endDate,
+          },
+        ]),
+        findById: vi.fn(),
+        findBySourceDocumentIds: vi.fn(),
+      },
+      apiClients: {
+        findByApiKey: vi.fn(),
+      },
+    } as any);
+
+    const res = await app.request("/v1/messages", {
+      headers: API_KEY_HEADER,
+    });
+
+    expect(res.status).toBe(200);
+    const body: any = await res.json();
+    expect(body.messages).toHaveLength(1);
+    expect(body.messages[0]).toHaveProperty("timespanStart", endDate.toISOString());
+    expect(body.messages[0]).toHaveProperty("timespanEnd", endDate.toISOString());
+  });
+
+  it("backfills missing timespanStart and timespanEnd from finalizedAt", async () => {
+    const { getDb } = await import("@/lib/db");
+    const mockedGetDb = vi.mocked(getDb);
+    const finalizedAt = new Date("2026-04-21T12:30:00.000Z");
+
+    mockedGetDb.mockResolvedValue({
+      messages: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            _id: "msg-timespan-missing",
+            text: "Timespan fully missing",
+            createdAt: new Date("2026-04-15T10:00:00.000Z"),
+            finalizedAt,
+            locality: "bg.sofia",
+            source: "sofia-bg",
+            geoJson: {
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  geometry: {
+                    type: "Point",
+                    coordinates: [23.32, 42.69],
+                  },
+                  properties: {},
+                },
+              ],
+            },
+          },
+        ]),
+        findById: vi.fn(),
+        findBySourceDocumentIds: vi.fn(),
+      },
+      apiClients: {
+        findByApiKey: vi.fn(),
+      },
+    } as any);
+
+    const res = await app.request("/v1/messages", {
+      headers: API_KEY_HEADER,
+    });
+
+    expect(res.status).toBe(200);
+    const body: any = await res.json();
+    expect(body.messages).toHaveLength(1);
+    expect(body.messages[0]).toHaveProperty("timespanStart", finalizedAt.toISOString());
+    expect(body.messages[0]).toHaveProperty("timespanEnd", finalizedAt.toISOString());
+  });
+
   it("skips malformed records instead of failing the whole response", async () => {
     const { getDb } = await import("@/lib/db");
     const mockedGetDb = vi.mocked(getDb);
