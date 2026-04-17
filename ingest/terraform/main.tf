@@ -1456,16 +1456,19 @@ resource "google_monitoring_notification_channel" "email" {
   depends_on = [google_project_service.monitoring]
 }
 
-resource "google_monitoring_alert_policy" "cloud_run_job_failures" {
-  display_name = "Cloud Run Job Failures"
+# Per-crawler alerts
+resource "google_monitoring_alert_policy" "crawler_failures" {
+  for_each     = local.crawlers
+  display_name = "Crawler Failure: ${each.key}"
   combiner     = "OR"
 
   conditions {
-    display_name = "Cloud Run Job execution failed"
+    display_name = "crawl-${each.key} error"
 
     condition_matched_log {
       filter = <<-EOT
         resource.type="cloud_run_job"
+        resource.labels.job_name="crawl-${each.key}"
         severity>=ERROR
       EOT
     }
@@ -1482,7 +1485,284 @@ resource "google_monitoring_alert_policy" "cloud_run_job_failures" {
   ]
 
   documentation {
-    content   = "A Cloud Run pipeline job logged an error. Check Cloud Run logs: https://console.cloud.google.com/run/jobs?project=${var.project_id}"
+    content   = "Crawler **crawl-${each.key}** (${each.value.description}) logged an error.\n\nLogs: https://console.cloud.google.com/run/jobs/details/${var.region}/crawl-${each.key}/logs?project=${var.project_id}"
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_project_service.monitoring]
+}
+
+# Pipeline workflow alerts
+resource "google_monitoring_alert_policy" "pipeline_emergent_failures" {
+  display_name = "Pipeline Failure: Emergent"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "pipeline-emergent error"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="cloud_run_job"
+        resource.labels.job_name="pipeline-emergent"
+        severity>=ERROR
+      EOT
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  notification_channels = [
+    google_monitoring_notification_channel.email.name
+  ]
+
+  documentation {
+    content   = "The **emergent pipeline** (30-min cycle) logged an error.\n\nLogs: https://console.cloud.google.com/run/jobs/details/${var.region}/pipeline-emergent/logs?project=${var.project_id}"
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_project_service.monitoring]
+}
+
+resource "google_monitoring_alert_policy" "pipeline_all_failures" {
+  display_name = "Pipeline Failure: All Crawlers"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "pipeline-all error"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="cloud_run_job"
+        resource.labels.job_name="pipeline-all"
+        severity>=ERROR
+      EOT
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  notification_channels = [
+    google_monitoring_notification_channel.email.name
+  ]
+
+  documentation {
+    content   = "The **all-crawlers pipeline** (3×/day) logged an error.\n\nLogs: https://console.cloud.google.com/run/jobs/details/${var.region}/pipeline-all/logs?project=${var.project_id}"
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_project_service.monitoring]
+}
+
+# Ingest & Notify alerts
+resource "google_monitoring_alert_policy" "ingest_failures" {
+  display_name = "Job Failure: Ingest Messages"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "ingest-messages error"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="cloud_run_job"
+        resource.labels.job_name="ingest-messages"
+        severity>=ERROR
+      EOT
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  notification_channels = [
+    google_monitoring_notification_channel.email.name
+  ]
+
+  documentation {
+    content   = "The **ingest-messages** job logged an error.\n\nLogs: https://console.cloud.google.com/run/jobs/details/${var.region}/ingest-messages/logs?project=${var.project_id}"
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_project_service.monitoring]
+}
+
+resource "google_monitoring_alert_policy" "notify_failures" {
+  display_name = "Job Failure: Send Notifications"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "send-notifications error"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="cloud_run_job"
+        resource.labels.job_name="send-notifications"
+        severity>=ERROR
+      EOT
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  notification_channels = [
+    google_monitoring_notification_channel.email.name
+  ]
+
+  documentation {
+    content   = "The **send-notifications** job logged an error.\n\nLogs: https://console.cloud.google.com/run/jobs/details/${var.region}/send-notifications/logs?project=${var.project_id}"
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_project_service.monitoring]
+}
+
+# Standalone job alerts
+resource "google_monitoring_alert_policy" "gtfs_sync_failures" {
+  display_name = "Job Failure: GTFS Sync"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "gtfs-sync error"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="cloud_run_job"
+        resource.labels.job_name="gtfs-sync"
+        severity>=ERROR
+      EOT
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  notification_channels = [
+    google_monitoring_notification_channel.email.name
+  ]
+
+  documentation {
+    content   = "The **gtfs-sync** job logged an error.\n\nLogs: https://console.cloud.google.com/run/jobs/details/${var.region}/gtfs-sync/logs?project=${var.project_id}"
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_project_service.monitoring]
+}
+
+resource "google_monitoring_alert_policy" "educational_facilities_sync_failures" {
+  display_name = "Job Failure: Educational Facilities Sync"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "educational-facilities-sync error"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="cloud_run_job"
+        resource.labels.job_name="educational-facilities-sync"
+        severity>=ERROR
+      EOT
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  notification_channels = [
+    google_monitoring_notification_channel.email.name
+  ]
+
+  documentation {
+    content   = "The **educational-facilities-sync** job logged an error.\n\nLogs: https://console.cloud.google.com/run/jobs/details/${var.region}/educational-facilities-sync/logs?project=${var.project_id}"
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_project_service.monitoring]
+}
+
+resource "google_monitoring_alert_policy" "air_quality_fetch_failures" {
+  count        = var.gcs_generic_bucket != "" ? 1 : 0
+  display_name = "Job Failure: Air Quality Fetch"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "air-quality-fetch error"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="cloud_run_job"
+        resource.labels.job_name="air-quality-fetch"
+        severity>=ERROR
+      EOT
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  notification_channels = [
+    google_monitoring_notification_channel.email.name
+  ]
+
+  documentation {
+    content   = "The **air-quality-fetch** job logged an error.\n\nLogs: https://console.cloud.google.com/run/jobs/details/${var.region}/air-quality-fetch/logs?project=${var.project_id}"
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_project_service.monitoring]
+}
+
+resource "google_monitoring_alert_policy" "geocode_frequency_report_failures" {
+  count        = var.gcs_generic_bucket != "" ? 1 : 0
+  display_name = "Job Failure: Geocode Frequency Report"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "geocode-frequency-report error"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="cloud_run_job"
+        resource.labels.job_name="geocode-frequency-report"
+        severity>=ERROR
+      EOT
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  notification_channels = [
+    google_monitoring_notification_channel.email.name
+  ]
+
+  documentation {
+    content   = "The **geocode-frequency-report** job logged an error.\n\nLogs: https://console.cloud.google.com/run/jobs/details/${var.region}/geocode-frequency-report/logs?project=${var.project_id}"
     mime_type = "text/markdown"
   }
 
