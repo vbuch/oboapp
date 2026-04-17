@@ -128,6 +128,13 @@ resource "google_project_iam_member" "ci_workflows_admin" {
   member  = "serviceAccount:${var.ci_service_account_email}"
 }
 
+# Grant Monitoring Editor to CI service account (for Terraform to manage alert policies)
+resource "google_project_iam_member" "ci_monitoring_editor" {
+  project = var.project_id
+  role    = "roles/monitoring.editor"
+  member  = "serviceAccount:${var.ci_service_account_email}"
+}
+
 # Grant Secret Manager access
 resource "google_project_iam_member" "secret_accessor" {
   project = var.project_id
