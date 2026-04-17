@@ -54,6 +54,8 @@ cd ingest
 pnpm emulator:seed
 ```
 
+Seeded messages are intentionally labeled as test data so they are clearly fake if they are viewed outside the emulator workflow.
+
 Stop emulators (Ctrl+C), then restart. Data persists across restarts.
 
 ### 5. Start Web App
@@ -97,6 +99,8 @@ cd ingest
 pnpm emulator:clear
 pnpm emulator:seed
 ```
+
+Run the reseed commands after pulling changes to the seed fixtures so existing local emulator data picks up the latest warning text.
 
 ## Troubleshooting
 

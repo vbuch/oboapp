@@ -7,6 +7,8 @@ import {
   createLineGeoJson,
   generateTimespan,
   generateLineStringPoints,
+  addSeedWarning,
+  buildSeedWarningBlock,
 } from "./seed-emulator-utils";
 import type { GeoJSONFeatureCollection, Point } from "./seed-emulator-utils";
 import { getLocality } from "@/lib/target-locality";
@@ -30,8 +32,12 @@ function createSourceData(
 ): SourceDocument {
   return {
     url: `https://example.com/source/${index + 1}`,
-    title: `${config.text} на ${config.street}`,
-    message: `${config.text} на ${config.street} от ${timespan.start.toLocaleDateString("bg-BG")} до ${timespan.end.toLocaleDateString("bg-BG")}`,
+    title: addSeedWarning(`${config.text} на ${config.street}`),
+    message: buildSeedWarningBlock([
+      `${config.text} на ${config.street}`,
+      "",
+      `Период: ${timespan.start.toLocaleDateString("bg-BG")} - ${timespan.end.toLocaleDateString("bg-BG")}`,
+    ]),
     datePublished: new Date().toISOString(),
     sourceType: "test-source",
     crawledAt: new Date(),
@@ -48,8 +54,14 @@ function createMessageData(
 ): Record<string, unknown> {
   const baseData: Record<string, unknown> = {
     sourceDocumentId: sourceId,
-    text: `${config.text} на ${config.street}`,
-    markdownText: `**${config.text}**\n\nЛокация: ${config.street}\n\nПериод: ${timespan.start.toLocaleDateString("bg-BG")} - ${timespan.end.toLocaleDateString("bg-BG")}`,
+    text: addSeedWarning(`${config.text} на ${config.street}`),
+    markdownText: buildSeedWarningBlock([
+      `**${config.text}**`,
+      "",
+      `Локация: ${config.street}`,
+      "",
+      `Период: ${timespan.start.toLocaleDateString("bg-BG")} - ${timespan.end.toLocaleDateString("bg-BG")}`,
+    ]),
     categories: config.category,
     createdAt: new Date(),
     finalizedAt: new Date(),

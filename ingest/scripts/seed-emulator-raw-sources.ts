@@ -11,6 +11,7 @@
 
 import type { Firestore } from "firebase-admin/firestore";
 import { encodeDocumentId } from "@/crawlers/shared/firestore";
+import { addSeedWarning, buildSeedWarningBlock } from "./seed-emulator-utils";
 
 // A point on ul. Shishman 14-20 in Oborishte (lat 42.693, lng 23.331)
 const SHARED_LOCATION = { lat: 42.693, lng: 23.331 };
@@ -27,23 +28,23 @@ const toploBgSource = {
   url: "https://toplo.bg/incidents/seed-test-001",
   deepLinkUrl: "",
   datePublished: startDate.toISOString(),
-  title: "Авария на магистрален топлопровод на ул. Шишман",
-  message: [
+  title: addSeedWarning("Авария на магистрален топлопровод на ул. Шишман"),
+  message: buildSeedWarningBlock([
     "Авария на магистрален топлопровод на ул. Шишман",
     "",
     startDate.toLocaleDateString("bg-BG"),
     "ул. Шишман 14-20, район Оборище",
     "",
     `Очаквано възстановяване на ${endDate.toLocaleDateString("bg-BG")}`,
-  ].join("\n"),
-  markdownText: [
+  ]),
+  markdownText: buildSeedWarningBlock([
     "Авария на магистрален топлопровод на ул. Шишман",
     "",
     startDate.toLocaleDateString("bg-BG"),
     "ул. Шишман 14-20, район Оборище",
     "",
     `Очаквано възстановяване на ${endDate.toLocaleDateString("bg-BG")}`,
-  ].join("\n"),
+  ]),
   sourceType: "toplo-bg",
   locality: "bg.sofia",
   crawledAt: new Date(),
@@ -74,8 +75,8 @@ const toploBgSource = {
 const oborishteSource = {
   url: "https://rayon-oborishte.bg/уведомления/seed-test-heating-shishman",
   datePublished: new Date(startDate.getTime() + 3 * 60 * 60 * 1000).toISOString(), // few hours later
-  title: "Уведомление за прекъсване на топлоподаването на ул. Шишман",
-  message: [
+  title: addSeedWarning("Уведомление за прекъсване на топлоподаването на ул. Шишман"),
+  message: buildSeedWarningBlock([
     "## Уведомление за прекъсване на топлоподаването",
     "",
     `Уважаеми жители на район Оборище,`,
@@ -86,7 +87,7 @@ const oborishteSource = {
     "Топлофикация София работи по отстраняване на аварията.",
     "",
     "За повече информация: тел. 0700 11 111",
-  ].join("\n"),
+  ]),
   sourceType: "rayon-oborishte-bg",
   locality: "bg.sofia",
   crawledAt: new Date(),

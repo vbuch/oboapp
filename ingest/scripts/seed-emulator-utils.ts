@@ -21,6 +21,28 @@ export interface GeoJSONFeatureCollection {
   readonly features: readonly GeoJSONFeature[];
 }
 
+const SEED_WARNING_PREFIX = "ТЕСТОВО СЪОБЩЕНИЕ:";
+const SEED_WARNING_BODY =
+  "Това са примерни данни за локална разработка. Не описва реално събитие.";
+
+export function addSeedWarning(text: string): string {
+  const trimmedText = text.trim();
+
+  if (trimmedText.startsWith(SEED_WARNING_PREFIX)) {
+    return trimmedText;
+  }
+
+  return `${SEED_WARNING_PREFIX} ${trimmedText}`;
+}
+
+export function buildSeedWarningBlock(lines: readonly string[]): string {
+  return [
+    `${SEED_WARNING_PREFIX} ${SEED_WARNING_BODY}`,
+    "",
+    ...lines,
+  ].join("\n");
+}
+
 // Helper to generate random point within locality
 export function randomLocalityPoint(): Point {
   const locality = getLocality();
