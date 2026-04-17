@@ -29,27 +29,22 @@ export async function getUnprocessedMessages(db: OboDb): Promise<Message[]> {
   logger.info("Fetching unprocessed messages");
 
   const docs = await db.messages.findMany({
+    where: [{ field: "notificationsSent", op: "!=", value: true }],
     orderBy: [{ field: "createdAt", direction: "asc" }],
   });
 
-  // Filter for messages that don't have notificationsSent or where it's false
-  const unprocessedMessages: Message[] = [];
-  for (const data of docs) {
-    if (data.notificationsSent !== true) {
-      unprocessedMessages.push({
-        id: getString(data._id),
-        text: getString(data.text),
-        locality: getString(data.locality),
-        geoJson: isFeatureCollection(data.geoJson) ? data.geoJson : undefined,
-        createdAt: toISOString(data.createdAt),
-        cityWide: getOptionalBoolean(data.cityWide),
-        source: getOptionalString(data.source),
-        categories: Array.isArray(data.categories)
-          ? data.categories.filter(isCategory)
-          : undefined,
-      });
-    }
-  }
+  const unprocessedMessages: Message[] = docs.map((data) => ({
+    id: getString(data._id),
+    text: getString(data.text),
+    locality: getString(data.locality),
+    geoJson: isFeatureCollection(data.geoJson) ? data.geoJson : undefined,
+    createdAt: toISOString(data.createdAt),
+    cityWide: getOptionalBoolean(data.cityWide),
+    source: getOptionalString(data.source),
+    categories: Array.isArray(data.categories)
+      ? data.categories.filter(isCategory)
+      : undefined,
+  }));
 
   logger.info("Found unprocessed messages", {
     count: unprocessedMessages.length,
