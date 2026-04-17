@@ -36,8 +36,9 @@
       "collectionGroup": "messages",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "createdAt", "order": "ASCENDING" },
         { "fieldPath": "notificationsSent", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "ASCENDING" }
+        { "fieldPath": "__name__", "order": "ASCENDING" }
       ]
     },
     {
