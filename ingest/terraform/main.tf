@@ -135,6 +135,13 @@ resource "google_project_iam_member" "ci_monitoring_editor" {
   member  = "serviceAccount:${var.ci_service_account_email}"
 }
 
+# Grant Logging Admin to CI service account (for log-based alert notification rules)
+resource "google_project_iam_member" "ci_logging_admin" {
+  project = var.project_id
+  role    = "roles/logging.admin"
+  member  = "serviceAccount:${var.ci_service_account_email}"
+}
+
 # Grant Secret Manager access
 resource "google_project_iam_member" "secret_accessor" {
   project = var.project_id
