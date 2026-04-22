@@ -2,6 +2,22 @@
 
 Critical patterns and non-obvious rules for AI agents working on `oboapp`. For detailed domain docs, see the referenced READMEs.
 
+## 0. Editing Agent Primitives (Skills, Instructions, Prompts)
+
+**NEVER edit AI primitive files directly in `.github/skills/`, `.github/instructions/`, `.github/prompts/`, `.github/agents/`, or `.claude/`.** Those are generated outputs [managed by APM](./docs/setup/apm-agent-resources.md). `.github/workflows/` is edited directly as normal.
+
+The canonical source is `agent-context/.apm/` (skills, instructions, prompts, agents). After editing there, run:
+
+```bash
+pnpm apm:install
+```
+
+Then commit **both** the `agent-context/` source change and the regenerated `.github/` / `.claude/` files together.
+
+`CLAUDE.md` is also a "special" file — it simply re-exports `AGENTS.md` via `@AGENTS.md` and must not be edited directly.
+
+---
+
 ## 1. Pre-PR Quality Checks
 
 Before submitting any PR, **all** of these must pass:
@@ -79,6 +95,8 @@ See `docs/features/event-aggregation.md` for matching logic and thresholds.
 ### Crawler Development
 
 For the full implementation guide, see the `long-flow-crawler-generator` skill. Key traps:
+
+- **Check for an exposed API first:** Before writing any Playwright scraper, check if the site publishes an RSS/ATOM feed or JSON API (try `/feed`, `/rss.xml`, `/atom.xml`, inspect `<link rel="alternate">` in `<head>`, and trace any AJAX calls in the page JS). A plain HTTP feed is far more reliable than headless Chromium.
 
 - **Workflow Sync (CRITICAL):** When adding/removing crawlers, update ALL:
   1. `ingest/crawlers/{source-name}/` — implementation
