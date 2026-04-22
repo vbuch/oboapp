@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   fetchPostLinksFromFeed,
-  extractPostDetails,
+  fetchPostDetailsFromHttp,
   parseSerdikaDate,
 } from "./extractors";
 
@@ -22,31 +22,25 @@ function atomEntry({
   title,
   contentPath,
   effectiveDateMs,
+  linkHref,
+  portalContextPath,
 }: {
   title: string;
   contentPath: string;
   effectiveDateMs: number;
+  linkHref?: string;
+  portalContextPath?: string;
 }): string {
+  const detailHref = linkHref ?? `?urile=${encodeURIComponent(`wcm:path:${contentPath}`)}`;
+  const contextPath = portalContextPath ?? "/wps/portal/serdika.egov.bg-15783";
+
   return `<atom:entry>
     <atom:title type="text/html">${title}</atom:title>
+    <atom:link href="${detailHref}" type="text/html" />
     <wplc:field id="contentpath">${contentPath}</wplc:field>
+    <wplc:field id="portalcontextpath">${contextPath}</wplc:field>
     <wplc:field id="effectivedate">${effectiveDateMs}</wplc:field>
   </atom:entry>`;
-}
-
-// ---------------------------------------------------------------------------
-// Helper for mocking a Playwright Page
-// ---------------------------------------------------------------------------
-interface MockPage {
-  evaluate: <T>(fn: (...args: any[]) => T, ...args: any[]) => Promise<T>;
-  waitForSelector: (selector: string, options?: { timeout?: number }) => Promise<void>;
-}
-
-function createMockPage(mockEvaluate: any): MockPage {
-  return {
-    evaluate: mockEvaluate,
-    waitForSelector: vi.fn().mockResolvedValue(undefined),
-  } as MockPage;
 }
 // ---------------------------------------------------------------------------
 // fetchPostLinksFromFeed
@@ -57,6 +51,7 @@ describe("serdika-egov-bg/extractors", () => {
       vi.stubGlobal("fetch", vi.fn());
     });
     afterEach(() => {
+      vi.useRealTimers();
       vi.unstubAllGlobals();
     });
 
@@ -74,7 +69,7 @@ describe("serdika-egov-bg/extractors", () => {
 
       const links = await fetchPostLinksFromFeed("actualmessages");
       expect(links).toHaveLength(1);
-      expect(links[0].url).toBe("https://serdika.egov.bg/wps/portal/municipality-serdika/actual/messages/msg1");
+      expect(links[0].url).toBe("https://serdika.egov.bg/wps/portal/serdika.egov.bg-15783?urile=wcm%3Apath%3A%2Fcontent%2Fsite%2Factual%2Fmessages%2Fmsg1");
       expect(links[0].title).toBe("Съобщение за ИУМПС");
       expect(links[0].date).toBe("08.04.2025"); // UTC date for 1744070400000
     });
@@ -111,49 +106,143 @@ describe("serdika-egov-bg/extractors", () => {
       const newsXml = atomFeed(atomEntry({ title: "News 1", contentPath: "/content/site/actual/news/news1", effectiveDateMs: ts }));
       mockFetch(newsXml);
       const newsLinks = await fetchPostLinksFromFeed("actualnews");
-      expect(newsLinks[0].url).toBe("https://serdika.egov.bg/wps/portal/municipality-serdika/actual/news/news1");
+      expect(newsLinks[0].url).toBe("https://serdika.egov.bg/wps/portal/serdika.egov.bg-15783?urile=wcm%3Apath%3A%2Fcontent%2Fsite%2Factual%2Fnews%2Fnews1");
 
       const eventsXml = atomFeed(atomEntry({ title: "Event 1", contentPath: "/content/site/actual/events/event1", effectiveDateMs: ts }));
       mockFetch(eventsXml);
       const eventLinks = await fetchPostLinksFromFeed("actualevents");
-      expect(eventLinks[0].url).toBe("https://serdika.egov.bg/wps/portal/municipality-serdika/actual/events/event1");
+      expect(eventLinks[0].url).toBe("https://serdika.egov.bg/wps/portal/serdika.egov.bg-15783?urile=wcm%3Apath%3A%2Fcontent%2Fsite%2Factual%2Fevents%2Fevent1");
+    });
+
+    it("falls back to a canonical urile URL when the feed link is missing", async () => {
+      const ts = 1744070400000;
+      mockFetch(atomFeed(atomEntry({ title: "Fallback", contentPath: "/content/site/actual/news/news2", effectiveDateMs: ts, linkHref: "" })));
+
+      const links = await fetchPostLinksFromFeed("actualnews");
+      expect(links[0].url).toBe("https://serdika.egov.bg/wps/portal/serdika.egov.bg-15783?urile=wcm%3Apath%3A%2Fcontent%2Fsite%2Factual%2Fnews%2Fnews2");
+    });
+
+    it("retries transient feed fetch failures before succeeding", async () => {
+      vi.useFakeTimers();
+
+      const fetchMock = fetch as ReturnType<typeof vi.fn>;
+      fetchMock
+        .mockRejectedValueOnce(
+          Object.assign(new TypeError("fetch failed"), {
+            cause: { code: "ECONNRESET", message: "read ECONNRESET" },
+          }),
+        )
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(atomFeed(atomEntry({
+            title: "Retry feed",
+            contentPath: "/content/site/actual/messages/retry-feed",
+            effectiveDateMs: 1744070400000,
+          }))),
+        });
+
+      const linksPromise = fetchPostLinksFromFeed("actualmessages");
+      await vi.runAllTimersAsync();
+      const links = await linksPromise;
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(links[0].url).toContain("retry-feed");
     });
   });
 
 
 
-  describe("extractPostDetails", () => {
-    it("should extract post details from valid HTML", async () => {
-      const mockEvaluate = vi.fn().mockResolvedValue({
-        title:
-          "Съобщение за поставени стикери-предписания за преместване на ИУМПС",
-        dateText:
-          "Дата на публикуване: 07.04.2026 Последна актуализация: 07.04.2026",
-        contentHtml:
-          "<p>В изпълнение на чл. 46 от Наредба за управление на отпадъците...</p>",
+  describe("fetchPostDetailsFromHttp", () => {
+    beforeEach(() => {
+      vi.stubGlobal("fetch", vi.fn());
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
+
+    it("extracts title, date, and nested body HTML from detail pages", async () => {
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(`
+          <div class="content-wrapper">
+            <h2>Съобщение за поставени стикери-предписания за преместване на ИУМПС</h2>
+            <div id="publish-date">Дата на публикуване: 07.04.2026 Последна актуализация: 07.04.2026</div>
+            <div id="body" class="card0">
+              <div>
+                <p>В изпълнение на чл. 46 от Наредба за управление на отпадъците...</p>
+              </div>
+              <script>window.ignore = true;</script>
+            </div>
+          </div>
+        `),
       });
 
-      const page = createMockPage(mockEvaluate) as any;
-      const details = await extractPostDetails(page);
+      const details = await fetchPostDetailsFromHttp("https://serdika.egov.bg/detail");
 
       expect(details.title).toContain("ИУМПС");
       expect(details.dateText).toContain("07.04.2026");
       expect(details.contentHtml).toContain("отпадъците");
+      expect(details.contentHtml).not.toContain("window.ignore");
     });
 
-    it("should handle missing elements gracefully", async () => {
-      const mockEvaluate = vi.fn().mockResolvedValue({
-        title: "",
-        dateText: "",
-        contentHtml: "",
+    it("falls back to attachment links when the detail body is empty", async () => {
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(`
+          <div class="content-wrapper">
+            <h2>Уведомление</h2>
+            <div id="publish-date">Дата на публикуване: 07.04.2026</div>
+            <div id="body" class="card0"></div>
+          </div>
+          <div class="card20 image-50">
+            <img src="/wps/wcm/myconnect/site/documents/notice.png?MOD=AJPERES" />
+          </div>
+        `),
       });
 
-      const page = createMockPage(mockEvaluate) as any;
-      const details = await extractPostDetails(page);
+      const details = await fetchPostDetailsFromHttp("https://serdika.egov.bg/detail");
 
-      expect(details.title).toBe("");
-      expect(details.dateText).toBe("");
-      expect(details.contentHtml).toBe("");
+      expect(details.contentHtml).toContain("прикачени файлове без текст в страницата");
+      expect(details.contentHtml).toContain("notice.png");
+      expect(details.contentHtml).toContain("https://serdika.egov.bg/wps/wcm/myconnect/site/documents/notice.png?MOD=AJPERES");
+    });
+
+    it("throws when the detail page request fails", async () => {
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 404 });
+
+      await expect(fetchPostDetailsFromHttp("https://serdika.egov.bg/detail")).rejects.toThrow("404");
+    });
+
+    it("retries transient network errors before succeeding", async () => {
+      vi.useFakeTimers();
+
+      const fetchMock = fetch as ReturnType<typeof vi.fn>;
+      fetchMock
+        .mockRejectedValueOnce(
+          Object.assign(new TypeError("fetch failed"), {
+            cause: { code: "ECONNRESET", message: "read ECONNRESET" },
+          }),
+        )
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(`
+            <div class="content-wrapper">
+              <h2>Retry success</h2>
+              <div id="publish-date">Дата на публикуване: 07.04.2026</div>
+              <div id="body"><p>Body after retry</p></div>
+            </div>
+          `),
+        });
+
+      const detailsPromise = fetchPostDetailsFromHttp("https://serdika.egov.bg/detail");
+      await vi.runAllTimersAsync();
+      const details = await detailsPromise;
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(details.title).toBe("Retry success");
+      expect(details.contentHtml).toContain("Body after retry");
     });
   });
 

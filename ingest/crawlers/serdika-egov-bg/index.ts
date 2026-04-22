@@ -2,17 +2,15 @@
 
 import dotenv from "dotenv";
 import { resolve } from "node:path";
-import type { Browser } from "playwright";
 import type { OboDb } from "@oboapp/db";
 import type { PostLink } from "./types";
 import {
   fetchPostLinksFromFeed,
-  extractPostDetails,
+  fetchPostDetailsFromHttp,
   parseSerdikaDate,
 } from "./extractors";
-import { processWordpressPost } from "../shared/webpage-crawlers";
-import { isUrlProcessed } from "../shared/firestore";
-import { launchBrowser } from "../shared/browser";
+import { buildWebPageSourceDocument } from "../shared/webpage-crawlers";
+import { isUrlProcessed, saveSourceDocument } from "../shared/firestore";
 import { delay } from "@/lib/delay";
 import { logger } from "@/lib/logger";
 
@@ -33,87 +31,103 @@ const SOURCE_TYPE = "serdika-egov-bg";
 const LOCALITY = "bg.sofia";
 const DELAY_BETWEEN_REQUESTS = 2000;
 
-const processPost = (browser: Browser, postLink: PostLink, db: OboDb) =>
-  processWordpressPost(
-    browser,
-    postLink,
+async function processPost(postLink: PostLink, db: OboDb): Promise<void> {
+  logger.debug("Fetching post", {
+    sourceType: SOURCE_TYPE,
+    url: postLink.url,
+    title: postLink.title.substring(0, 60),
+  });
+
+  const details = await fetchPostDetailsFromHttp(postLink.url);
+  const postDetails = buildWebPageSourceDocument({
+    url: postLink.url,
+    title: details.title,
+    dateText: details.dateText,
+    contentHtml: details.contentHtml,
+    sourceType: SOURCE_TYPE,
+    locality: LOCALITY,
+    customDateParser: parseSerdikaDate,
+  });
+
+  await saveSourceDocument(
+    {
+      ...postDetails,
+      crawledAt: new Date(),
+    },
     db,
-    SOURCE_TYPE,
-    LOCALITY,
-    0, // no need delayMs here, we already have a delay between posts in the main loop
-    extractPostDetails,
-    parseSerdikaDate,
-    "load",
+    { logSuccess: false },
   );
+
+  logger.debug("Saved post", {
+    sourceType: SOURCE_TYPE,
+    title: postLink.title.substring(0, 60),
+    url: postLink.url,
+  });
+}
 
 export async function crawl(): Promise<void> {
   const { getDb } = await import("@/lib/db");
   const db = await getDb();
 
-  const browser = await launchBrowser();
-  try {
-    for (const { keyword, label } of SECTIONS) {
-      logger.info("Fetching post list from search feed", {
+  for (const { keyword, label } of SECTIONS) {
+    logger.info("Fetching post list from search feed", {
+      sourceType: SOURCE_TYPE,
+      section: label,
+    });
+
+    let postLinks: PostLink[];
+    try {
+      postLinks = await fetchPostLinksFromFeed(keyword);
+    } catch (err) {
+      logger.warn("Failed to fetch post list", {
+        sourceType: SOURCE_TYPE,
+        section: label,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      continue;
+    }
+
+    if (postLinks.length === 0) {
+      logger.warn("No posts found in feed", {
         sourceType: SOURCE_TYPE,
         section: label,
       });
+      continue;
+    }
 
-      let postLinks: PostLink[];
+    let saved = 0,
+      skipped = 0,
+      failed = 0;
+
+    for (const postLink of postLinks) {
+      const wasProcessed = await isUrlProcessed(postLink.url, db);
+      if (wasProcessed) {
+        skipped++;
+        continue;
+      }
       try {
-        postLinks = await fetchPostLinksFromFeed(keyword);
+        await processPost(postLink, db);
+        saved++;
       } catch (err) {
-        logger.error("Failed to fetch post list", {
+        failed++;
+        logger.warn("Failed to fetch post", {
           sourceType: SOURCE_TYPE,
-          section: label,
+          url: postLink.url,
           error: err instanceof Error ? err.message : String(err),
         });
-        continue;
+      } finally {
+        await delay(DELAY_BETWEEN_REQUESTS);
       }
-
-      if (postLinks.length === 0) {
-        logger.warn("No posts found in feed", {
-          sourceType: SOURCE_TYPE,
-          section: label,
-        });
-        continue;
-      }
-
-      let saved = 0,
-        skipped = 0,
-        failed = 0;
-
-      for (const postLink of postLinks) {
-        const wasProcessed = await isUrlProcessed(postLink.url, db);
-        if (wasProcessed) {
-          skipped++;
-          continue;
-        }
-        try {
-          await processPost(browser, postLink, db);
-          saved++;
-        } catch (err) {
-          failed++;
-          logger.error("Error processing post", {
-            sourceType: SOURCE_TYPE,
-            url: postLink.url,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        } finally {
-          await delay(DELAY_BETWEEN_REQUESTS);
-        }
-      }
-
-      logger.info("Section complete", {
-        sourceType: SOURCE_TYPE,
-        section: label,
-        total: postLinks.length,
-        saved,
-        skipped,
-        failed,
-      });
     }
-  } finally {
-    await browser.close();
+
+    logger.info("Section complete", {
+      sourceType: SOURCE_TYPE,
+      section: label,
+      total: postLinks.length,
+      saved,
+      skipped,
+      failed,
+    });
   }
 }
 
