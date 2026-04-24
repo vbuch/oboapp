@@ -1236,7 +1236,7 @@ resource "google_storage_bucket" "generic" {
 
   lifecycle_rule {
     condition {
-      age = 3  # Data retention is 24h; 3 days gives buffer
+      age = 10  # Weekly heatmap snapshot needs >7 days retention; 10 days gives buffer
     }
     action {
       type = "Delete"
