@@ -373,12 +373,15 @@ function shouldTryFallback(error: Error, statusCode?: number): boolean {
     return false;
   }
 
-  // HTTP 4xx = client error (except 429 Too Many Requests)
+  // HTTP 4xx = client error (except 429 Too Many Requests and 406 Not Acceptable).
+  // 406 is treated as an instance-level rejection (e.g. missing User-Agent, fair-use
+  // policy) rather than a query error, so we still try the fallback instance.
   if (
     statusCode &&
     statusCode >= 400 &&
     statusCode < 500 &&
-    statusCode !== 429
+    statusCode !== 429 &&
+    statusCode !== 406
   ) {
     return false;
   }
@@ -562,6 +565,8 @@ export async function getStreetGeometryFromOverpass(
             method: "POST",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
+              Accept: "application/json",
+              "User-Agent": "oboapp/1.0 (https://oboapp.online)",
             },
             body: `data=${encodeURIComponent(query)}`,
             signal: controller.signal,
