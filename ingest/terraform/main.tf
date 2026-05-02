@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.5"
   
   required_providers {
     google = {
@@ -218,7 +218,7 @@ resource "google_workflows_workflow" "pipeline_emergent" {
   description     = "Orchestrates emergent crawlers in parallel, then ingest and notify"
   service_account = google_service_account.ingest_runner.email
   source_contents = templatefile("${path.module}/workflows/emergent.yaml.tftpl", {
-    crawler_job_names = [for k, v in var.crawlers : k if lookup(v, "emergent", false)]
+    crawler_job_names = [for k, v in local.crawlers : k if lookup(v, "emergent", false)]
   })
   
   depends_on = [
@@ -234,7 +234,7 @@ resource "google_workflows_workflow" "pipeline_all" {
   description     = "Orchestrates all crawlers in parallel, then ingest and notify"
   service_account = google_service_account.ingest_runner.email
   source_contents = templatefile("${path.module}/workflows/all.yaml.tftpl", {
-    crawler_job_names = [for k, v in var.crawlers : k]
+    crawler_job_names = [for k, v in local.crawlers : k]
   })
   
   depends_on = [
@@ -246,7 +246,7 @@ resource "google_workflows_workflow" "pipeline_all" {
 # ── Cloud Run Jobs ────────────────────────────────────────────────────────────
 
 resource "google_cloud_run_v2_job" "crawlers" {
-  for_each = var.crawlers
+  for_each = local.crawlers
   
   name     = "crawl-${each.key}"
   location = var.region
@@ -326,6 +326,11 @@ resource "google_cloud_run_v2_job" "crawlers" {
         
         env {
           name  = "LOCALITY"
+          # NOTE: All crawler jobs currently share the same var.locality execution
+          # context. var.localities assembles the full set of crawler Cloud Run jobs;
+          # per-job locality scoping (passing each crawler its own locality ID) is
+          # planned — at that point crawlers will accept localities as a runtime
+          # parameter rather than reading a single env var.
           value = var.locality
         }
         
@@ -1446,7 +1451,7 @@ resource "google_monitoring_notification_channel" "email" {
 
 # Per-crawler alerts
 resource "google_monitoring_alert_policy" "crawler_failures" {
-  for_each     = var.crawlers
+  for_each     = local.crawlers
   display_name = "Crawler Failure: ${each.key}"
   combiner     = "OR"
 
