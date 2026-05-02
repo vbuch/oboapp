@@ -218,7 +218,7 @@ resource "google_workflows_workflow" "pipeline_emergent" {
   description     = "Orchestrates emergent crawlers in parallel, then ingest and notify"
   service_account = google_service_account.ingest_runner.email
   source_contents = templatefile("${path.module}/workflows/emergent.yaml.tftpl", {
-    crawler_job_names = [for k, v in local.crawlers : k if lookup(v, "emergent", false)]
+    crawler_job_names = [for k, v in var.crawlers : k if lookup(v, "emergent", false)]
   })
   
   depends_on = [
@@ -234,7 +234,7 @@ resource "google_workflows_workflow" "pipeline_all" {
   description     = "Orchestrates all crawlers in parallel, then ingest and notify"
   service_account = google_service_account.ingest_runner.email
   source_contents = templatefile("${path.module}/workflows/all.yaml.tftpl", {
-    crawler_job_names = [for k, v in local.crawlers : k]
+    crawler_job_names = [for k, v in var.crawlers : k]
   })
   
   depends_on = [
@@ -245,156 +245,8 @@ resource "google_workflows_workflow" "pipeline_all" {
 
 # ── Cloud Run Jobs ────────────────────────────────────────────────────────────
 
-# Cloud Run Jobs
-locals {
-  crawlers = {
-    rayon-oborishte = {
-      source       = "rayon-oborishte-bg"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Rayon Oborishte website"
-    }
-    sofia = {
-      source       = "sofia-bg"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Sofia municipality"
-    }
-    sofiyska-voda = {
-      source       = "sofiyska-voda"
-      memory       = "512Mi"
-      timeout      = "1800s"
-      description  = "Crawl Sofiyska Voda"
-      emergent     = true
-    }
-    toplo = {
-      source       = "toplo-bg"
-      memory       = "512Mi"
-      timeout      = "1800s"
-      description  = "Crawl Toplo BG"
-      emergent     = true
-    }
-    erm-zapad = {
-      source       = "erm-zapad"
-      memory       = "512Mi"
-      timeout      = "1800s"
-      description  = "Crawl ERM-Zapad power outages"
-      emergent     = true
-    }
-    mladost = {
-      source       = "mladost-bg"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Mladost district"
-    }
-    studentski = {
-      source       = "studentski-bg"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Studentski district"
-    }
-    sredec = {
-      source       = "sredec-sofia-org"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Sredec district"
-    }
-    serdika = {
-      source       = "serdika-egov-bg"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Serdika district"
-    }
-    slatina = {
-      source       = "so-slatina-org"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Slatina district"
-    }
-    lozenets = {
-      source       = "lozenets-sofia-bg"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Lozenets district"
-    }
-    raioniskar = {
-      source       = "raioniskar-bg"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Raion Iskar website"
-    }
-    rayon-pancharevo = {
-      source       = "rayon-pancharevo-bg"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Rayon Pancharevo website"
-    }
-    rayon-ilinden = {
-      source       = "rayon-ilinden-bg"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Rayon Ilinden website"
-    }
-    triaditsa = {
-      source       = "triaditsa-org"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Triaditsa district website"
-    }
-    krasna-polyana = {
-      source       = "krasna-polyana-org"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Krasna Polyana district website"
-    }
-    vrabnitsa = {
-      source       = "vrabnitsa-org"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Vrabnitsa district website"
-    }
-    nadezhda = {
-      source       = "nadezhda-org"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Nadezhda district website"
-    }
-    inspectorat-so = {
-      source       = "inspectorat-so-org"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Stolichen inspektorat news"
-    }
-    nimh-severe-weather = {
-      source       = "nimh-severe-weather"
-      memory       = "512Mi"
-      timeout      = "1800s"
-      description  = "Crawl NIMH severe weather warnings"
-    }
-    sensor-community = {
-      source       = "sensor-community"
-      memory       = "512Mi"
-      timeout      = "600s"
-      description  = "Evaluate sensor.community air quality data"
-      emergent     = true
-    }
-    sofia-capital-of-sport = {
-      source       = "sofia-capital-of-sport"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl Sofia Capital of Sport events"
-    }
-    sdvr-mvr = {
-      source       = "sdvr-mvr-bg"
-      memory       = "1Gi"
-      timeout      = "1800s"
-      description  = "Crawl SDVR news"
-    }
-  }
-}
-
 resource "google_cloud_run_v2_job" "crawlers" {
-  for_each = local.crawlers
+  for_each = var.crawlers
   
   name     = "crawl-${each.key}"
   location = var.region
@@ -1594,7 +1446,7 @@ resource "google_monitoring_notification_channel" "email" {
 
 # Per-crawler alerts
 resource "google_monitoring_alert_policy" "crawler_failures" {
-  for_each     = local.crawlers
+  for_each     = var.crawlers
   display_name = "Crawler Failure: ${each.key}"
   combiner     = "OR"
 
