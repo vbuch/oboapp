@@ -38,7 +38,7 @@ jobs:
       - name: Install APM CLI
         uses: microsoft/apm-action@v1
         with:
-          apm-version: '0.8.11'
+          apm-version: "0.8.11"
 
       - name: Check APM install drift
         run: |
@@ -195,7 +195,7 @@ jobs:
       - name: Next.js build
         working-directory: ./web
         env:
-          NEXT_PUBLIC_LOCALITY: ${{ secrets.LOCALITY || 'bg.sofia' }}
+          NEXT_PUBLIC_LOCALITY: ${{ vars.LOCALITY || 'bg.sofia' }}
           USE_FIREBASE_EMULATORS: "true"
           NEXT_PUBLIC_USE_FIREBASE_EMULATORS: "true"
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: "demo-project"

@@ -9,7 +9,7 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
   ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
-  LOCALITY: ${{ secrets.LOCALITY }}
+  LOCALITY: ${{ vars.LOCALITY }}
   GCS_GENERIC_BUCKET: ${{ vars.GCS_GENERIC_BUCKET || '' }}
   REGION: europe-west1
   IMAGE_NAME: oborishte-ingest
