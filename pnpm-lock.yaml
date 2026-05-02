@@ -92,6 +92,7 @@ importers:
       zod:
         specifier: ^4.3.6
         version: 4.3.6
+
     devDependencies:
       '@vitest/coverage-v8':
         specifier: 4.0.18
@@ -129,6 +130,7 @@ importers:
       mongodb:
         specifier: ^6.16.0
         version: 6.21.0(socks@2.8.7)
+
     devDependencies:
       '@types/node':
         specifier: ^20
@@ -181,12 +183,12 @@ importers:
       '@oboapp/source-rayon-oborishte-bg':
         specifier: 0.1.1
         version: 0.1.1
-      '@oboapp/source-so-slatina-org':
-        specifier: 0.1.0
-        version: 0.1.0
       '@oboapp/source-sdk':
         specifier: 0.2.0
         version: 0.2.0
+      '@oboapp/source-so-slatina-org':
+        specifier: 0.1.0
+        version: 0.1.0
       '@oboapp/source-sredec-sofia-org':
         specifier: 0.1.0
         version: 0.1.0
@@ -247,6 +249,7 @@ importers:
       zod:
         specifier: ^4.3.6
         version: 4.3.6
+
     devDependencies:
       '@faker-js/faker':
         specifier: ^10.2.0
@@ -311,6 +314,7 @@ importers:
       zod:
         specifier: ^4.3.6
         version: 4.3.6
+
     devDependencies:
       '@vitest/coverage-v8':
         specifier: 4.0.18
@@ -411,6 +415,7 @@ importers:
       zod:
         specifier: ^4.3.6
         version: 4.3.6
+
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.3.3
