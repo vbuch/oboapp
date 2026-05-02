@@ -75,8 +75,8 @@ resource "google_project_service" "artifactregistry" {
 # Create a new Artifact Registry repository with cleanup policies
 resource "google_artifact_registry_repository" "ingest" {
   location      = var.region
-  repository_id = "oborishte-ingest"
-  description   = "Docker repository for oborishte-ingest container images with automatic cleanup"
+  repository_id = var.artifact_registry_repo_id
+  description   = "Docker repository for ${var.artifact_registry_repo_id} container images with automatic cleanup"
   format        = "DOCKER"
 
   cleanup_policies {
@@ -469,7 +469,7 @@ resource "google_cloud_run_v2_job" "crawlers" {
         
         env {
           name  = "APP_URL"
-          value = "https://oboapp.online"
+          value = var.app_url
         }
         
         env {
@@ -594,7 +594,7 @@ resource "google_cloud_run_v2_job" "ingest" {
         
         env {
           name  = "APP_URL"
-          value = "https://oboapp.online"
+          value = var.app_url
         }
         
         env {
@@ -704,7 +704,7 @@ resource "google_cloud_run_v2_job" "notify" {
         
         env {
           name  = "APP_URL"
-          value = "https://oboapp.online"
+          value = var.app_url
         }
         
         env {
@@ -816,7 +816,7 @@ resource "google_cloud_run_v2_job" "pipeline_emergent" {
         
         env {
           name  = "APP_URL"
-          value = "https://oboapp.online"
+          value = var.app_url
         }
         
         env {
@@ -926,7 +926,7 @@ resource "google_cloud_run_v2_job" "pipeline_all" {
         
         env {
           name  = "APP_URL"
-          value = "https://oboapp.online"
+          value = var.app_url
         }
         
         env {

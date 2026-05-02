@@ -4,6 +4,7 @@
 project_id         = "your-project-id"
 firebase_project_id = "your-firebase-project-id"  # Often same as project_id
 region             = "europe-west1"
+app_url            = "https://your-domain.com"
 
 # App URL for notifications and links (hardcoded in main.tf as https://oboapp.online)
 # This is configured as APP_URL environment variable in Cloud Run jobs

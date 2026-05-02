@@ -92,3 +92,13 @@ variable "gcs_generic_bucket" {
     error_message = "gcs_generic_bucket must be empty (disabled) or a valid GCS bucket name (>3 chars)."
   }
 }
+variable "app_url" {
+  description = "Public URL of the web app, used in notification links (e.g. https://oboapp.online)"
+  type        = string
+}
+
+variable "artifact_registry_repo_id" {
+  description = "Artifact Registry repository ID for the ingest Docker image"
+  type        = string
+  default     = "oborishte-ingest"
+}
