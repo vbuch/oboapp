@@ -73,12 +73,14 @@ Gherkin feature files in `e2e/` describe expected end-to-end behavior for key AP
 
 ## CI/CD Pipeline
 
-Every pull request triggers the [CI/CD pipeline](../../.github/workflows/ci-cd.yml):
+Every pull request triggers the [CI pipeline](../../.github/workflows/ci.yml):
 
 1. **Dependency check** — `dpdm` circular dependency scan across all packages
 2. **Test ingest** — `pnpm test:run` in `ingest/`
 3. **Test web** — `pnpm test:run` in `web/`
-4. **Build & Deploy** — (main branch only) Docker build, push to GCP, Terraform apply
+4. **Build web** — Next.js build check
+
+On push to `main`, a separate [deploy workflow](../../.github/workflows/deploy.yml) handles Docker build, push to GCP, and Terraform apply. This workflow lives only in instance forks, not in the upstream `oboapp/oboapp` repo.
 
 A [CI failure agent](../../.github/workflows/ci-failure-agent.yml) creates GitHub issues for failed runs and labels them for Copilot triage (`ci-failure`, `copilot`).
 

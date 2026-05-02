@@ -166,13 +166,22 @@ gcloud run jobs update crawl-rayon-oborishte \
 
 All variables are defined in `variables.tf`. Override them in `terraform.tfvars`:
 
-| Variable            | Description            | Default         |
-| ------------------- | ---------------------- | --------------- |
-| `project_id`        | GCP Project ID         | _required_      |
-| `region`            | GCP region             | `europe-west1`  |
-| `image_name`        | Docker image name      | `oboapp-ingest` |
-| `image_tag`         | Docker image tag       | `latest`        |
-| `schedule_timezone` | Timezone for schedules | `Europe/Sofia`  |
+| Variable                    | Description                              | Default              |
+| --------------------------- | ---------------------------------------- | -------------------- |
+| `project_id`                | GCP Project ID                           | _required_           |
+| `firebase_project_id`       | Firebase Project ID                      | _required_           |
+| `alert_email`               | Email for pipeline failure alerts        | _required_           |
+| `app_url`                   | Public URL of the web app                | _required_           |
+| `ci_service_account_email`  | CI/CD service account email              | _required_           |
+| `region`                    | GCP region                               | `europe-west1`       |
+| `locality`                  | Locality identifier (e.g. `bg.sofia`)    | `bg.sofia`           |
+| `image_name`                | Docker image name                        | `oborishte-ingest`   |
+| `image_tag`                 | Docker image tag                         | `latest`             |
+| `artifact_registry_repo_id` | Artifact Registry repository ID          | `oborishte-ingest`   |
+| `schedule_timezone`         | Timezone for schedules                   | `Europe/Sofia`       |
+| `crawlers`                  | Map of crawlers to deploy (see below)    | Sofia crawlers       |
+| `gcs_generic_bucket`        | GCS bucket for file storage (optional)   | `""`                 |
+| `sentry_dsn_secret_id`      | Secret Manager ID for Sentry DSN         | `""`                 |
 
 ### Modifying Schedules
 
@@ -211,16 +220,16 @@ The pipeline uses Google Cloud Workflows for orchestration:
 - **Triggered by**: Cloud Scheduler (same schedules as before)
 - **Execution**: Crawlers run in parallel via `parallel: for:` loop, followed by sequential ingest and notify
 
-**Workflow changes**: Workflow YAML is generated from Terraform templates using `templatefile()`. Crawler lists are derived automatically from `local.crawlers` in `main.tf`:
+**Workflow changes**: Workflow YAML is generated from Terraform templates using `templatefile()`. Crawler lists are derived automatically from `var.crawlers` in `variables.tf`:
 
 ```bash
 terraform plan   # Workflows will be updated
 terraform apply
 ```
 
-**Adding new crawlers**: Only update `local.crawlers` in `main.tf`:
+**Adding new crawlers**: Only update `var.crawlers` in `variables.tf`:
 
-1. Add an entry to `local.crawlers` in `main.tf` — the workflow templates pick it up automatically.
+1. Add an entry to the `crawlers` variable in `variables.tf` — the workflow templates pick it up automatically.
 2. For emergent crawlers (30-min intervals): set `emergent = true` in the crawler entry and update `EMERGENT_CRAWLERS` in `pipeline.ts`. This is a manual allowlist keyed by crawler source/directory names (not Terraform job keys).
 3. `pipeline.ts` automatically discovers the full list of available crawlers from the filesystem; only membership in the emergent group is controlled manually via `EMERGENT_CRAWLERS`.
 
@@ -272,22 +281,15 @@ resources {
 
 ## State Management
 
-### Local State (Default)
+Remote state is configured by default via a GCS backend in `main.tf`. The bucket and prefix cannot use Terraform variables — override them at init time:
 
-Terraform state is stored locally in `terraform.tfstate`. **Don't commit this file!**
-
-### Remote State (Recommended for Teams)
-
-Uncomment the backend configuration in `main.tf`:
-
-```hcl
-backend "gcs" {
-  bucket = "your-terraform-state-bucket"
-  prefix = "oborishte-ingest"
-}
+```bash
+terraform init \
+  -backend-config="bucket=your-terraform-state-bucket" \
+  -backend-config="prefix=your-prefix"
 ```
 
-Create the bucket:
+Create the bucket first if it doesn't exist:
 
 ```bash
 gsutil mb -l europe-west1 gs://your-terraform-state-bucket

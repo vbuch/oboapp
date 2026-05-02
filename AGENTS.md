@@ -100,7 +100,7 @@ For the full implementation guide, see the `long-flow-crawler-generator` skill. 
 
 - **Workflow Sync (CRITICAL):** When adding/removing crawlers, update ALL:
   1. `ingest/crawlers/{source-name}/` — implementation
-  2. `local.crawlers` in `ingest/terraform/main.tf` — add entry (set `emergent = true` for 30-min crawlers)
+  2. `var.crawlers` in `ingest/terraform/variables.tf` — add entry (set `emergent = true` for 30-min crawlers)
   3. `shared/src/sources.ts` — `SOURCES` array (display name, URL, localities)
   4. If emergent (30-min intervals): also `EMERGENT_CRAWLERS` in `ingest/pipeline.ts`
 
