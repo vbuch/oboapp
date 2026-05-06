@@ -8,18 +8,38 @@ variables {
   app_url                  = "https://example.com"
 }
 
-run "upstream_defaults_deploy_only_the_three_demo_sources" {
+run "sofia_instance_defaults_preserve_selected_sources_and_resources" {
   command = plan
 
   assert {
     condition = {
       for name, job in local.crawlers : name => job.source
       } == {
-      sofia            = "sofia-bg"
-      sofiyska-voda    = "sofiyska-voda"
-      sensor-community = "sensor-community"
+      rayon-oborishte        = "rayon-oborishte-bg"
+      sofia                  = "sofia-bg"
+      sofiyska-voda          = "sofiyska-voda"
+      toplo                  = "toplo-bg"
+      erm-zapad              = "erm-zapad"
+      mladost                = "mladost-bg"
+      studentski             = "studentski-bg"
+      sredec                 = "sredec-sofia-org"
+      serdika                = "serdika-egov-bg"
+      slatina                = "so-slatina-org"
+      lozenets               = "lozenets-sofia-bg"
+      raioniskar             = "raioniskar-bg"
+      rayon-pancharevo       = "rayon-pancharevo-bg"
+      rayon-ilinden          = "rayon-ilinden-bg"
+      triaditsa              = "triaditsa-org"
+      krasna-polyana         = "krasna-polyana-org"
+      vrabnitsa              = "vrabnitsa-org"
+      nadezhda               = "nadezhda-org"
+      inspectorat-so         = "inspectorat-so-org"
+      nimh-severe-weather    = "nimh-severe-weather"
+      sensor-community       = "sensor-community"
+      sofia-capital-of-sport = "sofia-capital-of-sport"
+      sdvr-mvr               = "sdvr-mvr-bg"
     }
-    error_message = "The upstream demo must deploy only its three catalog sources and keep example jobs inactive."
+    error_message = "The Sofia instance must deploy its complete selected source set with the existing job keys."
   }
 
   assert {
@@ -30,23 +50,23 @@ run "upstream_defaults_deploy_only_the_three_demo_sources" {
       one(one(job.template).template).containers[0].args == tolist([
         "pnpm", "run", "prebuilt:crawl", "--source", local.crawlers[name].source
       ]) &&
-      one(one(job.template).template).containers[0].resources[0].limits.memory == (name == "sofia" ? "1Gi" : "512Mi")
+      one(one(job.template).template).containers[0].resources[0].limits.memory == (contains(["sofiyska-voda", "toplo", "erm-zapad", "nimh-severe-weather", "sensor-community"], name) ? "512Mi" : "1Gi")
     ])
-    error_message = "The demo must retain existing Cloud Run names, source arguments, timeouts and memory limits."
+    error_message = "The Sofia instance must retain existing Cloud Run names, source arguments, timeouts and memory limits."
   }
 
   assert {
     condition = toset(
       yamldecode(google_workflows_workflow.pipeline_emergent.source_contents).main.steps[0].init.assign[2].crawlers
-    ) == toset(["sofiyska-voda", "sensor-community"])
-    error_message = "The demo emergent workflow must contain water and sensor.community."
+    ) == toset(["sofiyska-voda", "toplo", "erm-zapad", "sensor-community"])
+    error_message = "The Sofia emergent workflow must contain exactly the selected emergent sources."
   }
 
   assert {
     condition = toset(
       yamldecode(google_workflows_workflow.pipeline_all.source_contents).main.steps[0].init.assign[2].crawlers
-    ) == toset(["sofia", "sofiyska-voda", "sensor-community"])
-    error_message = "The regular workflow must contain exactly the three demo jobs."
+    ) == toset(keys(local.crawlers))
+    error_message = "The regular workflow must contain the complete Sofia source selection."
   }
 }
 
