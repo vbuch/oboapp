@@ -1,7 +1,5 @@
 import type { Page } from "playwright";
 import type { PostLink } from "./types";
-import { SELECTORS } from "./selectors";
-import { extractPostDetailsGeneric } from "../shared/extractors";
 import { decode as decodeHtmlEntities } from "html-entities";
 
 export const FEED_FETCH_TIMEOUT_MS = 30_000;
@@ -73,31 +71,75 @@ export function parseFeedItems(xml: string): PostLink[] {
     }
     if (parsedUrl.hostname !== "www.sofia.bg") continue;
 
+    // Strip query parameters — RSS feed links (e.g. from the news feed) include a
+    // Liferay ?redirect=... param that causes redirect loops when navigated to
+    // unauthenticated. The article path (/w/{id}) is self-contained.
+    parsedUrl.search = "";
+    const cleanUrl = parsedUrl.toString();
+
     // Validate date is parseable and normalize to canonical UTC ISO 8601.
     const dateMs = Date.parse(date);
     if (isNaN(dateMs)) continue;
 
-    postLinks.push({ url, title, date: new Date(dateMs).toISOString() });
+    postLinks.push({ url: cleanUrl, title, date: new Date(dateMs).toISOString() });
   }
 
   return postLinks;
 }
 
+const UNWANTED_ELEMENTS = [
+  "script",
+  "style",
+  "nav",
+  "header",
+  "footer",
+  ".share-buttons",
+  ".social-share",
+  ".navigation",
+];
+
 /**
  * Extract post details from an individual post page.
  * Date is not extracted from the page — it comes from the RSS feed.
+ *
+ * Handles two Liferay page layouts used by sofia.bg:
+ *  - Asset publisher pages (repairs): `.asset-title` + `.asset-content`
+ *  - Content pages (news): `.component-paragraph.text-break` inside `#main-content`
  */
 export async function extractPostDetails(
   page: Page,
 ): Promise<{ title: string; dateText: string; contentHtml: string }> {
-  return extractPostDetailsGeneric(page, SELECTORS.POST, [
-    "script",
-    "style",
-    "nav",
-    "header",
-    "footer",
-    ".share-buttons",
-    ".social-share",
-    ".navigation",
-  ]);
+  return page.evaluate((unwanted) => {
+    const unwantedSel = unwanted.join(", ");
+
+    // Asset publisher layout (repairs): .asset-title + .asset-content
+    const assetTitleEl = document.querySelector(".asset-title");
+    const assetContentEl = document.querySelector(".asset-content");
+    if (assetTitleEl || assetContentEl) {
+      const title = assetTitleEl?.textContent?.trim() ?? "";
+      const cloneNode = assetContentEl?.cloneNode(true);
+      const clone = cloneNode instanceof HTMLElement ? cloneNode : null;
+      if (clone && unwantedSel)
+        clone.querySelectorAll(unwantedSel).forEach((el) => el.remove());
+      return { title, dateText: "", contentHtml: clone?.innerHTML ?? "" };
+    }
+
+    // Content page layout (news): .component-paragraph.text-break inside #main-content
+    const paragraphs = Array.from(
+      document.querySelectorAll(
+        "#main-content .component-paragraph.text-break",
+      ),
+    );
+    const title = paragraphs[0]?.textContent?.trim() ?? "";
+    const contentHtml = paragraphs
+      .slice(1)
+      .map((el) => {
+        const cloneNode = el.cloneNode(true);
+        if (cloneNode instanceof Element && unwantedSel)
+          cloneNode.querySelectorAll(unwantedSel).forEach((e) => e.remove());
+        return cloneNode instanceof Element ? cloneNode.innerHTML : "";
+      })
+      .join("\n");
+    return { title, dateText: "", contentHtml };
+  }, UNWANTED_ELEMENTS);
 }

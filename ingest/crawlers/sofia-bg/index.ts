@@ -13,8 +13,10 @@ import { logger } from "@/lib/logger";
 // Load environment variables from .env.local
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
-const RSS_URL =
-  "https://www.sofia.bg/repairs-and-traffic-changes/-/asset_publisher/utdu/rss";
+const RSS_FEEDS = [
+  "https://www.sofia.bg/repairs-and-traffic-changes/-/asset_publisher/utdu/rss",
+  "https://www.sofia.bg/news/-/asset_publisher/1ZlMReQfODHE/rss",
+];
 const SOURCE_TYPE = "sofia-bg";
 const LOCALITY = "bg.sofia";
 const DELAY_BETWEEN_REQUESTS = 2000; // 2 seconds
@@ -28,26 +30,29 @@ export async function crawl(): Promise<void> {
 
   logger.info("Starting crawler", { sourceType: SOURCE_TYPE });
 
-  let postLinks: PostLink[];
-  try {
-    const xml = await fetchFeedXml(RSS_URL);
-    postLinks = parseFeedItems(xml);
-  } catch (err) {
-    logger.error("Failed to fetch RSS feed", {
-      sourceType: SOURCE_TYPE,
-      error: err instanceof Error ? err.message : String(err),
-    });
-    throw err;
+  const rawLinks: PostLink[] = [];
+  for (const feedUrl of RSS_FEEDS) {
+    try {
+      const xml = await fetchFeedXml(feedUrl);
+      rawLinks.push(...parseFeedItems(xml));
+    } catch (err) {
+      logger.error("Failed to fetch RSS feed", {
+        sourceType: SOURCE_TYPE,
+        feedUrl,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
   }
 
-  if (postLinks.length === 0) {
-    logger.warn("No posts found in RSS feed", { sourceType: SOURCE_TYPE });
+  if (rawLinks.length === 0) {
+    logger.warn("No posts found in RSS feeds", { sourceType: SOURCE_TYPE });
     return;
   }
 
-  // Deduplicate by URL in case the feed contains duplicate entries.
+  // Deduplicate by URL across all feeds.
   const seen = new Set<string>();
-  postLinks = postLinks.filter((p) => {
+  const postLinks: PostLink[] = rawLinks.filter((p) => {
     if (seen.has(p.url)) return false;
     seen.add(p.url);
     return true;
@@ -55,6 +60,7 @@ export async function crawl(): Promise<void> {
 
   logger.info("Fetched post list", {
     sourceType: SOURCE_TYPE,
+    feeds: RSS_FEEDS.length,
     count: postLinks.length,
   });
 
@@ -134,6 +140,7 @@ export async function crawl(): Promise<void> {
           DELAY_BETWEEN_REQUESTS,
           extractDetailsWithDate,
           (d) => d, // date is already ISO 8601 from the RSS feed
+          "domcontentloaded", // Liferay pages have continuous network activity; networkidle never settles
         );
         saved++;
       } catch (err) {
