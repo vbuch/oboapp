@@ -1796,3 +1796,145 @@ resource "google_monitoring_alert_policy" "heatmap_report_failures" {
 
   depends_on = [google_project_service.monitoring]
 }
+
+# ── Notification Pipeline Heartbeat ───────────────────────────────────────────
+# Liveness probe for the end-to-end notification pipeline. Runs daily and
+# verifies that at least one notificationMatches document was written in the
+# last 24 hours. If not, it logs ERROR — which trips the alert below — catching
+# silent failures that the per-job error alerts cannot detect (e.g. queue
+# invisibility from schema drift, matching regressions, swallowed FCM errors).
+
+resource "google_cloud_run_v2_job" "heartbeat_check" {
+  name     = "heartbeat-check"
+  location = var.region
+
+  template {
+    template {
+      service_account = google_service_account.ingest_runner.email
+      timeout         = "120s"
+
+      containers {
+        image = local.full_image_url
+        args  = ["pnpm", "run", "prebuilt:heartbeat-check"]
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "256Mi"
+          }
+        }
+
+        env {
+          name  = "NODE_ENV"
+          value = "production"
+        }
+
+        env {
+          name = "FIREBASE_SERVICE_ACCOUNT_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.firebase_sa_key.secret_id
+              version = "latest"
+            }
+          }
+        }
+
+        env {
+          name  = "FIREBASE_PROJECT_ID"
+          value = var.firebase_project_id
+        }
+
+        env {
+          name  = "LOCALITY"
+          value = var.locality
+        }
+
+        dynamic "env" {
+          for_each = local.sentry_env_secret_ids
+          content {
+            name = "SENTRY_DSN"
+            value_source {
+              secret_key_ref {
+                secret  = env.value
+                version = "latest"
+              }
+            }
+          }
+        }
+      }
+
+      max_retries = 1
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      launch_stage,
+    ]
+  }
+
+  depends_on = [
+    google_project_service.run
+  ]
+}
+
+resource "google_cloud_scheduler_job" "heartbeat_check_schedule" {
+  name             = "heartbeat-check-schedule"
+  description      = "Daily liveness probe for the notification pipeline"
+  schedule         = var.schedules.heartbeat_check
+  time_zone        = var.schedule_timezone
+  attempt_deadline = "180s"
+  region           = var.region
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/heartbeat-check:run"
+
+    oauth_token {
+      service_account_email = google_service_account.ingest_runner.email
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler,
+    google_cloud_run_v2_job.heartbeat_check,
+  ]
+}
+
+resource "google_monitoring_alert_policy" "heartbeat_check_failures" {
+  display_name = "Notification Pipeline Stalled (Heartbeat)"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "heartbeat-check error"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="cloud_run_job"
+        resource.labels.job_name="heartbeat-check"
+        severity>=ERROR
+      EOT
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  notification_channels = [
+    google_monitoring_notification_channel.email.name
+  ]
+
+  documentation {
+    content   = "The **notification pipeline heartbeat** alert fired because the `heartbeat-check` job logged an error. This can mean either:\n\n- the heartbeat probe detected zero `notificationMatches` in the last 24h, suggesting the notification pipeline may be stalled, or\n- the `heartbeat-check` job itself failed due to a runtime, configuration, or transient execution error.\n\nFirst check the `heartbeat-check` job logs for the specific error message:\n\nhttps://console.cloud.google.com/run/jobs/details/${var.region}/heartbeat-check/logs?project=${var.project_id}\n\nIf the error indicates zero recent matches, then query `notificationMatches` in Firestore and inspect recent `matchedAt` timestamps."
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_project_service.monitoring]
+}
