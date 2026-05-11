@@ -23,7 +23,8 @@ function toISOString(value: unknown): string {
 }
 
 /**
- * Get all unprocessed messages (messages without notificationsSent flag)
+ * Get all unprocessed messages.
+ * Messages must have notificationsSent set and not equal to true.
  */
 export async function getUnprocessedMessages(db: OboDb): Promise<Message[]> {
   logger.info("Fetching unprocessed messages");

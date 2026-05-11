@@ -38,6 +38,8 @@ export async function storeIncomingMessage(
     source,
     createdAt: new Date(),
     crawledAt: crawledAt ?? new Date(),
+    // Notify pipeline queries explicit false; always initialize this flag.
+    notificationsSent: false,
   };
 
   if (sourceUrl) {
