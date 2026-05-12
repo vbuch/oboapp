@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { Message } from "@/lib/types";
 import MessageDetailView from "./MessageDetailView";
 
@@ -50,6 +51,27 @@ vi.mock("./Source", () => ({
 }));
 
 vi.mock("./Locations", () => ({
+  hasAnyLocations: (groups: {
+    pins?: unknown[] | null;
+    streets?: unknown[] | null;
+    busStops?: unknown[] | null;
+    cadastralProperties?: unknown[] | null;
+  }) =>
+    (groups.pins?.length ?? 0) +
+      (groups.streets?.length ?? 0) +
+      (groups.busStops?.length ?? 0) +
+      (groups.cadastralProperties?.length ?? 0) >
+    0,
+  getLocationItemCount: (groups: {
+    pins?: unknown[] | null;
+    streets?: unknown[] | null;
+    busStops?: unknown[] | null;
+    cadastralProperties?: unknown[] | null;
+  }) =>
+    (groups.pins?.length ?? 0) +
+    (groups.streets?.length ?? 0) +
+    (groups.busStops?.length ?? 0) +
+    (groups.cadastralProperties?.length ?? 0),
   default: () => <div data-testid="message-detail-locations" />,
 }));
 
@@ -173,5 +195,91 @@ describe("MessageDetailView AI notice", () => {
     expect(
       screen.getByRole("link", { name: /оригиналния източник/i }),
     ).toBeInTheDocument();
+  });
+
+  it("keeps location sections collapsed by default", () => {
+    render(
+      <MessageDetailView
+        message={{
+          ...baseMessage,
+          pins: [{ address: "ул. Шипка", timespans: [] }],
+          geoJson: {
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                geometry: { type: "Point", coordinates: [23.32, 42.69] },
+                properties: {},
+              },
+            ],
+          },
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Покажи локации (1)" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("message-detail-locations")).not.toBeInTheDocument();
+  });
+
+  it("toggles location sections when locations accordion is clicked", async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageDetailView
+        message={{
+          ...baseMessage,
+          pins: [{ address: "ул. Шипка", timespans: [] }],
+          geoJson: {
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                geometry: { type: "Point", coordinates: [23.32, 42.69] },
+                properties: {},
+              },
+            ],
+          },
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const toggleButton = screen.getByRole("button", {
+      name: "Покажи локации (1)",
+    });
+    await user.click(toggleButton);
+
+    expect(screen.getByTestId("message-detail-locations")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Скрий локации (1)" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Скрий локации (1)" }));
+    expect(screen.queryByTestId("message-detail-locations")).not.toBeInTheDocument();
+  });
+
+  it("does not render locations accordion when there are no locations", () => {
+    render(
+      <MessageDetailView
+        message={{
+          ...baseMessage,
+          geoJson: {
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                geometry: { type: "Point", coordinates: [23.32, 42.69] },
+                properties: {},
+              },
+            ],
+          },
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/локации/i)).not.toBeInTheDocument();
   });
 });

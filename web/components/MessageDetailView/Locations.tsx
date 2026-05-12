@@ -16,6 +16,28 @@ interface LocationsProps {
   onLocationClick?: (lat: number, lng: number) => void;
 }
 
+type LocationGroups = Pick<
+  LocationsProps,
+  "pins" | "streets" | "busStops" | "cadastralProperties"
+>;
+
+function listSize(list: unknown[] | null | undefined): number {
+  return list?.length ?? 0;
+}
+
+export function getLocationItemCount(groups: LocationGroups): number {
+  return (
+    listSize(groups.pins) +
+    listSize(groups.streets) +
+    listSize(groups.busStops) +
+    listSize(groups.cadastralProperties)
+  );
+}
+
+export function hasAnyLocations(groups: LocationGroups): boolean {
+  return getLocationItemCount(groups) > 0;
+}
+
 // Find matching address for a text by matching against addresses
 function findMatchingAddress(
   text: string,

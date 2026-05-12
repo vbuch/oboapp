@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { ChevronDown } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { Message } from "@/lib/types";
 import { classifyMessage } from "@/lib/message-classification";
@@ -10,7 +17,7 @@ import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { zIndex } from "@/lib/colors";
 import Header from "./Header";
 import SourceDisplay from "./Source";
-import Locations from "./Locations";
+import Locations, { getLocationItemCount, hasAnyLocations } from "./Locations";
 import DetailItem from "./DetailItem";
 import MessageText from "./MessageText";
 import AiProcessedNotice from "./AiProcessedNotice";
@@ -211,6 +218,9 @@ export default function MessageDetailView({
 
   const headerHandlers = isMobile ? combinedHeaderHandlers : NOOP_DRAG_HANDLERS;
 
+  const [isLocationsOpen, setIsLocationsOpen] = useState(false);
+  const locationsContentId = useId();
+
   // Handle animation state
   const isVisible = useMessageAnimation(message);
 
@@ -224,6 +234,19 @@ export default function MessageDetailView({
   const activeDragOffset =
     pullDownOffset > 0 ? pullDownOffset : fallbackDragOffset;
   const isAnyDragging = isDragging || pullDownOffset > 0;
+  const locationGroups = {
+    pins: message.pins,
+    streets: message.streets,
+    busStops: message.busStops,
+    cadastralProperties: message.cadastralProperties,
+  };
+  const hasLocations = hasAnyLocations(locationGroups);
+  const locationsCount = getLocationItemCount(locationGroups);
+  const hasGeoObjects = (message.geoJson?.features?.length ?? 0) > 0;
+
+  const locationsToggleLabel = isLocationsOpen
+    ? `Скрий локации (${locationsCount})`
+    : `Покажи локации (${locationsCount})`;
 
   return (
     <aside
@@ -303,19 +326,9 @@ export default function MessageDetailView({
           <AiProcessedNotice sourceUrl={message.sourceUrl} />
         )}
 
-        <Locations
-          pins={message.pins}
-          streets={message.streets}
-          busStops={message.busStops}
-          cadastralProperties={message.cadastralProperties}
-          addresses={message.addresses}
-          onLocationClick={onAddressClick}
-        />
-
-        {message.geoJson?.features &&
-          message.geoJson.features.length > 0 &&
+        {hasGeoObjects &&
           (() => {
-            const centroid = getFeaturesCentroid(message.geoJson);
+            const centroid = getFeaturesCentroid(message.geoJson!);
             const isClickable = centroid && onAddressClick;
             const handleGeoClick = () => {
               if (centroid && onAddressClick) {
@@ -326,32 +339,102 @@ export default function MessageDetailView({
             };
             return (
               <DetailItem title="Обекти на картата">
-                {isClickable ? (
-                  <button
-                    type="button"
-                    onClick={handleGeoClick}
-                    className="w-full text-left bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
-                  >
-                    <p className="text-sm text-foreground">
-                      {message.geoJson!.features.length}{" "}
-                      {message.geoJson!.features.length === 1
-                        ? "обект"
-                        : "обекта"}{" "}
-                      на картата
-                    </p>
-                  </button>
-                ) : (
-                  <p className="text-sm text-gray-900">
-                    {message.geoJson!.features.length}{" "}
-                    {message.geoJson!.features.length === 1
-                      ? "обект"
-                      : "обекта"}{" "}
-                    на картата
-                  </p>
-                )}
+                <div className="space-y-3">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    {isClickable ? (
+                      <button
+                        type="button"
+                        onClick={handleGeoClick}
+                        className="flex-1 text-left bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
+                      >
+                        <p className="text-sm text-foreground">
+                          {message.geoJson!.features.length}{" "}
+                          {message.geoJson!.features.length === 1
+                            ? "обект"
+                            : "обекта"}{" "}
+                          на картата
+                        </p>
+                      </button>
+                    ) : (
+                      <div className="flex-1 text-left bg-neutral-light rounded-md p-3 border border-neutral-border">
+                        <p className="text-sm text-gray-900">
+                          {message.geoJson!.features.length}{" "}
+                          {message.geoJson!.features.length === 1
+                            ? "обект"
+                            : "обекта"}{" "}
+                          на картата
+                        </p>
+                      </div>
+                    )}
+
+                    {hasLocations && (
+                      <button
+                        type="button"
+                        onClick={() => setIsLocationsOpen((current) => !current)}
+                        aria-expanded={isLocationsOpen}
+                        aria-controls={locationsContentId}
+                        className="w-full sm:w-auto inline-flex items-center justify-between gap-2 text-sm font-medium text-neutral-dark bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
+                      >
+                        <span>{locationsToggleLabel}</span>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${
+                            isLocationsOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                    )}
+                  </div>
+
+                  {hasLocations && isLocationsOpen && (
+                    <div id={locationsContentId} role="region" className="pt-1">
+                      <Locations
+                        pins={message.pins}
+                        streets={message.streets}
+                        busStops={message.busStops}
+                        cadastralProperties={message.cadastralProperties}
+                        addresses={message.addresses}
+                        onLocationClick={onAddressClick}
+                      />
+                    </div>
+                  )}
+                </div>
               </DetailItem>
             );
           })()}
+
+        {!hasGeoObjects && hasLocations && (
+          <DetailItem title="Локации">
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setIsLocationsOpen((current) => !current)}
+                aria-expanded={isLocationsOpen}
+                aria-controls={locationsContentId}
+                className="w-full inline-flex items-center justify-between gap-2 text-sm font-medium text-neutral-dark bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
+              >
+                <span>{locationsToggleLabel}</span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    isLocationsOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {isLocationsOpen && (
+                <div id={locationsContentId} role="region" className="pt-1">
+                  <Locations
+                    pins={message.pins}
+                    streets={message.streets}
+                    busStops={message.busStops}
+                    cadastralProperties={message.cadastralProperties}
+                    addresses={message.addresses}
+                    onLocationClick={onAddressClick}
+                  />
+                </div>
+              )}
+            </div>
+          </DetailItem>
+        )}
       </div>
     </aside>
   );
