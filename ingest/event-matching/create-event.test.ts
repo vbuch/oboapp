@@ -27,7 +27,6 @@ describe("createEventFromMessage", () => {
   it("creates event with correct fields from message", async () => {
     const result = await createEventFromMessage(mockDb, {
       _id: "msg-1",
-      plainText: "Water outage on Vitosha blvd",
       markdownText: "**Water outage** on Vitosha blvd",
       geoJson: {
         type: "FeatureCollection",
@@ -51,7 +50,7 @@ describe("createEventFromMessage", () => {
     expect(result.action).toBe("created");
 
     const eventData = mockInsertEvent.mock.calls[0][0];
-    expect(eventData.plainText).toBe("Water outage on Vitosha blvd");
+    expect(eventData.plainText).toBeUndefined();
     expect(eventData.markdownText).toBe("**Water outage** on Vitosha blvd");
     expect(eventData.geometryQuality).toBe(2); // Feature quality
     expect(eventData.categories).toEqual(["water"]);
@@ -117,15 +116,15 @@ describe("createEventFromMessage", () => {
     expect(eventData.geometryQuality).toBe(0);
   });
 
-  it("falls back to text when plainText is empty", async () => {
+  it("does not set plainText on events (only markdownText)", async () => {
     await createEventFromMessage(mockDb, {
       _id: "msg-1",
-      text: "fallback text",
       source: "sofia-bg",
     });
 
     const eventData = mockInsertEvent.mock.calls[0][0];
-    expect(eventData.plainText).toBe("fallback text");
+    expect(eventData.plainText).toBeUndefined();
+    expect(eventData.markdownText).toBeUndefined();
   });
 
   it("reuses existing event link for already-linked message", async () => {

@@ -103,6 +103,18 @@ Sources with ready GeoJSON bypass the AI pipeline:
 - Validation against minimum date threshold
 - Fallback to `crawledAt` if source lacks valid timespans
 
+### Summarize (AI-powered, optional)
+
+Prompt: [`prompts/summarize.md`](../prompts/summarize.md)
+
+After embedding generation, relevant messages whose `plainText` meets a minimum length threshold (`SUMMARIZE_MIN_LENGTH`, default 1000 chars) are summarized by Gemini. The result is a concise 1–3 sentence markdown string stored as `summary` on the message.
+
+- **Display** — the detail view shows the summary instead of the full text when present
+- **Notifications** — push notification body prefers the summary; markdown is stripped before delivery
+- **Events** — new events use the summary as their `markdownText`
+- **Non-fatal** — failures are logged but don't abort the pipeline
+- **Skipped** for precomputed-GeoJSON messages (already short and structured)
+
 ### Embedding Generation
 
 After AI processing (or for precomputed sources, after message creation), a text embedding is generated via Gemini `gemini-embedding-001` (768 dimensions). This embedding is stored on the message and used for text similarity during event matching. Embedding generation is non-fatal — failures are logged but don't abort the pipeline.

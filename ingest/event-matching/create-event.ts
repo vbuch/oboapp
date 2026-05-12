@@ -15,9 +15,8 @@ export async function createEventFromMessage(
   db: OboDb,
   message: {
     _id: string;
-    plainText?: string;
-    text?: string;
     markdownText?: string;
+    summary?: string;
     geoJson?: GeoJSONFeatureCollection | null;
     timespanStart?: string | Date | null;
     timespanEnd?: string | Date | null;
@@ -48,8 +47,11 @@ export async function createEventFromMessage(
   const now = new Date().toISOString();
 
   const eventId = await db.events.insertOne({
-    plainText: message.plainText || message.text || "",
-    ...(message.markdownText && { markdownText: message.markdownText }),
+    ...(message.summary
+      ? { markdownText: message.summary }
+      : message.markdownText
+        ? { markdownText: message.markdownText }
+        : {}),
     ...(message.geoJson && { geoJson: message.geoJson }),
     geometryQuality,
     ...(message.timespanStart && { timespanStart: toISOString(message.timespanStart) }),
