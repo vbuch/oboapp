@@ -51,6 +51,10 @@ function getIsMobileServer() {
   return false;
 }
 
+function formatLocationNoun(count: number): string {
+  return count === 1 ? "локация" : "локации";
+}
+
 const INITIAL_PANEL_HEIGHT_VH = 50;
 const EXPANDED_PANEL_HEIGHT_VH = 90;
 const DRAG_CLOSE_THRESHOLD = 60;
@@ -218,7 +222,13 @@ export default function MessageDetailView({
 
   const headerHandlers = isMobile ? combinedHeaderHandlers : NOOP_DRAG_HANDLERS;
 
-  const [isLocationsOpen, setIsLocationsOpen] = useState(false);
+  const [locationsAccordionState, setLocationsAccordionState] = useState<{
+    messageId: string | null;
+    isOpen: boolean;
+  }>({
+    messageId: null,
+    isOpen: false,
+  });
   const locationsContentId = useId();
 
   // Handle animation state
@@ -243,10 +253,24 @@ export default function MessageDetailView({
   const hasLocations = hasAnyLocations(locationGroups);
   const locationsCount = getLocationItemCount(locationGroups);
   const hasGeoObjects = (message.geoJson?.features?.length ?? 0) > 0;
+  const locationNoun = formatLocationNoun(locationsCount);
+  const isLocationsOpen =
+    locationsAccordionState.messageId === message.id &&
+    locationsAccordionState.isOpen;
+
+  const toggleLocationsAccordion = () => {
+    setLocationsAccordionState((current) => {
+      const sameMessage = current.messageId === message.id;
+      return {
+        messageId: message.id ?? null,
+        isOpen: sameMessage ? !current.isOpen : true,
+      };
+    });
+  };
 
   const locationsToggleLabel = isLocationsOpen
-    ? `Скрий локации (${locationsCount})`
-    : `Покажи локации (${locationsCount})`;
+    ? `Скрий ${locationNoun} (${locationsCount})`
+    : `Покажи ${locationNoun} (${locationsCount})`;
 
   return (
     <aside
@@ -370,7 +394,7 @@ export default function MessageDetailView({
                     {hasLocations && (
                       <button
                         type="button"
-                        onClick={() => setIsLocationsOpen((current) => !current)}
+                        onClick={toggleLocationsAccordion}
                         aria-expanded={isLocationsOpen}
                         aria-controls={locationsContentId}
                         className="w-full sm:w-auto inline-flex items-center justify-between gap-2 text-sm font-medium text-neutral-dark bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
@@ -385,8 +409,13 @@ export default function MessageDetailView({
                     )}
                   </div>
 
-                  {hasLocations && isLocationsOpen && (
-                    <div id={locationsContentId} role="region" className="pt-1">
+                  {hasLocations && (
+                    <div
+                      id={locationsContentId}
+                      role="region"
+                      className="pt-1"
+                      hidden={!isLocationsOpen}
+                    >
                       <Locations
                         pins={message.pins}
                         streets={message.streets}
@@ -403,37 +432,38 @@ export default function MessageDetailView({
           })()}
 
         {!hasGeoObjects && hasLocations && (
-          <DetailItem title="Локации">
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setIsLocationsOpen((current) => !current)}
-                aria-expanded={isLocationsOpen}
-                aria-controls={locationsContentId}
-                className="w-full inline-flex items-center justify-between gap-2 text-sm font-medium text-neutral-dark bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
-              >
-                <span>{locationsToggleLabel}</span>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
-                    isLocationsOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={toggleLocationsAccordion}
+              aria-expanded={isLocationsOpen}
+              aria-controls={locationsContentId}
+              className="w-full inline-flex items-center justify-between gap-2 text-sm font-medium text-neutral-dark bg-neutral-light rounded-md p-3 border border-neutral-border hover:bg-info-light hover:border-info-border transition-colors cursor-pointer"
+            >
+              <span>{locationsToggleLabel}</span>
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${
+                  isLocationsOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
 
-              {isLocationsOpen && (
-                <div id={locationsContentId} role="region" className="pt-1">
-                  <Locations
-                    pins={message.pins}
-                    streets={message.streets}
-                    busStops={message.busStops}
-                    cadastralProperties={message.cadastralProperties}
-                    addresses={message.addresses}
-                    onLocationClick={onAddressClick}
-                  />
-                </div>
-              )}
+            <div
+              id={locationsContentId}
+              role="region"
+              className="pt-1"
+              hidden={!isLocationsOpen}
+            >
+              <Locations
+                pins={message.pins}
+                streets={message.streets}
+                busStops={message.busStops}
+                cadastralProperties={message.cadastralProperties}
+                addresses={message.addresses}
+                onLocationClick={onAddressClick}
+              />
             </div>
-          </DetailItem>
+          </div>
         )}
       </div>
     </aside>

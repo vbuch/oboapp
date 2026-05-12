@@ -85,26 +85,26 @@ const baseMessage: Message = {
   responsibleEntity: "Столична община",
 };
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.unstubAllGlobals();
+  vi.stubGlobal("matchMedia", () => ({
+    matches: false,
+    media: "(max-width: 639px)",
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe("MessageDetailView AI notice", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.unstubAllGlobals();
-    vi.stubGlobal("matchMedia", () => ({
-      matches: false,
-      media: "(max-width: 639px)",
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("shows source-aware notice when sourceUrl is valid https", () => {
     render(
       <MessageDetailView
@@ -196,7 +196,9 @@ describe("MessageDetailView AI notice", () => {
       screen.getByRole("link", { name: /оригиналния източник/i }),
     ).toBeInTheDocument();
   });
+});
 
+describe("MessageDetailView locations accordion", () => {
   it("keeps location sections collapsed by default", () => {
     render(
       <MessageDetailView
@@ -219,9 +221,9 @@ describe("MessageDetailView AI notice", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "Покажи локации (1)" }),
+      screen.getByRole("button", { name: "Покажи локация (1)" }),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("message-detail-locations")).not.toBeInTheDocument();
+    expect(screen.getByTestId("message-detail-locations")).not.toBeVisible();
   });
 
   it("toggles location sections when locations accordion is clicked", async () => {
@@ -247,17 +249,17 @@ describe("MessageDetailView AI notice", () => {
     );
 
     const toggleButton = screen.getByRole("button", {
-      name: "Покажи локации (1)",
+      name: "Покажи локация (1)",
     });
     await user.click(toggleButton);
 
-    expect(screen.getByTestId("message-detail-locations")).toBeInTheDocument();
+    expect(screen.getByTestId("message-detail-locations")).toBeVisible();
     expect(
-      screen.getByRole("button", { name: "Скрий локации (1)" }),
+      screen.getByRole("button", { name: "Скрий локация (1)" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Скрий локации (1)" }));
-    expect(screen.queryByTestId("message-detail-locations")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Скрий локация (1)" }));
+    expect(screen.getByTestId("message-detail-locations")).not.toBeVisible();
   });
 
   it("does not render locations accordion when there are no locations", () => {
