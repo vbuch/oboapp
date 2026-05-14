@@ -102,8 +102,7 @@ export async function processEventMatching(
   // No match found — create a new event
   const { eventId, confidence, action } = await createEventFromMessage(db, {
     _id: messageId,
-    markdownText: getOptionalString(message.markdownText),
-    summary: getOptionalString(message.summary),
+    markdownText: getOptionalString(message.summary) || getOptionalString(message.markdownText),
     geoJson: isFeatureCollection(message.geoJson) ? message.geoJson : null,
     timespanStart: getStringOrDateOrNull(message.timespanStart),
     timespanEnd: getStringOrDateOrNull(message.timespanEnd),

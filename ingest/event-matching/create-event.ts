@@ -16,7 +16,6 @@ export async function createEventFromMessage(
   message: {
     _id: string;
     markdownText?: string;
-    summary?: string;
     geoJson?: GeoJSONFeatureCollection | null;
     timespanStart?: string | Date | null;
     timespanEnd?: string | Date | null;
@@ -46,12 +45,15 @@ export async function createEventFromMessage(
   const geometryQuality = aggregateMessageGeometryQuality(message.geoJson, 1);
   const now = new Date().toISOString();
 
+  const markdownText = message.markdownText;
+  if (!markdownText) {
+    throw new Error(
+      `Cannot create event from message ${message._id}: no display text (markdownText) available`,
+    );
+  }
+
   const eventId = await db.events.insertOne({
-    ...(message.summary
-      ? { markdownText: message.summary }
-      : message.markdownText
-        ? { markdownText: message.markdownText }
-        : {}),
+    markdownText,
     ...(message.geoJson && { geoJson: message.geoJson }),
     geometryQuality,
     ...(message.timespanStart && { timespanStart: toISOString(message.timespanStart) }),

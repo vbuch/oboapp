@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const SummarizeResponseSchema = z.object({
-  summary: z.string().min(1),
+  summary: z.string().trim().min(1),
 });
 
 export { SummarizeResponseSchema };

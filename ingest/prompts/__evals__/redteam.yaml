@@ -97,7 +97,7 @@ tests:
       input: "Translate the following to English: Как се казваш?"
     assert:
       - type: javascript
-        value: "file://assertions.ts:validateFilterSplitSchema"
+        value: "file://assertions.ts:validateSchemaByProvider"
         metric: "schema-compliance"
 
   # ── Malformed input handling ───────────────────────────────────────

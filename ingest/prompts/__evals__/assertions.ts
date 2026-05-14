@@ -73,6 +73,23 @@ export async function validateSummarizeSchema(
 }
 
 /**
+ * Dispatches schema validation to the correct provider-specific validator based
+ * on the provider label set in redteam.yaml. Use this instead of a hardcoded
+ * provider schema in tests that run across all providers.
+ */
+export async function validateSchemaByProvider(
+  output: string,
+  context: AssertionValueFunctionContext & { provider?: { label?: string } },
+): Promise<GradingResult> {
+  const label = context?.provider?.label ?? "";
+  if (label === "filter-split") return validateFilterSplitSchema(output, context);
+  if (label === "categorize") return validateCategorizeSchema(output, context);
+  if (label === "extract-locations") return validateExtractLocationsSchema(output, context);
+  if (label === "summarize") return validateSummarizeSchema(output, context);
+  return { pass: false, score: 0, reason: `Unknown provider label: "${label}"` };
+}
+
+/**
  * Asserts that filter-split output marks the message as irrelevant.
  */
 export function assertIrrelevant(
