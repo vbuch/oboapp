@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { isValidMessageId } from "@oboapp/shared";
-import { recordToMessage } from "@/lib/doc-to-message";
+import { recordToInternalMessage } from "@/lib/doc-to-message";
 
 /**
  * Strip a trailing split-index suffix (e.g. "-1", "-2") from a
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     if (isValidMessageId(id)) {
       const doc = await db.messages.findById(id);
       if (doc) {
-        return NextResponse.json({ message: recordToMessage(doc) });
+        return NextResponse.json({ message: recordToInternalMessage(doc) });
       }
       return NextResponse.json({ error: "Message not found" }, { status: 404 });
     }
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     const docs = await db.messages.findBySourceDocumentIds([sourceDocId]);
 
     if (docs.length > 0) {
-      return NextResponse.json({ message: recordToMessage(docs[0]) });
+      return NextResponse.json({ message: recordToInternalMessage(docs[0]) });
     }
 
     return NextResponse.json({ error: "Message not found" }, { status: 404 });

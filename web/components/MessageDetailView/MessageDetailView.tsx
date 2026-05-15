@@ -9,7 +9,7 @@ import {
 } from "react";
 import { ChevronDown } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
-import { Message } from "@/lib/types";
+import type { InternalMessage } from "@/lib/types";
 import { classifyMessage } from "@/lib/message-classification";
 import { useDragPanel, type DragHandlers } from "@/lib/hooks/useDragPanel";
 import { useMessageAnimation } from "@/lib/hooks/useMessageAnimation";
@@ -24,6 +24,7 @@ import AiProcessedNotice, { hasValidSourceUrl } from "./AiProcessedNotice";
 import CategoryChips from "@/components/CategoryChips";
 import ExternalLinkIcon from "@/components/icons/ExternalLinkIcon";
 import { getFeaturesCentroid } from "@/lib/geometry-utils";
+import LinkedMessagesAccordion from "./LinkedMessagesAccordion";
 
 type CloseMethod = "drag" | "esc";
 
@@ -72,7 +73,7 @@ const NOOP_DRAG_HANDLERS: DragHandlers = {
 };
 
 interface MessageDetailViewProps {
-  readonly message: Message | null;
+  readonly message: InternalMessage | null;
   readonly onClose: () => void;
   readonly onAddressClick?: (lat: number, lng: number) => void;
 }
@@ -488,6 +489,13 @@ export default function MessageDetailView({
               />
             </div>
           </div>
+        )}
+
+        {message.eventId && message.id && (
+          <LinkedMessagesAccordion
+            eventId={message.eventId}
+            currentMessageId={message.id}
+          />
         )}
       </div>
     </aside>

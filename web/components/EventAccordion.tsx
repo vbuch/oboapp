@@ -8,6 +8,7 @@ import sources from "@/lib/sources";
 import { stripMarkdown } from "@/lib/markdown-utils";
 import { createSnippet } from "@/lib/text-utils";
 import { formatTimespan } from "@/lib/date-format";
+import { createMessageUrlFromId } from "@/lib/url-utils";
 import CategoryChips from "@/components/CategoryChips";
 import SourceLogo from "@/components/SourceLogo";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -41,8 +42,8 @@ function MessageRow({
   const displayText = message.markdownText || message.text;
   const snippet = makeSnippet(displayText, 120);
 
-  return (
-    <div className="flex items-start gap-3 py-2 px-3 border-b border-neutral-border last:border-b-0">
+  const rowContent = (
+    <>
       <div className="flex-shrink-0 mt-0.5">
         {message.source && <SourceLogo sourceId={message.source} />}
       </div>
@@ -62,8 +63,21 @@ function MessageRow({
         </div>
         <p className="text-sm text-neutral leading-relaxed">{snippet}</p>
       </div>
-    </div>
+    </>
   );
+
+  const rowClass =
+    "flex items-start gap-3 py-2 px-3 border-b border-neutral-border last:border-b-0 hover:bg-neutral-light/50 transition-colors";
+
+  if (message.id) {
+    return (
+      <a href={createMessageUrlFromId(message.id)} className={rowClass}>
+        {rowContent}
+      </a>
+    );
+  }
+
+  return <div className={rowClass}>{rowContent}</div>;
 }
 
 function EventMessagesBody({ eventId }: { readonly eventId: string }) {

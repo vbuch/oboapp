@@ -80,6 +80,34 @@ describe("GET /api/v1/messages", () => {
     );
   });
 
+  it("strips eventId from messages so it is never exposed in the public API", async () => {
+    validateApiKeyMock.mockResolvedValue(true);
+    getMessagesMock.mockResolvedValue(
+      Response.json(
+        {
+          messages: [
+            {
+              id: "abc12345",
+              text: "test",
+              locality: "Sofia",
+              createdAt: "2024-01-01T00:00:00.000Z",
+              cityWide: false,
+              eventId: "evt-should-be-stripped",
+            },
+          ],
+        },
+        { status: 200 },
+      ),
+    );
+
+    const request = new Request("http://localhost/api/v1/messages");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.messages[0]).not.toHaveProperty("eventId");
+  });
+
   it("delegates to internal handler and passes through non-ok responses", async () => {
     validateApiKeyMock.mockResolvedValue(true);
     getMessagesMock.mockResolvedValue(

@@ -1,4 +1,4 @@
-import type { Message } from "@/lib/types";
+import type { InternalMessage, Message } from "@/lib/types";
 import {
   toOptionalISOString,
   toRequiredISOString,
@@ -47,5 +47,14 @@ export function recordToMessage(record: Record<string, unknown>): Message {
     streets: getStreets(record.streets),
     cadastralProperties: getCadastralProperties(record.cadastralProperties),
     busStops: getBusStops(record.busStops),
+  };
+}
+
+export function recordToInternalMessage(
+  record: Record<string, unknown>,
+): InternalMessage {
+  return {
+    ...recordToMessage(record),
+    eventId: optionalString(record.eventId),
   };
 }
