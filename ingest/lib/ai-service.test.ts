@@ -199,7 +199,9 @@ describe("summarize()", () => {
     vi.doMock("./ai-client", () => ({
       callGeminiApi: vi
         .fn()
-        .mockResolvedValue(JSON.stringify({ summary: "Резюме: кратко описание." })),
+        .mockResolvedValue(
+          JSON.stringify({ summary: "Резюме: кратко описание." }),
+        ),
     }));
     const { summarize } = await import("./ai-service");
     const result = await summarize("x".repeat(11));

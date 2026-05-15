@@ -154,9 +154,8 @@ export class GeminiMockService {
       return JSON.parse(readFileSync(this.customFixturePath, "utf-8"));
     }
 
-    const prefix = text.slice(0, 50).replace(/[^\w\s]/g, "");
     return {
-      summary: `Резюме: ${prefix}...`,
+      summary: `Резюме: ${text.slice(0, 50)}...`,
     };
   }
 }

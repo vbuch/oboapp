@@ -131,6 +131,31 @@ describe("createEventFromMessage", () => {
     expect(eventData.markdownText).toBe("**Water outage** on Vitosha blvd");
   });
 
+  it("rejects before inserting event when markdownText is missing", async () => {
+    await expect(
+      createEventFromMessage(mockDb, {
+        _id: "msg-1",
+        source: "sofia-bg",
+      }),
+    ).rejects.toThrow(/no display text/i);
+
+    expect(mockInsertEvent).not.toHaveBeenCalled();
+    expect(mockCreateEventMessage).not.toHaveBeenCalled();
+  });
+
+  it("rejects before inserting event when markdownText is empty string", async () => {
+    await expect(
+      createEventFromMessage(mockDb, {
+        _id: "msg-1",
+        markdownText: "   ",
+        source: "sofia-bg",
+      }),
+    ).rejects.toThrow(/no display text/i);
+
+    expect(mockInsertEvent).not.toHaveBeenCalled();
+    expect(mockCreateEventMessage).not.toHaveBeenCalled();
+  });
+
   it("reuses existing event link for already-linked message", async () => {
     mockFindByMessageId.mockResolvedValueOnce([{ eventId: "evt-existing" }]);
 

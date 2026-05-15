@@ -29,7 +29,11 @@ export async function createEventFromMessage(
     cadastralProperties?: unknown[];
     busStops?: string[];
   },
-): Promise<{ eventId: string; confidence: number; action: "created" | "attached" }> {
+): Promise<{
+  eventId: string;
+  confidence: number;
+  action: "created" | "attached";
+}> {
   const existingLinks = await db.eventMessages.findByMessageId(message._id);
   if (existingLinks.length > 0) {
     return {
@@ -56,8 +60,12 @@ export async function createEventFromMessage(
     markdownText,
     ...(message.geoJson && { geoJson: message.geoJson }),
     geometryQuality,
-    ...(message.timespanStart && { timespanStart: toISOString(message.timespanStart) }),
-    ...(message.timespanEnd && { timespanEnd: toISOString(message.timespanEnd) }),
+    ...(message.timespanStart && {
+      timespanStart: toISOString(message.timespanStart),
+    }),
+    ...(message.timespanEnd && {
+      timespanEnd: toISOString(message.timespanEnd),
+    }),
     categories: message.categories || [],
     sources: source ? [source] : [],
     messageCount: 1,
@@ -67,7 +75,9 @@ export async function createEventFromMessage(
     ...(message.embedding && { embedding: message.embedding }),
     ...(message.pins?.length && { pins: message.pins }),
     ...(message.streets?.length && { streets: message.streets }),
-    ...(message.cadastralProperties?.length && { cadastralProperties: message.cadastralProperties }),
+    ...(message.cadastralProperties?.length && {
+      cadastralProperties: message.cadastralProperties,
+    }),
     ...(message.busStops?.length && { busStops: message.busStops }),
     createdAt: now,
     updatedAt: now,
@@ -99,11 +109,14 @@ export async function createEventFromMessage(
     try {
       await db.events.deleteOne(eventId);
     } catch (deleteError) {
-      logger.warn("Failed to delete orphan event after concurrent message link", {
-        messageId: message._id,
-        orphanEventId: eventId,
-        error: deleteError,
-      });
+      logger.warn(
+        "Failed to delete orphan event after concurrent message link",
+        {
+          messageId: message._id,
+          orphanEventId: eventId,
+          error: deleteError,
+        },
+      );
     }
 
     if (!concurrentEventId) {
@@ -115,4 +128,3 @@ export async function createEventFromMessage(
 
   return { eventId, confidence: 1.0, action: "created" };
 }
-

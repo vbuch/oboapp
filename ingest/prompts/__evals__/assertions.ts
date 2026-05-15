@@ -82,11 +82,17 @@ export async function validateSchemaByProvider(
   context: AssertionValueFunctionContext & { provider?: { label?: string } },
 ): Promise<GradingResult> {
   const label = context?.provider?.label ?? "";
-  if (label === "filter-split") return validateFilterSplitSchema(output, context);
+  if (label === "filter-split")
+    return validateFilterSplitSchema(output, context);
   if (label === "categorize") return validateCategorizeSchema(output, context);
-  if (label === "extract-locations") return validateExtractLocationsSchema(output, context);
+  if (label === "extract-locations")
+    return validateExtractLocationsSchema(output, context);
   if (label === "summarize") return validateSummarizeSchema(output, context);
-  return { pass: false, score: 0, reason: `Unknown provider label: "${label}"` };
+  return {
+    pass: false,
+    score: 0,
+    reason: `Unknown provider label: "${label}"`,
+  };
 }
 
 /**
@@ -381,7 +387,10 @@ export function assertCoordinatesPreserved(
 
   const searchableText = items
     .filter(isRecord)
-    .map((item) => `${String(item.plainText ?? "")}\n${String(item.markdownText ?? "")}`)
+    .map(
+      (item) =>
+        `${String(item.plainText ?? "")}\n${String(item.markdownText ?? "")}`,
+    )
     .join("\n");
 
   const missing = expected.filter((coord) => !searchableText.includes(coord));
@@ -538,9 +547,7 @@ export function assertSummaryNotEmpty(
   return {
     pass,
     score: pass ? 1 : 0,
-    reason: pass
-      ? "Summary is non-empty"
-      : "Expected non-empty summary string",
+    reason: pass ? "Summary is non-empty" : "Expected non-empty summary string",
   };
 }
 
@@ -556,8 +563,7 @@ export function assertSummaryIsShorter(
   if (!parsed.success) return parsed.result;
 
   const data = toRecord(parsed.data);
-  const summaryLen =
-    typeof data.summary === "string" ? data.summary.length : 0;
+  const summaryLen = typeof data.summary === "string" ? data.summary.length : 0;
   const maxLen = Number(context.config?.value ?? 300);
 
   const pass = summaryLen > 0 && summaryLen <= maxLen;

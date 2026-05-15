@@ -77,7 +77,9 @@ async function callAiStep<T>(
     return null;
   }
 
-  const apiInput = options.sanitize ? sanitizeText(processedText) : processedText;
+  const apiInput = options.sanitize
+    ? sanitizeText(processedText)
+    : processedText;
 
   const responseText = await callGeminiApi(
     {
@@ -179,7 +181,9 @@ export async function extractLocations(
  * Skipped if text is shorter than SUMMARIZE_MIN_LENGTH.
  */
 const _parsedMinLength = parseInt(process.env.SUMMARIZE_MIN_LENGTH ?? "", 10);
-export const SUMMARIZE_MIN_LENGTH = Number.isNaN(_parsedMinLength) ? 1000 : _parsedMinLength;
+export const SUMMARIZE_MIN_LENGTH = Number.isNaN(_parsedMinLength)
+  ? 1000
+  : _parsedMinLength;
 
 export async function summarize(
   text: string,
