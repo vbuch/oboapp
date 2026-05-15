@@ -331,18 +331,12 @@ export default function MessageDetailView({
           </DetailItem>
         )}
 
-        {message.summary ? (
-          <DetailItem title="Резюме">
-            <MessageText text={message.text} markdownText={message.summary} />
-          </DetailItem>
-        ) : (
-          <DetailItem title="Текст">
-            <MessageText
-              text={message.text}
-              markdownText={message.markdownText}
-            />
-          </DetailItem>
-        )}
+        <DetailItem title="Текст">
+          <MessageText
+            text={message.text}
+            markdownText={message.summary ?? message.markdownText}
+          />
+        </DetailItem>
 
         {message.responsibleEntity && (
           <DetailItem title="Отговорна институция">

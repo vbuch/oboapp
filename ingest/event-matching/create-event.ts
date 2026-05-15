@@ -45,7 +45,7 @@ export async function createEventFromMessage(
   const geometryQuality = aggregateMessageGeometryQuality(message.geoJson, 1);
   const now = new Date().toISOString();
 
-  const markdownText = message.markdownText;
+  const markdownText = message.markdownText?.trim();
   if (!markdownText) {
     throw new Error(
       `Cannot create event from message ${message._id}: no display text (markdownText) available`,
