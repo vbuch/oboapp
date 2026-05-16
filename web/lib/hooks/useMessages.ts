@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { Message } from "@/lib/types";
+import type { InternalMessage } from "@/lib/types";
 import { buildMessagesUrl } from "./useMessages.utils";
 import { debounce } from "@/lib/debounce";
 import type { Category } from "@oboapp/shared";
@@ -23,7 +23,7 @@ interface ViewportBounds {
  * - Message submission event listener
  */
 export function useMessages() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<InternalMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(

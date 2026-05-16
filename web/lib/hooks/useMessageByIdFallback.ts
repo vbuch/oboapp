@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isValidMessageId } from "@oboapp/shared";
-import type { Message } from "@/lib/types";
+import type { InternalMessage } from "@/lib/types";
 
 /**
  * Resolves a selected message from a URL `messageId` parameter.
@@ -16,11 +16,11 @@ import type { Message } from "@/lib/types";
  */
 export function useMessageByIdFallback(
   messageId: string | null,
-  listMatch: Message | null,
-): Message | null {
+  listMatch: InternalMessage | null,
+): InternalMessage | null {
   const [fetchedMessage, setFetchedMessage] = useState<{
     id: string;
-    message: Message;
+    message: InternalMessage;
   } | null>(null);
 
   // Tracks the messageId for which a fetch has been initiated, so the effect

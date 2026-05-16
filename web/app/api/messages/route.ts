@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import type { Message } from "@/lib/types";
+import type { InternalMessage } from "@/lib/types";
 import {
   clampBounds,
   addBuffer,
@@ -9,7 +9,7 @@ import {
 } from "@/lib/bounds-utils";
 import { getCentroid } from "@/lib/geometry-utils";
 import { messagesQuerySchema } from "@/lib/api-query.schema";
-import { recordToMessage } from "@/lib/doc-to-message";
+import { recordToInternalMessage } from "@/lib/doc-to-message";
 
 const DEFAULT_RELEVANCE_DAYS = 7;
 const CLUSTER_ZOOM_THRESHOLD = 15;
@@ -18,7 +18,7 @@ const FIRESTORE_IN_OPERATOR_LIMIT = 10;
 type DbClient = Awaited<ReturnType<typeof getDb>>;
 type MessageRecord = Record<string, unknown>;
 
-function sortMessagesByRelevance(messages: Message[]): Message[] {
+function sortMessagesByRelevance(messages: InternalMessage[]): InternalMessage[] {
   return [...messages].sort((a, b) => {
     const aFinalizedAt = a.finalizedAt ?? "";
     const bFinalizedAt = b.finalizedAt ?? "";
@@ -118,14 +118,14 @@ async function findMessagesBySources(
   db: DbClient,
   cutoffDate: Date,
   sources: string[],
-): Promise<Message[]> {
+): Promise<InternalMessage[]> {
   const results = await findRecentMessageDocsBySources(db, cutoffDate, sources);
-  const messagesMap = new Map<string, Message>();
+  const messagesMap = new Map<string, InternalMessage>();
 
   for (const doc of results) {
     const docId = typeof doc._id === "string" ? doc._id : "";
     if (docId && !messagesMap.has(docId)) {
-      messagesMap.set(docId, recordToMessage(doc));
+      messagesMap.set(docId, recordToInternalMessage(doc));
     }
   }
 
@@ -149,13 +149,13 @@ async function findUncategorizedDocs(
   return docs.filter((doc) => isUncategorizedDoc(doc));
 }
 
-function dedupeAndMapMessages(docs: MessageRecord[]): Message[] {
-  const messagesMap = new Map<string, Message>();
+function dedupeAndMapMessages(docs: MessageRecord[]): InternalMessage[] {
+  const messagesMap = new Map<string, InternalMessage>();
 
   for (const doc of docs) {
     const docId = typeof doc._id === "string" ? doc._id : "";
     if (docId && !messagesMap.has(docId)) {
-      messagesMap.set(docId, recordToMessage(doc));
+      messagesMap.set(docId, recordToInternalMessage(doc));
     }
   }
 
@@ -232,7 +232,7 @@ async function findMessagesByCategoryFilters(
   cutoffDate: Date,
   selectedCategories: string[],
   sourceSet?: Set<string>,
-): Promise<Message[]> {
+): Promise<InternalMessage[]> {
   const realCategories = selectedCategories.filter(
     (c) => c !== "uncategorized",
   );
@@ -253,7 +253,7 @@ async function findMessagesByCategoryFilters(
     includeUncategorized,
     sourceSet,
   );
-  const messagesMap = new Map<string, Message>();
+  const messagesMap = new Map<string, InternalMessage>();
 
   for (const plan of queryPlans) {
     const docs = applyOptionalSourceSet(plan.docs, sourceSet);
@@ -270,7 +270,7 @@ async function findMessagesByCategoryFilters(
 
       const docId = typeof doc._id === "string" ? doc._id : "";
       if (docId && !messagesMap.has(docId)) {
-        messagesMap.set(docId, recordToMessage(doc));
+        messagesMap.set(docId, recordToInternalMessage(doc));
       }
     }
   }
@@ -279,9 +279,9 @@ async function findMessagesByCategoryFilters(
 }
 
 function filterMessagesByGeoAndViewport(
-  messages: Message[],
+  messages: InternalMessage[],
   viewportBounds: ViewportBounds | null,
-): Message[] {
+): InternalMessage[] {
   let filtered = messages.filter(
     (message) => message.geoJson !== null && message.geoJson !== undefined,
   );
@@ -303,9 +303,9 @@ function filterMessagesByGeoAndViewport(
 }
 
 function simplifyMessagesForClusterZoom(
-  messages: Message[],
+  messages: InternalMessage[],
   zoom?: number,
-): Message[] {
+): InternalMessage[] {
   if (zoom === undefined || zoom >= CLUSTER_ZOOM_THRESHOLD) {
     return messages;
   }
@@ -408,7 +408,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ messages: [] });
     }
 
-    let allMessages: Message[] = [];
+    let allMessages: InternalMessage[] = [];
     const hasSourceFilter = validatedSources && validatedSources.length > 0;
     const hasCategoryFilter =
       selectedCategories && selectedCategories.length > 0;
@@ -433,7 +433,7 @@ export async function GET(request: Request) {
         orderBy: [{ field: "timespanEnd", direction: "desc" }],
       });
 
-      allMessages = docs.map(recordToMessage);
+      allMessages = docs.map(recordToInternalMessage);
     }
 
     let messages = filterMessagesByGeoAndViewport(allMessages, viewportBounds);

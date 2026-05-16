@@ -50,6 +50,12 @@ vi.mock("./Source", () => ({
   default: () => <div data-testid="message-detail-source" />,
 }));
 
+vi.mock("./LinkedMessagesAccordion", () => ({
+  default: ({ eventId, currentMessageId }: { eventId: string; currentMessageId: string }) => (
+    <div data-testid="linked-messages-accordion" data-event-id={eventId} data-current-message-id={currentMessageId} />
+  ),
+}));
+
 vi.mock("./Locations", () => ({
   hasAnyLocations: (groups: {
     pins?: unknown[] | null;
@@ -363,5 +369,43 @@ describe("MessageDetailView locations accordion", () => {
     );
 
     expect(screen.queryByText(/локации/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("MessageDetailView linked messages accordion", () => {
+  it("does not render when message has no eventId", () => {
+    render(<MessageDetailView message={baseMessage} onClose={vi.fn()} />);
+
+    expect(
+      screen.queryByTestId("linked-messages-accordion"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not render when message has no id", () => {
+    const { id: _id, ...messageWithoutId } = baseMessage;
+    render(
+      <MessageDetailView
+        message={{ ...messageWithoutId, eventId: "evt1" }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("linked-messages-accordion"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders accordion with correct props when message has eventId and id", () => {
+    render(
+      <MessageDetailView
+        message={{ ...baseMessage, eventId: "evt1" }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const accordion = screen.getByTestId("linked-messages-accordion");
+    expect(accordion).toBeInTheDocument();
+    expect(accordion).toHaveAttribute("data-event-id", "evt1");
+    expect(accordion).toHaveAttribute("data-current-message-id", "m1");
   });
 });
