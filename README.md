@@ -12,6 +12,12 @@
 	<a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/oboapp/oboapp" /></a>
 	<img alt="TypeScript strict" src="https://img.shields.io/badge/TypeScript-strict-blue" />
 	<img alt="pnpm workspace" src="https://img.shields.io/badge/workspace-pnpm-orange" />
+	<a href="https://sonarcloud.io/summary/new_code?id=oboapp_oboapp">
+		<img alt="Security Rating" src="https://sonarcloud.io/api/project_badges/measure?project=oboapp_oboapp&metric=security_rating" />
+	</a>
+	<a href="https://sonarcloud.io/summary/new_code?id=oboapp_oboapp">
+		<img alt="Reliability Rating" src="https://sonarcloud.io/api/project_badges/measure?project=oboapp_oboapp&metric=reliability_rating" />
+	</a>
 </p>
 
 OboApp helps residents stay informed about public infrastructure disruptions. It collects announcements about water shutoffs, heating maintenance, road repairs, municipal works, and similar incidents; turns them into structured geospatial events; and serves them through a PWA map, push notifications, and a public API.
