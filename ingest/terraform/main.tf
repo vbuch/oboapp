@@ -120,11 +120,11 @@ resource "google_project_iam_member" "workflows_invoker" {
   member  = "serviceAccount:${google_service_account.ingest_runner.email}"
 }
 
-# Grant Workflows Admin to CI service account (for Terraform to create/update workflow definitions)
-# This uses a variable so it's self-bootstrapping — the CI SA that runs Terraform gets the permission it needs.
-resource "google_project_iam_member" "ci_workflows_admin" {
+# Grant Workflows Editor to CI service account (for Terraform to create/update workflow definitions).
+# Editor (not Admin) — Terraform only manages workflow definitions, never workflow IAM policies.
+resource "google_project_iam_member" "ci_workflows_editor" {
   project = var.project_id
-  role    = "roles/workflows.admin"
+  role    = "roles/workflows.editor"
   member  = "serviceAccount:${var.ci_service_account_email}"
 }
 
@@ -135,10 +135,11 @@ resource "google_project_iam_member" "ci_monitoring_editor" {
   member  = "serviceAccount:${var.ci_service_account_email}"
 }
 
-# Grant Logging Admin to CI service account (for log-based alert notification rules)
-resource "google_project_iam_member" "ci_logging_admin" {
+# Grant Logging Config Writer to CI service account (for log-based alert notification rules,
+# sinks, and metrics). Config Writer (not Admin) — no access to log entry contents.
+resource "google_project_iam_member" "ci_logging_config_writer" {
   project = var.project_id
-  role    = "roles/logging.admin"
+  role    = "roles/logging.configWriter"
   member  = "serviceAccount:${var.ci_service_account_email}"
 }
 
@@ -223,7 +224,7 @@ resource "google_workflows_workflow" "pipeline_emergent" {
   
   depends_on = [
     google_project_service.workflows,
-    google_project_iam_member.ci_workflows_admin,
+    google_project_iam_member.ci_workflows_editor,
   ]
 }
 
@@ -239,7 +240,7 @@ resource "google_workflows_workflow" "pipeline_all" {
   
   depends_on = [
     google_project_service.workflows,
-    google_project_iam_member.ci_workflows_admin,
+    google_project_iam_member.ci_workflows_editor,
   ]
 }
 
@@ -1082,6 +1083,9 @@ resource "google_cloud_scheduler_job" "educational_facilities_sync_schedule" {
 
 # ── Air Quality Fetch Job ─────────────────────────────────────────────────────
 
+# Holds ephemeral artifacts (weekly heatmap snapshots, air-quality fetch output) with a
+# short TTL. Versioning is intentionally disabled — objects are reproducible from source
+# data and the 10-day lifecycle delete would defeat object versioning anyway.
 resource "google_storage_bucket" "generic" {
   count         = var.gcs_generic_bucket != "" ? 1 : 0
   name          = var.gcs_generic_bucket
@@ -1101,7 +1105,8 @@ resource "google_storage_bucket" "generic" {
   }
 }
 
-# Grant the ingest service account read/write access to the generic data bucket
+# Grant the ingest service account object admin on this bucket only (bucket-scoped, not
+# project-scoped). The runner needs to create/overwrite snapshot objects here.
 resource "google_storage_bucket_iam_member" "generic_bucket_object_admin" {
   count  = var.gcs_generic_bucket != "" ? 1 : 0
   bucket = google_storage_bucket.generic[0].name
