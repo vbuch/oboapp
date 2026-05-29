@@ -45,11 +45,7 @@ export function parseVrabnitsaDate(dateText: string): string {
   return parseBulgarianMonthDate(cleaned);
 }
 
-const processPost = (
-  browser: Browser,
-  postLink: PostLink,
-  db: OboDb,
-) =>
+const processPost = (browser: Browser, postLink: PostLink, db: OboDb) =>
   processWordpressPost(
     browser,
     postLink,

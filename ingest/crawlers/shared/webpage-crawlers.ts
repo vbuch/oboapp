@@ -10,6 +10,29 @@ import { logger } from "@/lib/logger";
 
 const turndownService = createTurndownService();
 
+type PageGotoWaitUntil = "load" | "domcontentloaded" | "networkidle";
+type BlockableResourceType = "image" | "media" | "font";
+const DEFAULT_WAIT_UNTIL: PageGotoWaitUntil = "domcontentloaded";
+const DEFAULT_BLOCKED_RESOURCE_TYPES = ["image", "media", "font"] as const;
+
+async function blockResourceTypes(
+  page: Page,
+  resourceTypes: readonly BlockableResourceType[] | undefined,
+): Promise<void> {
+  if (!resourceTypes?.length) return;
+
+  const blockedTypes = new Set<string>(resourceTypes);
+
+  await page.route("**/*", async (route) => {
+    if (blockedTypes.has(route.request().resourceType())) {
+      await route.abort();
+      return;
+    }
+
+    await route.continue();
+  });
+}
+
 /**
  * Build a SourceDocument from webpage content (HTML to Markdown conversion)
  * Used by WordPress-style crawlers like rayon-oborishte-bg and sofia-bg
@@ -74,7 +97,8 @@ export async function processWordpressPost<
   delayMs: number,
   extractPostDetails: (page: Page) => Promise<TDetails>,
   customDateParser?: (dateText: string) => string,
-  waitUntil?: "load" | "domcontentloaded" | "networkidle",
+  waitUntil: PageGotoWaitUntil = DEFAULT_WAIT_UNTIL,
+  blockedResourceTypes: readonly BlockableResourceType[] | undefined = DEFAULT_BLOCKED_RESOURCE_TYPES,
 ): Promise<void> {
   const { url, title } = postLink;
 
@@ -83,7 +107,8 @@ export async function processWordpressPost<
   const page = await browser.newPage();
 
   try {
-    await page.goto(url, { waitUntil: waitUntil ?? "networkidle" });
+    await blockResourceTypes(page, blockedResourceTypes);
+    await page.goto(url, { waitUntil });
 
     const details = await extractPostDetails(page);
 
@@ -129,7 +154,8 @@ export async function crawlWordpressPage(options: {
     db: OboDb,
   ) => Promise<void>;
   delayBetweenRequests?: number;
-  waitUntil?: "load" | "domcontentloaded" | "networkidle";
+  waitUntil?: PageGotoWaitUntil;
+  blockedResourceTypes?: readonly BlockableResourceType[];
   browser?: Browser;
 }): Promise<void> {
   const {
@@ -138,7 +164,8 @@ export async function crawlWordpressPage(options: {
     extractPostLinks,
     processPost,
     delayBetweenRequests: _delayBetweenRequests = 2000,
-    waitUntil,
+    waitUntil = DEFAULT_WAIT_UNTIL,
+    blockedResourceTypes = DEFAULT_BLOCKED_RESOURCE_TYPES,
     browser: providedBrowser,
   } = options;
 
@@ -154,8 +181,9 @@ export async function crawlWordpressPage(options: {
     browser = providedBrowser ?? (await launchBrowser());
 
     const page = await browser.newPage();
+    await blockResourceTypes(page, blockedResourceTypes);
     logger.debug("Fetching index page", { sourceType, url: indexUrl });
-    await page.goto(indexUrl, { waitUntil: waitUntil ?? "networkidle" });
+    await page.goto(indexUrl, { waitUntil });
 
     const postLinks = await extractPostLinks(page);
     await page.close();
