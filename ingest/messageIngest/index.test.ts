@@ -59,6 +59,26 @@ vi.mock("../geocoding/shared/boundary-utils", () => ({
     mockFilterFeaturesByBoundaries(...args),
 }));
 
+// Mock AI service for AI pipeline path tests
+const mockAiFilterAndSplit = vi.fn();
+const mockAiCategorize = vi.fn();
+const mockAiExtractLocations = vi.fn();
+const mockAiSummarize = vi.fn();
+vi.mock("../lib/ai-service", () => ({
+  filterAndSplit: (...args: unknown[]) => mockAiFilterAndSplit(...args),
+  categorize: (...args: unknown[]) => mockAiCategorize(...args),
+  extractLocations: (...args: unknown[]) => mockAiExtractLocations(...args),
+  summarize: (...args: unknown[]) => mockAiSummarize(...args),
+  SUMMARIZE_MIN_LENGTH: 1000,
+}));
+
+// Mock geocoding — keeps AI pipeline tests free of real geocoding calls
+const mockGeocodeAddressesFromExtractedData = vi.fn();
+vi.mock("./geocode-addresses", () => ({
+  geocodeAddressesFromExtractedData: (...args: unknown[]) =>
+    mockGeocodeAddressesFromExtractedData(...args),
+}));
+
 import { computeGeoJsonCentroidAddress, messageIngest } from "./index";
 import type { GeoJSONFeatureCollection } from "@/lib/types";
 
@@ -100,12 +120,12 @@ describe("computeGeoJsonCentroidAddress", () => {
       features: [
         {
           type: "Feature",
-          geometry: { type: "Point", coordinates: [23.0, 42.0] },
+          geometry: { type: "Point", coordinates: [23, 42] },
           properties: {},
         },
         {
           type: "Feature",
-          geometry: { type: "Point", coordinates: [24.0, 43.0] },
+          geometry: { type: "Point", coordinates: [24, 43] },
           properties: {},
         },
       ],
@@ -125,8 +145,8 @@ describe("computeGeoJsonCentroidAddress", () => {
           geometry: {
             type: "LineString",
             coordinates: [
-              [23.0, 42.0],
-              [24.0, 43.0],
+              [23, 42],
+              [24, 43],
             ],
           },
           properties: {},
@@ -149,11 +169,11 @@ describe("computeGeoJsonCentroidAddress", () => {
             type: "Polygon",
             coordinates: [
               [
-                [23.0, 42.0],
-                [24.0, 42.0],
-                [24.0, 43.0],
-                [23.0, 43.0],
-                [23.0, 42.0],
+                [23, 42],
+                [24, 42],
+                [24, 43],
+                [23, 43],
+                [23, 42],
               ],
             ],
           },
@@ -176,8 +196,8 @@ describe("computeGeoJsonCentroidAddress", () => {
           geometry: {
             type: "MultiPoint",
             coordinates: [
-              [23.0, 42.0],
-              [24.0, 43.0],
+              [23, 42],
+              [24, 43],
             ],
           },
           properties: {},
@@ -374,11 +394,11 @@ const BOUNDARY_GEOJSON: GeoJSONFeatureCollection = {
         type: "Polygon",
         coordinates: [
           [
-            [23.0, 42.0],
-            [24.0, 42.0],
-            [24.0, 43.0],
-            [23.0, 43.0],
-            [23.0, 42.0],
+            [23, 42],
+            [24, 42],
+            [24, 43],
+            [23, 43],
+            [23, 42],
           ],
         ],
       },
@@ -401,7 +421,7 @@ describe("event matching after finalization", () => {
     mockProcessEventMatching.mockResolvedValue({
       eventId: "evt-1",
       action: "created",
-      confidence: 1.0,
+      confidence: 1,
       candidateCount: 0,
     });
     mockDeleteOne.mockResolvedValue(undefined);
@@ -534,5 +554,165 @@ describe("event matching after finalization", () => {
         },
       }),
     );
+  });
+});
+
+/**
+ * Tests for resolveReferenceDate behavior (issue #499).
+ * Verified indirectly through messageIngest with precomputed GeoJSON (no AI pipeline),
+ * observing the timespanStart/timespanEnd stored in the DB when no source timespans are
+ * provided — the fallback date should prefer datePublished over crawledAt.
+ */
+function findTimespanUpdate() {
+  const updatePayloads = mockUpdateMessage.mock.calls.map((call) => call[1]);
+  return updatePayloads.find(
+    (payload) =>
+      payload &&
+      payload.timespanStart instanceof Date &&
+      payload.timespanEnd instanceof Date,
+  );
+}
+
+describe("resolveReferenceDate via messageIngest (issue #499)", () => {
+  const CRAWLED_AT = new Date("2026-05-18T00:00:00.000Z");
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStoreIncomingMessage.mockResolvedValue("test-msg-id");
+    mockUpdateMessage.mockResolvedValue(undefined);
+    mockEncodeDocumentId.mockImplementation((url: string) => `encoded(${url})`);
+  });
+
+  it.each([
+    {
+      label: "valid datePublished → uses datePublished as anchor",
+      datePublished: "2026-05-15T00:00:00.000Z" as string | undefined,
+      expectedDate: new Date("2026-05-15T00:00:00.000Z"),
+    },
+    {
+      label: "absent datePublished → falls back to crawledAt",
+      datePublished: undefined as string | undefined,
+      expectedDate: CRAWLED_AT,
+    },
+    {
+      label: "invalid string datePublished → falls back to crawledAt",
+      datePublished: "not-a-valid-date" as string | undefined,
+      expectedDate: CRAWLED_AT,
+    },
+    {
+      label: "pre-2025 datePublished (e.g. 1970) → falls back to crawledAt",
+      datePublished: "1970-01-01T00:00:00.000Z" as string | undefined,
+      expectedDate: CRAWLED_AT,
+    },
+  ])("$label", async ({ datePublished, expectedDate }) => {
+    await messageIngest("test text", "vrabnitsa-org", {
+      precomputedGeoJson: PRECOMPUTED_GEOJSON,
+      markdownText: "Test",
+      locality: "bg.sofia",
+      datePublished,
+      crawledAt: CRAWLED_AT,
+    });
+
+    const timespanUpdate = findTimespanUpdate();
+    expect(timespanUpdate).toBeDefined();
+    expect(timespanUpdate.timespanStart).toEqual(expectedDate);
+    expect(timespanUpdate.timespanEnd).toEqual(expectedDate);
+  });
+
+  it("delayed crawl regression (#499): fallback is datePublished not crawledAt", async () => {
+    // Mirrors the May 2026 production incident: article published May 15, crawler ran May 18.
+    // Before the fix, timespans would fall back to May 18 (crawl time) instead of May 15.
+    const datePublished = "2026-05-15T00:00:00.000Z";
+
+    await messageIngest("test text", "vrabnitsa-org", {
+      precomputedGeoJson: PRECOMPUTED_GEOJSON,
+      markdownText: "Test",
+      locality: "bg.sofia",
+      datePublished,
+      crawledAt: CRAWLED_AT,
+    });
+
+    const timespanUpdate = findTimespanUpdate();
+    expect(timespanUpdate).toBeDefined();
+    // Must be May 15 (datePublished), not May 18 (crawledAt)
+    expect(timespanUpdate.timespanStart.toISOString()).toBe(datePublished);
+    expect(timespanUpdate.timespanEnd.toISOString()).toBe(datePublished);
+  });
+});
+describe("resolveReferenceDate via AI pipeline (issue #499)", () => {
+  const CRAWLED_AT = new Date("2026-05-18T00:00:00.000Z");
+  const DATE_PUBLISHED = "2026-05-15T00:00:00.000Z";
+
+  // A minimal ExtractedLocations with no timespans — fallback will be used
+  const EMPTY_EXTRACTED_LOCATIONS = {
+    withSpecificAddress: false,
+    busStops: [] as string[],
+    educationalFacilities: [] as never[],
+    cityWide: false,
+    pins: [] as never[],
+    streets: [] as never[],
+    cadastralProperties: [] as never[],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStoreIncomingMessage.mockResolvedValue("test-msg-id");
+    mockUpdateMessage.mockResolvedValue(undefined);
+    mockEncodeDocumentId.mockImplementation((url: string) => `encoded(${url})`);
+    // tryPreGeocodeMatch returns early when message not found
+    mockFindById.mockResolvedValue(null);
+
+    mockAiFilterAndSplit.mockResolvedValue([
+      {
+        plainText: "Water supply disruption",
+        isRelevant: true,
+        markdownText: "**Water supply** disruption",
+        isOneOfMany: false,
+        isInformative: false,
+        isUnreadable: false,
+        responsibleEntity: "",
+      },
+    ]);
+    mockAiCategorize.mockResolvedValue({ categories: ["water"] });
+    mockAiExtractLocations.mockResolvedValue(EMPTY_EXTRACTED_LOCATIONS);
+    mockAiSummarize.mockResolvedValue(null);
+    // Reject geocoding so processSingleMessage exits early without hitting real geocoders
+    mockGeocodeAddressesFromExtractedData.mockRejectedValue(
+      new Error("geocoding skipped in test"),
+    );
+  });
+
+  function findAiPipelineTimespanUpdate() {
+    const updatePayloads = mockUpdateMessage.mock.calls.map((call) => call[1]);
+    return updatePayloads.find(
+      (payload) =>
+        payload?.$set?.timespanStart instanceof Date &&
+        payload?.$set?.timespanEnd instanceof Date,
+    );
+  }
+
+  it("uses datePublished as timespan anchor in AI pipeline when valid", async () => {
+    await messageIngest("Water supply disruption", "vrabnitsa-org", {
+      locality: "bg.sofia",
+      crawledAt: CRAWLED_AT,
+      datePublished: DATE_PUBLISHED,
+    });
+
+    const timespanUpdate = findAiPipelineTimespanUpdate();
+    expect(timespanUpdate).toBeDefined();
+    expect(timespanUpdate.$set.timespanStart).toEqual(new Date(DATE_PUBLISHED));
+    expect(timespanUpdate.$set.timespanEnd).toEqual(new Date(DATE_PUBLISHED));
+  });
+
+  it("falls back to crawledAt in AI pipeline when no datePublished", async () => {
+    await messageIngest("Water supply disruption", "vrabnitsa-org", {
+      locality: "bg.sofia",
+      crawledAt: CRAWLED_AT,
+    });
+
+    const timespanUpdate = findAiPipelineTimespanUpdate();
+    expect(timespanUpdate).toBeDefined();
+    expect(timespanUpdate.$set.timespanStart).toEqual(CRAWLED_AT);
+    expect(timespanUpdate.$set.timespanEnd).toEqual(CRAWLED_AT);
   });
 });

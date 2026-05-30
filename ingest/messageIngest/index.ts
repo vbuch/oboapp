@@ -2,6 +2,7 @@ import {
   Address,
   ExtractedLocations,
   GeoJsonFeatureCollection,
+  GeoJsonGeometry,
   InternalMessage,
   Coordinates,
   QualitySignals,
@@ -32,6 +33,7 @@ import {
   getNumberArray,
   getStringOrDateOrNull,
 } from "@/lib/record-fields";
+import { validateTimespanRange } from "@/lib/timespan-utils";
 
 export {
   geocodeAddressesFromExtractedData,
@@ -69,6 +71,13 @@ export interface MessageIngestOptions {
    * Optional crawledAt timestamp from the source document
    */
   crawledAt?: Date;
+  /**
+   * Optional publication date from the source document (ISO 8601 string).
+   * When valid, preferred over crawledAt as the temporal anchor for LLM reasoning
+   * and as the fallback date for timespan validation. Relevant for batch crawlers
+   * where crawledAt can be days after the source was written.
+   */
+  datePublished?: string;
   /**
    * Optional markdown-formatted text for display (when crawler produces markdown)
    */
@@ -155,6 +164,7 @@ async function processSingleMessage(
   ingestErrors: IngestErrorCollector,
 ): Promise<InternalMessage> {
   const crawledAt = ensureCrawledAtDate(options.crawledAt);
+  const referenceDate = resolveReferenceDate(options.datePublished, crawledAt);
 
   // Early exit: No extracted locations and no precomputed GeoJSON
   if (!precomputedGeoJson && !extractedLocations) {
@@ -178,7 +188,7 @@ async function processSingleMessage(
       options.markdownText!,
       options.timespanStart,
       options.timespanEnd,
-      crawledAt,
+      referenceDate,
     );
   }
 
@@ -345,8 +355,9 @@ async function processWithAIPipeline(
     await import("../lib/ai-service");
 
   const crawledAt = ensureCrawledAtDate(options.crawledAt);
+  const referenceDate = resolveReferenceDate(options.datePublished, crawledAt);
   const promptCtx = {
-    currentDate: crawledAt,
+    currentDate: referenceDate,
     sourceType: source,
     sourceUrl: options.sourceUrl,
   };
@@ -518,7 +529,7 @@ async function processWithAIPipeline(
     await storeExtractedLocations(
       storedMessageId,
       extractedLocations,
-      crawledAt,
+      referenceDate,
     );
 
     // Pre-geocode matching: try to reuse geometry from an existing high-quality event
@@ -693,7 +704,7 @@ async function storeCategorization(
 async function storeExtractedLocations(
   messageId: string,
   extractedLocations: ExtractedLocations | null,
-  crawledAt: Date,
+  referenceDate: Date,
 ): Promise<void> {
   const { extractTimespanRangeFromExtractedLocations, validateAndFallback } =
     await import("@/lib/timespan-utils");
@@ -705,12 +716,13 @@ async function storeExtractedLocations(
   const educationalFacilities = extractedLocations?.educationalFacilities || [];
   const cityWide = extractedLocations?.cityWide || false;
 
-  // Extract timespans from extracted locations (pins/streets)
+  // Extract timespans from extracted locations (pins/streets), preferring referenceDate
+  // (datePublished when valid) over crawledAt as the fallback anchor.
   const { timespanStart, timespanEnd } =
-    extractTimespanRangeFromExtractedLocations(extractedLocations, crawledAt);
+    extractTimespanRangeFromExtractedLocations(extractedLocations, referenceDate);
 
-  // Validate and fallback to crawledAt if invalid
-  const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
+  // Validate and fallback to referenceDate if extracted timespans are out of range
+  const validated = validateAndFallback(timespanStart, timespanEnd, referenceDate);
 
   await updateMessage(messageId, {
     $set: {
@@ -802,6 +814,24 @@ function ensureCrawledAtDate(crawledAt: Date | string | undefined): Date {
     }
   }
   return new Date();
+}
+
+/**
+ * Resolve the best temporal anchor date for LLM reasoning and timespan fallback.
+ * Prefers datePublished (when the source was written) over crawledAt (when crawled).
+ * Relevant for batch crawlers where crawledAt can be days after the article was published.
+ */
+function resolveReferenceDate(
+  datePublished: string | undefined,
+  crawledAt: Date,
+): Date {
+  if (datePublished) {
+    const parsed = new Date(datePublished);
+    if (!Number.isNaN(parsed.getTime()) && validateTimespanRange(parsed)) {
+      return parsed;
+    }
+  }
+  return crawledAt;
 }
 
 /**
@@ -985,6 +1015,27 @@ async function finalizeFailedMessage(
   return await buildMessageResponse(messageId, text, locality, [], null);
 }
 
+/** Extract all vertices from a GeoJSON geometry as [lng, lat] pairs. */
+function getGeometryVertices(geom: GeoJsonGeometry): [number, number][] {
+  switch (geom.type) {
+    case "Point":
+      return [geom.coordinates];
+    case "MultiPoint":
+    case "LineString":
+      return geom.coordinates;
+    case "Polygon": {
+      const ring = geom.coordinates[0];
+      if (!ring || ring.length === 0) return [];
+      // Skip the closing vertex if it duplicates the first (standard GeoJSON rings are closed)
+      const isClosed =
+        ring.length > 1 &&
+        ring[0][0] === ring.at(-1)![0] &&
+        ring[0][1] === ring.at(-1)![1];
+      return isClosed ? ring.slice(0, -1) : ring;
+    }
+  }
+}
+
 /**
  * Compute the centroid of all features in a GeoJSON FeatureCollection.
  * Returns an Address with the centroid coordinates, or null if it cannot be computed.
@@ -1003,49 +1054,10 @@ export function computeGeoJsonCentroidAddress(
   let count = 0;
 
   for (const feature of features) {
-    const geom = feature.geometry;
-    if (!geom) continue;
-
-    switch (geom.type) {
-      case "Point": {
-        totalLng += geom.coordinates[0];
-        totalLat += geom.coordinates[1];
-        count++;
-        break;
-      }
-      case "MultiPoint": {
-        for (const coord of geom.coordinates) {
-          totalLng += coord[0];
-          totalLat += coord[1];
-          count++;
-        }
-        break;
-      }
-      case "LineString": {
-        for (const coord of geom.coordinates) {
-          totalLng += coord[0];
-          totalLat += coord[1];
-          count++;
-        }
-        break;
-      }
-      case "Polygon": {
-        const ring = geom.coordinates[0];
-        if (ring && ring.length > 0) {
-          // Skip the closing vertex if it duplicates the first (standard GeoJSON rings are closed)
-          const first = ring[0];
-          const last = ring[ring.length - 1];
-          const isClosed =
-            ring.length > 1 && first[0] === last[0] && first[1] === last[1];
-          const vertices = isClosed ? ring.slice(0, -1) : ring;
-          for (const coord of vertices) {
-            totalLng += coord[0];
-            totalLat += coord[1];
-            count++;
-          }
-        }
-        break;
-      }
+    for (const coord of getGeometryVertices(feature.geometry)) {
+      totalLng += coord[0];
+      totalLat += coord[1];
+      count++;
     }
   }
 
@@ -1070,7 +1082,7 @@ async function handlePrecomputedGeoJsonData(
   markdownText: string,
   timespanStart: Date | undefined,
   timespanEnd: Date | undefined,
-  crawledAt: Date,
+  fallbackDate: Date,
 ): Promise<Address[]> {
   const centroidAddress = computeGeoJsonCentroidAddress(precomputedGeoJson);
   const addresses = centroidAddress ? [centroidAddress] : [];
@@ -1079,7 +1091,7 @@ async function handlePrecomputedGeoJsonData(
     : [];
 
   const { validateAndFallback } = await import("@/lib/timespan-utils");
-  const validated = validateAndFallback(timespanStart, timespanEnd, crawledAt);
+  const validated = validateAndFallback(timespanStart, timespanEnd, fallbackDate);
 
   const locationFields = {
     addresses,
