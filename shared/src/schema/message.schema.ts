@@ -1,7 +1,10 @@
 import { z } from "../zod-openapi";
 import { AddressSchema } from "./address.schema";
 import { CategoryEnum } from "./category.schema";
-import { CadastralPropertySchema, EducationalFacilityRefSchema } from "./extracted-data.schema";
+import {
+  CadastralPropertySchema,
+  EducationalFacilityRefSchema,
+} from "./extracted-data.schema";
 import { GeoJsonFeatureCollectionSchema } from "./geojson.schema";
 import { IngestErrorSchema } from "./ingest-error.schema";
 import { PinSchema } from "./pin.schema";
@@ -14,6 +17,7 @@ import { StreetSectionSchema } from "./street-section.schema";
 export const MessageSchema = z.object({
   id: z.string().optional(),
   text: z.string(),
+  aiProcessed: z.boolean().optional(),
   plainText: z.string().optional(),
   addresses: z.array(AddressSchema).optional(),
   geoJson: GeoJsonFeatureCollectionSchema.optional(),
@@ -63,6 +67,7 @@ const ProcessStepSchema = z.union([
  * Used by backend processing pipeline and admin features
  */
 export const InternalMessageSchema = MessageSchema.extend({
+  aiProcessed: z.boolean(),
   process: z.array(ProcessStepSchema).optional(),
   ingestErrors: z.array(IngestErrorSchema).optional(),
   sourceDocumentId: z.string().optional(),

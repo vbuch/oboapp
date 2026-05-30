@@ -15,8 +15,12 @@ import {
 const PublicAddressSchema = SharedAddressSchema.omit({
   qualitySignals: true,
 });
-// Explicitly exclude summary (internal-only) by spreading the shape without it
-const { summary: _summaryField, ...publicMessageShape } =
+// Explicitly exclude internal-only fields from the v1 public contract.
+const {
+  summary: _summaryField,
+  aiProcessed: _aiProcessedField,
+  ...publicMessageShape
+} =
   SharedMessageSchema.shape;
 const MessageSchema = z.object({
   ...publicMessageShape,
@@ -35,8 +39,11 @@ export const v1Schemas = {
   messageResponse: z.object({ message: MessageSchema }),
 };
 
-const compareStrings = (left: string, right: string): number =>
-  left < right ? -1 : left > right ? 1 : 0;
+const compareStrings = (left: string, right: string): number => {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+};
 
 const sortRecord = <T>(record: Record<string, T>): Record<string, T> =>
   Object.keys(record)

@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Message } from "@/lib/types";
+import type { InternalMessage } from "@/lib/types";
 import MessageDetailView from "./MessageDetailView";
 
 vi.mock("@/lib/analytics", () => ({
@@ -51,8 +50,18 @@ vi.mock("./Source", () => ({
 }));
 
 vi.mock("./LinkedMessagesAccordion", () => ({
-  default: ({ eventId, currentMessageId }: { eventId: string; currentMessageId: string }) => (
-    <div data-testid="linked-messages-accordion" data-event-id={eventId} data-current-message-id={currentMessageId} />
+  default: ({
+    eventId,
+    currentMessageId,
+  }: {
+    eventId: string;
+    currentMessageId: string;
+  }) => (
+    <div
+      data-testid="linked-messages-accordion"
+      data-event-id={eventId}
+      data-current-message-id={currentMessageId}
+    />
   ),
 }));
 
@@ -81,7 +90,8 @@ vi.mock("./Locations", () => ({
   default: () => <div data-testid="message-detail-locations" />,
 }));
 
-const baseMessage: Message = {
+const baseMessage: InternalMessage = {
+  aiProcessed: true,
   id: "m1",
   text: "Тестово съобщение",
   plainText: "Тестово съобщение",
