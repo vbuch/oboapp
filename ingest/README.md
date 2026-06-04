@@ -73,6 +73,9 @@ pnpm geocode-cache:report
 # Pre-cache a geocoded address/street from an existing message
 pnpm geocode-cache:add --message <id> --address "..." --type pin|street
 
+# Export monthly GCP billing costs from BigQuery to GCS (maintainer-only)
+pnpm billing-cost:export
+pnpm billing-cost:export --months 6 --dry-run  # preview without uploading
 ```
 
 ## Pipeline Schedules
@@ -90,7 +93,7 @@ Configure `schedules` and `schedule_timezone` in your instance's Terraform varia
 | `gtfs-sync` | Daily at 03:00 | Refresh bus stop coordinates for geocoding |
 | `educational-facilities-sync` | Monthly on the 1st at 04:00 | Refresh school and kindergarten coordinates for geocoding |
 
-Terraform also schedules the notification heartbeat and configured reports. Report jobs depend on the instance's storage bucket settings.
+Terraform also schedules the notification heartbeat and configured reports. Report jobs depend on instance settings, such as the storage bucket and billing export configuration.
 
 ## Deployment
 
