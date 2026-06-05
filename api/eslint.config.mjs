@@ -57,6 +57,7 @@ const eslintConfig = [
       "build/**",
       "node_modules/**",
       "coverage/**",
+      ".vercel/**",
       "**/*.d.ts",
       "**/*.mjs",
     ],
