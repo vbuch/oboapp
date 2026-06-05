@@ -189,11 +189,14 @@ gcloud run deploy oboapp-ingest --image gcr.io/your-project-id/oboapp-ingest
 
 See `ingest/terraform/` for infrastructure-as-code deployment.
 
-### Web Application (Vercel/Next.js)
+### Web Application (Next.js)
 
-1. Connect GitHub repository to Vercel
-2. Configure environment variables in Vercel dashboard
-3. Deploy
+```bash
+pnpm --filter web build
+pnpm --filter web start
+```
+
+The web app is a standard Next.js application and can be deployed on any host that supports Node.js or a Next.js build output (for example, a managed Next.js platform, a self-hosted Node.js server, or a Docker container). Configure the required environment variables in your host's environment/secrets settings.
 
 ## Monitoring and Maintenance
 
