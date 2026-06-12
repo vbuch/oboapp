@@ -125,7 +125,9 @@ export function parseRetryAfterMs(header: string | null): number | null {
   // Reject anything that isn't a strict IMF-fixdate to avoid accepting ISO 8601 or
   // other Date.parse-parseable strings that aren't valid Retry-After values.
   if (
-    !/^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(trimmed)
+    !/^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(
+      trimmed,
+    )
   )
     return null;
   const retryAtMs = Date.parse(trimmed);
@@ -939,7 +941,15 @@ async function geocodeSingleIntersection(
   const intersectionPoint = findGeometricIntersection(geom1, geom2);
 
   if (!intersectionPoint) {
-    logger.error("Could not find intersection");
+    logger.error(
+      `Could not find intersection of ${street1Name} and ${street2Name}`,
+      {
+        street1Name,
+        street2Name,
+        geom1,
+        geom2,
+      },
+    );
     return null;
   }
 
