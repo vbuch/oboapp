@@ -304,9 +304,6 @@ function handleIngestError(
     logger.info("Source outside boundaries after geocoding", {
       title: source.title,
     });
-  } else if (errorMessage.includes("Message filtering failed")) {
-    summary.filtered++;
-    logger.info("Source filtered as irrelevant", { title: source.title });
   } else {
     summary.errors.push({ url: source.url, error: errorMessage });
     logger.error("Failed to ingest source", {
