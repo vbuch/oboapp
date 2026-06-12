@@ -370,7 +370,6 @@ async function processWithAIPipeline(
   const filterResult = await filterAndSplit(text, undefined, promptCtx);
 
   if (!filterResult || filterResult.length === 0) {
-    logger.error("Failed to filter & split message");
     throw new Error("Message filter & split failed");
   }
 
