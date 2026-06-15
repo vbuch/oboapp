@@ -2,95 +2,130 @@
 
 import dotenv from "dotenv";
 import { resolve } from "node:path";
-import { Browser } from "playwright";
 import type { OboDb } from "@oboapp/db";
-import { PostLink } from "./types";
-import { extractPostLinks, extractPostDetails } from "./extractors";
-import {
-  crawlWordpressPage,
-  processWordpressPost,
-} from "../shared/webpage-crawlers";
-import { parseBulgarianDate } from "../shared/date-utils";
+import type { RssFeedItem } from "../shared/rss";
+import { fetchFeedXml } from "../shared/rss";
+import { extractFeedItems } from "./extractors";
+import { buildWebPageSourceDocument } from "../shared/webpage-crawlers";
+import { isUrlProcessed, saveSourceDocument } from "../shared/firestore";
 import { logger } from "@/lib/logger";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
-const INDEX_URL =
-  "https://triaditza.org/%D0%BD%D0%BE%D0%B2%D0%B8%D0%BD%D0%B8/";
+const FEED_URL =
+  "https://triaditza.org/category/%D0%BD%D0%BE%D0%B2%D0%B8%D0%BD%D0%B8-%D0%B8-%D1%81%D1%8A%D0%B1%D0%B8%D1%82%D0%B8%D1%8F/feed/";
 const SOURCE_TYPE = "triaditsa-org";
 const LOCALITY = "bg.sofia";
-const DELAY_BETWEEN_REQUESTS = 2000;
-
-export function resolveTriaditsaDateText(
-  extractedDateText: string,
-  listingDateText: string,
-): string {
-  const normalizedExtracted = extractedDateText.trim();
-  if (normalizedExtracted) {
-    return normalizedExtracted;
-  }
-
-  const normalizedListing = listingDateText.trim();
-  if (normalizedListing) {
-    logger.warn(
-      "Missing extracted post date for triaditsa-org post, falling back to listing date",
-      { sourceType: SOURCE_TYPE },
-    );
-    return normalizedListing;
-  }
-
-  logger.warn(
-    "Missing extracted and listing date for triaditsa-org post, falling back to current timestamp",
-    { sourceType: SOURCE_TYPE },
-  );
-  return "";
-}
-
-export function parseTriaditsaDate(dateText: string): string {
-  const normalized = dateText.trim();
-
-  if (!normalized) {
-    logger.warn(
-      "Missing date text for triaditsa-org post, falling back to current timestamp",
-      { sourceType: SOURCE_TYPE },
-    );
-    return new Date().toISOString();
-  }
-
-  const isoTimestamp = Date.parse(normalized);
-  if (!Number.isNaN(isoTimestamp)) {
-    return new Date(isoTimestamp).toISOString();
-  }
-
-  return parseBulgarianDate(normalized);
-}
-
-const processPost = (browser: Browser, postLink: PostLink, db: OboDb) =>
-  processWordpressPost(
-    browser,
-    postLink,
-    db,
-    SOURCE_TYPE,
-    LOCALITY,
-    DELAY_BETWEEN_REQUESTS,
-    async (page) => {
-      const details = await extractPostDetails(page);
-      return {
-        ...details,
-        dateText: resolveTriaditsaDateText(details.dateText, postLink.date),
-      };
-    },
-    parseTriaditsaDate,
-  );
 
 export async function crawl(): Promise<void> {
-  await crawlWordpressPage({
-    indexUrl: INDEX_URL,
-    sourceType: SOURCE_TYPE,
-    extractPostLinks,
-    processPost,
-    delayBetweenRequests: DELAY_BETWEEN_REQUESTS,
+  const { getDb } = await import("@/lib/db");
+  const db = await getDb();
+
+  logger.info("Starting crawler", { sourceType: SOURCE_TYPE });
+
+  let feedItems: RssFeedItem[];
+  try {
+    const xml = await fetchFeedXml(FEED_URL);
+    feedItems = extractFeedItems(xml);
+  } catch (error) {
+    logger.error("Failed to fetch or parse RSS feed", {
+      sourceType: SOURCE_TYPE,
+      feedUrl: FEED_URL,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+
+  if (feedItems.length === 0) {
+    logger.warn("No posts found in RSS feed", { sourceType: SOURCE_TYPE });
+    return;
+  }
+
+  const seen = new Set<string>();
+  const uniqueItems = feedItems.filter((item) => {
+    if (seen.has(item.url)) return false;
+    seen.add(item.url);
+    return true;
   });
+
+  logger.info("Fetched RSS feed", {
+    sourceType: SOURCE_TYPE,
+    feedUrl: FEED_URL,
+    count: uniqueItems.length,
+  });
+
+  const newItems = await filterUnprocessed(uniqueItems, db);
+  const skipped = uniqueItems.length - newItems.length;
+
+  if (newItems.length === 0) {
+    logger.info("Crawl complete", {
+      sourceType: SOURCE_TYPE,
+      total: uniqueItems.length,
+      saved: 0,
+      skipped,
+      failed: 0,
+    });
+    return;
+  }
+
+  let saved = 0;
+  let failed = 0;
+
+  for (const item of newItems) {
+    try {
+      const doc = buildWebPageSourceDocument({
+        url: item.url,
+        title: item.title,
+        dateText: item.date,
+        contentHtml: item.contentHtml ?? "",
+        sourceType: SOURCE_TYPE,
+        locality: LOCALITY,
+        customDateParser: (d) => d,
+      });
+      await saveSourceDocument({ ...doc, crawledAt: new Date() }, db);
+      saved++;
+    } catch (error) {
+      failed++;
+      logger.debug("Post processing failed", {
+        sourceType: SOURCE_TYPE,
+        url: item.url,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  logger.info("Crawl complete", {
+    sourceType: SOURCE_TYPE,
+    total: uniqueItems.length,
+    saved,
+    skipped,
+    failed,
+  });
+}
+
+async function filterUnprocessed(
+  items: RssFeedItem[],
+  db: OboDb,
+): Promise<RssFeedItem[]> {
+  const newItems: RssFeedItem[] = [];
+  for (const item of items) {
+    let wasProcessed = false;
+    try {
+      wasProcessed = await isUrlProcessed(item.url, db);
+    } catch (error) {
+      logger.error(
+        "Failed to check existing URL state; skipping post to avoid duplicate writes",
+        {
+          sourceType: SOURCE_TYPE,
+          url: item.url,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+      wasProcessed = true;
+    }
+    if (!wasProcessed) newItems.push(item);
+  }
+  return newItems;
 }
 
 if (require.main === module) {
