@@ -1,130 +1,61 @@
-import { describe, it, expect, vi } from "vitest";
-import { extractPostLinks, extractPostDetails } from "./extractors";
+import { describe, expect, it } from "vitest";
+import { extractFeedItems, mergePostDetails } from "./extractors";
 
-// Mock Page type from Playwright
-interface MockPage {
-  evaluate: <T>(fn: (...args: any[]) => T, ...args: any[]) => Promise<T>;
-}
-
-function createMockPage(mockEvaluate: any): MockPage {
-  return {
-    evaluate: mockEvaluate,
-  } as MockPage;
-}
+const SAMPLE_RSS = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Test Post</title>
+      <link>https://so-slatina.org/2026/06/test-post/</link>
+      <pubDate>Mon, 15 Jun 2026 10:24:52 +0000</pubDate>
+    </item>
+  </channel>
+</rss>`;
 
 describe("so-slatina-org/extractors", () => {
-  describe("extractPostLinks", () => {
-    it("should extract post links from homepage HTML", async () => {
-      const mockEvaluate = vi.fn().mockResolvedValue([
-        {
-          url: "https://so-slatina.org/2026/01/test-post/",
-          title: "Test Post Title",
-          date: "",
-        },
-      ]);
-
-      const page = createMockPage(mockEvaluate) as any;
-      const posts = await extractPostLinks(page);
-
-      expect(posts).toHaveLength(1);
-      expect(posts[0].url).toContain("so-slatina.org/20");
-      expect(posts[0].title).toBeTruthy();
+  describe("extractFeedItems", () => {
+    it("extracts items from RSS XML", () => {
+      const items = extractFeedItems(SAMPLE_RSS);
+      expect(items).toHaveLength(1);
+      expect(items[0].url).toBe("https://so-slatina.org/2026/06/test-post/");
+      expect(items[0].title).toBe("Test Post");
+      expect(items[0].date).toBe("2026-06-15T10:24:52.000Z");
     });
 
-    it("should extract multiple post links from homepage", async () => {
-      const mockEvaluate = vi.fn().mockResolvedValue([
-        {
-          url: "https://so-slatina.org/2026/01/post-1/",
-          title: "Post 1",
-          date: "",
-        },
-        {
-          url: "https://so-slatina.org/2026/01/post-2/",
-          title: "Post 2",
-          date: "",
-        },
-      ]);
-
-      const page = createMockPage(mockEvaluate) as any;
-      const posts = await extractPostLinks(page);
-
-      expect(posts).toHaveLength(2);
-      expect(posts[0].url).toContain("so-slatina.org/20");
-      expect(posts[1].url).toContain("so-slatina.org/20");
+    it("filters items from other hostnames", () => {
+      const xml = SAMPLE_RSS.replace(
+        "https://so-slatina.org/2026/06/test-post/",
+        "https://example.com/test-post/",
+      );
+      expect(extractFeedItems(xml)).toHaveLength(0);
     });
 
-    it("should return empty array when no posts found", async () => {
-      const mockEvaluate = vi.fn().mockResolvedValue([]);
-
-      const page = createMockPage(mockEvaluate) as any;
-      const posts = await extractPostLinks(page);
-
-      expect(posts).toEqual([]);
-    });
-
-    it("should filter posts by URL pattern (must contain year in path)", async () => {
-      const mockEvaluate = vi.fn().mockResolvedValue([
-        {
-          url: "https://so-slatina.org/2026/01/test-post/",
-          title: "Valid Post with Year",
-          date: "",
-        },
-      ]);
-
-      const page = createMockPage(mockEvaluate) as any;
-      const posts = await extractPostLinks(page);
-
-      expect(posts).toHaveLength(1);
-      expect(posts[0].url).toMatch(/\/20\d{2}\//); // Contains /20XX/
+    it("returns empty array for empty feed", () => {
+      expect(
+        extractFeedItems(`<?xml version="1.0"?><rss><channel></channel></rss>`),
+      ).toHaveLength(0);
     });
   });
 
-  describe("extractPostDetails", () => {
-    it("should extract post details from article page", async () => {
-      const mockEvaluate = vi.fn().mockImplementation(() => {
-        return Promise.resolve({
-          title: "Test Article Title",
-          dateText: "15/01/2026 16:16",
-          contentHtml: "<p>Article content here.</p>",
-        });
-      });
-
-      const page = createMockPage(mockEvaluate) as any;
-      const details = await extractPostDetails(page);
-
-      expect(details.title).toBeTruthy();
-      expect(details.dateText).toMatch(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/); // DD/MM/YYYY HH:MM format
-      expect(details.contentHtml).toContain("<p>");
+  describe("mergePostDetails", () => {
+    it("overrides dateText with RSS date", () => {
+      const result = mergePostDetails(
+        {
+          title: "DOM title",
+          dateText: "15/06/2026 10:24",
+          contentHtml: "<p>body</p>",
+        },
+        { title: "RSS title", date: "2026-06-15T10:24:52.000Z" },
+      );
+      expect(result.dateText).toBe("2026-06-15T10:24:52.000Z");
     });
 
-    it("should handle posts with minimal content", async () => {
-      const mockEvaluate = vi.fn().mockResolvedValue({
-        title: "Short Post",
-        dateText: "15/01/2026 10:00",
-        contentHtml: "<p>Short content</p>",
-      });
-
-      const page = createMockPage(mockEvaluate) as any;
-      const details = await extractPostDetails(page);
-
-      expect(details.title).toBe("Short Post");
-      expect(details.dateText).toBe("15/01/2026 10:00");
-      expect(details.contentHtml).toBe("<p>Short content</p>");
-    });
-
-    it("should extract date in DD/MM/YYYY HH:MM format", async () => {
-      const mockEvaluate = vi.fn().mockResolvedValue({
-        title: "Test Post",
-        dateText: "23/01/2026 14:30",
-        contentHtml: "<p>Test content</p>",
-      });
-
-      const page = createMockPage(mockEvaluate) as any;
-      const details = await extractPostDetails(page);
-
-      expect(details.dateText).toBe("23/01/2026 14:30");
-      // Verify format matches expected pattern
-      expect(details.dateText).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
+    it("falls back to RSS title when DOM title is empty", () => {
+      const result = mergePostDetails(
+        { title: "", dateText: "", contentHtml: "" },
+        { title: "RSS title", date: "2026-06-15T10:24:52.000Z" },
+      );
+      expect(result.title).toBe("RSS title");
     });
   });
 });
