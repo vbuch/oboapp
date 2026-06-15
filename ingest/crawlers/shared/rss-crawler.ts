@@ -60,7 +60,7 @@ export async function crawlFullRss({
 
   const uniqueItems = deduplicate(feedItems);
 
-  logger.info("Fetched RSS feed", {
+  logger.debug("Fetched RSS feed", {
     sourceType,
     feedUrl,
     count: uniqueItems.length,
