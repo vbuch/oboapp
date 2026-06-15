@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { crawl } from "./index";
-import { parseInspectoratDate } from "./index";
+import { crawl, parseInspectoratDate } from "./index";
 import { extractPostDetails, extractPostLinks } from "./extractors";
 import {
   crawlWordpressPage,

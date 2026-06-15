@@ -65,11 +65,17 @@ const eslintConfig = [
 
       // Disallow commented-out code blocks
       "sonarjs/no-commented-code": "error",
+      "no-duplicate-imports": ["error", { allowSeparateTypeImports: true }],
     },
   },
   // Allow 'any' and type assertions in test files for mocking purposes
   {
-    files: ["**/*.test.ts", "**/*.test.tsx", "**/__tests__/**", "**/__mocks__/**"],
+    files: [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/__tests__/**",
+      "**/__mocks__/**",
+    ],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/consistent-type-assertions": "off",
