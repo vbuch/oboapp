@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { extractFeedItems } from "./extractors";
+import { describe, expect, it, vi } from "vitest";
+import { extractFeedItems, extractPostDetails } from "./extractors";
+import { SELECTORS } from "./selectors";
 
 const SAMPLE_RSS = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -34,6 +35,30 @@ describe("studentski-bg/extractors", () => {
       expect(
         extractFeedItems(`<?xml version="1.0"?><rss><channel></channel></rss>`),
       ).toHaveLength(0);
+    });
+  });
+
+  describe("extractPostDetails", () => {
+    it("extracts structured post details from the page", async () => {
+      const evaluate = vi.fn().mockResolvedValue({
+        title: "Page title",
+        dateText: "30.12.2025",
+        contentHtml: "<p>Body content</p>",
+      });
+
+      const page = {
+        evaluate,
+      } as unknown as Parameters<typeof extractPostDetails>[0];
+
+      const result = await extractPostDetails(page);
+
+      expect(result).toEqual({
+        title: "Page title",
+        dateText: "30.12.2025",
+        contentHtml: "<p>Body content</p>",
+      });
+      expect(evaluate).toHaveBeenCalledTimes(1);
+      expect(evaluate).toHaveBeenCalledWith(expect.any(Function), SELECTORS);
     });
   });
 });
