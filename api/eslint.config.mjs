@@ -14,7 +14,11 @@ const eslintConfig = [
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["vitest.config.ts", "eslint.config.mjs", "api/_handler.ts"],
+          allowDefaultProject: [
+            "vitest.config.ts",
+            "eslint.config.mjs",
+            "api/_handler.ts",
+          ],
         },
         tsconfigRootDir: __dirname,
       },
@@ -37,6 +41,7 @@ const eslintConfig = [
         { assertionStyle: "never" },
       ],
       "sonarjs/no-commented-code": "error",
+      "no-duplicate-imports": ["error", { allowSeparateTypeImports: true }],
     },
   },
   {

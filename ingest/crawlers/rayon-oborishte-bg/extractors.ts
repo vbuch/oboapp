@@ -4,7 +4,6 @@ import {
   stripWordPressFeedAttribution,
 } from "../shared/rss";
 import type { RssFeedItem } from "../shared/rss";
-import type { PostLink } from "./types";
 import { SELECTORS } from "./selectors";
 import { extractPostDetailsGeneric } from "../shared/extractors";
 
@@ -37,18 +36,4 @@ export async function extractPostDetails(
     ".navigation",
     ".post-navigation",
   ]);
-}
-
-/**
- * Merge page-extracted details with RSS metadata.
- */
-export function mergePostDetails(
-  extracted: { title: string; dateText: string; contentHtml: string },
-  rss: Pick<PostLink, "title" | "date">,
-): { title: string; dateText: string; contentHtml: string } {
-  return {
-    ...extracted,
-    dateText: rss.date,
-    title: extracted.title || rss.title,
-  };
 }

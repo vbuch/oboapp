@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fetchFeedXml,
+  mergePostDetails,
   parseRssFeedItems,
   stripWordPressFeedAttribution,
 } from "./rss";
@@ -67,19 +68,17 @@ describe("shared/rss", () => {
 
   it("strips WordPress feed attribution from the description", () => {
     const html =
-      "<p>Първи параграф</p><p>Материалът <a href=\"https://rayon-oborishte.bg/test\">Тест</a> е публикуван за пръв път на <a href=\"https://rayon-oborishte.bg\">СО Оборище</a>.</p>";
+      '<p>Първи параграф</p><p>Материалът <a href="https://rayon-oborishte.bg/test">Тест</a> е публикуван за пръв път на <a href="https://rayon-oborishte.bg">СО Оборище</a>.</p>';
 
     expect(stripWordPressFeedAttribution(html)).toBe("<p>Първи параграф</p>");
   });
 
   it("fetches and returns RSS xml", async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue({
-        ok: true,
-        status: 200,
-        text: async () => "<rss><channel></channel></rss>",
-      } as Response);
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => "<rss><channel></channel></rss>",
+    } as Response);
 
     const xml = await fetchFeedXml("https://example.com/feed");
 
@@ -95,16 +94,52 @@ describe("shared/rss", () => {
   });
 
   it("throws when response is not RSS-like", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      {
-        ok: true,
-        status: 200,
-        text: async () => "<html><body>Blocked</body></html>",
-      } as Response,
-    );
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => "<html><body>Blocked</body></html>",
+    } as Response);
 
     await expect(fetchFeedXml("https://example.com/feed")).rejects.toThrow(
       "RSS feed response does not look like RSS",
     );
+  });
+
+  describe("mergePostDetails", () => {
+    it("overrides dateText with RSS ISO date", () => {
+      const result = mergePostDetails(
+        {
+          title: "DOM title",
+          dateText: "15.06.2026",
+          contentHtml: "<p>body</p>",
+        },
+        { title: "RSS title", date: "2026-06-15T10:00:00.000Z" },
+      );
+      expect(result.dateText).toBe("2026-06-15T10:00:00.000Z");
+    });
+
+    it("uses DOM title when available", () => {
+      const result = mergePostDetails(
+        { title: "DOM title", dateText: "", contentHtml: "" },
+        { title: "RSS title", date: "2026-06-15T10:00:00.000Z" },
+      );
+      expect(result.title).toBe("DOM title");
+    });
+
+    it("falls back to RSS title when DOM title is empty", () => {
+      const result = mergePostDetails(
+        { title: "", dateText: "", contentHtml: "" },
+        { title: "RSS title", date: "2026-06-15T10:00:00.000Z" },
+      );
+      expect(result.title).toBe("RSS title");
+    });
+
+    it("preserves contentHtml unchanged", () => {
+      const result = mergePostDetails(
+        { title: "T", dateText: "old", contentHtml: "<p>body</p>" },
+        { title: "RSS", date: "2026-06-15T10:00:00.000Z" },
+      );
+      expect(result.contentHtml).toBe("<p>body</p>");
+    });
   });
 });

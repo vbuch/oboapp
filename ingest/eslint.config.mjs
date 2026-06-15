@@ -42,6 +42,7 @@ const eslintConfig = [
         { assertionStyle: "never" },
       ],
       "sonarjs/no-commented-code": "error",
+      "no-duplicate-imports": ["error", { allowSeparateTypeImports: true }],
     },
   },
   // Allow 'any' and type assertions in test files, mocks, and scripts for testing/utility purposes

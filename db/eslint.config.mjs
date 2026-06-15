@@ -37,6 +37,7 @@ const eslintConfig = [
         { assertionStyle: "never" },
       ],
       "sonarjs/no-commented-code": "error",
+      "no-duplicate-imports": ["error", { allowSeparateTypeImports: true }],
     },
   },
   {
