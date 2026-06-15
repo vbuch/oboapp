@@ -28,14 +28,3 @@ export async function extractPostDetails(
     ".navigation",
   ]);
 }
-
-export function mergePostDetails(
-  extracted: { title: string; dateText: string; contentHtml: string },
-  rss: Pick<RssFeedItem, "title" | "date">,
-): { title: string; dateText: string; contentHtml: string } {
-  return {
-    ...extracted,
-    dateText: rss.date,
-    title: extracted.title || rss.title,
-  };
-}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractFeedItems, mergePostDetails } from "./extractors";
+import { extractFeedItems } from "./extractors";
 
 const SAMPLE_RSS = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -34,28 +34,6 @@ describe("so-slatina-org/extractors", () => {
       expect(
         extractFeedItems(`<?xml version="1.0"?><rss><channel></channel></rss>`),
       ).toHaveLength(0);
-    });
-  });
-
-  describe("mergePostDetails", () => {
-    it("overrides dateText with RSS date", () => {
-      const result = mergePostDetails(
-        {
-          title: "DOM title",
-          dateText: "15/06/2026 10:24",
-          contentHtml: "<p>body</p>",
-        },
-        { title: "RSS title", date: "2026-06-15T10:24:52.000Z" },
-      );
-      expect(result.dateText).toBe("2026-06-15T10:24:52.000Z");
-    });
-
-    it("falls back to RSS title when DOM title is empty", () => {
-      const result = mergePostDetails(
-        { title: "", dateText: "", contentHtml: "" },
-        { title: "RSS title", date: "2026-06-15T10:24:52.000Z" },
-      );
-      expect(result.title).toBe("RSS title");
     });
   });
 });
