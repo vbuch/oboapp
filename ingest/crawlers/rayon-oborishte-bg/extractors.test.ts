@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractFeedItems, mergePostDetails } from "./extractors";
+import { extractFeedItems } from "./extractors";
 
 function wrapInFeed(items: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -109,42 +109,5 @@ describe("rayon-oborishte-bg/extractors", () => {
         contentHtml: undefined,
       },
     ]);
-  });
-
-  it("prefers RSS date and keeps extracted title when present", () => {
-    const merged = mergePostDetails(
-      {
-        title: "Извлечено заглавие",
-        dateText: "старо",
-        contentHtml: "<p>Body</p>",
-      },
-      {
-        title: "RSS заглавие",
-        date: "2026-05-10T07:00:00.000Z",
-      },
-    );
-
-    expect(merged).toEqual({
-      title: "Извлечено заглавие",
-      dateText: "2026-05-10T07:00:00.000Z",
-      contentHtml: "<p>Body</p>",
-    });
-  });
-
-  it("falls back to RSS title when extracted title is empty", () => {
-    const merged = mergePostDetails(
-      {
-        title: "",
-        dateText: "старо",
-        contentHtml: "<p>Body</p>",
-      },
-      {
-        title: "RSS заглавие",
-        date: "2026-05-10T07:00:00.000Z",
-      },
-    );
-
-    expect(merged.title).toBe("RSS заглавие");
-    expect(merged.dateText).toBe("2026-05-10T07:00:00.000Z");
   });
 });

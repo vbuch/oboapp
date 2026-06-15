@@ -144,3 +144,19 @@ export function parseRssFeedItems(
 
   return items;
 }
+
+/**
+ * Merge page-extracted post details with RSS feed metadata.
+ * The RSS date is always used (ISO format, bypasses locale-specific parsers).
+ * The extracted DOM title is preferred; falls back to the RSS title.
+ */
+export function mergePostDetails(
+  extracted: { title: string; dateText: string; contentHtml: string },
+  rss: Pick<RssFeedItem, "title" | "date">,
+): { title: string; dateText: string; contentHtml: string } {
+  return {
+    ...extracted,
+    dateText: rss.date,
+    title: extracted.title || rss.title,
+  };
+}
