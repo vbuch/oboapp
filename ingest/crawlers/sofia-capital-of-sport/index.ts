@@ -2,105 +2,154 @@
 
 import dotenv from "dotenv";
 import { resolve } from "node:path";
-import { Browser } from "playwright";
+import type { Browser } from "playwright";
 import type { OboDb } from "@oboapp/db";
-import { PostLink } from "./types";
-import { extractPostLinks, extractPostDetails } from "./extractors";
+import type { RssFeedItem } from "../shared/rss";
+import { fetchFeedXml } from "../shared/rss";
 import {
-  crawlWordpressPage,
-  processWordpressPost,
-} from "../shared/webpage-crawlers";
+  extractFeedItems,
+  extractPostDetails,
+  mergePostDetails,
+} from "./extractors";
+import { launchBrowser } from "../shared/browser";
+import { isUrlProcessed } from "../shared/firestore";
+import { processWordpressPost } from "../shared/webpage-crawlers";
 import { logger } from "@/lib/logger";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
-const INDEX_URL =
-  "https://sofia2018.bg/%D1%81%D1%8A%D0%B1%D0%B8%D1%82%D0%B8%D1%8F/";
+const FEED_URL =
+  "https://sofia2018.bg/category/%d0%bd%d0%be%d0%b2%d0%b8%d0%bd%d0%b8/feed/";
 const SOURCE_TYPE = "sofia-capital-of-sport";
 const LOCALITY = "bg.sofia";
 const DELAY_BETWEEN_REQUESTS = 2000;
 
-const BULGARIAN_MONTH_TO_INDEX: Record<string, number> = {
-  януари: 0,
-  февруари: 1,
-  март: 2,
-  април: 3,
-  май: 4,
-  юни: 5,
-  юли: 6,
-  август: 7,
-  септември: 8,
-  октомври: 9,
-  ноември: 10,
-  декември: 11,
-};
-
-function parseEventDate(dateText: string): string {
-  const normalized = dateText.toLowerCase().trim().replace(/\s+/g, " ");
-  const match = normalized.match(
-    /(януари|февруари|март|април|май|юни|юли|август|септември|октомври|ноември|декември)\s+(\d{1,2})/,
-  );
-
-  if (!match) {
-    logger.warn(
-      "Unable to parse Sofia Capital of Sport date, using current date",
-      {
-        sourceType: SOURCE_TYPE,
-        dateText,
-      },
-    );
-    return new Date().toISOString();
-  }
-
-  const [, monthName, dayStr] = match;
-  const monthIndex = BULGARIAN_MONTH_TO_INDEX[monthName];
-  const day = Number.parseInt(dayStr, 10);
-
-  if (monthIndex === undefined || Number.isNaN(day)) {
-    logger.warn(
-      "Invalid Sofia Capital of Sport date components, using current date",
-      {
-        sourceType: SOURCE_TYPE,
-        dateText,
-      },
-    );
-    return new Date().toISOString();
-  }
-
-  const year = new Date().getFullYear();
-  const parsed = new Date(Date.UTC(year, monthIndex, day));
-
-  if (Number.isNaN(parsed.getTime())) {
-    logger.warn("Invalid Sofia Capital of Sport date, using current date", {
-      sourceType: SOURCE_TYPE,
-      dateText,
-    });
-    return new Date().toISOString();
-  }
-
-  return parsed.toISOString();
-}
-
-const processPost = (browser: Browser, postLink: PostLink, db: OboDb) =>
+const processPost = (browser: Browser, item: RssFeedItem, db: OboDb) =>
   processWordpressPost(
     browser,
-    postLink,
+    item,
     db,
     SOURCE_TYPE,
     LOCALITY,
     DELAY_BETWEEN_REQUESTS,
-    extractPostDetails,
-    parseEventDate,
+    async (page) => mergePostDetails(await extractPostDetails(page), item),
+    (d) => d,
   );
 
 export async function crawl(): Promise<void> {
-  await crawlWordpressPage({
-    indexUrl: INDEX_URL,
-    sourceType: SOURCE_TYPE,
-    extractPostLinks,
-    processPost,
-    delayBetweenRequests: DELAY_BETWEEN_REQUESTS,
+  const { getDb } = await import("@/lib/db");
+  const db = await getDb();
+
+  logger.info("Starting crawler", { sourceType: SOURCE_TYPE });
+
+  let feedItems: RssFeedItem[];
+  try {
+    const xml = await fetchFeedXml(FEED_URL);
+    feedItems = extractFeedItems(xml);
+  } catch (error) {
+    logger.error("Failed to fetch or parse RSS feed", {
+      sourceType: SOURCE_TYPE,
+      feedUrl: FEED_URL,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+
+  if (feedItems.length === 0) {
+    logger.warn("No posts found in RSS feed", { sourceType: SOURCE_TYPE });
+    return;
+  }
+
+  const seen = new Set<string>();
+  const uniqueItems = feedItems.filter((item) => {
+    if (seen.has(item.url)) return false;
+    seen.add(item.url);
+    return true;
   });
+
+  logger.info("Fetched RSS feed", {
+    sourceType: SOURCE_TYPE,
+    feedUrl: FEED_URL,
+    count: uniqueItems.length,
+  });
+
+  const newItems = await filterUnprocessed(uniqueItems, db);
+  const skipped = uniqueItems.length - newItems.length;
+
+  if (newItems.length === 0) {
+    logger.info("Crawl complete", {
+      sourceType: SOURCE_TYPE,
+      total: uniqueItems.length,
+      saved: 0,
+      skipped,
+      failed: 0,
+    });
+    return;
+  }
+
+  const { saved, failed } = await processNewItems(newItems, db);
+
+  logger.info("Crawl complete", {
+    sourceType: SOURCE_TYPE,
+    total: uniqueItems.length,
+    saved,
+    skipped,
+    failed,
+  });
+}
+
+async function filterUnprocessed(
+  items: RssFeedItem[],
+  db: OboDb,
+): Promise<RssFeedItem[]> {
+  const newItems: RssFeedItem[] = [];
+  for (const item of items) {
+    let wasProcessed = false;
+    try {
+      wasProcessed = await isUrlProcessed(item.url, db);
+    } catch (error) {
+      logger.error(
+        "Failed to check existing URL state; skipping post to avoid duplicate writes",
+        {
+          sourceType: SOURCE_TYPE,
+          url: item.url,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+      wasProcessed = true;
+    }
+    if (!wasProcessed) newItems.push(item);
+  }
+  return newItems;
+}
+
+async function processNewItems(
+  items: RssFeedItem[],
+  db: OboDb,
+): Promise<{ saved: number; failed: number }> {
+  const browser = await launchBrowser();
+  let saved = 0;
+  let failed = 0;
+
+  try {
+    for (const item of items) {
+      try {
+        await processPost(browser, item, db);
+        saved++;
+      } catch (error) {
+        failed++;
+        logger.debug("Post processing failed", {
+          sourceType: SOURCE_TYPE,
+          url: item.url,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+
+  return { saved, failed };
 }
 
 if (require.main === module) {
