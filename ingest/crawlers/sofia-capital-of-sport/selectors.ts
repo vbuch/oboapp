@@ -10,8 +10,8 @@ export const SELECTORS = {
       ".tribe-events-calendar-list__event-date-tag-datetime, .tribe-event-date-start",
   },
   POST: {
-    TITLE: ".tribe-events-single-event-title, h1",
-    DATE: ".tribe-events-schedule .tribe-event-date-start, .tribe-events-start-date, .tribe-events-schedule time, .tribe-events-schedule",
-    CONTENT: ".tribe-events-single-event-description, .tribe-events-content",
+    TITLE: ".entry-header h1, h1",
+    DATE: ".entry-date, time.published, .post-date",
+    CONTENT: "article.post .entry-content",
   },
 } as const;
