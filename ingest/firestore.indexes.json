@@ -42,15 +42,6 @@
       ]
     },
     {
-      "collectionGroup": "messages",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "geoJson", "order": "ASCENDING" },
-        { "fieldPath": "finalizedAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "notificationMatches",
       "queryScope": "COLLECTION",
       "fields": [
