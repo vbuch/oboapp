@@ -15,6 +15,27 @@ import type {
   UpdateOperators,
 } from "./types";
 
+async function tryIncrementFieldAndGet(
+  client: DbClient,
+  collection: string,
+  id: string,
+  field: string,
+  amount: number,
+  setFields?: Record<string, unknown>,
+): Promise<number | null> {
+  const candidate: unknown = Reflect.get(client, "incrementFieldAndGet");
+  if (typeof candidate !== "function") {
+    return null;
+  }
+
+  const result = await candidate(collection, id, field, amount, setFields);
+  if (typeof result !== "number") {
+    throw new Error("incrementFieldAndGet must return a number");
+  }
+
+  return result;
+}
+
 export class DualWriteAdapter implements DbClient {
   private primary: DbClient;
   private secondary: DbClient;
@@ -49,10 +70,7 @@ export class DualWriteAdapter implements DbClient {
     return this.primary.findMany(collection, options);
   }
 
-  async count(
-    collection: string,
-    where?: WhereClause[],
-  ): Promise<number> {
+  async count(collection: string, where?: WhereClause[]): Promise<number> {
     return this.primary.count(collection, where);
   }
 
@@ -109,6 +127,53 @@ export class DualWriteAdapter implements DbClient {
     }
   }
 
+  async incrementFieldAndGet(
+    collection: string,
+    id: string,
+    field: string,
+    amount: number,
+    setFields?: Record<string, unknown>,
+  ): Promise<number> {
+    const value = await tryIncrementFieldAndGet(
+      this.primary,
+      collection,
+      id,
+      field,
+      amount,
+      setFields,
+    );
+
+    if (value === null) {
+      throw new Error("Primary adapter does not support incrementFieldAndGet");
+    }
+
+    try {
+      const mirroredValue = await tryIncrementFieldAndGet(
+        this.secondary,
+        collection,
+        id,
+        field,
+        amount,
+        setFields,
+      );
+      if (mirroredValue === null) {
+        await this.secondary.updateOne(collection, id, {
+          $inc: { [field]: amount },
+          ...(setFields && Object.keys(setFields).length > 0
+            ? { $set: setFields }
+            : {}),
+        });
+      }
+    } catch (err) {
+      console.error(
+        `[dual-write] Secondary incrementFieldAndGet failed for ${collection}/${id}:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+
+    return value;
+  }
+
   async deleteOne(collection: string, id: string): Promise<void> {
     await this.primary.deleteOne(collection, id);
     try {
@@ -121,10 +186,7 @@ export class DualWriteAdapter implements DbClient {
     }
   }
 
-  async deleteMany(
-    collection: string,
-    where: WhereClause[],
-  ): Promise<number> {
+  async deleteMany(collection: string, where: WhereClause[]): Promise<number> {
     const count = await this.primary.deleteMany(collection, where);
     try {
       await this.secondary.deleteMany(collection, where);

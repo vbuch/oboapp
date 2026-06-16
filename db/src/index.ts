@@ -21,6 +21,8 @@ import { NotificationSubscriptionsRepository } from "./collections/notification-
 import { GtfsStopsRepository } from "./collections/gtfs-stops";
 import { EducationalFacilitiesRepository } from "./collections/educational-facilities";
 import { ApiClientsRepository } from "./collections/api-clients";
+import { ApiRateLimitsMinuteRepository } from "./collections/api-rate-limits-minute";
+import { ApiUsageHourlyRepository } from "./collections/api-usage-hourly";
 import { UserPreferencesRepository } from "./collections/user-preferences";
 import { EventsRepository } from "./collections/events";
 import { EventMessagesRepository } from "./collections/event-messages";
@@ -47,6 +49,10 @@ export interface OboDb {
   educationalFacilities: EducationalFacilitiesRepository;
   /** Registered external API clients */
   apiClients: ApiClientsRepository;
+  /** Per-principal minute buckets for public API rate limiting */
+  apiRateLimitsMinute: ApiRateLimitsMinuteRepository;
+  /** Per-principal per-endpoint hourly public API usage counters */
+  apiUsageHourly: ApiUsageHourlyRepository;
   /** User preferences (notification filters, etc.) */
   userPreferences: UserPreferencesRepository;
   /** Aggregated real-world events */
@@ -86,6 +92,8 @@ function buildRepositories(client: DbClient): OboDb {
     gtfsStops: new GtfsStopsRepository(client),
     educationalFacilities: new EducationalFacilitiesRepository(client),
     apiClients: new ApiClientsRepository(client),
+    apiRateLimitsMinute: new ApiRateLimitsMinuteRepository(client),
+    apiUsageHourly: new ApiUsageHourlyRepository(client),
     userPreferences: new UserPreferencesRepository(client),
     events: new EventsRepository(client),
     eventMessages: new EventMessagesRepository(client),

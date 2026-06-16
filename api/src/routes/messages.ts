@@ -4,6 +4,8 @@ import { getDb } from "../lib/db";
 import type { WhereClause } from "@oboapp/db";
 import { recordToMessage } from "../lib/doc-to-message";
 import { apiKeyAuth } from "../middleware/api-key";
+import { rateLimit } from "../middleware/rate-limit";
+import { usageMetrics } from "../middleware/usage-metrics";
 import { messagesQuerySchema } from "../schema/query";
 import type { Message, GeoJsonFeature } from "../schema/contract";
 import {
@@ -153,7 +155,12 @@ async function findMessagesBySources(
   sources: string[],
   locality?: string,
 ): Promise<Message[]> {
-  const results = await findRecentMessageDocsBySources(db, cutoffDate, sources, locality);
+  const results = await findRecentMessageDocsBySources(
+    db,
+    cutoffDate,
+    sources,
+    locality,
+  );
   const messagesMap = new Map<string, Message>();
 
   for (const doc of results) {
@@ -265,10 +272,12 @@ async function buildCategoryQueryPlans(
 
   if (includeUncategorized) {
     plans.push(
-      findUncategorizedDocs(db, cutoffDate, sourceSet, locality).then((docs) => ({
-        uncategorizedOnly: true,
-        docs,
-      })),
+      findUncategorizedDocs(db, cutoffDate, sourceSet, locality).then(
+        (docs) => ({
+          uncategorizedOnly: true,
+          docs,
+        }),
+      ),
     );
   }
 
@@ -322,7 +331,10 @@ async function findMessagesByCategoryFilters(
 
       const docId = typeof doc._id === "string" ? doc._id : "";
       if (docId && !messagesMap.has(docId)) {
-        const message = tryRecordToMessage(doc, "findMessagesByCategoryFilters");
+        const message = tryRecordToMessage(
+          doc,
+          "findMessagesByCategoryFilters",
+        );
         if (message) {
           messagesMap.set(docId, message);
         }
@@ -421,95 +433,109 @@ function getValidatedSources(
 
 export const messagesRoute = new Hono();
 
-messagesRoute.get("/messages", apiKeyAuth, async (c) => {
-  try {
-    const db = await getDb();
+messagesRoute.get(
+  "/messages",
+  apiKeyAuth,
+  rateLimit,
+  usageMetrics,
+  async (c) => {
+    try {
+      const db = await getDb();
 
-    const parsed = messagesQuerySchema.safeParse(
-      Object.fromEntries(new URL(c.req.url).searchParams.entries()),
-    );
-
-    if (!parsed.success) {
-      return c.json({ error: "Invalid query parameters" }, 400);
-    }
-
-    const {
-      north,
-      south,
-      east,
-      west,
-      zoom,
-      categories: selectedCategories,
-      sources: selectedSources,
-      timespanEndGte,
-    } = parsed.data;
-
-    const viewportBounds = toViewportBounds({ north, south, east, west });
-    const cutoffDate = getCutoffDate(timespanEndGte);
-
-    if (selectedCategories && selectedCategories.length === 0) {
-      return c.json({ messages: [] });
-    }
-
-    // Build set of all known source IDs for validation
-    const locality = process.env.LOCALITY || "bg.sofia";
-    const allSourceIds = new Set(
-      SOURCES.filter((s) => s.localities.includes(locality)).map((s) => s.id),
-    );
-
-    const validatedSources = getValidatedSources(selectedSources, allSourceIds);
-
-    if (
-      selectedSources &&
-      selectedSources.length > 0 &&
-      validatedSources?.length === 0
-    ) {
-      return c.json({ messages: [] });
-    }
-
-    let allMessages: Message[];
-    const hasSourceFilter = validatedSources && validatedSources.length > 0;
-    const hasCategoryFilter =
-      selectedCategories && selectedCategories.length > 0;
-
-    if (hasCategoryFilter) {
-      const sourceSet = hasSourceFilter ? new Set(validatedSources) : undefined;
-      allMessages = await findMessagesByCategoryFilters(
-        db,
-        cutoffDate,
-        selectedCategories,
-        sourceSet,
-        locality,
+      const parsed = messagesQuerySchema.safeParse(
+        Object.fromEntries(new URL(c.req.url).searchParams.entries()),
       );
-    } else if (hasSourceFilter) {
-      allMessages = await findMessagesBySources(
-        db,
-        cutoffDate,
-        validatedSources,
-        locality,
+
+      if (!parsed.success) {
+        return c.json({ error: "Invalid query parameters" }, 400);
+      }
+
+      const {
+        north,
+        south,
+        east,
+        west,
+        zoom,
+        categories: selectedCategories,
+        sources: selectedSources,
+        timespanEndGte,
+      } = parsed.data;
+
+      const viewportBounds = toViewportBounds({ north, south, east, west });
+      const cutoffDate = getCutoffDate(timespanEndGte);
+
+      if (selectedCategories && selectedCategories.length === 0) {
+        return c.json({ messages: [] });
+      }
+
+      // Build set of all known source IDs for validation
+      const locality = process.env.LOCALITY || "bg.sofia";
+      const allSourceIds = new Set(
+        SOURCES.filter((s) => s.localities.includes(locality)).map((s) => s.id),
       );
-    } else {
-      const where: WhereClause[] = [
-        { field: "timespanEnd", op: ">=", value: cutoffDate },
-      ];
-      where.push({ field: "locality", op: "==", value: locality });
-      const docs = await db.messages.findMany({
-        where,
-        orderBy: [{ field: "timespanEnd", direction: "desc" }],
-      });
 
-      allMessages = docs
-        .map((doc) => tryRecordToMessage(doc, "messagesRoute.defaultQuery"))
-        .filter((message): message is Message => message !== null);
+      const validatedSources = getValidatedSources(
+        selectedSources,
+        allSourceIds,
+      );
+
+      if (
+        selectedSources &&
+        selectedSources.length > 0 &&
+        validatedSources?.length === 0
+      ) {
+        return c.json({ messages: [] });
+      }
+
+      let allMessages: Message[];
+      const hasSourceFilter = validatedSources && validatedSources.length > 0;
+      const hasCategoryFilter =
+        selectedCategories && selectedCategories.length > 0;
+
+      if (hasCategoryFilter) {
+        const sourceSet = hasSourceFilter
+          ? new Set(validatedSources)
+          : undefined;
+        allMessages = await findMessagesByCategoryFilters(
+          db,
+          cutoffDate,
+          selectedCategories,
+          sourceSet,
+          locality,
+        );
+      } else if (hasSourceFilter) {
+        allMessages = await findMessagesBySources(
+          db,
+          cutoffDate,
+          validatedSources,
+          locality,
+        );
+      } else {
+        const where: WhereClause[] = [
+          { field: "timespanEnd", op: ">=", value: cutoffDate },
+        ];
+        where.push({ field: "locality", op: "==", value: locality });
+        const docs = await db.messages.findMany({
+          where,
+          orderBy: [{ field: "timespanEnd", direction: "desc" }],
+        });
+
+        allMessages = docs
+          .map((doc) => tryRecordToMessage(doc, "messagesRoute.defaultQuery"))
+          .filter((message): message is Message => message !== null);
+      }
+
+      let messages = filterMessagesByGeoAndViewport(
+        allMessages,
+        viewportBounds,
+      );
+      messages = simplifyMessagesForClusterZoom(messages, zoom);
+      messages = sortMessagesByRelevance(messages);
+
+      return c.json({ messages });
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      return c.json({ error: "Failed to fetch messages" }, 500);
     }
-
-    let messages = filterMessagesByGeoAndViewport(allMessages, viewportBounds);
-    messages = simplifyMessagesForClusterZoom(messages, zoom);
-    messages = sortMessagesByRelevance(messages);
-
-    return c.json({ messages });
-  } catch (error) {
-    console.error("Error fetching messages:", error);
-    return c.json({ error: "Failed to fetch messages" }, 500);
-  }
-});
+  },
+);

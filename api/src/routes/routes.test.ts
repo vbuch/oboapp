@@ -12,12 +12,123 @@ process.env.LOCALITY = "bg.sofia";
 
 const API_KEY_HEADER = { "x-api-key": "test-api-key" };
 
+beforeEach(async () => {
+  const { getDb } = await import("@/lib/db");
+  vi.mocked(getDb).mockReset();
+  delete process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE;
+});
+
+function createRateLimitMocks(counts: number[]) {
+  let index = 0;
+  const apiRateLimitsMinute = {
+    incrementAndGetCount: vi.fn().mockImplementation(async () => {
+      const value = counts[Math.min(index, counts.length - 1)];
+      index += 1;
+      return value;
+    }),
+  };
+
+  const apiUsageHourly = {
+    increment: vi.fn().mockResolvedValue(undefined),
+  };
+
+  return { apiRateLimitsMinute, apiUsageHourly };
+}
+
 describe("GET /health", () => {
   it("returns ok", async () => {
     const res = await app.request("/health");
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({ status: "ok" });
+  });
+});
+
+describe("rate limit headers", () => {
+  beforeEach(async () => {
+    const { getDb } = await import("@/lib/db");
+    const mockedGetDb = vi.mocked(getDb);
+    const { apiRateLimitsMinute, apiUsageHourly } = createRateLimitMocks([1]);
+
+    mockedGetDb.mockResolvedValue({
+      apiRateLimitsMinute,
+      apiUsageHourly,
+    } as any);
+    process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE = "60";
+  });
+
+  it("returns X-RateLimit headers on protected 2xx responses", async () => {
+    const res = await app.request("/v1/sources", {
+      headers: API_KEY_HEADER,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-ratelimit-limit")).toBe("60");
+    expect(res.headers.get("x-ratelimit-remaining")).toBe("59");
+    expect(res.headers.get("retry-after")).toBeNull();
+  });
+
+  it("does not return rate-limit headers on non-429 4xx", async () => {
+    const res = await app.request("/v1/messages/by-id", {
+      headers: API_KEY_HEADER,
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.headers.get("x-ratelimit-limit")).toBeNull();
+    expect(res.headers.get("x-ratelimit-remaining")).toBeNull();
+    expect(res.headers.get("retry-after")).toBeNull();
+  });
+
+  it("returns 429 with X-RateLimit headers and Retry-After", async () => {
+    const { getDb } = await import("@/lib/db");
+    const mockedGetDb = vi.mocked(getDb);
+    const { apiRateLimitsMinute, apiUsageHourly } = createRateLimitMocks([
+      1, 2,
+    ]);
+
+    mockedGetDb.mockResolvedValue({
+      apiRateLimitsMinute,
+      apiUsageHourly,
+    } as any);
+    process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE = "1";
+
+    const first = await app.request("/v1/sources", {
+      headers: API_KEY_HEADER,
+    });
+    expect(first.status).toBe(200);
+
+    const second = await app.request("/v1/sources", {
+      headers: API_KEY_HEADER,
+    });
+    expect(second.status).toBe(429);
+    expect(second.headers.get("x-ratelimit-limit")).toBe("1");
+    expect(second.headers.get("x-ratelimit-remaining")).toBe("0");
+
+    const retryAfter = second.headers.get("retry-after");
+    expect(retryAfter).not.toBeNull();
+    expect(Number.parseInt(retryAfter ?? "0", 10)).toBeGreaterThan(0);
+  });
+
+  it("disables rate limiting when env var is missing", async () => {
+    const { getDb } = await import("@/lib/db");
+    const mockedGetDb = vi.mocked(getDb);
+    const { apiRateLimitsMinute, apiUsageHourly } = createRateLimitMocks([999]);
+
+    mockedGetDb.mockResolvedValue({
+      apiRateLimitsMinute,
+      apiUsageHourly,
+    } as any);
+    delete process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE;
+
+    const res = await app.request("/v1/sources", {
+      headers: API_KEY_HEADER,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-ratelimit-limit")).toBeNull();
+    expect(res.headers.get("x-ratelimit-remaining")).toBeNull();
+    expect(res.headers.get("retry-after")).toBeNull();
+    expect(apiRateLimitsMinute.incrementAndGetCount).not.toHaveBeenCalled();
   });
 });
 
@@ -45,7 +156,6 @@ describe("GET /v1/sources", () => {
 });
 
 describe("GET /v1/messages", () => {
-
   it("returns 401 without API key", async () => {
     const res = await app.request("/v1/messages");
     expect(res.status).toBe(401);
@@ -153,8 +263,14 @@ describe("GET /v1/messages", () => {
     expect(res.status).toBe(200);
     const body: any = await res.json();
     expect(body.messages).toHaveLength(1);
-    expect(body.messages[0]).toHaveProperty("timespanStart", endDate.toISOString());
-    expect(body.messages[0]).toHaveProperty("timespanEnd", endDate.toISOString());
+    expect(body.messages[0]).toHaveProperty(
+      "timespanStart",
+      endDate.toISOString(),
+    );
+    expect(body.messages[0]).toHaveProperty(
+      "timespanEnd",
+      endDate.toISOString(),
+    );
   });
 
   it("backfills missing timespanStart and timespanEnd from finalizedAt", async () => {
@@ -202,8 +318,14 @@ describe("GET /v1/messages", () => {
     expect(res.status).toBe(200);
     const body: any = await res.json();
     expect(body.messages).toHaveLength(1);
-    expect(body.messages[0]).toHaveProperty("timespanStart", finalizedAt.toISOString());
-    expect(body.messages[0]).toHaveProperty("timespanEnd", finalizedAt.toISOString());
+    expect(body.messages[0]).toHaveProperty(
+      "timespanStart",
+      finalizedAt.toISOString(),
+    );
+    expect(body.messages[0]).toHaveProperty(
+      "timespanEnd",
+      finalizedAt.toISOString(),
+    );
   });
 
   it("skips malformed records instead of failing the whole response", async () => {
