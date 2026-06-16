@@ -155,6 +155,14 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
     options: { name: "apiKey", unique: true },
   },
 
+  // --- apiUsageHourly ---
+  // Used by ingest/scripts/report-api-usage.ts to filter and sort by periodStart.
+  {
+    collection: "apiUsageHourly",
+    spec: { periodStart: -1 },
+    options: { name: "periodStart_desc" },
+  },
+
   // --- events ---
   {
     collection: "events",

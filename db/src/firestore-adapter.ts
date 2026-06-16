@@ -28,7 +28,7 @@ const OP_MAP: Record<WhereClause["op"], FirebaseFirestore.WhereFilterOp> = {
   "<=": "<=",
   ">": ">",
   ">=": ">=",
-  "in": "in",
+  in: "in",
   "array-contains": "array-contains",
   "array-contains-any": "array-contains-any",
   "not-in": "not-in",
@@ -155,14 +155,50 @@ export class FirestoreAdapter implements DbClient {
     }
   }
 
+  async incrementFieldAndGet(
+    collection: string,
+    id: string,
+    field: string,
+    amount: number,
+    setFields?: Record<string, unknown>,
+  ): Promise<number> {
+    const docRef = this.db.collection(collection).doc(id);
+
+    return this.db.runTransaction(async (tx) => {
+      const snapshot = await tx.get(docRef);
+      if (!snapshot.exists) {
+        throw new Error(
+          `Cannot increment missing document: ${collection}/${id}`,
+        );
+      }
+
+      const data = snapshot.data() ?? {};
+      const current = data[field];
+      if (typeof current !== "number") {
+        throw new Error(
+          `Atomic increment requires numeric field ${collection}/${id}.${field}`,
+        );
+      }
+
+      const next = current + amount;
+      const transformedSetFields = setFields
+        ? transformForFirestoreWrite(collection, setFields)
+        : undefined;
+
+      tx.update(docRef, {
+        [field]: next,
+        ...(transformedSetFields ?? {}),
+      });
+
+      return next;
+    });
+  }
+
   async deleteOne(collection: string, id: string): Promise<void> {
     await this.db.collection(collection).doc(id).delete();
   }
 
-  async deleteMany(
-    collection: string,
-    where: WhereClause[],
-  ): Promise<number> {
+  async deleteMany(collection: string, where: WhereClause[]): Promise<number> {
     let query: Query = this.db.collection(collection);
     for (const clause of where) {
       query = query.where(clause.field, OP_MAP[clause.op], clause.value);
@@ -228,10 +264,7 @@ export class FirestoreAdapter implements DbClient {
     }
   }
 
-  async count(
-    collection: string,
-    where?: WhereClause[],
-  ): Promise<number> {
+  async count(collection: string, where?: WhereClause[]): Promise<number> {
     let query: Query = this.db.collection(collection);
     if (where) {
       for (const clause of where) {

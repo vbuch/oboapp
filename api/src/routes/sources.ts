@@ -1,13 +1,18 @@
 import { Hono } from "hono";
 import { SOURCES } from "@oboapp/shared";
 import { apiKeyAuth } from "../middleware/api-key";
+import { rateLimit } from "../middleware/rate-limit";
+import { usageMetrics } from "../middleware/usage-metrics";
 
 export const sourcesRoute = new Hono();
 
-sourcesRoute.get("/sources", apiKeyAuth, (c) => {
+sourcesRoute.get("/sources", apiKeyAuth, rateLimit, usageMetrics, (c) => {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.BASE_URL;
   if (!baseUrl) {
-    return c.json({ error: "NEXT_PUBLIC_BASE_URL or BASE_URL is required" }, 500);
+    return c.json(
+      { error: "NEXT_PUBLIC_BASE_URL or BASE_URL is required" },
+      500,
+    );
   }
   const locality = process.env.LOCALITY || "bg.sofia";
 

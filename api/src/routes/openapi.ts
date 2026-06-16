@@ -4,7 +4,7 @@ import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
 } from "@asteasolutions/zod-to-openapi";
-import type { OpenAPIObject } from "openapi3-ts/oas30";
+import type { HeaderObject, OpenAPIObject } from "openapi3-ts/oas30";
 import {
   MessageSchema,
   SourceSchema,
@@ -40,6 +40,22 @@ const sortOpenApiDocument = (document: OpenAPIObject): OpenAPIObject => ({
 
 function buildOpenApiSpec(): OpenAPIObject {
   const registry = new OpenAPIRegistry();
+
+  const rateLimitLimitHeader: HeaderObject = {
+    description:
+      "Configured maximum requests per minute for the API key when PUBLIC_API_RATE_LIMIT_PER_MINUTE is set.",
+    schema: { type: "integer", minimum: 0, example: 60 as const },
+  };
+  const rateLimitRemainingHeader: HeaderObject = {
+    description:
+      "Remaining requests in the current minute window for the API key when rate limiting is enabled.",
+    schema: { type: "integer", minimum: 0, example: 42 as const },
+  };
+  const retryAfterHeader: HeaderObject = {
+    description:
+      "Seconds until the next request window. Returned only with 429 responses when rate limiting is enabled.",
+    schema: { type: "integer", minimum: 0, example: 12 as const },
+  };
 
   registry.registerComponent("securitySchemes", "ApiKeyAuth", {
     type: "apiKey",
@@ -77,6 +93,19 @@ function buildOpenApiSpec(): OpenAPIObject {
       200: {
         description: "Sources response",
         content: { "application/json": { schema: sourcesResponse } },
+        headers: {
+          "X-RateLimit-Limit": rateLimitLimitHeader,
+          "X-RateLimit-Remaining": rateLimitRemainingHeader,
+        },
+      },
+      429: {
+        description: "Rate limit exceeded (only when rate limiting is enabled)",
+        content: { "application/json": { schema: errorResponse } },
+        headers: {
+          "X-RateLimit-Limit": rateLimitLimitHeader,
+          "X-RateLimit-Remaining": rateLimitRemainingHeader,
+          "Retry-After": retryAfterHeader,
+        },
       },
       401: {
         description: "Invalid or missing API key",
@@ -111,6 +140,19 @@ function buildOpenApiSpec(): OpenAPIObject {
       200: {
         description: "Messages response",
         content: { "application/json": { schema: messagesResponse } },
+        headers: {
+          "X-RateLimit-Limit": rateLimitLimitHeader,
+          "X-RateLimit-Remaining": rateLimitRemainingHeader,
+        },
+      },
+      429: {
+        description: "Rate limit exceeded (only when rate limiting is enabled)",
+        content: { "application/json": { schema: errorResponse } },
+        headers: {
+          "X-RateLimit-Limit": rateLimitLimitHeader,
+          "X-RateLimit-Remaining": rateLimitRemainingHeader,
+          "Retry-After": retryAfterHeader,
+        },
       },
       400: {
         description: "Invalid query parameters",
@@ -141,6 +183,19 @@ function buildOpenApiSpec(): OpenAPIObject {
       200: {
         description: "Message response",
         content: { "application/json": { schema: messageResponse } },
+        headers: {
+          "X-RateLimit-Limit": rateLimitLimitHeader,
+          "X-RateLimit-Remaining": rateLimitRemainingHeader,
+        },
+      },
+      429: {
+        description: "Rate limit exceeded (only when rate limiting is enabled)",
+        content: { "application/json": { schema: errorResponse } },
+        headers: {
+          "X-RateLimit-Limit": rateLimitLimitHeader,
+          "X-RateLimit-Remaining": rateLimitRemainingHeader,
+          "Retry-After": retryAfterHeader,
+        },
       },
       400: {
         description: "Missing or invalid id parameter",
