@@ -4,6 +4,15 @@ import { getDb } from "../lib/db";
 
 let cachedEnvKeys: Set<string> | null = null;
 
+// Negative cache: fingerprint → timestamp of first rejection (ms)
+const negativeCacheMs = new Map<string, number>();
+
+function getNegativeCacheTtlMs(): number {
+  const raw = process.env.PUBLIC_API_NEGATIVE_CACHE_TTL_S;
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return (Number.isFinite(parsed) && parsed > 0 ? parsed : 300) * 1000;
+}
+
 function getEnvKeys(): Set<string> {
   if (cachedEnvKeys) return cachedEnvKeys;
   const apiKeys = process.env.PUBLIC_API_KEYS ?? "";
@@ -59,10 +68,21 @@ async function validateApiKey(key: string): Promise<ApiPrincipal | null> {
     };
   }
 
+  // Negative cache: skip Firestore for recently-rejected keys
+  const fingerprint = fingerprintApiKey(normalizedKey);
+  const rejectedAt = negativeCacheMs.get(fingerprint);
+  if (
+    rejectedAt !== undefined &&
+    Date.now() - rejectedAt < getNegativeCacheTtlMs()
+  ) {
+    return null;
+  }
+
   // DB path: look up the key in the apiClients collection
   const db = await getDb();
   const client = await db.apiClients.findByApiKey(normalizedKey);
   if (!client) {
+    negativeCacheMs.set(fingerprint, Date.now());
     return null;
   }
 
