@@ -136,9 +136,7 @@ export class MongoAdapter implements DbClient {
     collection: string,
     id: string,
   ): Promise<Record<string, unknown> | null> {
-    const doc = await this.db
-      .collection(collection)
-      .findOne(idFilter(id));
+    const doc = await this.db.collection(collection).findOne(idFilter(id));
     if (!doc) return null;
     const result: Record<string, unknown> = { ...doc, _id: String(doc._id) };
     return result;
@@ -185,9 +183,7 @@ export class MongoAdapter implements DbClient {
     const doc: OptionalUnlessRequiredId<Document> = id
       ? withId(data, id)
       : { ...data };
-    const result = await this.db
-      .collection(collection)
-      .insertOne(doc);
+    const result = await this.db.collection(collection).insertOne(doc);
     return String(result.insertedId);
   }
 
@@ -198,9 +194,7 @@ export class MongoAdapter implements DbClient {
   ): Promise<string> {
     try {
       const doc = withId(data, id);
-      await this.db
-        .collection(collection)
-        .insertOne(doc);
+      await this.db.collection(collection).insertOne(doc);
       return id;
     } catch (err) {
       if (err instanceof MongoServerError && err.code === DUPLICATE_KEY_ERROR) {
@@ -240,10 +234,39 @@ export class MongoAdapter implements DbClient {
     }
   }
 
+  async incrementFieldAndGet(
+    collection: string,
+    id: string,
+    field: string,
+    amount: number,
+    setFields?: Record<string, unknown>,
+  ): Promise<number> {
+    const result = await this.db.collection(collection).findOneAndUpdate(
+      idFilter(id),
+      {
+        $inc: { [field]: amount },
+        ...(setFields && Object.keys(setFields).length > 0
+          ? { $set: setFields }
+          : {}),
+      },
+      {
+        returnDocument: "after",
+        projection: { [field]: 1 },
+      },
+    );
+
+    const value = result?.[field];
+    if (typeof value !== "number") {
+      throw new Error(
+        `Atomic increment failed to produce numeric value for ${collection}/${id}.${field}`,
+      );
+    }
+
+    return value;
+  }
+
   async deleteOne(collection: string, id: string): Promise<void> {
-    await this.db
-      .collection(collection)
-      .deleteOne(idFilter(id));
+    await this.db.collection(collection).deleteOne(idFilter(id));
   }
 
   async deleteMany(collection: string, where: WhereClause[]): Promise<number> {

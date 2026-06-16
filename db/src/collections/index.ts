@@ -1,6 +1,14 @@
 export { MessagesRepository, MESSAGES_COLLECTION } from "./messages";
 export { SourcesRepository, SOURCES_COLLECTION } from "./sources";
 export { ApiClientsRepository, API_CLIENTS_COLLECTION } from "./api-clients";
+export {
+  ApiRateLimitsMinuteRepository,
+  API_RATE_LIMITS_MINUTE_COLLECTION,
+} from "./api-rate-limits-minute";
+export {
+  ApiUsageHourlyRepository,
+  API_USAGE_HOURLY_COLLECTION,
+} from "./api-usage-hourly";
 export { EventsRepository, EVENTS_COLLECTION } from "./events";
 export {
   EventMessagesRepository,

@@ -30,6 +30,30 @@ X-Api-Key: obo_abc123...
 
 Missing or invalid keys receive a `401 Unauthorized` response.
 
+## Rate Limiting
+
+Rate limiting is optional and controlled by the `PUBLIC_API_RATE_LIMIT_PER_MINUTE` environment variable.
+
+- Disabled by default: when the variable is missing or invalid, requests are not rate-limited
+- Enabled mode: set `PUBLIC_API_RATE_LIMIT_PER_MINUTE` to a positive integer (for example `60`)
+- Scope: shared across protected data endpoints
+- Throttled response: `429 Too Many Requests` (only when rate limiting is enabled)
+
+When rate limiting is enabled and a request is allowed (`2xx`), response headers include:
+
+- `X-RateLimit-Limit`: minute limit for the key
+- `X-RateLimit-Remaining`: remaining requests in the current minute window
+
+When a request is throttled (`429`), response headers include:
+
+- `X-RateLimit-Limit`
+- `X-RateLimit-Remaining`
+- `Retry-After`: seconds until the next minute window
+
+For non-throttled `4xx/5xx` responses, rate-limit headers are not included.
+
+OboApp also records internal hourly usage counters per key and endpoint for operations monitoring.
+
 ## Getting an API Key
 
 Registered OboApp users can generate and revoke their own API key from the **Settings** page (under "Публичен API достъп"). Each user can hold at most one active key.
