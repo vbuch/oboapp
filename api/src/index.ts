@@ -9,6 +9,8 @@ initSentry();
 
 const app = new Hono();
 
+app.get("/", (c) => c.redirect("/v1/docs", 302));
+
 // Health check
 app.get("/health", (c) => c.json({ status: "ok" }));
 

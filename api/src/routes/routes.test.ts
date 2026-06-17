@@ -164,31 +164,32 @@ describe("GET /v1/messages", () => {
   it("returns messages with valid API key", async () => {
     const { getDb } = await import("@/lib/db");
     const mockedGetDb = vi.mocked(getDb);
+    const findMany = vi.fn().mockResolvedValue([
+      {
+        _id: "msg1",
+        text: "Test message",
+        createdAt: new Date("2025-01-01"),
+        locality: "bg.sofia",
+        source: "sofia-bg",
+        geoJson: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: {
+                type: "Point",
+                coordinates: [23.32, 42.69],
+              },
+              properties: {},
+            },
+          ],
+        },
+        timespanEnd: new Date("2099-12-31"),
+      },
+    ]);
     mockedGetDb.mockResolvedValue({
       messages: {
-        findMany: vi.fn().mockResolvedValue([
-          {
-            _id: "msg1",
-            text: "Test message",
-            createdAt: new Date("2025-01-01"),
-            locality: "bg.sofia",
-            source: "sofia-bg",
-            geoJson: {
-              type: "FeatureCollection",
-              features: [
-                {
-                  type: "Feature",
-                  geometry: {
-                    type: "Point",
-                    coordinates: [23.32, 42.69],
-                  },
-                  properties: {},
-                },
-              ],
-            },
-            timespanEnd: new Date("2099-12-31"),
-          },
-        ]),
+        findMany,
         findById: vi.fn(),
         findBySourceDocumentIds: vi.fn(),
       },
@@ -207,6 +208,13 @@ describe("GET /v1/messages", () => {
     expect(body.messages[0]).toHaveProperty("id", "msg1");
     expect(body.messages[0]).toHaveProperty("text", "Test message");
     expect(body.messages[0]).toHaveProperty("geoJson");
+    expect(findMany).toHaveBeenCalledWith({
+      where: [
+        { field: "timespanEnd", op: ">=", value: expect.any(Date) },
+        { field: "locality", op: "==", value: "bg.sofia" },
+      ],
+      orderBy: [{ field: "timespanEnd", direction: "desc" }],
+    });
   });
 
   it("returns empty messages when categories param is empty", async () => {
@@ -483,6 +491,16 @@ describe("GET /v1/docs", () => {
     const html = await res.text();
     expect(html).toContain("<!DOCTYPE html>");
     expect(html).toContain("api-reference");
+  });
+});
+
+describe("GET /", () => {
+  it("redirects to docs", async () => {
+    const res = await app.request("/", undefined, undefined, {
+      redirect: "manual",
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/v1/docs");
   });
 });
 
