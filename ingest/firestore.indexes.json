@@ -12,7 +12,33 @@
       "collectionGroup": "messages",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "locality", "order": "ASCENDING" },
+        { "fieldPath": "timespanEnd", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "messages",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "categories", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "timespanEnd", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "categories", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "locality", "order": "ASCENDING" },
+        { "fieldPath": "timespanEnd", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "source", "order": "ASCENDING" },
+        { "fieldPath": "locality", "order": "ASCENDING" },
         { "fieldPath": "timespanEnd", "order": "DESCENDING" }
       ]
     },
