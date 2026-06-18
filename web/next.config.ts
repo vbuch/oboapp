@@ -26,18 +26,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // 308 redirect /api/v1/* → api.oboapp.online/v1/* (issue #259)
-  async redirects() {
-    const apiHost = process.env.PUBLIC_API_HOST?.replace(/\/+$/, "");
-    if (!apiHost) return [];
-    return [
-      {
-        source: "/api/v1/:path*",
-        destination: `${apiHost}/v1/:path*`,
-        permanent: true,
-      },
-    ];
-  },
   // Production optimizations
   compiler: {
     // Remove debug console logs in production, keep error/warn for monitoring
