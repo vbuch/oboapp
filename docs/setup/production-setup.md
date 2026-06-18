@@ -147,6 +147,10 @@ NEXT_PUBLIC_FIREBASE_VAPID_KEY=your_vapid_key
 # Base URL (production)
 NEXT_PUBLIC_BASE_URL=https://yourdomain.com
 
+# Public API host (required to support legacy /api/v1 redirects from web)
+# If unset, web starts but /api/v1 requests return 500.
+PUBLIC_API_HOST=https://api.yourdomain.com
+
 # Keep emulators disabled
 # NEXT_PUBLIC_USE_FIREBASE_EMULATORS=false
 ```
