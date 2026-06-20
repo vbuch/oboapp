@@ -26,8 +26,6 @@ import { ApiUsageHourlyRepository } from "./collections/api-usage-hourly";
 import { UserPreferencesRepository } from "./collections/user-preferences";
 import { EventsRepository } from "./collections/events";
 import { EventMessagesRepository } from "./collections/event-messages";
-import { GeocodeCachePinsRepository } from "./collections/geocode-cache-pins";
-import { GeocodeCacheStreetsRepository } from "./collections/geocode-cache-streets";
 
 /** High-level database interface with typed collection repositories */
 export interface OboDb {

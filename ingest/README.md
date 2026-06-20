@@ -51,12 +51,6 @@ pnpm pipeline:emergent
 
 # Run full pipeline (all crawlers + ingest + notify)
 pnpm pipeline:all
-
-# Generate geocoding frequency report (uploads to GCS)
-pnpm geocode-cache:report
-
-# Pre-cache a geocoded address/street from an existing message
-pnpm geocode-cache:add --message <id> --address "..." --type pin|street
 ```
 
 ## Pipeline Schedules
