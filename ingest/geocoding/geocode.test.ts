@@ -7,7 +7,12 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { geocode } from "./geocode";
-import type { GeocodingContext, GeocodingProviders, PinResult, StreetResult } from "./interfaces";
+import type {
+  GeocodingContext,
+  GeocodingProviders,
+  PinResult,
+  StreetResult,
+} from "./interfaces";
 
 // Mock providers for testing the provider chain
 class MockPinGeocoder1 {
@@ -56,7 +61,12 @@ describe("geocoding system integration", () => {
     context = {
       locality: "sofia",
       extractedLocations: {
-        pins: [{ address: "ул. Оборище №1", timespans: [{ start: null, end: null }] }],
+        pins: [
+          {
+            address: "ул. Оборище №1",
+            timespans: [{ start: null, end: null }],
+          },
+        ],
         streets: [],
         cadastralProperties: [],
         busStops: [],

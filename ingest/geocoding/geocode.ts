@@ -205,7 +205,10 @@ async function geocodeStreets(
 
   for (const street of streets) {
     for (const provider of providers.street) {
-      const result = await provider.geocodeStreet({ location: street, context });
+      const result = await provider.geocodeStreet({
+        location: street,
+        context,
+      });
       if (result) {
         const key = `${street.street}|${street.from}|${street.to}`;
         results.set(key, result);
@@ -242,7 +245,10 @@ async function geocodeCadastral(
 
   for (const property of properties) {
     for (const provider of providers.cadastral) {
-      const result = await provider.geocodeCadastral({ location: property, context });
+      const result = await provider.geocodeCadastral({
+        location: property,
+        context,
+      });
       if (result) {
         results.set(property.identifier, result);
         break;
@@ -281,7 +287,10 @@ async function geocodeBusStops(
 
   for (const stopCode of stopCodes) {
     for (const provider of providers.busStop) {
-      const result = await provider.geocodeBusStop({ location: stopCode, context });
+      const result = await provider.geocodeBusStop({
+        location: stopCode,
+        context,
+      });
       if (result) {
         results.set(stopCode, result);
         break;
@@ -323,7 +332,10 @@ async function geocodeEducationalFacilities(
   for (const facility of facilities) {
     const facilityKey = `${facility.type}_${facility.number}`;
     for (const provider of providers.educationalFacility) {
-      const result = await provider.geocodeEducationalFacility({ location: facility, context });
+      const result = await provider.geocodeEducationalFacility({
+        location: facility,
+        context,
+      });
       if (result) {
         results.set(facilityKey, result);
         break;

@@ -4,7 +4,7 @@ import type {
   GeocodingContext,
 } from "../interfaces";
 import type { CadastralProperty } from "@/lib/types";
-import { geocodeCadastralProperties } from "../cadastre/service";
+import { geocodeCadastralProperties } from "./service";
 
 export class CadastreGeocoder implements CadastralGeocoder {
   async geocodeCadastral(args: {
@@ -20,9 +20,5 @@ export class CadastreGeocoder implements CadastralGeocoder {
     }
 
     return { geometry };
-  }
-
-  async done(_results: Map<string, CadastralResult>): Promise<void> {
-    // No-op hook for future cache providers.
   }
 }

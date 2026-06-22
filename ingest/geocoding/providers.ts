@@ -26,15 +26,17 @@ import type {
   EducationalFacilityGeocoder,
 } from "./interfaces";
 import { logger } from "@/lib/logger";
-import { GooglePinGeocoder } from "./pin/google-pin-geocoder";
-import { OverpassPinGeocoder } from "./pin/overpass-pin-geocoder";
-import { OverpassStreetGeocoder } from "./street/overpass-street-geocoder";
-import { CadastreGeocoder } from "./cadastral/cadastre-geocoder";
-import { GtfsBusStopGeocoder } from "./bus-stop/gtfs-bus-stop-geocoder";
-import { GoogleBusStopGeocoder } from "./bus-stop/google-bus-stop-geocoder";
-import { OverpassBusStopGeocoder } from "./bus-stop/overpass-bus-stop-geocoder";
-import { EducationalFacilityLocalGeocoder } from "./educational-facility/educational-facility-geocoder";
-import { GoogleEducationalFacilityGeocoder } from "./educational-facility/google-educational-facility-geocoder";
+import { GoogleGeocoder } from "./google/geocoder";
+import { OverpassGeocoder } from "./overpass/geocoder";
+import { CadastreGeocoder } from "./cadastre/geocoder";
+import { GtfsGeocoder } from "./gtfs/geocoder";
+import { EducationalFacilitiesGeocoder } from "./educational-facilities/geocoder";
+
+const googleGeocoder = new GoogleGeocoder();
+const overpassGeocoder = new OverpassGeocoder();
+const cadastreGeocoder = new CadastreGeocoder();
+const gtfsGeocoder = new GtfsGeocoder();
+const educationalFacilitiesGeocoder = new EducationalFacilitiesGeocoder();
 
 const SKIP_CADASTRAL_PROVIDER: CadastralGeocoder = {
   async geocodeCadastral(): Promise<null> {
@@ -55,23 +57,23 @@ const SKIP_EDUCATIONAL_PROVIDER: EducationalFacilityGeocoder = {
 };
 
 const PIN_PROVIDER_INSTANCES: Record<string, PinGeocoder> = {
-  google: new GooglePinGeocoder(),
-  overpass: new OverpassPinGeocoder(),
+  google: googleGeocoder,
+  overpass: overpassGeocoder,
 };
 
 const STREET_PROVIDER_INSTANCES: Record<string, StreetGeocoder> = {
-  overpass: new OverpassStreetGeocoder(),
+  overpass: overpassGeocoder,
 };
 
 const CADASTRAL_PROVIDER_INSTANCES: Record<string, CadastralGeocoder> = {
-  cadastre: new CadastreGeocoder(),
+  cadastre: cadastreGeocoder,
   skip: SKIP_CADASTRAL_PROVIDER,
 };
 
 const BUS_STOP_PROVIDER_INSTANCES: Record<string, BusStopGeocoder> = {
-  gtfs: new GtfsBusStopGeocoder(),
-  google: new GoogleBusStopGeocoder(),
-  overpass: new OverpassBusStopGeocoder(),
+  gtfs: gtfsGeocoder,
+  google: googleGeocoder,
+  overpass: overpassGeocoder,
   skip: SKIP_BUS_STOP_PROVIDER,
 };
 
@@ -79,8 +81,8 @@ const EDUCATIONAL_FACILITY_PROVIDER_INSTANCES: Record<
   string,
   EducationalFacilityGeocoder
 > = {
-  "educational-facilities": new EducationalFacilityLocalGeocoder(),
-  google: new GoogleEducationalFacilityGeocoder(),
+  "educational-facilities": educationalFacilitiesGeocoder,
+  google: googleGeocoder,
   skip: SKIP_EDUCATIONAL_PROVIDER,
 };
 
@@ -140,7 +142,9 @@ function resolveStreetProviders(ids: readonly string[]): StreetGeocoder[] {
   );
 }
 
-function resolveCadastralProviders(ids: readonly string[]): CadastralGeocoder[] {
+function resolveCadastralProviders(
+  ids: readonly string[],
+): CadastralGeocoder[] {
   return resolveAndValidateProviders(
     "cadastral",
     ids,

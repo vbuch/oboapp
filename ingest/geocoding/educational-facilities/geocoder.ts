@@ -4,12 +4,10 @@ import type {
   GeocodingContext,
 } from "../interfaces";
 import type { EducationalFacilityRef } from "@oboapp/shared";
+import { geocodeEducationalFacilities } from "./geocoding-service";
 import { gradeEducational } from "../shared/quality";
-import { geocodeEducationalFacilities } from "../educational-facilities/geocoding-service";
 
-export class EducationalFacilityLocalGeocoder
-  implements EducationalFacilityGeocoder
-{
+export class EducationalFacilitiesGeocoder implements EducationalFacilityGeocoder {
   async geocodeEducationalFacility(args: {
     location: EducationalFacilityRef;
     context: GeocodingContext;
@@ -26,9 +24,5 @@ export class EducationalFacilityLocalGeocoder
       coordinates: first.coordinates,
       qualitySignals: first.qualitySignals ?? gradeEducational(),
     };
-  }
-
-  async done(_results: Map<string, EducationalFacilityResult>): Promise<void> {
-    // No-op hook for future cache providers.
   }
 }

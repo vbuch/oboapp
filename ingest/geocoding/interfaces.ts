@@ -17,7 +17,11 @@ import type {
   EducationalFacilityRef,
 } from "@oboapp/shared";
 import type { CadastralGeometry } from "@/geocoding/cadastre/service";
-import type { ExtractedLocations, StreetSection, CadastralProperty } from "@/lib/types";
+import type {
+  ExtractedLocations,
+  StreetSection,
+  CadastralProperty,
+} from "@/lib/types";
 
 /**
  * Context passed to each geocoder.
