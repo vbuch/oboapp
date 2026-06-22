@@ -1,11 +1,11 @@
 export type {
-  GeocodingResolverConfig,
+  GeocodingProviderPriorities,
   GeocodingSourceMetadata,
   OpenDataSource,
 } from "./geocoding-source-definition";
 
 import type {
-  GeocodingResolverConfig,
+  GeocodingProviderPriorities,
   GeocodingSourceMetadata,
   OpenDataSource,
 } from "./geocoding-source-definition";
@@ -18,30 +18,57 @@ import type {
 //
 // When you fork oboapp for your city:
 //   1. Replace this file with your own geocoding configuration.
-//   2. Set GEOCODING_RESOLVERS to the providers appropriate for your locality.
+//   2. Set GEOCODING_PROVIDER_PRIORITIES to the providers appropriate for your locality.
 //   3. Set GEOCODING_SOURCES to the data sources to display on the web sources page.
 //
 // See docs/setup/new-locality-instance.md for the full guide.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Geocoding resolver configuration — used by ingest to select the right provider
- * per location type. Validated with Zod at ingest startup (fail-fast).
- * Replaces ingest/localities/{locality}.yaml.
+ * Geocoding provider priority list — defines which providers are active and in what order.
+ * Used by ingest/geocoding/providers.ts to instantiate the provider chain.
+ * Also used by web/ to display which providers are active on the sources page.
  */
-export const GEOCODING_RESOLVERS: GeocodingResolverConfig = {
-  pins: { provider: "google" },
-  streets: { provider: "overpass" },
-  "cadastral-properties": { provider: "cadastre" },
-  "bus-stops": {
-    provider: "gtfs",
-    url: "https://gtfs.sofiatraffic.bg/api/v1/static",
-  },
-  "educational-facilities": {
-    provider: "educational-facilities",
-    "schools-url": "https://api.sofiaplan.bg/datasets/166",
-    "kindergartens-url": "https://api.sofiaplan.bg/datasets/142",
-  },
+export const GEOCODING_PROVIDER_PRIORITIES: GeocodingProviderPriorities = {
+  pin: ["google", "overpass"],
+  street: ["overpass"],
+  cadastral: ["cadastre"],
+  busStop: ["gtfs", "google"],
+  educationalFacility: ["educational-facilities", "google"],
+};
+
+/**
+ * COMPATIBILITY EXPORT (Phase 5 TODO: Remove after locality-data-sources.ts migration)
+ * Converts GEOCODING_PROVIDER_PRIORITIES from the new format to the old discriminated union format.
+ * Used by ingest/lib/locality-data-sources.ts for backward compatibility during refactoring.
+ * This is a temporary bridge — the new code uses GEOCODING_PROVIDER_PRIORITIES directly.
+ */
+export const GEOCODING_RESOLVERS = {
+  pins: GEOCODING_PROVIDER_PRIORITIES.pin.map((p) => ({ provider: p })),
+  streets: GEOCODING_PROVIDER_PRIORITIES.street.map((p) => ({ provider: p })),
+  "cadastral-properties": GEOCODING_PROVIDER_PRIORITIES.cadastral.map((p) => ({
+    provider: p,
+  })),
+  "bus-stops": GEOCODING_PROVIDER_PRIORITIES.busStop.map((p) => {
+    if (p === "gtfs") {
+      // URL will be configured in Phase 4 when providers are instantiated
+      return { provider: p, url: process.env.GTFS_URL || "" };
+    }
+    return { provider: p };
+  }),
+  "educational-facilities": GEOCODING_PROVIDER_PRIORITIES.educationalFacility.map(
+    (p) => {
+      if (p === "educational-facilities") {
+        // URLs will be configured in Phase 4 when providers are instantiated
+        return {
+          provider: p,
+          "schools-url": process.env.SCHOOLS_URL || "",
+          "kindergartens-url": process.env.KINDERGARTENS_URL || "",
+        };
+      }
+      return { provider: p };
+    }
+  ),
 };
 
 /**

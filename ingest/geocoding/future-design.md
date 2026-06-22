@@ -119,3 +119,14 @@ The main purpose of the refactor is to allow for easy composition as described i
 - Each Geocoder is following one interface or more - separate interfaces per entity type.
 - If a geocoder returns results other than null, the next geocoder by priority is not called.
 - Caching is removed from the current implementation. It will be added as a separate Geocoder implementation at a later point.
+
+## Ways of working
+
+Since this is a major refactor, we are doing it in iterations.
+
+1. Define the interfaces and base structure
+2. Implement (freshly) instances for StreetGeocoders
+3. Write integration tests
+4. Verify everything works
+5. Implement the rest of the instances
+6. Once every instance is implemented and verified, clean up the old code.

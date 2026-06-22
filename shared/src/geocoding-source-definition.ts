@@ -1,38 +1,27 @@
 /** TypeScript interface definitions for geocoding provider configuration */
 
-export type PinsResolver =
-  | { readonly provider: "google" }
-  | { readonly provider: "overpass" };
+// Provider type identifiers
+export type PinProviderId = "google" | "overpass";
+export type StreetProviderId = "overpass" | "google";
+export type CadastralProviderId = "cadastre" | "skip";
+export type BusStopProviderId = "gtfs" | "google" | "overpass" | "skip";
+export type EducationalFacilityProviderId = "educational-facilities" | "google" | "skip";
 
-export type StreetsResolver =
-  | { readonly provider: "overpass" }
-  | { readonly provider: "google" };
-
-export type CadastralPropertiesResolver =
-  | { readonly provider: "cadastre" }
-  | { readonly provider: "skip" };
-
-export type BusStopsResolver =
-  | { readonly provider: "gtfs"; readonly url: string }
-  | { readonly provider: "google" }
-  | { readonly provider: "overpass" }
-  | { readonly provider: "skip" };
-
-export type EducationalFacilitiesResolver =
-  | {
-      readonly provider: "educational-facilities";
-      readonly "schools-url": string;
-      readonly "kindergartens-url": string;
-    }
-  | { readonly provider: "google" }
-  | { readonly provider: "skip" };
-
-export interface GeocodingResolverConfig {
-  readonly pins: PinsResolver;
-  readonly streets: StreetsResolver;
-  readonly "cadastral-properties": CadastralPropertiesResolver;
-  readonly "bus-stops": BusStopsResolver;
-  readonly "educational-facilities": EducationalFacilitiesResolver;
+/**
+ * Ordered provider priority lists for each location type.
+ * 
+ * Replaces the old GeocodingResolverConfig which specified a single provider per type.
+ * Now each type has an ordered array of provider IDs, and the system tries them
+ * in sequence until one succeeds.
+ * 
+ * Fork operators replace this configuration for their city's setup.
+ */
+export interface GeocodingProviderPriorities {
+  readonly pin: ReadonlyArray<PinProviderId>;
+  readonly street: ReadonlyArray<StreetProviderId>;
+  readonly cadastral: ReadonlyArray<CadastralProviderId>;
+  readonly busStop: ReadonlyArray<BusStopProviderId>;
+  readonly educationalFacility: ReadonlyArray<EducationalFacilityProviderId>;
 }
 
 export interface GeocodingSourceMetadata {
