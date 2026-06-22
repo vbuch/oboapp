@@ -189,7 +189,7 @@ describe(deduplicateAddresses, () => {
   });
 
   it("should return single address unchanged", () => {
-    const addresses = [createAddress("123 Main St", 42.0, 23.0)];
+    const addresses = [createAddress("123 Main St", 42, 23)];
     const result = deduplicateAddresses(addresses);
     expect(result).toHaveLength(1);
     expect(result[0].originalText).toBe("123 Main St");
@@ -197,7 +197,7 @@ describe(deduplicateAddresses, () => {
 
   it("should remove exact text duplicates (case insensitive)", () => {
     const addresses = [
-      createAddress("123 Main St", 42.0, 23.0),
+      createAddress("123 Main St", 42, 23),
       createAddress("123 MAIN ST", 42.1, 23.1),
       createAddress("123 main st", 42.2, 23.2),
     ];
@@ -242,7 +242,7 @@ describe(deduplicateAddresses, () => {
 
   it("should trim whitespace when comparing text", () => {
     const addresses = [
-      createAddress("  Main St  ", 42.0, 23.0),
+      createAddress("  Main St  ", 42, 23),
       createAddress("Main St", 42.1, 23.1),
     ];
     const result = deduplicateAddresses(addresses);
@@ -385,7 +385,7 @@ describe("getValidPreResolvedCoordinates", () => {
   });
 
   it("should reject coordinates outside Sofia bounds (north)", () => {
-    const coords = { lat: 43.0, lng: 23.3 }; // Too far north
+    const coords = { lat: 43, lng: 23.3 }; // Too far north
     const result = getValidPreResolvedCoordinates(coords, "test");
 
     expect(result).toBeNull();

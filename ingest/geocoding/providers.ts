@@ -111,7 +111,7 @@ function resolveAndValidateProviders<T>(
 
     const method = Reflect.get(instance, methodName);
     if (typeof method !== "function") {
-      throw new Error(
+      throw new TypeError(
         `Provider instance "${id}" does not implement ${methodName}(). ` +
           `It cannot be used as a ${entityType} geocoder. ` +
           `Check PROVIDER_INSTANCES.${entityType} or the provider class.`,

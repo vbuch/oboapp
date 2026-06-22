@@ -16,6 +16,75 @@ const mockService = USE_MOCK ? new GoogleGeocodingMockService() : null;
 // Constants for API rate limiting
 const GEOCODING_BATCH_DELAY_MS = 200;
 
+type GoogleGeocodeResult = {
+  formatted_address: string;
+  partial_match?: boolean;
+  geometry: {
+    location: {
+      lat: number;
+      lng: number;
+    };
+    location_type: string;
+  };
+};
+
+// Helper to validate and process a single geocoding result
+function processGoogleResult(
+  result: GoogleGeocodeResult,
+  address: string,
+  locality: string,
+): Address | null {
+  const lat = result.geometry.location.lat;
+  const lng = result.geometry.location.lng;
+  const formattedAddress = result.formatted_address;
+
+  // Reject results that match city center exactly (Google's fallback)
+  if (isCenterFallback(lat, lng)) {
+    logger.warn("Result is city center generic fallback, rejecting", {
+      address,
+      lat: lat.toFixed(6),
+      lng: lng.toFixed(6),
+    });
+    return null;
+  }
+
+  // Reject generic city-level addresses (e.g., "Sofia, Bulgaria")
+  if (isGenericCityAddress(formattedAddress)) {
+    logger.warn("Rejecting generic address", {
+      address,
+      formattedAddress,
+    });
+    return null;
+  }
+
+  // Validate that the result is actually within the locality's boundaries
+  if (!isWithinBounds(locality, lat, lng)) {
+    logger.warn("Result is outside locality boundaries", {
+      address,
+      locality,
+      lat: lat.toFixed(6),
+      lng: lng.toFixed(6),
+    });
+    return null;
+  }
+
+  const qualitySignals = gradeGoogle(
+    result.geometry.location_type,
+    result.partial_match,
+  );
+
+  return {
+    originalText: address,
+    formattedAddress: result.formatted_address,
+    coordinates: { lat, lng },
+    geoJson: {
+      type: "Point",
+      coordinates: [lng, lat],
+    },
+    qualitySignals,
+  };
+}
+
 export async function geocodeAddress(address: string): Promise<Address | null> {
   // Use mock if enabled
   if (USE_MOCK && mockService) {
@@ -51,53 +120,10 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
     if (data.status === "OK" && data.results && data.results.length > 0) {
       // Try to find a result within the target city's boundaries
       for (const result of data.results) {
-        const lat = result.geometry.location.lat;
-        const lng = result.geometry.location.lng;
-        const formattedAddress = result.formatted_address;
-
-        // Reject results that match city center exactly (Google's fallback)
-        if (isCenterFallback(lat, lng)) {
-          logger.warn("Result is city center generic fallback, rejecting", {
-            address,
-            lat: lat.toFixed(6),
-            lng: lng.toFixed(6),
-          });
-          continue;
+        const processed = processGoogleResult(result, address, locality);
+        if (processed) {
+          return processed;
         }
-
-        // Reject generic city-level addresses (e.g., "Sofia, Bulgaria")
-        if (isGenericCityAddress(formattedAddress)) {
-          logger.warn("Rejecting generic address", {
-            address,
-            formattedAddress,
-          });
-          continue;
-        }
-
-        // Validate that the result is actually within the locality's boundaries
-        if (isWithinBounds(locality, lat, lng)) {
-          const qualitySignals = gradeGoogle(
-            result.geometry.location_type,
-            result.partial_match,
-          );
-
-          return {
-            originalText: address,
-            formattedAddress: result.formatted_address,
-            coordinates: { lat, lng },
-            geoJson: {
-              type: "Point",
-              coordinates: [lng, lat],
-            },
-            qualitySignals,
-          };
-        }
-        logger.warn("Result is outside locality boundaries", {
-          address,
-          locality,
-          lat: lat.toFixed(6),
-          lng: lng.toFixed(6),
-        });
       }
 
       // All results were outside the locality's boundaries

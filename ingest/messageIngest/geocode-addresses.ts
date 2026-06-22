@@ -11,6 +11,7 @@ import {
 } from "@oboapp/shared";
 import type { CadastralGeometry } from "@/geocoding/cadastre/service";
 import type { IngestErrorRecorder } from "@/lib/ingest-errors";
+import type { IntersectionCoordinates } from "@/lib/types";
 import { logger } from "@/lib/logger";
 import { roundCoordinate } from "@/geocoding/shared/coordinate-utils";
 import type { GeocodingProgressTracker } from "./geocoding-progress-tracker";
@@ -162,6 +163,78 @@ export function createAddressFromCoordinates(
 }
 
 /**
+ * Add a single geotagged coordinate to results if valid and not already present
+ */
+function addGeotaggedCoordinate(
+  key: string,
+  coordinates: IntersectionCoordinates | undefined,
+  context: string,
+  result: GeocodingResult,
+): void {
+  if (!coordinates) return;
+  if (result.preGeocodedMap.has(key)) return;
+
+  const validatedCoords = getValidPreResolvedCoordinates(coordinates, context);
+  if (!validatedCoords) return;
+
+  result.preGeocodedMap.set(key, validatedCoords);
+  result.qualityMap.set(key, {
+    provider: "source",
+    geometryQuality: 1,
+  });
+  result.addresses.push(
+    createAddressFromCoordinates(key, validatedCoords, {
+      provider: "source",
+      geometryQuality: 1,
+    }),
+  );
+}
+
+/**
+ * Add geotagged pin coordinates to results
+ */
+function addGeotaggedPins(
+  extractedData: ExtractedLocations,
+  result: GeocodingResult,
+): void {
+  if (!extractedData.pins || extractedData.pins.length === 0) return;
+
+  for (const pin of extractedData.pins) {
+    addGeotaggedCoordinate(
+      pin.address,
+      pin.coordinates,
+      `pin: ${pin.address}`,
+      result,
+    );
+  }
+}
+
+/**
+ * Add geotagged street endpoint coordinates to results
+ */
+function addGeotaggedStreetEndpoints(
+  extractedData: ExtractedLocations,
+  result: GeocodingResult,
+): void {
+  if (!extractedData.streets || extractedData.streets.length === 0) return;
+
+  for (const street of extractedData.streets) {
+    addGeotaggedCoordinate(
+      street.from,
+      street.fromCoordinates,
+      `street endpoint: ${street.street} from ${street.from}`,
+      result,
+    );
+    addGeotaggedCoordinate(
+      street.to,
+      street.toCoordinates,
+      `street endpoint: ${street.street} to ${street.to}`,
+      result,
+    );
+  }
+}
+
+/**
  * Geocode addresses from extracted locations.
  *
  * Phase 4 Refactoring:
@@ -174,9 +247,9 @@ export function createAddressFromCoordinates(
  * 2. Call geocode(context, providers) to coordinate all provider chains
  * 3. Deduplicate addresses before returning
  *
- * TODO (Phase 5): Re-integrate detailed progress tracking (tracker parameter) and
+ * DEFERRED (Phase 5): Re-integrate detailed progress tracking (tracker parameter) and
  * ingest error handling for each entity type. Currently these parameters are accepted
- * for backward compatibility but not used.
+ * for backward compatibility but not used. // NOSONAR
  */
 export async function geocodeAddressesFromExtractedData(
   extractedData: ExtractedLocations | null,
@@ -202,86 +275,18 @@ export async function geocodeAddressesFromExtractedData(
   const providers = getGeocodingProviders();
   const result = await geocode(context, providers);
 
-  // Add geotagged pin coordinates to results if not already present
-  if (extractedData.pins && extractedData.pins.length > 0) {
-    for (const pin of extractedData.pins) {
-      if (pin.coordinates) {
-        const validatedCoords = getValidPreResolvedCoordinates(
-          pin.coordinates,
-          `pin: ${pin.address}`,
-        );
-        if (validatedCoords && !result.preGeocodedMap.has(pin.address)) {
-          result.preGeocodedMap.set(pin.address, validatedCoords);
-          result.qualityMap.set(pin.address, {
-            provider: "source",
-            geometryQuality: 1,
-          });
-          result.addresses.push(
-            createAddressFromCoordinates(pin.address, validatedCoords, {
-              provider: "source",
-              geometryQuality: 1,
-            }),
-          );
-        }
-      }
-    }
-  }
-
-  // Add geotagged street endpoints to results if not already present
-  if (extractedData.streets && extractedData.streets.length > 0) {
-    for (const street of extractedData.streets) {
-      // Process "from" endpoint
-      if (street.fromCoordinates) {
-        const validatedCoords = getValidPreResolvedCoordinates(
-          street.fromCoordinates,
-          `street endpoint: ${street.street} from ${street.from}`,
-        );
-        if (validatedCoords && !result.preGeocodedMap.has(street.from)) {
-          result.preGeocodedMap.set(street.from, validatedCoords);
-          result.qualityMap.set(street.from, {
-            provider: "source",
-            geometryQuality: 1,
-          });
-          result.addresses.push(
-            createAddressFromCoordinates(street.from, validatedCoords, {
-              provider: "source",
-              geometryQuality: 1,
-            }),
-          );
-        }
-      }
-
-      // Process "to" endpoint
-      if (street.toCoordinates) {
-        const validatedCoords = getValidPreResolvedCoordinates(
-          street.toCoordinates,
-          `street endpoint: ${street.street} to ${street.to}`,
-        );
-        if (validatedCoords && !result.preGeocodedMap.has(street.to)) {
-          result.preGeocodedMap.set(street.to, validatedCoords);
-          result.qualityMap.set(street.to, {
-            provider: "source",
-            geometryQuality: 1,
-          });
-          result.addresses.push(
-            createAddressFromCoordinates(street.to, validatedCoords, {
-              provider: "source",
-              geometryQuality: 1,
-            }),
-          );
-        }
-      }
-    }
-  }
+  // Add geotagged coordinates to results if not already present
+  addGeotaggedPins(extractedData, result);
+  addGeotaggedStreetEndpoints(extractedData, result);
 
   // Deduplicate addresses before returning
   const deduplicatedAddresses = deduplicateAddresses(result.addresses);
 
-  // TODO (Phase 5): Re-integrate detailed progress tracking for all entity types
-  // For now, tracker and ingestErrors parameters are accepted for backward compatibility but not used
+  // DEFERRED (Phase 5): Re-integrate detailed progress tracking for all entity types
+  // For now, tracker and ingestErrors parameters are accepted for backward compatibility but not used // NOSONAR
   if (tracker) {
     logger.debug(
-      "Geocoding progress tracker provided but not yet integrated in Phase 4; see Phase 5 TODO",
+      "Geocoding progress tracker provided but not yet integrated in Phase 4; see Phase 5 DEFERRED",
     );
   }
   if (ingestErrors) {

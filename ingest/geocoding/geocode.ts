@@ -49,6 +49,93 @@ export async function geocode(
 }
 
 /**
+ * Process and store pin results
+ */
+function processPinResults(
+  results: PinResult[],
+  qualityMap: Map<string, QualitySignals>,
+  addresses: Address[],
+): void {
+  for (const result of results) {
+    addresses.push(result.address);
+    const key = normalizePinAddress(result.address.originalText);
+    qualityMap.set(
+      key,
+      result.address.qualitySignals || {
+        provider: "google",
+        geometryQuality: 0,
+      },
+    );
+  }
+}
+
+/**
+ * Process and store street results
+ */
+function processStreetResults(
+  results: Array<{ location: StreetSection; result: StreetResult }>,
+  qualityMap: Map<string, QualitySignals>,
+): void {
+  for (const { location, result } of results) {
+    const key = `${location.street}|${location.from}|${location.to}`;
+    qualityMap.set(key, result.qualitySignals);
+  }
+}
+
+/**
+ * Process and store cadastral results
+ */
+function processCadastralResults(
+  results: Array<{ identifier: string; geometry: CadastralGeometry }>,
+  cadastralGeometries: Map<string, CadastralGeometry>,
+): void {
+  for (const result of results) {
+    cadastralGeometries.set(result.identifier, result.geometry);
+  }
+}
+
+/**
+ * Process and store bus stop results
+ */
+function processBusStopResults(
+  results: Array<{ stopCode: string; coordinates: Coordinates; qualitySignals: QualitySignals }>,
+  qualityMap: Map<string, QualitySignals>,
+  addresses: Address[],
+): void {
+  for (const result of results) {
+    const address = coordinatesToAddress(
+      `Спирка ${result.stopCode}`,
+      result.coordinates,
+      result.qualitySignals,
+    );
+    addresses.push(address);
+    qualityMap.set(`bus_stop_${result.stopCode}`, result.qualitySignals);
+  }
+}
+
+/**
+ * Process and store educational facility results
+ */
+function processEducationalFacilityResults(
+  results: Array<{ number: string; type: string; coordinates: Coordinates; qualitySignals: QualitySignals }>,
+  qualityMap: Map<string, QualitySignals>,
+  addresses: Address[],
+): void {
+  for (const result of results) {
+    const address = coordinatesToAddress(
+      `Образователното учреждение ${result.type} ${result.number}`,
+      result.coordinates,
+      result.qualitySignals,
+    );
+    addresses.push(address);
+    qualityMap.set(
+      `facility_${result.type}_${result.number}`,
+      result.qualitySignals,
+    );
+  }
+}
+
+/**
  * Process all entity types in sequence
  */
 async function processAllEntityTypes(
@@ -69,17 +156,7 @@ async function processAllEntityTypes(
       context,
       providers,
     );
-    for (const result of pinResults) {
-      addresses.push(result.address);
-      const key = normalizePinAddress(result.address.originalText);
-      qualityMap.set(
-        key,
-        result.address.qualitySignals || {
-          provider: "google",
-          geometryQuality: 0,
-        },
-      );
-    }
+    processPinResults(pinResults, qualityMap, addresses);
   }
 
   // Process streets
@@ -89,11 +166,7 @@ async function processAllEntityTypes(
       context,
       providers,
     );
-    // Street results are stored in qualityMap keyed by street name + endpoints
-    for (const result of streetResults) {
-      const key = `${result.location.street}|${result.location.from}|${result.location.to}`;
-      qualityMap.set(key, result.result.qualitySignals);
-    }
+    processStreetResults(streetResults, qualityMap);
   }
 
   // Process cadastral properties
@@ -106,9 +179,7 @@ async function processAllEntityTypes(
       context,
       providers,
     );
-    for (const result of cadastralResults) {
-      cadastralGeometries.set(result.identifier, result.geometry);
-    }
+    processCadastralResults(cadastralResults, cadastralGeometries);
   }
 
   // Process bus stops
@@ -118,15 +189,7 @@ async function processAllEntityTypes(
       context,
       providers,
     );
-    for (const result of busStopResults) {
-      const address = coordinatesToAddress(
-        `Спирка ${result.stopCode}`,
-        result.coordinates,
-        result.qualitySignals,
-      );
-      addresses.push(address);
-      qualityMap.set(`bus_stop_${result.stopCode}`, result.qualitySignals);
-    }
+    processBusStopResults(busStopResults, qualityMap, addresses);
   }
 
   // Process educational facilities
@@ -139,18 +202,7 @@ async function processAllEntityTypes(
       context,
       providers,
     );
-    for (const result of facilityResults) {
-      const address = coordinatesToAddress(
-        `Образователното учреждение ${result.type} ${result.number}`,
-        result.coordinates,
-        result.qualitySignals,
-      );
-      addresses.push(address);
-      qualityMap.set(
-        `facility_${result.type}_${result.number}`,
-        result.qualitySignals,
-      );
-    }
+    processEducationalFacilityResults(facilityResults, qualityMap, addresses);
   }
 
   return {

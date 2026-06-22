@@ -38,38 +38,38 @@ export const GEOCODING_PROVIDER_PRIORITIES: GeocodingProviderPriorities = {
 };
 
 /**
- * COMPATIBILITY EXPORT (Phase 5 TODO: Remove after locality-data-sources.ts migration)
- * Converts GEOCODING_PROVIDER_PRIORITIES from the new format to the old discriminated union format.
- * Used by ingest/lib/locality-data-sources.ts for backward compatibility during refactoring.
- * This is a temporary bridge — the new code uses GEOCODING_PROVIDER_PRIORITIES directly.
+ * Helper to construct GEOCODING_RESOLVERS from provider priorities.
+ * This is used by ingest/lib/locality-data-sources.ts to build the resolver config
+ * with environment variables for provider-specific URLs.
+ * (Not exported — this is an internal helper for ingest only)
  */
-export const GEOCODING_RESOLVERS = {
-  pins: GEOCODING_PROVIDER_PRIORITIES.pin.map((p) => ({ provider: p })),
-  streets: GEOCODING_PROVIDER_PRIORITIES.street.map((p) => ({ provider: p })),
-  "cadastral-properties": GEOCODING_PROVIDER_PRIORITIES.cadastral.map((p) => ({
-    provider: p,
-  })),
-  "bus-stops": GEOCODING_PROVIDER_PRIORITIES.busStop.map((p) => {
-    if (p === "gtfs") {
-      // URL will be configured in Phase 4 when providers are instantiated
-      return { provider: p, url: process.env.GTFS_URL || "" };
-    }
-    return { provider: p };
-  }),
-  "educational-facilities": GEOCODING_PROVIDER_PRIORITIES.educationalFacility.map(
-    (p) => {
-      if (p === "educational-facilities") {
-        // URLs will be configured in Phase 4 when providers are instantiated
-        return {
-          provider: p,
-          "schools-url": process.env.SCHOOLS_URL || "",
-          "kindergartens-url": process.env.KINDERGARTENS_URL || "",
-        };
+export function buildGeocodingResolvers() {
+  return {
+    pins: GEOCODING_PROVIDER_PRIORITIES.pin.map((p) => ({ provider: p })),
+    streets: GEOCODING_PROVIDER_PRIORITIES.street.map((p) => ({ provider: p })),
+    "cadastral-properties": GEOCODING_PROVIDER_PRIORITIES.cadastral.map((p) => ({
+      provider: p,
+    })),
+    "bus-stops": GEOCODING_PROVIDER_PRIORITIES.busStop.map((p) => {
+      if (p === "gtfs") {
+        return { provider: p, url: "" }; // URLs are set by ingest at runtime
       }
       return { provider: p };
-    }
-  ),
-};
+    }),
+    "educational-facilities": GEOCODING_PROVIDER_PRIORITIES.educationalFacility.map(
+      (p) => {
+        if (p === "educational-facilities") {
+          return {
+            provider: p,
+            "schools-url": "",
+            "kindergartens-url": "",
+          };
+        }
+        return { provider: p };
+      }
+    ),
+  };
+}
 
 /**
  * Open-data sources displayed on the /open-source page.

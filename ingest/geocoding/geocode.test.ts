@@ -188,9 +188,9 @@ describe("geocoding system integration", () => {
     const key = "ул. Оборище|ул. Ломско|пл. Александър Батенберг";
     expect(result.qualityMap.has(key)).toBe(true);
 
-    const quality = result.qualityMap.get(key)!;
-    expect(quality.provider).toBe("street");
-    expect(quality.geometryQuality).toBe(2);
+    const quality = result.qualityMap.get(key);
+    expect(quality?.provider).toBe("street");
+    expect(quality?.geometryQuality).toBe(2);
   });
 
   it("should try multiple providers in order and stop at first success", async () => {
@@ -233,7 +233,7 @@ describe("geocoding system integration", () => {
     // Should use second provider's result
     const key = "ул. Оборище|ул. Ломско|пл. Александър Батенберг";
     expect(result.qualityMap.has(key)).toBe(true);
-    const quality = result.qualityMap.get(key)!;
-    expect(quality.provider).toBe("street");
+    const quality = result.qualityMap.get(key);
+    expect(quality?.provider).toBe("street");
   });
 });

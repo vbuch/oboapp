@@ -177,7 +177,7 @@ function bufferLineString(
       const [nextLon, nextLat] = coordinates[i + 1];
       const dLon = nextLon - lon;
       const dLat = nextLat - lat;
-      const length = Math.sqrt(dLon * dLon + dLat * dLat);
+      const length = Math.hypot(dLon, dLat);
 
       if (length > 0) {
         // Perpendicular vector (rotated 90 degrees)
@@ -189,7 +189,7 @@ function bufferLineString(
       const [prevLon, prevLat] = coordinates[i - 1];
       const dLon = lon - prevLon;
       const dLat = lat - prevLat;
-      const length = Math.sqrt(dLon * dLon + dLat * dLat);
+      const length = Math.hypot(dLon, dLat);
 
       if (length > 0) {
         perpLon = -dLat / length;
@@ -211,7 +211,7 @@ function bufferLineString(
   // Create polygon by combining left side, reversed right side, and closing
   const polygonRing: [number, number][] = [
     ...leftSide,
-    ...rightSide.reverse(),
+    ...rightSide.toReversed(),
     leftSide[0], // Close the polygon
   ];
 
@@ -309,9 +309,9 @@ async function createClosureFeature(
   const toGrade = toQuality?.geometryQuality ?? 0;
   const endpointQualities = [fromGrade, toGrade];
   const allQualities =
-    wayQuality !== null
-      ? [...endpointQualities, wayQuality]
-      : endpointQualities;
+    wayQuality === null
+      ? endpointQualities
+      : [...endpointQualities, wayQuality];
 
   qualitySignals = {
     provider: QUALITY_PROVIDERS.STREET,
@@ -340,6 +340,70 @@ async function createClosureFeature(
 }
 
 // Step 5 — Feature Collection Assembly
+// Helper to process a single street and convert to features
+async function processStreetToFeature(
+  street: ExtractedStreet,
+  preGeocodedAddresses: Map<string, IntersectionCoordinates>,
+  qualityMap: Map<string, QualitySignals>,
+  fallbackPins: typeof extractedData.pins,
+): Promise<GeoJsonFeature | null> {
+  try {
+    return await createClosureFeature(street, preGeocodedAddresses, qualityMap);
+  } catch (error) {
+    // If street section creation fails, convert endpoints to pins as fallback
+    logger.warn("Failed to create street section", {
+      street: street.street,
+      from: street.from,
+      to: street.to,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    const startCoords = preGeocodedAddresses.get(street.from);
+    const endCoords = preGeocodedAddresses.get(street.to);
+
+    if (startCoords && endCoords) {
+      logger.info(
+        "Converting street to 2 fallback pins (both endpoints have coordinates)",
+      );
+
+      // Create two pins from the street endpoints
+      fallbackPins.push(
+        {
+          address: street.from,
+          timespans: street.timespans,
+        },
+        {
+          address: street.to,
+          timespans: street.timespans,
+        },
+      );
+    } else {
+      logger.error("Cannot create fallback pins (missing coordinates)", {
+        hasFrom: !!startCoords,
+        hasTo: !!endCoords,
+      });
+    }
+    return null;
+  }
+}
+
+// Helper to process a single pin to feature
+function processPinToFeature(
+  pin: ExtractedPin,
+  preGeocodedAddresses: Map<string, IntersectionCoordinates>,
+  qualityMap: Map<string, QualitySignals>,
+): GeoJsonFeature | null {
+  try {
+    return createPinFeature(pin, preGeocodedAddresses, qualityMap);
+  } catch (error) {
+    logger.error("Failed to create pin", {
+      address: pin.address,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
 export async function convertToGeoJSON(
   extractedData: ExtractedLocations,
   preGeocodedAddresses: Map<string, IntersectionCoordinates>,
@@ -350,61 +414,23 @@ export async function convertToGeoJSON(
 
   // Process all street closures first
   for (const street of extractedData.streets) {
-    try {
-      const feature = await createClosureFeature(
-        street,
-        preGeocodedAddresses,
-        qualityMap,
-      );
+    const feature = await processStreetToFeature(
+      street,
+      preGeocodedAddresses,
+      qualityMap,
+      fallbackPins,
+    );
+    if (feature) {
       features.push(feature);
-    } catch (error) {
-      // If street section creation fails, convert endpoints to pins as fallback
-      logger.warn("Failed to create street section", {
-        street: street.street,
-        from: street.from,
-        to: street.to,
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      const startCoords = preGeocodedAddresses.get(street.from);
-      const endCoords = preGeocodedAddresses.get(street.to);
-
-      if (startCoords && endCoords) {
-        logger.info(
-          "Converting street to 2 fallback pins (both endpoints have coordinates)",
-        );
-
-        // Create two pins from the street endpoints
-        fallbackPins.push(
-          {
-            address: street.from,
-            timespans: street.timespans,
-          },
-          {
-            address: street.to,
-            timespans: street.timespans,
-          },
-        );
-      } else {
-        logger.error("Cannot create fallback pins (missing coordinates)", {
-          hasFrom: !!startCoords,
-          hasTo: !!endCoords,
-        });
-      }
     }
   }
 
   // Process all pins (including fallback pins from failed streets)
   const allPins = [...extractedData.pins, ...fallbackPins];
   for (const pin of allPins) {
-    try {
-      const feature = createPinFeature(pin, preGeocodedAddresses, qualityMap);
+    const feature = processPinToFeature(pin, preGeocodedAddresses, qualityMap);
+    if (feature) {
       features.push(feature);
-    } catch (error) {
-      logger.error("Failed to create pin", {
-        address: pin.address,
-        error: error instanceof Error ? error.message : String(error),
-      });
     }
   }
 

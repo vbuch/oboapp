@@ -8,7 +8,7 @@ import type {
   StreetResult,
 } from "../interfaces";
 import type { StreetSection } from "@/lib/types";
-import type { Coordinates } from "@oboapp/shared";
+import type { Address, Coordinates } from "@oboapp/shared";
 import {
   getStreetSectionGeometry,
   overpassGeocodeAddresses,
@@ -16,6 +16,61 @@ import {
 } from "./service";
 import { logger } from "@/lib/logger";
 import { gradeOverpass } from "../shared/quality";
+
+/**
+ * Extract and validate coordinates from resolved addresses
+ */
+function extractCoordinates(
+  fromAddress: Address | null,
+  toAddress: Address | null,
+): { fromCoordinates: Coordinates | null; toCoordinates: Coordinates | null } {
+  const fromCoordinates: Coordinates | null = fromAddress
+    ? fromAddress.coordinates
+    : null;
+  const toCoordinates: Coordinates | null = toAddress
+    ? toAddress.coordinates
+    : null;
+
+  return { fromCoordinates, toCoordinates };
+}
+
+/**
+ * Fetch and process street geometry
+ */
+async function fetchStreetGeometry(
+  streetName: string,
+  fromCoordinates: Coordinates,
+  toCoordinates: Coordinates,
+): Promise<{
+  type: "LineString";
+  coordinates: [number, number][];
+} | null> {
+  try {
+    const geometryPositions = await getStreetSectionGeometry(
+      streetName,
+      fromCoordinates,
+      toCoordinates,
+    );
+
+    if (geometryPositions && geometryPositions.length >= 2) {
+      const coords: Array<[number, number]> = [];
+      for (const pos of geometryPositions) {
+        coords.push([pos[0], pos[1]]);
+      }
+      return {
+        type: "LineString",
+        coordinates: coords,
+      };
+    }
+    return null;
+  } catch (err) {
+    logger.warn("Overpass street geocoding: geometry retrieval failed", {
+      street: streetName,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
 
 export class OverpassGeocoder
   implements PinGeocoder, StreetGeocoder, BusStopGeocoder
@@ -68,13 +123,8 @@ export class OverpassGeocoder
 
       const fromAddress = addresses[0];
       const toAddress = addresses.length > 1 ? addresses[1] : null;
-
-      const fromCoordinates: Coordinates | null = fromAddress
-        ? fromAddress.coordinates
-        : null;
-      const toCoordinates: Coordinates | null = toAddress
-        ? toAddress.coordinates
-        : null;
+      const { fromCoordinates, toCoordinates } =
+        extractCoordinates(fromAddress, toAddress);
 
       if (!fromCoordinates || !toCoordinates) {
         logger.warn(
@@ -93,29 +143,11 @@ export class OverpassGeocoder
       } | null = null;
 
       if (fromCoordinates && toCoordinates) {
-        try {
-          const geometryPositions = await getStreetSectionGeometry(
-            streetName,
-            fromCoordinates,
-            toCoordinates,
-          );
-
-          if (geometryPositions && geometryPositions.length >= 2) {
-            const coords: Array<[number, number]> = [];
-            for (const pos of geometryPositions) {
-              coords.push([pos[0], pos[1]]);
-            }
-            geometry = {
-              type: "LineString",
-              coordinates: coords,
-            };
-          }
-        } catch (err) {
-          logger.warn("Overpass street geocoding: geometry retrieval failed", {
-            street: streetName,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
+        geometry = await fetchStreetGeometry(
+          streetName,
+          fromCoordinates,
+          toCoordinates,
+        );
       }
 
       const qualitySignals = gradeOverpass("way");

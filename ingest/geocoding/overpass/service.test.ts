@@ -23,19 +23,54 @@ vi.mock("../../lib/delay", () => ({
   delay: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Helper function copied for testing
+function parseOverpassError(responseText: string): string | null {
+  const remarkMatch = /<remark>\s*([\s\S]+?)\s*<\/remark>/.exec(responseText);
+  if (remarkMatch) {
+    return remarkMatch[1].trim();
+  }
+  return null;
+}
+
+// Helper function copied for testing
+function shouldTryFallback(error: Error, statusCode?: number): boolean {
+  const msg = error.message.toLowerCase();
+
+  // Client-side errors (our fault) - don't retry
+  if (
+    msg.includes("syntax") ||
+    msg.includes("parse error") ||
+    msg.includes("expected") ||
+    msg.includes("unexpected") ||
+    msg.includes("invalid")
+  ) {
+    return false;
+  }
+
+  // HTTP 4xx = client error (except 429 Too Many Requests)
+  if (
+    statusCode &&
+    statusCode >= 400 &&
+    statusCode < 500 &&
+    statusCode !== 429
+  ) {
+    return false;
+  }
+
+  // All other errors = server-side, should retry
+  return true;
+}
+
+// Helper function to create mock fetch for testing
+function mockFetch(responseBody: string) {
+  return vi.fn().mockResolvedValue({
+    ok: true,
+    text: () => Promise.resolve(responseBody),
+  });
+}
+
 describe("overpass-geocoding-service", () => {
   describe("parseOverpassError", () => {
-    // Helper function copied for testing
-    function parseOverpassError(responseText: string): string | null {
-      const remarkMatch = /<remark>\s*([\s\S]+?)\s*<\/remark>/.exec(
-        responseText,
-      );
-      if (remarkMatch) {
-        return remarkMatch[1].trim();
-      }
-      return null;
-    }
-
     it("should extract error message from XML remark tag", () => {
       const xml =
         '<?xml version="1.0" encoding="UTF-8"?><remark>Error: Query timed out after 25 seconds</remark>';
@@ -77,35 +112,6 @@ describe("overpass-geocoding-service", () => {
   });
 
   describe("shouldTryFallback", () => {
-    // Helper function copied for testing
-    function shouldTryFallback(error: Error, statusCode?: number): boolean {
-      const msg = error.message.toLowerCase();
-
-      // Client-side errors (our fault) - don't retry
-      if (
-        msg.includes("syntax") ||
-        msg.includes("parse error") ||
-        msg.includes("expected") ||
-        msg.includes("unexpected") ||
-        msg.includes("invalid")
-      ) {
-        return false;
-      }
-
-      // HTTP 4xx = client error (except 429 Too Many Requests)
-      if (
-        statusCode &&
-        statusCode >= 400 &&
-        statusCode < 500 &&
-        statusCode !== 429
-      ) {
-        return false;
-      }
-
-      // All other errors = server-side, should retry
-      return true;
-    }
-
     describe("client-side errors (should NOT retry)", () => {
       it("should not retry on syntax errors", () => {
         const error = new Error("Query syntax error at line 3");
@@ -454,13 +460,6 @@ describe("overpass-geocoding-service", () => {
     });
     const emptyResponse = JSON.stringify({ elements: [] });
 
-    function mockFetch(responseBody: string) {
-      return vi.fn().mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(responseBody),
-      });
-    }
-
     beforeEach(() => {
       clearStreetGeometryCache();
     });
@@ -752,13 +751,6 @@ describe("overpass-geocoding-service", () => {
         },
       ],
     });
-
-    function mockFetch(responseBody: string) {
-      return vi.fn().mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(responseBody),
-      });
-    }
 
     beforeEach(() => {
       clearStreetGeometryCache();
