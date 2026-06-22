@@ -10,7 +10,8 @@ Refactor `ingest/geocoding/` from a procedurally dispatched system (`router.ts` 
 
 - [x] Step 1: Create `ingest/geocoding/interfaces.ts`
   - [x] Define per-entity-type interfaces: `PinGeocoder`, `StreetGeocoder`, `CadastralGeocoder`, `BusStopGeocoder`, `EducationalFacilityGeocoder`
-  - [x] Each interface has: `geocode(args: {location, context}): Promise<Result | null>` and optional `done(resultsMap: Map<string, Result>): void`
+  - [x] Each interface has: entity-specific method (`geocodePin()`, `geocodeStreet()`, `geocodeCadastral()`, `geocodeBusStop()`, `geocodeEducationalFacility()`) taking typed location and returning typed result
+  - [x] Each interface has optional `done(resultsMap: Map<string, Result>): void` callback
   - [x] Result types: `PinResult` (Address + QualitySignals), `StreetResult` (from/to coords + QualitySignals), `CadastralResult` (CadastralGeometry), `BusStopResult` (Coordinates + QualitySignals), `EducationalFacilityResult` (Coordinates + QualitySignals)
   - [x] `GeocodingProviders` type: `{ pin: PinGeocoder[]; street: StreetGeocoder[]; cadastral: CadastralGeocoder[]; busStop: BusStopGeocoder[]; educationalFacility: EducationalFacilityGeocoder[] }`
 
@@ -21,7 +22,7 @@ Refactor `ingest/geocoding/` from a procedurally dispatched system (`router.ts` 
 - [x] Step 3: Create `ingest/geocoding/geocode.ts` — new main entry point (stub in Phase 1, fully wired in Phase 4)
   - [x] `export async function geocode(context: GeocodingContext, providers: GeocodingProviders): Promise<GeocodingResult>`
   - [x] Internal helpers: `geocodePins()`, `geocodeStreets()`, `geocodeCadastral()`, `geocodeBusStops()`, `geocodeEducationalFacilities()`
-  - [x] Priority chain: for each location, iterate provider array, call `geocode()`, stop at first non-null result, call `done()` on all providers after each entity type is done
+  - [x] Priority chain: for each location, iterate provider array, call entity-specific method (e.g. `provider.geocodePin()`), stop at first non-null result, call `done()` on all providers after each entity type is done
   - [x] Preserve pre-geocoded coordinates handling (geotagged sources): boundary-validate + pass through, skip geocoding
 
 - [x] Step 4: Create `ingest/geocoding/providers.ts` — the single instance assembly file (forks override this file)
@@ -47,6 +48,7 @@ Refactor `ingest/geocoding/` from a procedurally dispatched system (`router.ts` 
 
 - [ ] Step 5: Create `ingest/geocoding/street/overpass-street-geocoder.ts` implementing `StreetGeocoder`
   - [ ] Wraps `geocodeIntersectionsForStreets()` and `getStreetGeometryFromOverpass()` from `overpass/service.ts`
+  - [ ] Implements `geocodeStreet()` method (not generic `geocode()`)
   - [ ] **No caching, no pre-fetch** — `preFetchStreetGeometries()` is a cache-warming function that exists solely to populate `streetGeometryCache` before intersection processing. With caching removed, both `preFetchStreetGeometries()` and `streetGeometryCache` are deleted entirely. Each `geocodeStreet()` call fetches geometry inline. The two-pass deferred retry (currently inside `preFetchStreetGeometries`) is re-implemented inside the geocoder's own call path. Add a `// TODO: restore batch pre-fetch via CacheStreetsGeocoder` comment.
   - [ ] `done()` stub: no-op (placeholder for future CacheStreetsGeocoder)
   - [ ] Wire into `providers.ts`: `street: [new OverpassStreetGeocoder()]`

@@ -4,16 +4,13 @@
  *
  * Architecture:
  * - For each entity type, iterate through provider array in order
- * - Call provider.geocode(location) 
+ * - Call provider.geocodePin/Street/Cadastral/BusStop/EducationalFacility(location)
  * - Stop at first non-null result
  * - Call provider.done(resultsMap) on all providers after each entity type completes
  * - Pre-geocoded coordinates (geotagged sources) bypass the provider chain
  */
 
-import {
-  StreetSection,
-  CadastralProperty,
-} from "@/lib/types";
+import { StreetSection, CadastralProperty } from "@/lib/types";
 import {
   QualitySignals,
   normalizePinAddress,
@@ -40,12 +37,8 @@ export async function geocode(
   context: GeocodingContext,
   providers: GeocodingProviders,
 ): Promise<GeocodingResult> {
-  const {
-    preGeocodedMap,
-    qualityMap,
-    addresses,
-    cadastralGeometries,
-  } = await processAllEntityTypes(context, providers);
+  const { preGeocodedMap, qualityMap, addresses, cadastralGeometries } =
+    await processAllEntityTypes(context, providers);
 
   return {
     preGeocodedMap,
@@ -71,11 +64,21 @@ async function processAllEntityTypes(
 
   // Process pins
   if (extractedLocations.pins && extractedLocations.pins.length > 0) {
-    const pinResults = await geocodePins(extractedLocations.pins, context, providers);
+    const pinResults = await geocodePins(
+      extractedLocations.pins,
+      context,
+      providers,
+    );
     for (const result of pinResults) {
       addresses.push(result.address);
       const key = normalizePinAddress(result.address.originalText);
-      qualityMap.set(key, result.address.qualitySignals || { provider: "google", geometryQuality: 0 });
+      qualityMap.set(
+        key,
+        result.address.qualitySignals || {
+          provider: "google",
+          geometryQuality: 0,
+        },
+      );
     }
   }
 
@@ -94,7 +97,10 @@ async function processAllEntityTypes(
   }
 
   // Process cadastral properties
-  if (extractedLocations.cadastralProperties && extractedLocations.cadastralProperties.length > 0) {
+  if (
+    extractedLocations.cadastralProperties &&
+    extractedLocations.cadastralProperties.length > 0
+  ) {
     const cadastralResults = await geocodeCadastral(
       extractedLocations.cadastralProperties,
       context,
@@ -124,7 +130,10 @@ async function processAllEntityTypes(
   }
 
   // Process educational facilities
-  if (extractedLocations.educationalFacilities && extractedLocations.educationalFacilities.length > 0) {
+  if (
+    extractedLocations.educationalFacilities &&
+    extractedLocations.educationalFacilities.length > 0
+  ) {
     const facilityResults = await geocodeEducationalFacilities(
       extractedLocations.educationalFacilities,
       context,
@@ -137,7 +146,10 @@ async function processAllEntityTypes(
         result.qualitySignals,
       );
       addresses.push(address);
-      qualityMap.set(`facility_${result.type}_${result.number}`, result.qualitySignals);
+      qualityMap.set(
+        `facility_${result.type}_${result.number}`,
+        result.qualitySignals,
+      );
     }
   }
 
@@ -145,7 +157,8 @@ async function processAllEntityTypes(
     preGeocodedMap,
     qualityMap,
     addresses,
-    cadastralGeometries: cadastralGeometries.size > 0 ? cadastralGeometries : undefined,
+    cadastralGeometries:
+      cadastralGeometries.size > 0 ? cadastralGeometries : undefined,
   };
 }
 
@@ -161,7 +174,7 @@ async function geocodePins(
 
   for (const pin of pins) {
     for (const provider of providers.pin) {
-      const result = await provider.geocode({ location: pin, context });
+      const result = await provider.geocodePin({ location: pin, context });
       if (result) {
         const key = normalizePinAddress(pin.address);
         results.set(key, result);
@@ -192,7 +205,7 @@ async function geocodeStreets(
 
   for (const street of streets) {
     for (const provider of providers.street) {
-      const result = await provider.geocode({ location: street, context });
+      const result = await provider.geocodeStreet({ location: street, context });
       if (result) {
         const key = `${street.street}|${street.from}|${street.to}`;
         results.set(key, result);
@@ -209,7 +222,7 @@ async function geocodeStreets(
   }
 
   return Array.from(results.entries()).map(([, result]) => ({
-    location: streets.find(s => {
+    location: streets.find((s) => {
       const key = `${s.street}|${s.from}|${s.to}`;
       return results.has(key);
     })!,
@@ -229,7 +242,7 @@ async function geocodeCadastral(
 
   for (const property of properties) {
     for (const provider of providers.cadastral) {
-      const result = await provider.geocode({ location: property, context });
+      const result = await provider.geocodeCadastral({ location: property, context });
       if (result) {
         results.set(property.identifier, result);
         break;
@@ -257,12 +270,18 @@ async function geocodeBusStops(
   stopCodes: string[],
   context: GeocodingContext,
   providers: GeocodingProviders,
-): Promise<Array<{ stopCode: string; coordinates: Coordinates; qualitySignals: QualitySignals }>> {
+): Promise<
+  Array<{
+    stopCode: string;
+    coordinates: Coordinates;
+    qualitySignals: QualitySignals;
+  }>
+> {
   const results = new Map<string, BusStopResult>();
 
   for (const stopCode of stopCodes) {
     for (const provider of providers.busStop) {
-      const result = await provider.geocode({ location: stopCode, context });
+      const result = await provider.geocodeBusStop({ location: stopCode, context });
       if (result) {
         results.set(stopCode, result);
         break;
@@ -291,13 +310,20 @@ async function geocodeEducationalFacilities(
   facilities: Array<EducationalFacilityRef>,
   context: GeocodingContext,
   providers: GeocodingProviders,
-): Promise<Array<{ type: string; number: string; coordinates: Coordinates; qualitySignals: QualitySignals }>> {
+): Promise<
+  Array<{
+    type: string;
+    number: string;
+    coordinates: Coordinates;
+    qualitySignals: QualitySignals;
+  }>
+> {
   const results = new Map<string, EducationalFacilityResult>();
 
   for (const facility of facilities) {
     const facilityKey = `${facility.type}_${facility.number}`;
     for (const provider of providers.educationalFacility) {
-      const result = await provider.geocode({ location: facility, context });
+      const result = await provider.geocodeEducationalFacility({ location: facility, context });
       if (result) {
         results.set(facilityKey, result);
         break;

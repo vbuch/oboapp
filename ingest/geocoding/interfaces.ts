@@ -74,7 +74,7 @@ export interface EducationalFacilityResult {
  * Geocodes a single address pin and returns Address + quality info or null.
  */
 export interface PinGeocoder {
-  geocode(args: {
+  geocodePin(args: {
     location: { address: string; coordinates?: Coordinates };
     context: GeocodingContext;
   }): Promise<PinResult | null>;
@@ -91,7 +91,7 @@ export interface PinGeocoder {
  * Geocodes a street section (from/to intersection) and returns coordinates + geometry.
  */
 export interface StreetGeocoder {
-  geocode(args: {
+  geocodeStreet(args: {
     location: StreetSection;
     context: GeocodingContext;
   }): Promise<StreetResult | null>;
@@ -107,7 +107,7 @@ export interface StreetGeocoder {
  * Cadastral property (УПИ identifier) geocoder interface.
  */
 export interface CadastralGeocoder {
-  geocode(args: {
+  geocodeCadastral(args: {
     location: CadastralProperty;
     context: GeocodingContext;
   }): Promise<CadastralResult | null>;
@@ -122,7 +122,7 @@ export interface CadastralGeocoder {
  * Bus stop geocoder interface.
  */
 export interface BusStopGeocoder {
-  geocode(args: {
+  geocodeBusStop(args: {
     location: string; // stop code
     context: GeocodingContext;
   }): Promise<BusStopResult | null>;
@@ -137,7 +137,7 @@ export interface BusStopGeocoder {
  * Educational facility geocoder interface.
  */
 export interface EducationalFacilityGeocoder {
-  geocode(args: {
+  geocodeEducationalFacility(args: {
     location: EducationalFacilityRef;
     context: GeocodingContext;
   }): Promise<EducationalFacilityResult | null>;
