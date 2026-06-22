@@ -12,10 +12,11 @@
 import { GEOCODING_PROVIDER_PRIORITIES } from "@oboapp/shared";
 import type { GeocodingProviders } from "./interfaces";
 import { logger } from "@/lib/logger";
+import { OverpassStreetGeocoder } from "./street/overpass-street-geocoder";
 
 /**
  * Instantiate all configured providers.
- * Returns empty arrays for all types initially (stubs until Phase 2+).
+ * Includes Phase 2 providers (street); stubs for Phase 3+.
  */
 export function buildGeocodingProviders(): GeocodingProviders {
   const providers: GeocodingProviders = {
@@ -30,10 +31,17 @@ export function buildGeocodingProviders(): GeocodingProviders {
     priorities: GEOCODING_PROVIDER_PRIORITIES,
   });
 
-  // TODO: Implement provider instantiation in Phase 2+
-  // For now, all arrays are empty stubs.
-  // Each provider type (pin, street, cadastral, etc.) will be instantiated
-  // based on GEOCODING_PROVIDER_PRIORITIES configuration.
+  // Phase 2: Street providers
+  if (GEOCODING_PROVIDER_PRIORITIES.street) {
+    for (const providerId of GEOCODING_PROVIDER_PRIORITIES.street) {
+      if (providerId === "overpass") {
+        providers.street.push(new OverpassStreetGeocoder());
+      }
+      // TODO: Add other street providers (e.g., GoogleStreetGeocoder)
+    }
+  }
+
+  // TODO: Implement Phase 3+ providers (pin, cadastral, busStop, educationalFacility)
 
   return providers;
 }
