@@ -72,6 +72,7 @@ Refactor `ingest/geocoding/` from a procedurally dispatched system (`router.ts` 
   - [x] ESLint: ✅ Pre-commit hook passes
 
 **What Works**:
+
 - OverpassStreetGeocoder implements StreetGeocoder interface
 - geocode.ts calls geocodeStreet() on each provider in priority order
 - Provider chain logic verified: tries each provider until first success
@@ -85,25 +86,25 @@ Refactor `ingest/geocoding/` from a procedurally dispatched system (`router.ts` 
 
 Implement in parallel (no dependencies between them):
 
-- [ ] Step 8a: `ingest/geocoding/pin/google-pin-geocoder.ts` implementing `PinGeocoder`
-  - [ ] Wraps `google/service.ts` `geocodeAddresses()`; returns `PinResult | null`
-  - [ ] No cache lookup (removed); `done()` stub
+- [x] Step 8a: `ingest/geocoding/pin/google-pin-geocoder.ts` implementing `PinGeocoder`
+  - [x] Wraps `google/service.ts` `geocodeAddresses()`; returns `PinResult | null`
+  - [x] No cache lookup (removed); `done()` stub
 
-- [ ] Step 8b: `ingest/geocoding/pin/overpass-pin-geocoder.ts` implementing `PinGeocoder`
-  - [ ] Wraps `overpass/service.ts` `overpassGeocodeAddresses()`; returns `PinResult | null`
-  - [ ] `done()` stub
+- [x] Step 8b: `ingest/geocoding/pin/overpass-pin-geocoder.ts` implementing `PinGeocoder`
+  - [x] Wraps `overpass/service.ts` `overpassGeocodeAddresses()`; returns `PinResult | null`
+  - [x] `done()` stub
 
-- [ ] Step 8c: `ingest/geocoding/cadastral/cadastre-geocoder.ts` implementing `CadastralGeocoder`
-  - [ ] Wraps `cadastre/service.ts` `geocodeCadastralProperties()`
+- [x] Step 8c: `ingest/geocoding/cadastral/cadastre-geocoder.ts` implementing `CadastralGeocoder`
+  - [x] Wraps `cadastre/service.ts` `geocodeCadastralProperties()`
 
-- [ ] Step 8d: `ingest/geocoding/bus-stop/gtfs-bus-stop-geocoder.ts` implementing `BusStopGeocoder`
+- [x] Step 8d: `ingest/geocoding/bus-stop/gtfs-bus-stop-geocoder.ts` implementing `BusStopGeocoder`
   - [ ] Name stays `gtfs-bus-stop-geocoder` — the implementation is GTFS-standard (uses `stop_code`, `lat`/`lng` from `stops.txt`). The only Sofia-specific artifact is the `"Спирка ${stopCode}"` label which is a minor localization string, not the protocol. The GTFS URL is configuration (in `geocoding-sources.ts`), not baked in.
-  - [ ] Wraps `gtfs/geocoding-service.ts`; Google fallback as second entry in the `busStop` provider array
+  - [x] Wraps `gtfs/geocoding-service.ts`; Google fallback as second entry in the `busStop` provider array
 
-- [ ] Step 8e: `ingest/geocoding/educational-facility/educational-facility-geocoder.ts` implementing `EducationalFacilityGeocoder`
-  - [ ] Wraps `educational-facilities/geocoding-service.ts`; Google fallback as second entry
+- [x] Step 8e: `ingest/geocoding/educational-facility/educational-facility-geocoder.ts` implementing `EducationalFacilityGeocoder`
+  - [x] Wraps `educational-facilities/geocoding-service.ts`; Google fallback as second entry
 
-- [ ] Step 9: Register all in `providers.ts`
+- [x] Step 9: Register all in `providers.ts`
 
 ```
 pin: [new GooglePinGeocoder(), new OverpassPinGeocoder()]

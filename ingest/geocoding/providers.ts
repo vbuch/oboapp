@@ -17,87 +17,102 @@
  */
 
 import { GEOCODING_PROVIDER_PRIORITIES } from "@oboapp/shared";
-import type { GeocodingProviders, PinGeocoder, StreetGeocoder, CadastralGeocoder, BusStopGeocoder, EducationalFacilityGeocoder } from "./interfaces";
+import type {
+  GeocodingProviders,
+  PinGeocoder,
+  StreetGeocoder,
+  CadastralGeocoder,
+  BusStopGeocoder,
+  EducationalFacilityGeocoder,
+} from "./interfaces";
 import { logger } from "@/lib/logger";
+import { GooglePinGeocoder } from "./pin/google-pin-geocoder";
+import { OverpassPinGeocoder } from "./pin/overpass-pin-geocoder";
 import { OverpassStreetGeocoder } from "./street/overpass-street-geocoder";
+import { CadastreGeocoder } from "./cadastral/cadastre-geocoder";
+import { GtfsBusStopGeocoder } from "./bus-stop/gtfs-bus-stop-geocoder";
+import { GoogleBusStopGeocoder } from "./bus-stop/google-bus-stop-geocoder";
+import { OverpassBusStopGeocoder } from "./bus-stop/overpass-bus-stop-geocoder";
+import { EducationalFacilityLocalGeocoder } from "./educational-facility/educational-facility-geocoder";
+import { GoogleEducationalFacilityGeocoder } from "./educational-facility/google-educational-facility-geocoder";
 
-/**
- * Union type of all available geocoders (used for registry typing).
- */
-type AnyGeocoder = PinGeocoder | StreetGeocoder | CadastralGeocoder | BusStopGeocoder | EducationalFacilityGeocoder;
-
-/**
- * Registry of all available provider instances.
- * Keyed by provider ID, values are the actual geocoder instances.
- * Add new providers here as they are implemented in Phase 3+.
- * Forks can override this file to add custom providers.
- */
-const PROVIDER_INSTANCES: Record<string, AnyGeocoder> = {
-  // Pin providers
-  // google: new GooglePinGeocoder(),
-  // overpass: new OverpassPinGeocoder(),
-
-  // Street providers
-  overpass: new OverpassStreetGeocoder(),
-
-  // Cadastral providers
-  // cadastre: new CadastralGeocoder(),
-
-  // Bus stop providers
-  // gtfs: new GTFSBusStopGeocoder(),
-  // google: new GoogleBusStopGeocoder(),
-
-  // Educational facility providers
-  // "educational-facilities": new EducationalFacilityGeocoder(),
-  // google: new GoogleEducationalFacilityGeocoder(),
+const SKIP_CADASTRAL_PROVIDER: CadastralGeocoder = {
+  async geocodeCadastral(): Promise<null> {
+    return null;
+  },
 };
 
-/**
- * Resolve and validate a list of provider IDs to instances.
- * Ensures each instance implements the correct method for the entity type.
- * Returns array of instances or throws descriptive error.
- */
-function resolveAndValidateProviders(
-  entityType: "pin" | "street" | "cadastral" | "busStop" | "educationalFacility",
-  priorityIds: readonly string[],
-): AnyGeocoder[] {
-  // Method name mapping per entity type
-  const methodNames: Record<string, string> = {
-    pin: "geocodePin",
-    street: "geocodeStreet",
-    cadastral: "geocodeCadastral",
-    busStop: "geocodeBusStop",
-    educationalFacility: "geocodeEducationalFacility",
-  };
+const SKIP_BUS_STOP_PROVIDER: BusStopGeocoder = {
+  async geocodeBusStop(): Promise<null> {
+    return null;
+  },
+};
 
-  const methodName = methodNames[entityType];
-  const resolved: AnyGeocoder[] = [];
+const SKIP_EDUCATIONAL_PROVIDER: EducationalFacilityGeocoder = {
+  async geocodeEducationalFacility(): Promise<null> {
+    return null;
+  },
+};
+
+const PIN_PROVIDER_INSTANCES: Record<string, PinGeocoder> = {
+  google: new GooglePinGeocoder(),
+  overpass: new OverpassPinGeocoder(),
+};
+
+const STREET_PROVIDER_INSTANCES: Record<string, StreetGeocoder> = {
+  overpass: new OverpassStreetGeocoder(),
+};
+
+const CADASTRAL_PROVIDER_INSTANCES: Record<string, CadastralGeocoder> = {
+  cadastre: new CadastreGeocoder(),
+  skip: SKIP_CADASTRAL_PROVIDER,
+};
+
+const BUS_STOP_PROVIDER_INSTANCES: Record<string, BusStopGeocoder> = {
+  gtfs: new GtfsBusStopGeocoder(),
+  google: new GoogleBusStopGeocoder(),
+  overpass: new OverpassBusStopGeocoder(),
+  skip: SKIP_BUS_STOP_PROVIDER,
+};
+
+const EDUCATIONAL_FACILITY_PROVIDER_INSTANCES: Record<
+  string,
+  EducationalFacilityGeocoder
+> = {
+  "educational-facilities": new EducationalFacilityLocalGeocoder(),
+  google: new GoogleEducationalFacilityGeocoder(),
+  skip: SKIP_EDUCATIONAL_PROVIDER,
+};
+
+function resolveAndValidateProviders<T>(
+  entityType:
+    | "pin"
+    | "street"
+    | "cadastral"
+    | "busStop"
+    | "educationalFacility",
+  priorityIds: readonly string[],
+  providerInstances: Record<string, T>,
+  methodName: string,
+): T[] {
+  const resolved: T[] = [];
 
   for (const id of priorityIds) {
-    const instance = PROVIDER_INSTANCES[id];
+    const instance = providerInstances[id];
 
     if (!instance) {
       throw new Error(
         `Provider "${id}" is in GEOCODING_PROVIDER_PRIORITIES.${entityType} ` +
-          `but not found in PROVIDER_INSTANCES. Check that the provider is instantiated.`,
+          `but not found in PROVIDER_INSTANCES.${entityType}. Check that the provider is instantiated.`,
       );
     }
 
-    // Validate the instance implements the correct interface for this entity type.
-    // Check using Object.entries to avoid type assertions
-    let hasMethod = false;
-    for (const [key, value] of Object.entries(instance)) {
-      if (key === methodName && typeof value === "function") {
-        hasMethod = true;
-        break;
-      }
-    }
-
-    if (!hasMethod) {
+    const method = Reflect.get(instance, methodName);
+    if (typeof method !== "function") {
       throw new Error(
         `Provider instance "${id}" does not implement ${methodName}(). ` +
           `It cannot be used as a ${entityType} geocoder. ` +
-          `Check PROVIDER_INSTANCES or the provider class.`,
+          `Check PROVIDER_INSTANCES.${entityType} or the provider class.`,
       );
     }
 
@@ -107,38 +122,50 @@ function resolveAndValidateProviders(
   return resolved;
 }
 
-/**
- * Typed wrappers for each entity type (filters AnyGeocoder[] to specific types).
- * These allow buildGeocodingProviders to assign correctly-typed arrays without assertions.
- */
 function resolvePinProviders(ids: readonly string[]): PinGeocoder[] {
-  return resolveAndValidateProviders("pin", ids).filter(
-    (p): p is PinGeocoder => "geocodePin" in p && typeof p.geocodePin === "function",
+  return resolveAndValidateProviders(
+    "pin",
+    ids,
+    PIN_PROVIDER_INSTANCES,
+    "geocodePin",
   );
 }
 
 function resolveStreetProviders(ids: readonly string[]): StreetGeocoder[] {
-  return resolveAndValidateProviders("street", ids).filter(
-    (p): p is StreetGeocoder => "geocodeStreet" in p && typeof p.geocodeStreet === "function",
+  return resolveAndValidateProviders(
+    "street",
+    ids,
+    STREET_PROVIDER_INSTANCES,
+    "geocodeStreet",
   );
 }
 
 function resolveCadastralProviders(ids: readonly string[]): CadastralGeocoder[] {
-  return resolveAndValidateProviders("cadastral", ids).filter(
-    (p): p is CadastralGeocoder => "geocodeCadastral" in p && typeof p.geocodeCadastral === "function",
+  return resolveAndValidateProviders(
+    "cadastral",
+    ids,
+    CADASTRAL_PROVIDER_INSTANCES,
+    "geocodeCadastral",
   );
 }
 
 function resolveBusStopProviders(ids: readonly string[]): BusStopGeocoder[] {
-  return resolveAndValidateProviders("busStop", ids).filter(
-    (p): p is BusStopGeocoder => "geocodeBusStop" in p && typeof p.geocodeBusStop === "function",
+  return resolveAndValidateProviders(
+    "busStop",
+    ids,
+    BUS_STOP_PROVIDER_INSTANCES,
+    "geocodeBusStop",
   );
 }
 
-function resolveEducationalFacilityProviders(ids: readonly string[]): EducationalFacilityGeocoder[] {
-  return resolveAndValidateProviders("educationalFacility", ids).filter(
-    (p): p is EducationalFacilityGeocoder =>
-      "geocodeEducationalFacility" in p && typeof p.geocodeEducationalFacility === "function",
+function resolveEducationalFacilityProviders(
+  ids: readonly string[],
+): EducationalFacilityGeocoder[] {
+  return resolveAndValidateProviders(
+    "educationalFacility",
+    ids,
+    EDUCATIONAL_FACILITY_PROVIDER_INSTANCES,
+    "geocodeEducationalFacility",
   );
 }
 
@@ -155,9 +182,13 @@ export function buildGeocodingProviders(): GeocodingProviders {
   return {
     pin: resolvePinProviders(GEOCODING_PROVIDER_PRIORITIES.pin),
     street: resolveStreetProviders(GEOCODING_PROVIDER_PRIORITIES.street),
-    cadastral: resolveCadastralProviders(GEOCODING_PROVIDER_PRIORITIES.cadastral),
+    cadastral: resolveCadastralProviders(
+      GEOCODING_PROVIDER_PRIORITIES.cadastral,
+    ),
     busStop: resolveBusStopProviders(GEOCODING_PROVIDER_PRIORITIES.busStop),
-    educationalFacility: resolveEducationalFacilityProviders(GEOCODING_PROVIDER_PRIORITIES.educationalFacility),
+    educationalFacility: resolveEducationalFacilityProviders(
+      GEOCODING_PROVIDER_PRIORITIES.educationalFacility,
+    ),
   };
 }
 
