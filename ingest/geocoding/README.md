@@ -1,6 +1,8 @@
 # Geocoding
 
-The router ([`router.ts`](router.ts)) dispatches each location type extracted from a message to the provider declared for that locality. Providers are configured in `localities/{locality}.yaml` — see [`lib/locality-data-sources.ts`](../lib/locality-data-sources.ts).
+The geocoding system uses an **interface-driven provider architecture**. Each location type (pins, streets, cadastral, bus stops, educational facilities) has a set of priority-ordered providers configured via `shared/src/geocoding-sources.ts` (GEOCODING_RESOLVERS). The main entry point — [`geocode()`](./geocode.ts) — orchestrates provider chains: for each entity type, it calls providers in priority order until one succeeds, then moves to the next entity type.
+
+For city forks, provider selection and priorities are customized by replacing `shared/src/geocoding-sources.ts`.
 
 | Location type                  | Supported providers                        | Output                                      |
 | ------------------------------ | ------------------------------------------ | ------------------------------------------- |
