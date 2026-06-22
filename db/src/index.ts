@@ -57,10 +57,6 @@ export interface OboDb {
   events: EventsRepository;
   /** Message-to-event links */
   eventMessages: EventMessagesRepository;
-  /** Geocode cache: pins (Google) */
-  geocodeCachePins: GeocodeCachePinsRepository;
-  /** Geocode cache: streets (Overpass) */
-  geocodeCacheStreets: GeocodeCacheStreetsRepository;
   /** Close all database connections */
   close(): Promise<void>;
 }
@@ -95,8 +91,6 @@ function buildRepositories(client: DbClient): OboDb {
     userPreferences: new UserPreferencesRepository(client),
     events: new EventsRepository(client),
     eventMessages: new EventMessagesRepository(client),
-    geocodeCachePins: new GeocodeCachePinsRepository(client),
-    geocodeCacheStreets: new GeocodeCacheStreetsRepository(client),
     close: () => client.close(),
   };
 }

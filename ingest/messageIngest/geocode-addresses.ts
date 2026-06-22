@@ -177,9 +177,6 @@ export function createAddressFromCoordinates(
  * TODO (Phase 5): Re-integrate detailed progress tracking (tracker parameter) and
  * ingest error handling for each entity type. Currently these parameters are accepted
  * for backward compatibility but not used.
- *
- * TODO (Phase 5): Remove street cache seeding (seedStreetCacheFromDb) after
- * removing the deprecated cache.ts module.
  */
 export async function geocodeAddressesFromExtractedData(
   extractedData: ExtractedLocations | null,
@@ -193,11 +190,6 @@ export async function geocodeAddressesFromExtractedData(
       addresses: [],
     };
   }
-
-  // Pre-populate in-memory street geometry cache from DB (no-op after first call)
-  // TODO (Phase 5): Remove street cache seeding after removing cache.ts
-  const { seedStreetCacheFromDb } = await import("@/geocoding/cache");
-  await seedStreetCacheFromDb();
 
   // Build geocoding context from extracted data
   const locality = getLocality();

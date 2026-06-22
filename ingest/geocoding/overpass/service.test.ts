@@ -215,8 +215,9 @@ describe("overpass-geocoding-service", () => {
     });
 
     it("removes quote styles while preserving case", () => {
-      // eslint-disable-next-line no-useless-escape
-      expect(normalizeStreetNameForQuery('ул. \u201eЦар Самуил\u201c')).toBe("Цар Самуил");
+      expect(normalizeStreetNameForQuery("ул. \u201eЦар Самуил\u201c")).toBe(
+        "Цар Самуил",
+      );
     });
 
     it("inserts spaces after dots in abbreviations while preserving case", () => {
@@ -633,7 +634,9 @@ describe("overpass-geocoding-service", () => {
           })),
         );
 
-        const results = await overpassGeocodeIntersections(["ул. Пример ∩ ул. Фоо"]);
+        const results = await overpassGeocodeIntersections([
+          "ул. Пример ∩ ул. Фоо",
+        ]);
 
         // Each of the 2 streets has 2 unique street names. In pass 1 every instance is
         // tried with OVERPASS_RETRY_MAX_ATTEMPTS before moving on. All streets are deferred.
@@ -811,7 +814,9 @@ describe("overpass-geocoding-service", () => {
 
       // Pass 1: OVERPASS_INSTANCES.length calls all fail → street deferred
       // Pass 2: 1 call succeeds on the first instance
-      expect(vi.mocked(fetch).mock.calls.length).toBe(OVERPASS_INSTANCES.length + 1);
+      expect(vi.mocked(fetch).mock.calls.length).toBe(
+        OVERPASS_INSTANCES.length + 1,
+      );
       // The second-pass result must have been cached — no further fetch needed
       vi.mocked(fetch).mockClear();
       const cached = await getStreetGeometryFromOverpass("ул. Пример");

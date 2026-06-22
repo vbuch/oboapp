@@ -1,6 +1,6 @@
 import { Address } from "../../lib/types";
 import { isCenterFallback, isGenericCityAddress } from "./utils";
-import { isWithinBounds, normalizePinAddress } from "@oboapp/shared";
+import { isWithinBounds } from "@oboapp/shared";
 import { getLocality } from "../../lib/target-locality";
 import { getLocalityContext } from "../../lib/locality-context";
 import { delay } from "../../lib/delay";
@@ -23,14 +23,6 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
     return mockService.geocodeAddress(address);
   }
 
-  // Check pin cache before calling Google Geocoding API
-  const { lookupCachedPin } = await import("../cache");
-  const cached = await lookupCachedPin(normalizePinAddress(address));
-  if (cached) {
-    logger.debug("Pin cache hit, skipping Google Geocoding API", { address });
-    return cached;
-  }
-
   try {
     const locality = getLocality();
     const { city, country } = getLocalityContext();
@@ -43,9 +35,14 @@ export async function geocodeAddress(address: string): Promise<Address | null> {
       return null;
     }
     // Build URL via URLSearchParams so city/country/key are properly encoded
-    const geocodeUrl = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+    const geocodeUrl = new URL(
+      "https://maps.googleapis.com/maps/api/geocode/json",
+    );
     geocodeUrl.searchParams.set("address", `${address}, ${city}, ${country}`);
-    geocodeUrl.searchParams.set("components", `locality:${city}|country:${countryCode}`);
+    geocodeUrl.searchParams.set(
+      "components",
+      `locality:${city}|country:${countryCode}`,
+    );
     geocodeUrl.searchParams.set("key", apiKey);
 
     const response = await fetch(geocodeUrl.toString());

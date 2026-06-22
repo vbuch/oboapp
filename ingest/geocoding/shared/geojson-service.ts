@@ -10,7 +10,7 @@ import {
   OSM_ELEMENT_TYPES,
 } from "@oboapp/shared";
 import type { IntersectionCoordinates } from "@/lib/types";
-import { getStreetGeometry } from "../router";
+import { getStreetSectionGeometry } from "../overpass/service";
 import { roundCoordinate } from "./coordinate-utils";
 import { logger } from "@/lib/logger";
 import { gradeOverpass } from "./quality";
@@ -114,14 +114,23 @@ async function getStreetCenterline(
     };
   }
 
-  // Use the configured geocoding algorithm via the router
-  const geometry = await getStreetGeometry(streetName, startCoords, endCoords);
+  // Use the configured geocoding algorithm via Overpass
+  const geometry = await getStreetSectionGeometry(
+    streetName,
+    startCoords,
+    endCoords,
+  );
 
   if (geometry && geometry.length >= 2) {
+    // Map Position[] (which may include elevation) to [number, number][] (just [lng, lat])
+    const coordinates: [number, number][] = geometry.map((pos) => [
+      pos[0],
+      pos[1],
+    ]);
     return {
       geometry: {
         type: "LineString",
-        coordinates: geometry,
+        coordinates,
       },
       usedWayGeometry: true,
     };

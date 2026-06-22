@@ -8,9 +8,9 @@ vi.mock("@/lib/firebase-admin", () => ({
   adminDb: vi.fn(),
 }));
 
-// Mock geocoding-router to prevent real network calls in tests
-vi.mock("@/geocoding/router", () => ({
-  getStreetGeometry: vi.fn().mockResolvedValue([
+// Mock Overpass service to prevent real network calls in tests
+vi.mock("@/geocoding/overpass/service", () => ({
+  getStreetSectionGeometry: vi.fn().mockResolvedValue([
     [23.351, 42.693],
     [23.352, 42.694],
     [23.353, 42.695],
@@ -242,7 +242,7 @@ describe("LineString to Polygon conversion", () => {
 
 describe("convertToGeoJSON with geotagged coordinates", () => {
   it("should create straight line when both street endpoints have geotagged coordinates", async () => {
-    const { getStreetGeometry } = await import("@/geocoding/router");
+    const { getStreetSectionGeometry } = await import("../overpass/service");
     const { convertToGeoJSON } = await import("./geojson-service");
 
     const extractedData = {
@@ -271,7 +271,11 @@ describe("convertToGeoJSON with geotagged coordinates", () => {
     ]);
 
     const qualityMap = new Map();
-    const result = await convertToGeoJSON(extractedData, preGeocodedMap, qualityMap);
+    const result = await convertToGeoJSON(
+      extractedData,
+      preGeocodedMap,
+      qualityMap,
+    );
 
     expect(result.features).toHaveLength(1);
     expect(result.features[0].geometry.type).toBe("Polygon");
@@ -279,13 +283,13 @@ describe("convertToGeoJSON with geotagged coordinates", () => {
     expect(result.features[0].properties.from).toBe("Start Point");
     expect(result.features[0].properties.to).toBe("End Point");
 
-    // getStreetGeometry should NOT be called — straight line is used instead
-    expect(getStreetGeometry).not.toHaveBeenCalled();
+    // getStreetSectionGeometry should NOT be called — straight line is used instead
+    expect(getStreetSectionGeometry).not.toHaveBeenCalled();
   });
 
   it("should use street geometry when endpoints are geocoded (not geotagged)", async () => {
-    const { getStreetGeometry } = await import("@/geocoding/router");
-    vi.mocked(getStreetGeometry).mockClear();
+    const { getStreetSectionGeometry } = await import("../overpass/service");
+    vi.mocked(getStreetSectionGeometry).mockClear();
     const { convertToGeoJSON } = await import("./geojson-service");
 
     const extractedData = {
@@ -311,13 +315,17 @@ describe("convertToGeoJSON with geotagged coordinates", () => {
     ]);
 
     const qualityMap = new Map();
-    const result = await convertToGeoJSON(extractedData, preGeocodedMap, qualityMap);
+    const result = await convertToGeoJSON(
+      extractedData,
+      preGeocodedMap,
+      qualityMap,
+    );
 
     expect(result.features).toHaveLength(1);
     expect(result.features[0].geometry.type).toBe("Polygon");
     expect(result.features[0].properties.street).toBe("ул. Оборище");
 
-    // getStreetGeometry SHOULD be called — no geotagged coordinates
-    expect(getStreetGeometry).toHaveBeenCalledOnce();
+    // getStreetSectionGeometry SHOULD be called — no geotagged coordinates
+    expect(getStreetSectionGeometry).toHaveBeenCalledOnce();
   });
 });
