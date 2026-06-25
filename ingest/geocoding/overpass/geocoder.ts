@@ -16,7 +16,10 @@ import {
 } from "./service";
 import { logger } from "@/lib/logger";
 import { gradeOverpass } from "../shared/quality";
-import { isHouseNumberEndpoint } from "../shared/house-number";
+import {
+  buildHouseNumberQuery,
+  isHouseNumberEndpoint,
+} from "../shared/house-number";
 
 /**
  * Extract and validate coordinates from resolved addresses
@@ -44,7 +47,7 @@ async function resolveStreetEndpoint(
   endpoint: string,
 ): Promise<Address | null> {
   if (hasHouseNumber(endpoint)) {
-    const addressQuery = `${streetName} ${endpoint}`;
+    const addressQuery = buildHouseNumberQuery(streetName, endpoint);
     const addresses = await overpassGeocodeAddresses([addressQuery]);
     return addresses[0] ?? null;
   }

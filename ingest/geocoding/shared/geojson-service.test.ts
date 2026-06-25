@@ -35,7 +35,7 @@ function isPolygonSelfIntersecting(
   coordinates: Position[][] | Position[][][],
 ): boolean {
   try {
-    const polygon = turf.polygon(coordinates);
+    const polygon = turf.polygon(coordinates as unknown as Position[][]);
     const kinks = turf.kinks(polygon);
     return kinks.features.length > 0;
   } catch {
@@ -206,6 +206,10 @@ describe("LineString to Polygon conversion", () => {
       ).toBe(false);
 
       // The polygons should be approximately the same area (just different winding)
+      if (!bufferedAtoB || !bufferedBtoA) {
+        throw new Error("Expected buffered polygons to be defined");
+      }
+
       const areaAtoB = turf.area(bufferedAtoB);
       const areaBtoA = turf.area(bufferedBtoA);
       expect(Math.abs(areaAtoB - areaBtoA)).toBeLessThan(100); // Within 100 square meters

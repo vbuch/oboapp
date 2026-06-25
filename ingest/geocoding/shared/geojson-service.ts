@@ -1,5 +1,6 @@
 import {
   ExtractedLocations,
+  Pin,
   StreetSection,
   GeoJsonFeatureCollection,
   GeoJsonFeature,
@@ -342,10 +343,10 @@ async function createClosureFeature(
 // Step 5 — Feature Collection Assembly
 // Helper to process a single street and convert to features
 async function processStreetToFeature(
-  street: ExtractedStreet,
+  street: StreetSection,
   preGeocodedAddresses: Map<string, IntersectionCoordinates>,
   qualityMap: Map<string, QualitySignals>,
-  fallbackPins: typeof extractedData.pins,
+  fallbackPins: Pin[],
 ): Promise<GeoJsonFeature | null> {
   try {
     return await createClosureFeature(street, preGeocodedAddresses, qualityMap);
@@ -389,7 +390,7 @@ async function processStreetToFeature(
 
 // Helper to process a single pin to feature
 function processPinToFeature(
-  pin: ExtractedPin,
+  pin: Pin,
   preGeocodedAddresses: Map<string, IntersectionCoordinates>,
   qualityMap: Map<string, QualitySignals>,
 ): GeoJsonFeature | null {
@@ -410,7 +411,7 @@ export async function convertToGeoJSON(
   qualityMap: Map<string, QualitySignals>,
 ): Promise<GeoJsonFeatureCollection> {
   const features: GeoJsonFeature[] = [];
-  const fallbackPins: typeof extractedData.pins = [];
+  const fallbackPins: Pin[] = [];
 
   // Process all street closures first
   for (const street of extractedData.streets) {

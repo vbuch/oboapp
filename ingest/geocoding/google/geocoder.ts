@@ -12,7 +12,10 @@ import type {
 import type { Coordinates, EducationalFacilityRef } from "@oboapp/shared";
 import { geocodeAddresses } from "./service";
 import { gradeGoogle } from "../shared/quality";
-import { isHouseNumberEndpoint } from "../shared/house-number";
+import {
+  buildHouseNumberQuery,
+  isHouseNumberEndpoint,
+} from "../shared/house-number";
 
 export class GoogleGeocoder
   implements
@@ -62,11 +65,11 @@ export class GoogleGeocoder
     const { location } = args;
 
     const fromQuery = isHouseNumberEndpoint(location.from)
-      ? `${location.street} ${location.from}`
-      : `${location.street} и ${location.from}`;
+      ? buildHouseNumberQuery(location.street, location.from)
+      : `${location.street} ∩ ${location.from}`;
     const toQuery = isHouseNumberEndpoint(location.to)
-      ? `${location.street} ${location.to}`
-      : `${location.street} и ${location.to}`;
+      ? buildHouseNumberQuery(location.street, location.to)
+      : `${location.street} ∩ ${location.to}`;
 
     const [fromAddress, toAddress] = await Promise.all([
       geocodeAddresses([fromQuery]).then((res) => res[0] ?? null),

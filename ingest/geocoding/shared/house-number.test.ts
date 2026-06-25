@@ -11,9 +11,16 @@ describe("isHouseNumberEndpoint", () => {
     expect(isHouseNumberEndpoint("12Б")).toBe(true);
   });
 
-  it("accepts ranges and slash-separated house numbers", () => {
-    expect(isHouseNumberEndpoint("12/14")).toBe(true);
-    expect(isHouseNumberEndpoint("12-14")).toBe(true);
+  it("rejects ranges and slash-separated house numbers", () => {
+    expect(isHouseNumberEndpoint("12/14")).toBe(false);
+    expect(isHouseNumberEndpoint("12-14")).toBe(false);
+  });
+
+  it("accepts Bulgarian house-number markers", () => {
+    expect(isHouseNumberEndpoint("№111")).toBe(true);
+    expect(isHouseNumberEndpoint("№ 38")).toBe(true);
+    expect(isHouseNumberEndpoint("бл. 38")).toBe(true);
+    expect(isHouseNumberEndpoint("номер 3")).toBe(true);
   });
 
   it("rejects ordinal street names with digits", () => {
