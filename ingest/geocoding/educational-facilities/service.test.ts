@@ -15,7 +15,8 @@ vi.mock("@/lib/logger", () => ({
 import { getLocalityDataSources } from "@/lib/locality-data-sources";
 import { logger } from "@/lib/logger";
 
-const { parseFacilityNumber, syncEducationalFacilities } = await import("./service");
+const { parseFacilityNumber, syncEducationalFacilities } =
+  await import("./service");
 
 describe("parseFacilityNumber", () => {
   describe("object_nom takes priority", () => {
@@ -38,7 +39,9 @@ describe("parseFacilityNumber", () => {
 
   describe("fallback to leading digits in object_nam", () => {
     it("extracts leading number from a named school", () => {
-      expect(parseFacilityNumber(null, '93 СУ "Александър Теодоров – Балан"')).toBe("93");
+      expect(
+        parseFacilityNumber(null, '93 СУ "Александър Теодоров – Балан"'),
+      ).toBe("93");
     });
 
     it("extracts leading number from a numbered kindergarten name", () => {
@@ -46,13 +49,17 @@ describe("parseFacilityNumber", () => {
     });
 
     it("extracts multi-digit leading number", () => {
-      expect(parseFacilityNumber(null, "133-та детска градина Зорница")).toBe("133");
+      expect(parseFacilityNumber(null, "133-та детска градина Зорница")).toBe(
+        "133",
+      );
     });
   });
 
   describe("returns null when no number is available", () => {
     it("returns null when object_nom is null and object_nam has no leading digits", () => {
-      expect(parseFacilityNumber(null, "НГ по приложни изкуства „Св. Лука\"")).toBeNull();
+      expect(
+        parseFacilityNumber(null, 'НГ по приложни изкуства „Св. Лука"'),
+      ).toBeNull();
     });
 
     it("returns null when both arguments are null", () => {
@@ -73,7 +80,7 @@ describe("syncEducationalFacilities", () => {
   it("skips sync and logs when educational-facilities provider is not educational-facilities", async () => {
     vi.mocked(getLocalityDataSources).mockReturnValue({
       "geocoding-resolvers": {
-        "educational-facilities": { provider: "skip" },
+        "educational-facilities": [{ provider: "skip" }],
       },
     } as any);
     const fetchSpy = vi.spyOn(globalThis, "fetch");
@@ -83,7 +90,7 @@ describe("syncEducationalFacilities", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(vi.mocked(logger.info)).toHaveBeenCalledWith(
       "Educational facilities resolver is not educational-facilities — skipping sync",
-      { provider: "skip" },
+      { configuredProviders: ["skip"] },
     );
 
     fetchSpy.mockRestore();
@@ -92,7 +99,7 @@ describe("syncEducationalFacilities", () => {
   it("skips sync when provider is google", async () => {
     vi.mocked(getLocalityDataSources).mockReturnValue({
       "geocoding-resolvers": {
-        "educational-facilities": { provider: "google" },
+        "educational-facilities": [{ provider: "google" }],
       },
     } as any);
     const fetchSpy = vi.spyOn(globalThis, "fetch");

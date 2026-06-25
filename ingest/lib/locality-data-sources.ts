@@ -36,7 +36,10 @@ const LocalityDataSourcesSchema = z.object({
     "bus-stops": z
       .array(
         z.discriminatedUnion("provider", [
-          z.object({ provider: z.literal("gtfs"), url: z.url() }),
+          z.object({
+            provider: z.literal("gtfs"),
+            url: z.string().pipe(z.url()),
+          }),
           z.object({ provider: z.literal("google") }),
           z.object({ provider: z.literal("overpass") }),
           z.object({ provider: z.literal("skip") }),
@@ -48,8 +51,8 @@ const LocalityDataSourcesSchema = z.object({
         z.discriminatedUnion("provider", [
           z.object({
             provider: z.literal("educational-facilities"),
-            "schools-url": z.url(),
-            "kindergartens-url": z.url(),
+            "schools-url": z.string().pipe(z.url()),
+            "kindergartens-url": z.string().pipe(z.url()),
           }),
           z.object({ provider: z.literal("google") }),
           z.object({ provider: z.literal("skip") }),

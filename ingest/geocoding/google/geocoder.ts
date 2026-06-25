@@ -12,6 +12,7 @@ import type {
 import type { Coordinates, EducationalFacilityRef } from "@oboapp/shared";
 import { geocodeAddresses } from "./service";
 import { gradeGoogle } from "../shared/quality";
+import { isHouseNumberEndpoint } from "../shared/house-number";
 
 export class GoogleGeocoder
   implements
@@ -60,10 +61,10 @@ export class GoogleGeocoder
   }): Promise<StreetResult | null> {
     const { location } = args;
 
-    const fromQuery = /\d/.test(location.from)
+    const fromQuery = isHouseNumberEndpoint(location.from)
       ? `${location.street} ${location.from}`
       : `${location.street} и ${location.from}`;
-    const toQuery = /\d/.test(location.to)
+    const toQuery = isHouseNumberEndpoint(location.to)
       ? `${location.street} ${location.to}`
       : `${location.street} и ${location.to}`;
 

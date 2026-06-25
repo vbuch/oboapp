@@ -211,7 +211,7 @@ function bufferLineString(
   // Create polygon by combining left side, reversed right side, and closing
   const polygonRing: [number, number][] = [
     ...leftSide,
-    ...rightSide.toReversed(),
+    ...[...rightSide].reverse(),
     leftSide[0], // Close the polygon
   ];
 

@@ -16,6 +16,7 @@ import {
 } from "./service";
 import { logger } from "@/lib/logger";
 import { gradeOverpass } from "../shared/quality";
+import { isHouseNumberEndpoint } from "../shared/house-number";
 
 /**
  * Extract and validate coordinates from resolved addresses
@@ -35,7 +36,7 @@ function extractCoordinates(
 }
 
 function hasHouseNumber(endpoint: string): boolean {
-  return /\d/.test(endpoint);
+  return isHouseNumberEndpoint(endpoint);
 }
 
 async function resolveStreetEndpoint(

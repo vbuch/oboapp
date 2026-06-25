@@ -121,7 +121,7 @@ describe("syncGTFSStopsToFirestore", () => {
   it("skips sync and logs when bus-stops provider is not gtfs", async () => {
     vi.mocked(getLocalityDataSources).mockReturnValue({
       "geocoding-resolvers": {
-        "bus-stops": { provider: "skip" },
+        "bus-stops": [{ provider: "skip" }],
       },
     } as any);
     const fetchSpy = vi.spyOn(globalThis, "fetch");
@@ -131,7 +131,7 @@ describe("syncGTFSStopsToFirestore", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(vi.mocked(logger.info)).toHaveBeenCalledWith(
       "Bus stops resolver is not gtfs — skipping GTFS sync",
-      { provider: "skip" },
+      { configuredProviders: ["skip"] },
     );
 
     fetchSpy.mockRestore();
@@ -140,7 +140,7 @@ describe("syncGTFSStopsToFirestore", () => {
   it("skips sync when provider is google", async () => {
     vi.mocked(getLocalityDataSources).mockReturnValue({
       "geocoding-resolvers": {
-        "bus-stops": { provider: "google" },
+        "bus-stops": [{ provider: "google" }],
       },
     } as any);
     const fetchSpy = vi.spyOn(globalThis, "fetch");
