@@ -41,23 +41,24 @@ export const GEOCODING_PROVIDER_PRIORITIES: GeocodingProviderPriorities = {
  * Helper to construct GEOCODING_RESOLVERS from provider priorities.
  * This is used by ingest/lib/locality-data-sources.ts to build the resolver config
  * with environment variables for provider-specific URLs.
- * (Not exported — this is an internal helper for ingest only)
  */
 export function buildGeocodingResolvers() {
   return {
     pins: GEOCODING_PROVIDER_PRIORITIES.pin.map((p) => ({ provider: p })),
     streets: GEOCODING_PROVIDER_PRIORITIES.street.map((p) => ({ provider: p })),
-    "cadastral-properties": GEOCODING_PROVIDER_PRIORITIES.cadastral.map((p) => ({
-      provider: p,
-    })),
+    "cadastral-properties": GEOCODING_PROVIDER_PRIORITIES.cadastral.map(
+      (p) => ({
+        provider: p,
+      }),
+    ),
     "bus-stops": GEOCODING_PROVIDER_PRIORITIES.busStop.map((p) => {
       if (p === "gtfs") {
         return { provider: p, url: "" }; // URLs are set by ingest at runtime
       }
       return { provider: p };
     }),
-    "educational-facilities": GEOCODING_PROVIDER_PRIORITIES.educationalFacility.map(
-      (p) => {
+    "educational-facilities":
+      GEOCODING_PROVIDER_PRIORITIES.educationalFacility.map((p) => {
         if (p === "educational-facilities") {
           return {
             provider: p,
@@ -66,8 +67,7 @@ export function buildGeocodingResolvers() {
           };
         }
         return { provider: p };
-      }
-    ),
+      }),
   };
 }
 

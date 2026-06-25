@@ -14,6 +14,7 @@ import { StreetSection, CadastralProperty } from "@/lib/types";
 import { QualitySignals, EducationalFacilityRef } from "@oboapp/shared";
 import type { Address, Coordinates } from "@oboapp/shared";
 import { EDUCATIONAL_FACILITY_PREFIX } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 import type {
   GeocodingContext,
   GeocodingProviders,
@@ -25,6 +26,21 @@ import type {
   EducationalFacilityResult,
 } from "./interfaces";
 import type { CadastralGeometry } from "@/geocoding/cadastre/service";
+
+async function callProvider<T>(
+  providerName: string,
+  action: () => Promise<T | null>,
+): Promise<T | null> {
+  try {
+    return await action();
+  } catch (error) {
+    logger.warn("Geocoding provider failed", {
+      providerName,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
 
 /**
  * Main geocoding entry point.
@@ -57,9 +73,9 @@ function processPinResults(
   for (const { pinAddress, result } of results) {
     preGeocodedMap.set(pinAddress, result.address.coordinates);
     addresses.push(result.address);
-    if (result.address.qualitySignals) {
-      qualityMap.set(pinAddress, result.address.qualitySignals);
-    }
+    if (result.address.qualitySignals) {
+      qualityMap.set(pinAddress, result.address.qualitySignals);
+    }
   }
 }
 
@@ -241,7 +257,10 @@ async function geocodePins(
     }
 
     for (const provider of providers.pin) {
-      const result = await provider.geocodePin({ location: pin, context });
+      const result = await callProvider(
+        provider.constructor?.name ?? "PinGeocoder",
+        () => provider.geocodePin({ location: pin, context }),
+      );
       if (result) {
         const key = pin.address.toLowerCase().trim();
         results.set(key, { pinAddress: pin.address, result });
@@ -282,10 +301,14 @@ async function geocodeStreets(
     }
 
     for (const provider of providers.street) {
-      const result = await provider.geocodeStreet({
-        location: street,
-        context,
-      });
+      const result = await callProvider(
+        provider.constructor?.name ?? "StreetGeocoder",
+        () =>
+          provider.geocodeStreet({
+            location: street,
+            context,
+          }),
+      );
       if (result) {
         const key = `${street.street}|${street.from}|${street.to}`;
         results.set(key, { location: street, result });
@@ -319,10 +342,14 @@ async function geocodeCadastral(
 
   for (const property of properties) {
     for (const provider of providers.cadastral) {
-      const result = await provider.geocodeCadastral({
-        location: property,
-        context,
-      });
+      const result = await callProvider(
+        provider.constructor?.name ?? "CadastralGeocoder",
+        () =>
+          provider.geocodeCadastral({
+            location: property,
+            context,
+          }),
+      );
       if (result) {
         results.set(property.identifier, result);
         break;
@@ -361,10 +388,14 @@ async function geocodeBusStops(
 
   for (const stopCode of stopCodes) {
     for (const provider of providers.busStop) {
-      const result = await provider.geocodeBusStop({
-        location: stopCode,
-        context,
-      });
+      const result = await callProvider(
+        provider.constructor?.name ?? "BusStopGeocoder",
+        () =>
+          provider.geocodeBusStop({
+            location: stopCode,
+            context,
+          }),
+      );
       if (result) {
         results.set(stopCode, result);
         break;
@@ -409,10 +440,14 @@ async function geocodeEducationalFacilities(
   for (const facility of facilities) {
     const facilityKey = `${facility.type}_${facility.number}`;
     for (const provider of providers.educationalFacility) {
-      const result = await provider.geocodeEducationalFacility({
-        location: facility,
-        context,
-      });
+      const result = await callProvider(
+        provider.constructor?.name ?? "EducationalFacilityGeocoder",
+        () =>
+          provider.geocodeEducationalFacility({
+            location: facility,
+            context,
+          }),
+      );
       if (result) {
         results.set(facilityKey, { facility, result });
         break;

@@ -162,6 +162,8 @@ export function createAddressFromCoordinates(
   };
 }
 
+const OVERWRITE_EXISTING = true;
+
 /**
  * Add a single geotagged coordinate to results if valid and not already present
  */
@@ -170,9 +172,20 @@ function addGeotaggedCoordinate(
   coordinates: IntersectionCoordinates | undefined,
   context: string,
   result: GeocodingResult,
+  overwriteExisting: boolean = false,
 ): void {
   if (!coordinates) return;
-  if (result.preGeocodedMap.has(key)) return;
+
+  if (overwriteExisting) {
+    const existingIndex = result.addresses.findIndex(
+      (address) => address.originalText === key,
+    );
+    if (existingIndex >= 0) {
+      result.addresses.splice(existingIndex, 1);
+    }
+  } else if (result.preGeocodedMap.has(key)) {
+    return;
+  }
 
   const validatedCoords = getValidPreResolvedCoordinates(coordinates, context);
   if (!validatedCoords) return;
@@ -205,6 +218,7 @@ function addGeotaggedPins(
       pin.coordinates,
       `pin: ${pin.address}`,
       result,
+      OVERWRITE_EXISTING,
     );
   }
 }
@@ -224,12 +238,14 @@ function addGeotaggedStreetEndpoints(
       street.fromCoordinates,
       `street endpoint: ${street.street} from ${street.from}`,
       result,
+      OVERWRITE_EXISTING,
     );
     addGeotaggedCoordinate(
       street.to,
       street.toCoordinates,
       `street endpoint: ${street.street} to ${street.to}`,
       result,
+      OVERWRITE_EXISTING,
     );
   }
 }

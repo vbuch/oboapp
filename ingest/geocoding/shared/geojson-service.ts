@@ -1,4 +1,5 @@
 import {
+  GEOCODING_PROVIDER_PRIORITIES,
   ExtractedLocations,
   Pin,
   StreetSection,
@@ -103,6 +104,19 @@ async function getStreetCenterline(
     logger.info("Using straight line for street with geotagged coordinates", {
       street: streetName,
     });
+    return {
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [startCoords.lng, startCoords.lat],
+          [endCoords.lng, endCoords.lat],
+        ],
+      },
+      usedWayGeometry: false,
+    };
+  }
+
+  if (!GEOCODING_PROVIDER_PRIORITIES.street.includes("overpass")) {
     return {
       geometry: {
         type: "LineString",

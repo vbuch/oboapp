@@ -181,17 +181,26 @@ describe("loadLocalityDataSources() error handling", () => {
       "bus-stops": [{ provider: "gtfs" as const }],
       // missing url
     };
-    vi.doMock("@oboapp/shared", async () => {
-      const actual = await vi.importActual("@oboapp/shared");
-      return {
-        ...actual,
-        buildGeocodingResolvers: () => ({ ...badResolvers }),
-      };
-    });
-    const { getLocalityDataSources } = await import("./locality-data-sources");
+    const previousGtfsUrl = process.env.GTFS_URL;
+    delete process.env.GTFS_URL;
+    try {
+      vi.doMock("@oboapp/shared", async () => {
+        const actual = await vi.importActual("@oboapp/shared");
+        return {
+          ...actual,
+          buildGeocodingResolvers: () => ({ ...badResolvers }),
+        };
+      });
+      const { getLocalityDataSources } =
+        await import("./locality-data-sources");
 
-    expect(() => getLocalityDataSources()).toThrow(
-      /Invalid GEOCODING_RESOLVERS export from @oboapp\/shared/,
-    );
+      expect(() => getLocalityDataSources()).toThrow(/GTFS_URL must be set/);
+    } finally {
+      if (previousGtfsUrl === undefined) {
+        delete process.env.GTFS_URL;
+      } else {
+        process.env.GTFS_URL = previousGtfsUrl;
+      }
+    }
   });
 });

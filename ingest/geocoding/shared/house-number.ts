@@ -1,6 +1,9 @@
 // Match the previous router's house-number semantics as closely as possible.
 // This keeps Bulgarian house-number forms routed the same way they were before the refactor.
-export function buildHouseNumberQuery(streetName: string, endpoint: string): string {
+export function buildHouseNumberQuery(
+  streetName: string,
+  endpoint: string,
+): string {
   const trimmedStreet = streetName.trim();
   const trimmedEndpoint = endpoint.trim();
 

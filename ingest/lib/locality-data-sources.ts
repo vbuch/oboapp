@@ -68,6 +68,21 @@ export type GeocodingResolvers = LocalityDataSources["geocoding-resolvers"];
 
 let cachedSources: LocalityDataSources | null = null;
 
+function requireConfiguredUrl(
+  value: string | undefined,
+  envName: string,
+): string {
+  const url = value?.trim();
+
+  if (!url) {
+    throw new Error(
+      `${envName} must be set when the corresponding geocoding provider is enabled.`,
+    );
+  }
+
+  return url;
+}
+
 function loadLocalityDataSources(): LocalityDataSources {
   // Load geocoding resolver config from shared and populate URLs from environment
   const resolvers = buildGeocodingResolvers();
@@ -78,7 +93,7 @@ function loadLocalityDataSources(): LocalityDataSources {
     : [];
   for (const resolver of busResolvers) {
     if (resolver.provider === "gtfs") {
-      resolver.url ||= process.env.GTFS_URL || "";
+      resolver.url ||= requireConfiguredUrl(process.env.GTFS_URL, "GTFS_URL");
     }
   }
 
@@ -89,8 +104,14 @@ function loadLocalityDataSources(): LocalityDataSources {
     : [];
   for (const resolver of educationalResolvers) {
     if (resolver.provider === "educational-facilities") {
-      resolver["schools-url"] ||= process.env.SCHOOLS_URL || "";
-      resolver["kindergartens-url"] ||= process.env.KINDERGARTENS_URL || "";
+      resolver["schools-url"] ||= requireConfiguredUrl(
+        process.env.SCHOOLS_URL,
+        "SCHOOLS_URL",
+      );
+      resolver["kindergartens-url"] ||= requireConfiguredUrl(
+        process.env.KINDERGARTENS_URL,
+        "KINDERGARTENS_URL",
+      );
     }
   }
 
