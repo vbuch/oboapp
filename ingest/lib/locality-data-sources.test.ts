@@ -4,7 +4,12 @@ const VALID_GEOCODING_RESOLVERS = {
   pins: [{ provider: "google" as const }],
   streets: [{ provider: "overpass" as const }],
   "cadastral-properties": [{ provider: "cadastre" as const }],
-  "bus-stops": [{ provider: "gtfs" as const, url: "https://gtfs.example.com/api/v1/static" }],
+  "bus-stops": [
+    {
+      provider: "gtfs" as const,
+      url: "https://gtfs.example.com/api/v1/static",
+    },
+  ],
   "educational-facilities": [
     {
       provider: "educational-facilities" as const,
@@ -36,22 +41,32 @@ describe("getLocalityDataSources()", () => {
 
     const config = getLocalityDataSources();
 
-    expect(config["geocoding-resolvers"].pins).toEqual({ provider: "google" });
-    expect(config["geocoding-resolvers"].streets).toEqual({
-      provider: "overpass",
-    });
-    expect(config["geocoding-resolvers"]["cadastral-properties"]).toEqual({
-      provider: "cadastre",
-    });
-    expect(config["geocoding-resolvers"]["bus-stops"]).toEqual({
-      provider: "gtfs",
-      url: "https://gtfs.example.com/api/v1/static",
-    });
-    expect(config["geocoding-resolvers"]["educational-facilities"]).toEqual({
-      provider: "educational-facilities",
-      "schools-url": "https://api.example.com/schools",
-      "kindergartens-url": "https://api.example.com/kindergartens",
-    });
+    expect(config["geocoding-resolvers"].pins).toEqual([
+      { provider: "google" },
+    ]);
+    expect(config["geocoding-resolvers"].streets).toEqual([
+      {
+        provider: "overpass",
+      },
+    ]);
+    expect(config["geocoding-resolvers"]["cadastral-properties"]).toEqual([
+      {
+        provider: "cadastre",
+      },
+    ]);
+    expect(config["geocoding-resolvers"]["bus-stops"]).toEqual([
+      {
+        provider: "gtfs",
+        url: "https://gtfs.example.com/api/v1/static",
+      },
+    ]);
+    expect(config["geocoding-resolvers"]["educational-facilities"]).toEqual([
+      {
+        provider: "educational-facilities",
+        "schools-url": "https://api.example.com/schools",
+        "kindergartens-url": "https://api.example.com/kindergartens",
+      },
+    ]);
   });
 
   it("returns the cached instance on subsequent calls", async () => {
@@ -85,9 +100,11 @@ describe("getLocalityDataSources()", () => {
     const { getLocalityDataSources } = await import("./locality-data-sources");
 
     const config = getLocalityDataSources();
-    expect(config["geocoding-resolvers"]["cadastral-properties"]).toEqual([{
-      provider: "skip",
-    }]);
+    expect(config["geocoding-resolvers"]["cadastral-properties"]).toEqual([
+      {
+        provider: "skip",
+      },
+    ]);
   });
 
   it("accepts skip for bus-stops", async () => {
@@ -105,9 +122,11 @@ describe("getLocalityDataSources()", () => {
     const { getLocalityDataSources } = await import("./locality-data-sources");
 
     const config = getLocalityDataSources();
-    expect(config["geocoding-resolvers"]["bus-stops"]).toEqual([{
-      provider: "skip",
-    }]);
+    expect(config["geocoding-resolvers"]["bus-stops"]).toEqual([
+      {
+        provider: "skip",
+      },
+    ]);
   });
 
   it("accepts skip for educational-facilities", async () => {
@@ -125,9 +144,11 @@ describe("getLocalityDataSources()", () => {
     const { getLocalityDataSources } = await import("./locality-data-sources");
 
     const config = getLocalityDataSources();
-    expect(config["geocoding-resolvers"]["educational-facilities"]).toEqual([{
-      provider: "skip",
-    }]);
+    expect(config["geocoding-resolvers"]["educational-facilities"]).toEqual([
+      {
+        provider: "skip",
+      },
+    ]);
   });
 });
 

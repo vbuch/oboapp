@@ -7,10 +7,12 @@ import {
 } from "./geocode-addresses";
 import type { StreetSection, Address, ExtractedLocations } from "@/lib/types";
 import { BOUNDS } from "@oboapp/shared";
+import { geocode } from "@/geocoding/geocode";
 
 // Set LOCALITY for tests
 beforeEach(() => {
   process.env.LOCALITY = "bg.sofia";
+  vi.mocked(geocode).mockClear();
 });
 
 const TEST_BOUNDS = BOUNDS[process.env.LOCALITY || "bg.sofia"];
@@ -355,14 +357,32 @@ describe("geocodeAddressesFromExtractedData", () => {
     });
   });
 
-  it.todo(
-    "excludes house-number endpoints from geometry prefetching (Phase 4 refactoring: test needs update)",
-    async () => {
-      // This test was checking old implementation details about preFetchStreetGeometries
-      // In Phase 4 new architecture, geometry fetching is handled by provider chains
-      // This behavior needs to be re-validated with the new geocoding orchestration
-    },
-  );
+  it("passes house-number street endpoints to geocoding providers unchanged", async () => {
+    const extractedData: ExtractedLocations = {
+      withSpecificAddress: true,
+      cityWide: false,
+      busStops: [],
+      pins: [],
+      streets: [
+        {
+          street: "ул. Оборище",
+          from: "бул. Васил Левски",
+          to: "№15",
+          timespans: [{ start: "01.02.2026 00:00", end: "02.02.2026 00:00" }],
+        },
+      ],
+      cadastralProperties: [],
+    };
+
+    await geocodeAddressesFromExtractedData(extractedData);
+
+    expect(vi.mocked(geocode)).toHaveBeenCalledTimes(1);
+    const [contextArg] = vi.mocked(geocode).mock.calls[0];
+    expect(contextArg.extractedLocations.streets[0].from).toBe(
+      "бул. Васил Левски",
+    );
+    expect(contextArg.extractedLocations.streets[0].to).toBe("№15");
+  });
 });
 
 describe("getValidPreResolvedCoordinates", () => {

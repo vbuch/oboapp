@@ -6,13 +6,19 @@ import type {
   GeocodingContext,
   PinGeocoder,
   PinResult,
+  StreetGeocoder,
+  StreetResult,
 } from "../interfaces";
 import type { Coordinates, EducationalFacilityRef } from "@oboapp/shared";
 import { geocodeAddresses } from "./service";
 import { gradeGoogle } from "../shared/quality";
 
 export class GoogleGeocoder
-  implements PinGeocoder, BusStopGeocoder, EducationalFacilityGeocoder
+  implements
+    PinGeocoder,
+    StreetGeocoder,
+    BusStopGeocoder,
+    EducationalFacilityGeocoder
 {
   async geocodePin(args: {
     location: { address: string; coordinates?: Coordinates };
@@ -45,6 +51,35 @@ export class GoogleGeocoder
     return {
       coordinates: first.coordinates,
       qualitySignals: first.qualitySignals ?? gradeGoogle(),
+    };
+  }
+
+  async geocodeStreet(args: {
+    location: { street: string; from: string; to: string };
+    context: GeocodingContext;
+  }): Promise<StreetResult | null> {
+    const { location } = args;
+
+    const fromQuery = /\d/.test(location.from)
+      ? `${location.street} ${location.from}`
+      : `${location.street} и ${location.from}`;
+    const toQuery = /\d/.test(location.to)
+      ? `${location.street} ${location.to}`
+      : `${location.street} и ${location.to}`;
+
+    const [fromAddress, toAddress] = await Promise.all([
+      geocodeAddresses([fromQuery]).then((res) => res[0] ?? null),
+      geocodeAddresses([toQuery]).then((res) => res[0] ?? null),
+    ]);
+
+    if (!fromAddress || !toAddress) {
+      return null;
+    }
+
+    return {
+      fromCoordinates: fromAddress.coordinates,
+      toCoordinates: toAddress.coordinates,
+      qualitySignals: fromAddress.qualitySignals ?? gradeGoogle(),
     };
   }
 

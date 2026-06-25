@@ -153,7 +153,7 @@ describe("geocoding system integration", () => {
     expect(result.qualityMap.size).toBe(0);
   });
 
-  it("should store street quality signals in qualityMap", async () => {
+  it("should store street quality signals per street endpoint", async () => {
     const streetGeocoder = new MockStreetGeocoder();
 
     context = {
@@ -184,11 +184,11 @@ describe("geocoding system integration", () => {
 
     const result = await geocode(context, providers);
 
-    // Quality signals should be in qualityMap keyed by street|from|to
-    const key = "ул. Оборище|ул. Ломско|пл. Александър Батенберг";
-    expect(result.qualityMap.has(key)).toBe(true);
+    // Quality signals should be keyed per endpoint (downstream GeoJSON contract)
+    expect(result.qualityMap.has("ул. Ломско")).toBe(true);
+    expect(result.qualityMap.has("пл. Александър Батенберг")).toBe(true);
 
-    const quality = result.qualityMap.get(key);
+    const quality = result.qualityMap.get("ул. Ломско");
     expect(quality?.provider).toBe("street");
     expect(quality?.geometryQuality).toBe(2);
   });
@@ -231,9 +231,8 @@ describe("geocoding system integration", () => {
     const result = await geocode(context, providers);
 
     // Should use second provider's result
-    const key = "ул. Оборище|ул. Ломско|пл. Александър Батенберг";
-    expect(result.qualityMap.has(key)).toBe(true);
-    const quality = result.qualityMap.get(key);
+    expect(result.qualityMap.has("ул. Ломско")).toBe(true);
+    const quality = result.qualityMap.get("ул. Ломско");
     expect(quality?.provider).toBe("street");
   });
 });

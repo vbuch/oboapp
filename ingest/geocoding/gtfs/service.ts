@@ -111,12 +111,13 @@ export function parseStopsFile(csvContent: string): GTFSStop[] {
  * Uses upsert (set with merge) to update existing records
  */
 export async function syncGTFSStopsToFirestore(): Promise<void> {
-  const resolver =
+  const busStopResolvers =
     getLocalityDataSources()["geocoding-resolvers"]["bus-stops"];
+  const resolver = busStopResolvers.find((r) => r.provider === "gtfs");
 
-  if (resolver.provider !== "gtfs") {
+  if (!resolver) {
     logger.info("Bus stops resolver is not gtfs — skipping GTFS sync", {
-      provider: resolver.provider,
+      configuredProviders: busStopResolvers.map((r) => r.provider),
     });
     return;
   }

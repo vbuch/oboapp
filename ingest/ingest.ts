@@ -53,7 +53,9 @@ Examples:
       const dataSources = getLocalityDataSources();
 
       // Only require GOOGLE_MAPS_API_KEY when a resolver actually uses google
-      const resolvers = Object.values(dataSources["geocoding-resolvers"]);
+      const resolvers = Object.values(
+        dataSources["geocoding-resolvers"],
+      ).flat();
       if (resolvers.some((r) => r.provider === "google")) {
         verifyEnvSet(["GOOGLE_MAPS_API_KEY"]);
       }
@@ -94,7 +96,9 @@ Examples:
 
 program
   .command("gtfs-stops")
-  .description("Sync GTFS bus stops from the configured locality provider to Firestore")
+  .description(
+    "Sync GTFS bus stops from the configured locality provider to Firestore",
+  )
   .action(async () => {
     // Ensure environment variables are loaded
     dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -105,7 +109,8 @@ program
       getLocalityDataSources();
 
       // Dynamically import to avoid loading dependencies at parse time
-      const { syncGTFSStopsToFirestore } = await import("./geocoding/gtfs/service");
+      const { syncGTFSStopsToFirestore } =
+        await import("./geocoding/gtfs/service");
 
       await syncGTFSStopsToFirestore();
 
@@ -128,7 +133,9 @@ program
 
 program
   .command("educational-facilities-sync")
-  .description("Sync schools and kindergartens from the configured locality provider to Firestore")
+  .description(
+    "Sync schools and kindergartens from the configured locality provider to Firestore",
+  )
   .action(async () => {
     dotenv.config({ path: resolve(process.cwd(), ".env.local") });
     verifyDbEnv();
@@ -137,9 +144,8 @@ program
       // Validate geocoding resolver config early — fail fast on misconfiguration
       getLocalityDataSources();
 
-      const { syncEducationalFacilities } = await import(
-        "./geocoding/educational-facilities/service"
-      );
+      const { syncEducationalFacilities } =
+        await import("./geocoding/educational-facilities/service");
 
       await syncEducationalFacilities();
 

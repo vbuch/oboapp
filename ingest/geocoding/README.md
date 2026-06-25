@@ -1,6 +1,6 @@
 # Geocoding
 
-The geocoding system uses an **interface-driven provider architecture**. Each location type (pins, streets, cadastral, bus stops, educational facilities) has a set of priority-ordered providers configured via `shared/src/geocoding-sources.ts` (GEOCODING_RESOLVERS). The main entry point — [`geocode()`](./geocode.ts) — orchestrates provider chains: for each entity type, it calls providers in priority order until one succeeds, then moves to the next entity type.
+The geocoding system uses an **interface-driven provider architecture**. Each location type (pins, streets, cadastral, bus stops, educational facilities) has a set of priority-ordered providers configured via `shared/src/geocoding-sources.ts` (`GEOCODING_PROVIDER_PRIORITIES`). The main entry point — [`geocode()`](./geocode.ts) — orchestrates provider chains: for each entity type, it calls providers in priority order until one succeeds, then moves to the next entity type.
 
 For city forks, provider selection and priorities are customized by replacing `shared/src/geocoding-sources.ts`.
 
@@ -14,7 +14,7 @@ For city forks, provider selection and priorities are customized by replacing `s
 
 `skip` disables geocoding for that type — the pipeline performs no lookup and returns no geometry for those locations.
 
-All 5 resolver types are **required** in the locality YAML. The app fails at startup if any is absent or uses an unrecognised provider.
+All 5 resolver types are **required** in the shared geocoding assembly export. The app fails at startup if any is absent or uses an unrecognised provider.
 
 All results are validated against the configured locality boundary before use. Results outside the boundary are rejected.
 

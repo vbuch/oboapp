@@ -64,7 +64,9 @@ async function fetchFacilities(
   }
 
   if (!geojson.features || !Array.isArray(geojson.features)) {
-    throw new Error(`Invalid GeoJSON response for ${type}: missing features array`);
+    throw new Error(
+      `Invalid GeoJSON response for ${type}: missing features array`,
+    );
   }
 
   const locality = getLocality();
@@ -76,7 +78,10 @@ async function fetchFacilities(
   for (const feature of geojson.features) {
     const props = feature.properties ?? {};
 
-    const facilityNumber = parseFacilityNumber(props.object_nom, props.object_nam);
+    const facilityNumber = parseFacilityNumber(
+      props.object_nom,
+      props.object_nam,
+    );
     if (!facilityNumber) {
       skippedNoNumber++;
       continue;
@@ -125,7 +130,10 @@ async function fetchFacilities(
     facilities.push({
       id: `${type}-${facilityNumber}`,
       facilityNumber,
-      name: typeof props.object_nam === "string" ? props.object_nam : facilityNumber,
+      name:
+        typeof props.object_nam === "string"
+          ? props.object_nam
+          : facilityNumber,
       address: typeof props.adres === "string" ? props.adres : "",
       type,
       lat: roundCoordinate(lat),
@@ -149,13 +157,18 @@ async function fetchFacilities(
  * Sync schools and kindergartens from the configured open data source to the educationalFacilities collection.
  */
 export async function syncEducationalFacilities(): Promise<void> {
-  const resolver =
+  const educationalResolvers =
     getLocalityDataSources()["geocoding-resolvers"]["educational-facilities"];
+  const resolver = educationalResolvers.find(
+    (r) => r.provider === "educational-facilities",
+  );
 
-  if (resolver.provider !== "educational-facilities") {
+  if (!resolver) {
     logger.info(
       "Educational facilities resolver is not educational-facilities — skipping sync",
-      { provider: resolver.provider },
+      {
+        configuredProviders: educationalResolvers.map((r) => r.provider),
+      },
     );
     return;
   }

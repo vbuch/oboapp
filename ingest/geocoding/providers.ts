@@ -62,6 +62,7 @@ const PIN_PROVIDER_INSTANCES: Record<string, PinGeocoder> = {
 };
 
 const STREET_PROVIDER_INSTANCES: Record<string, StreetGeocoder> = {
+  google: googleGeocoder,
   overpass: overpassGeocoder,
 };
 
@@ -203,8 +204,6 @@ export function buildGeocodingProviders(): GeocodingProviders {
 let _providers: GeocodingProviders | null = null;
 
 export function getGeocodingProviders(): GeocodingProviders {
-  if (!_providers) {
-    _providers = buildGeocodingProviders();
-  }
+  _providers ??= buildGeocodingProviders();
   return _providers;
 }

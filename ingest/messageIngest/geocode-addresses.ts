@@ -27,7 +27,7 @@ export interface GeocodingResult {
 
 /**
  * Validate and normalize geotagged coordinates from source.
- * Some sources practice geotagging � embedding coordinates directly in messages.
+ * Some sources practice geotagging, embedding coordinates directly in messages.
  * - Rounds to 6 decimal places (precision ~0.1 meters)
  * - Validates coordinates are within target locality bounds
  * Returns null if coordinates are invalid
@@ -69,7 +69,7 @@ export function deduplicateAddresses(addresses: Address[]): Address[] {
   for (const addr of addresses) {
     const plainText = addr.originalText.toLowerCase().trim();
 
-    // Check if we''ve seen this exact text
+    // Check if we've seen this exact text
     if (seen.has(plainText)) {
       continue;
     }
@@ -106,7 +106,7 @@ function haversineDistance(
   lat2: number,
   lng2: number,
 ): number {
-  const R = 6371000; // Earth''s radius in meters
+  const R = 6371000; // Earth's radius in meters
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a =
@@ -120,7 +120,7 @@ function haversineDistance(
 }
 
 /**
- * Helper: Find missing street endpoints that haven''t been geocoded
+ * Helper: Find missing street endpoints that haven't been geocoded
  * Exported for unit testing
  */
 export function findMissingStreetEndpoints(

@@ -34,6 +34,25 @@ function extractCoordinates(
   return { fromCoordinates, toCoordinates };
 }
 
+function hasHouseNumber(endpoint: string): boolean {
+  return /\d/.test(endpoint);
+}
+
+async function resolveStreetEndpoint(
+  streetName: string,
+  endpoint: string,
+): Promise<Address | null> {
+  if (hasHouseNumber(endpoint)) {
+    const addressQuery = `${streetName} ${endpoint}`;
+    const addresses = await overpassGeocodeAddresses([addressQuery]);
+    return addresses[0] ?? null;
+  }
+
+  const intersectionQuery = `${streetName} ∩ ${endpoint}`;
+  const intersections = await overpassGeocodeIntersections([intersectionQuery]);
+  return intersections[0] ?? null;
+}
+
 /**
  * Fetch and process street geometry
  */
@@ -104,12 +123,10 @@ export class OverpassGeocoder
         to: toEndpoint,
       });
 
-      const addresses = await overpassGeocodeIntersections([
-        fromEndpoint,
-        toEndpoint,
-      ]);
+      const fromAddress = await resolveStreetEndpoint(streetName, fromEndpoint);
+      const toAddress = await resolveStreetEndpoint(streetName, toEndpoint);
 
-      if (addresses.length === 0) {
+      if (!fromAddress && !toAddress) {
         logger.warn(
           "Overpass street geocoding: no endpoint addresses resolved",
           {
@@ -121,10 +138,10 @@ export class OverpassGeocoder
         return null;
       }
 
-      const fromAddress = addresses[0];
-      const toAddress = addresses.length > 1 ? addresses[1] : null;
-      const { fromCoordinates, toCoordinates } =
-        extractCoordinates(fromAddress, toAddress);
+      const { fromCoordinates, toCoordinates } = extractCoordinates(
+        fromAddress,
+        toAddress,
+      );
 
       if (!fromCoordinates || !toCoordinates) {
         logger.warn(
@@ -135,6 +152,7 @@ export class OverpassGeocoder
             hasTo: !!toCoordinates,
           },
         );
+        return null;
       }
 
       let geometry: {
@@ -150,7 +168,9 @@ export class OverpassGeocoder
         );
       }
 
-      const qualitySignals = gradeOverpass("way");
+      const qualitySignals = geometry
+        ? gradeOverpass("way")
+        : gradeOverpass("node");
 
       logger.debug("Overpass street geocoding: success", {
         street: streetName,

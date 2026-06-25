@@ -97,17 +97,17 @@ describe("overpass-geocoding-service", () => {
 
     it("should return null for non-error responses", () => {
       const json = '{"elements":[{"type":"way","id":123}]}';
-      expect(parseOverpassError(json)).toBe(null);
+      expect(parseOverpassError(json)).toBeNull();
     });
 
     it("should return null for empty string", () => {
-      expect(parseOverpassError("")).toBe(null);
+      expect(parseOverpassError("")).toBeNull();
     });
 
     it("should handle XML without remark tag", () => {
       const xml =
         '<?xml version="1.0"?><osm version="0.6"><note>Some note</note></osm>';
-      expect(parseOverpassError(xml)).toBe(null);
+      expect(parseOverpassError(xml)).toBeNull();
     });
   });
 
@@ -642,7 +642,7 @@ describe("overpass-geocoding-service", () => {
         // In pass 2 the deferred streets are retried with the same exhaustion pattern.
         const expectedCalls =
           2 * OVERPASS_INSTANCES.length * OVERPASS_RETRY_MAX_ATTEMPTS * 2; // ×2 passes
-        expect(vi.mocked(fetch).mock.calls.length).toBe(expectedCalls);
+        expect(vi.mocked(fetch).mock.calls).toHaveLength(expectedCalls);
         // No intersection resolved — both streets have null geometry
         expect(results).toHaveLength(0);
       });
@@ -806,14 +806,14 @@ describe("overpass-geocoding-service", () => {
 
       // Pass 1: OVERPASS_INSTANCES.length calls all fail → street deferred
       // Pass 2: 1 call succeeds on the first instance
-      expect(vi.mocked(fetch).mock.calls.length).toBe(
+      expect(vi.mocked(fetch).mock.calls).toHaveLength(
         OVERPASS_INSTANCES.length + 1,
       );
       // The second-pass result must have been cached — no further fetch needed
       vi.mocked(fetch).mockClear();
       const cached = await getStreetGeometryFromOverpass("ул. Пример");
       expect(cached).not.toBeNull();
-      expect(vi.mocked(fetch).mock.calls.length).toBe(0);
+      expect(vi.mocked(fetch).mock.calls).toHaveLength(0);
 
       // Restore default delay mock
       vi.mocked(delay).mockResolvedValue(undefined);
@@ -833,7 +833,7 @@ describe("overpass-geocoding-service", () => {
       // getStreetGeometryFromOverpass should now return null from cache — no new fetch
       const geometry = await getStreetGeometryFromOverpass("ул. Пример");
       expect(geometry).toBeNull();
-      expect(vi.mocked(fetch).mock.calls.length).toBe(0);
+      expect(vi.mocked(fetch).mock.calls).toHaveLength(0);
       expect(fetchCallsDuringPreFetch).toBeGreaterThan(0);
     });
 

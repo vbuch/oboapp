@@ -11,12 +11,9 @@
  */
 
 import { StreetSection, CadastralProperty } from "@/lib/types";
-import {
-  QualitySignals,
-  normalizePinAddress,
-  EducationalFacilityRef,
-} from "@oboapp/shared";
+import { QualitySignals, EducationalFacilityRef } from "@oboapp/shared";
 import type { Address, Coordinates } from "@oboapp/shared";
+import { EDUCATIONAL_FACILITY_PREFIX } from "@/lib/constants";
 import type {
   GeocodingContext,
   GeocodingProviders,
@@ -52,15 +49,16 @@ export async function geocode(
  * Process and store pin results
  */
 function processPinResults(
-  results: PinResult[],
+  results: Array<{ pinAddress: string; result: PinResult }>,
+  preGeocodedMap: Map<string, Coordinates>,
   qualityMap: Map<string, QualitySignals>,
   addresses: Address[],
 ): void {
-  for (const result of results) {
+  for (const { pinAddress, result } of results) {
+    preGeocodedMap.set(pinAddress, result.address.coordinates);
     addresses.push(result.address);
-    const key = normalizePinAddress(result.address.originalText);
     qualityMap.set(
-      key,
+      pinAddress,
       result.address.qualitySignals || {
         provider: "google",
         geometryQuality: 0,
@@ -74,11 +72,19 @@ function processPinResults(
  */
 function processStreetResults(
   results: Array<{ location: StreetSection; result: StreetResult }>,
+  preGeocodedMap: Map<string, Coordinates>,
   qualityMap: Map<string, QualitySignals>,
 ): void {
   for (const { location, result } of results) {
-    const key = `${location.street}|${location.from}|${location.to}`;
-    qualityMap.set(key, result.qualitySignals);
+    if (result.fromCoordinates) {
+      preGeocodedMap.set(location.from, result.fromCoordinates);
+      qualityMap.set(location.from, result.qualitySignals);
+    }
+
+    if (result.toCoordinates) {
+      preGeocodedMap.set(location.to, result.toCoordinates);
+      qualityMap.set(location.to, result.qualitySignals);
+    }
   }
 }
 
@@ -98,7 +104,11 @@ function processCadastralResults(
  * Process and store bus stop results
  */
 function processBusStopResults(
-  results: Array<{ stopCode: string; coordinates: Coordinates; qualitySignals: QualitySignals }>,
+  results: Array<{
+    stopCode: string;
+    coordinates: Coordinates;
+    qualitySignals: QualitySignals;
+  }>,
   qualityMap: Map<string, QualitySignals>,
   addresses: Address[],
 ): void {
@@ -117,13 +127,18 @@ function processBusStopResults(
  * Process and store educational facility results
  */
 function processEducationalFacilityResults(
-  results: Array<{ number: string; type: string; coordinates: Coordinates; qualitySignals: QualitySignals }>,
+  results: Array<{
+    number: string;
+    type: string;
+    coordinates: Coordinates;
+    qualitySignals: QualitySignals;
+  }>,
   qualityMap: Map<string, QualitySignals>,
   addresses: Address[],
 ): void {
   for (const result of results) {
     const address = coordinatesToAddress(
-      `Образователното учреждение ${result.type} ${result.number}`,
+      `${EDUCATIONAL_FACILITY_PREFIX}${result.type}:${result.number}`,
       result.coordinates,
       result.qualitySignals,
     );
@@ -156,7 +171,7 @@ async function processAllEntityTypes(
       context,
       providers,
     );
-    processPinResults(pinResults, qualityMap, addresses);
+    processPinResults(pinResults, preGeocodedMap, qualityMap, addresses);
   }
 
   // Process streets
@@ -166,7 +181,7 @@ async function processAllEntityTypes(
       context,
       providers,
     );
-    processStreetResults(streetResults, qualityMap);
+    processStreetResults(streetResults, preGeocodedMap, qualityMap);
   }
 
   // Process cadastral properties
@@ -221,24 +236,31 @@ async function geocodePins(
   pins: Array<{ address: string; coordinates?: Coordinates }>,
   context: GeocodingContext,
   providers: GeocodingProviders,
-): Promise<PinResult[]> {
-  const results = new Map<string, PinResult>();
+): Promise<Array<{ pinAddress: string; result: PinResult }>> {
+  const results = new Map<string, { pinAddress: string; result: PinResult }>();
 
   for (const pin of pins) {
+    if (pin.coordinates) {
+      continue;
+    }
+
     for (const provider of providers.pin) {
       const result = await provider.geocodePin({ location: pin, context });
       if (result) {
-        const key = normalizePinAddress(pin.address);
-        results.set(key, result);
+        const key = pin.address.toLowerCase().trim();
+        results.set(key, { pinAddress: pin.address, result });
         break;
       }
     }
   }
 
   // Call done() on all providers
+  const providerResults = new Map<string, PinResult>(
+    Array.from(results.entries()).map(([key, value]) => [key, value.result]),
+  );
   for (const provider of providers.pin) {
     if (provider.done) {
-      await provider.done(results);
+      await provider.done(providerResults);
     }
   }
 
@@ -253,9 +275,16 @@ async function geocodeStreets(
   context: GeocodingContext,
   providers: GeocodingProviders,
 ): Promise<Array<{ location: StreetSection; result: StreetResult }>> {
-  const results = new Map<string, StreetResult>();
+  const results = new Map<
+    string,
+    { location: StreetSection; result: StreetResult }
+  >();
 
   for (const street of streets) {
+    if (street.fromCoordinates && street.toCoordinates) {
+      continue;
+    }
+
     for (const provider of providers.street) {
       const result = await provider.geocodeStreet({
         location: street,
@@ -263,26 +292,23 @@ async function geocodeStreets(
       });
       if (result) {
         const key = `${street.street}|${street.from}|${street.to}`;
-        results.set(key, result);
+        results.set(key, { location: street, result });
         break;
       }
     }
   }
 
   // Call done() on all providers
+  const providerResults = new Map<string, StreetResult>(
+    Array.from(results.entries()).map(([key, value]) => [key, value.result]),
+  );
   for (const provider of providers.street) {
     if (provider.done) {
-      await provider.done(results);
+      await provider.done(providerResults);
     }
   }
 
-  return Array.from(results.entries()).map(([, result]) => ({
-    location: streets.find((s) => {
-      const key = `${s.street}|${s.from}|${s.to}`;
-      return results.has(key);
-    })!,
-    result,
-  }));
+  return Array.from(results.values());
 }
 
 /**
@@ -379,7 +405,10 @@ async function geocodeEducationalFacilities(
     qualitySignals: QualitySignals;
   }>
 > {
-  const results = new Map<string, EducationalFacilityResult>();
+  const results = new Map<
+    string,
+    { facility: EducationalFacilityRef; result: EducationalFacilityResult }
+  >();
 
   for (const facility of facilities) {
     const facilityKey = `${facility.type}_${facility.number}`;
@@ -389,21 +418,23 @@ async function geocodeEducationalFacilities(
         context,
       });
       if (result) {
-        results.set(facilityKey, result);
+        results.set(facilityKey, { facility, result });
         break;
       }
     }
   }
 
   // Call done() on all providers
+  const providerResults = new Map<string, EducationalFacilityResult>(
+    Array.from(results.entries()).map(([key, value]) => [key, value.result]),
+  );
   for (const provider of providers.educationalFacility) {
     if (provider.done) {
-      await provider.done(results);
+      await provider.done(providerResults);
     }
   }
 
-  return Array.from(results.entries()).map(([, result], index) => {
-    const facility = facilities[index];
+  return Array.from(results.values()).map(({ facility, result }) => {
     return {
       type: facility.type,
       number: facility.number,
