@@ -57,13 +57,9 @@ function processPinResults(
   for (const { pinAddress, result } of results) {
     preGeocodedMap.set(pinAddress, result.address.coordinates);
     addresses.push(result.address);
-    qualityMap.set(
-      pinAddress,
-      result.address.qualitySignals || {
-        provider: "google",
-        geometryQuality: 0,
-      },
-    );
+    if (result.address.qualitySignals) {
+      qualityMap.set(pinAddress, result.address.qualitySignals);
+    }
   }
 }
 
