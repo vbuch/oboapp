@@ -11,8 +11,6 @@
     "lint:fix": "eslint . --fix",
     "crawl": "tsx crawl",
     "ingest": "tsx ingest",
-    "ingestable": "tsx ingestable",
-    "geocode": "tsx geocode",
     "verify-events": "tsx verify-events",
     "notify": "tsx notify",
     "heartbeat-check": "tsx heartbeat-check",
