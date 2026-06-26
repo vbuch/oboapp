@@ -84,6 +84,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 4.0.18
+        version: 4.0.18(vitest@4.0.18)
       eslint:
         specifier: ^9.18.0
         version: 9.39.2(jiti@2.6.1)
@@ -121,6 +124,9 @@ importers:
       '@types/node':
         specifier: ^20
         version: 20.19.33
+      '@vitest/coverage-v8':
+        specifier: 4.0.18
+        version: 4.0.18(vitest@4.0.18)
       tsx:
         specifier: ^4.22.3
         version: 4.22.3
@@ -210,7 +216,7 @@ importers:
         specifier: ^5.0.6
         version: 5.0.6
       '@vitest/coverage-v8':
-        specifier: ^4.0.18
+        specifier: 4.0.18
         version: 4.0.18(vitest@4.0.18)
       cross-env:
         specifier: ^10.1.0
@@ -255,6 +261,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 4.0.18
+        version: 4.0.18(vitest@4.0.18)
       eslint:
         specifier: ^9.18.0
         version: 9.39.2(jiti@2.6.1)
@@ -401,7 +410,7 @@ importers:
         specifier: ^0.7.39
         version: 0.7.39
       '@vitest/coverage-v8':
-        specifier: ^4.0.15
+        specifier: 4.0.18
         version: 4.0.18(vitest@4.0.18)
       '@vitest/ui':
         specifier: ^4.0.15
@@ -9357,6 +9366,10 @@ packages:
     resolution: {integrity: sha512-PSkbLUoxOFRzJYjjxHJt9xro7D+iilgMX/C9lawzVuYiIdcihh9DXmVibBe8lmcFrRi/VzlPjBxbN7rH24q8/Q==}
     engines: {node: '>=14.0.0'}
 
+  tinyrainbow@3.1.0:
+    resolution: {integrity: sha512-Bf+ILmBgretUrdJxzXM0SgXLZ3XfiaUuOj/IKQHuTXip+05Xn+uyEYdVg0kYDipTBcLrCVyUzAPz7QmArb0mmw==}
+    engines: {node: '>=14.0.0'}
+
   tldts-core@7.0.23:
     resolution: {integrity: sha512-0g9vrtDQLrNIiCj22HSe9d4mLVG3g5ph5DZ8zCKBr4OtrspmNB6ss7hVyzArAeE88ceZocIEGkyW1Ime7fxPtQ==}
 
@@ -15725,8 +15738,8 @@ snapshots:
       magicast: 0.5.2
       obug: 2.1.1
       std-env: 3.10.0
-      tinyrainbow: 3.0.3
-      vitest: 4.0.18(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@20.19.33)(@vitest/ui@4.0.18)(happy-dom@20.6.0)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(msw@2.12.10(@types/node@20.19.33)(typescript@5.9.3))(terser@5.46.1)(tsx@4.22.3)(yaml@2.8.2)
+      tinyrainbow: 3.1.0
+      vitest: 4.0.18(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.11)(@vitest/ui@4.0.18)(happy-dom@20.6.0)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(msw@2.12.10(@types/node@22.19.11)(typescript@5.9.3))(terser@5.46.1)(tsx@4.22.3)(yaml@2.8.2)
 
   '@vitest/expect@4.0.18':
     dependencies:
@@ -15735,7 +15748,7 @@ snapshots:
       '@vitest/spy': 4.0.18
       '@vitest/utils': 4.0.18
       chai: 6.2.2
-      tinyrainbow: 3.0.3
+      tinyrainbow: 3.1.0
 
   '@vitest/mocker@4.0.18(msw@2.12.10(@types/node@20.19.33)(typescript@5.9.3))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.1)(tsx@4.22.3)(yaml@2.8.2))':
     dependencies:
@@ -15757,7 +15770,7 @@ snapshots:
 
   '@vitest/pretty-format@4.0.18':
     dependencies:
-      tinyrainbow: 3.0.3
+      tinyrainbow: 3.1.0
 
   '@vitest/runner@4.0.18':
     dependencies:
@@ -15786,7 +15799,7 @@ snapshots:
   '@vitest/utils@4.0.18':
     dependencies:
       '@vitest/pretty-format': 4.0.18
-      tinyrainbow: 3.0.3
+      tinyrainbow: 3.1.0
 
   '@webassemblyjs/ast@1.14.1':
     dependencies:
@@ -22123,6 +22136,8 @@ snapshots:
   tinyqueue@2.0.3: {}
 
   tinyrainbow@3.0.3: {}
+
+  tinyrainbow@3.1.0: {}
 
   tldts-core@7.0.23: {}
 

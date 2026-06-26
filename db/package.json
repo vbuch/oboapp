@@ -20,6 +20,7 @@
     "indexes:ensure:built": "node dist/scripts/ensure-indexes.js",
     "test": "vitest --config vitest.config.mts",
     "test:run": "vitest run --config vitest.config.mts",
+    "test:coverage": "vitest run --config vitest.config.mts --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@vitest/coverage-v8": "4.0.18",
     "tsx": "^4.22.3",
     "typescript": "^5",
     "vitest": "^4.0.15"

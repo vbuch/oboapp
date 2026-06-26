@@ -9,6 +9,7 @@
     "build:api": "pnpm --filter oboapp-api build",
     "build:all": "pnpm build:shared && pnpm build:db && pnpm --filter oboapp-ingest build && pnpm --filter oboapp-api build && pnpm --filter oboapp-web build",
     "test:all": "pnpm -r --if-present run test:run",
+    "test:coverage:sonar": "pnpm --filter oboapp-api test:coverage && pnpm --filter @oboapp/db test:coverage && pnpm --filter oboapp-ingest test:coverage && pnpm --filter @oboapp/shared test:coverage && pnpm --filter oboapp-web test:coverage",
     "lint:all": "pnpm -r --if-present run lint",
     "postinstall": "pnpm build:shared && pnpm build:db",
     "prepare": "husky",

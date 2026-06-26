@@ -1,0 +1,6 @@
+{
+  "sonarlint.connectedMode.project": {
+    "connectionId": "oboapp",
+    "projectKey": "oboapp_oboapp"
+  }
+}
