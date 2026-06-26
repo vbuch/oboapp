@@ -14,14 +14,19 @@ COPY shared ./shared
 COPY db ./db
 COPY ingest ./ingest
 
-# Install workspace dependencies (triggers postinstall → builds shared)
-RUN pnpm install --frozen-lockfile
+# Install workspace dependencies without lifecycle scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Install Chromium ONLY (no system deps here)
-RUN cd ingest && npx playwright install chromium
+# Run ingest package commands from package working directory
+WORKDIR /app/ingest
+
+# Install Chromium ONLY (no system deps here) using lockfile-pinned Playwright
+RUN pnpm --ignore-scripts exec playwright install chromium
 
 # Build ingest
-RUN cd ingest && pnpm build
+RUN pnpm build
+
+WORKDIR /app
 
 # Production stage
 FROM node:20-slim

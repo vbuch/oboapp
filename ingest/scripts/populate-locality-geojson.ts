@@ -71,14 +71,14 @@ Examples:
     for (const feature of data.features) {
       const { obns_cyr } = feature.properties;
       if (!obns_cyr) {
+        const featureId = feature.properties.id;
         console.warn(
-          `⚠️  Skipping feature with missing obns_cyr:`,
-          feature.properties,
+          `⚠️  Skipping feature with missing obns_cyr (id=${featureId})`,
         );
         continue;
       }
 
-      const slug = transliterate(obns_cyr).toLowerCase().replace(/ /g, "-");
+      const slug = transliterate(obns_cyr).toLowerCase().replaceAll(" ", "-");
       const filename = `bg.sofia.${slug}.geojson`;
       const filePath = resolve(LOCALITIES_DIR, filename);
 
@@ -87,7 +87,10 @@ Examples:
         features: [feature],
       };
 
-      writeFileSync(filePath, JSON.stringify(featureCollection, null, 2) + "\n");
+      writeFileSync(
+        filePath,
+        JSON.stringify(featureCollection, null, 2) + "\n",
+      );
       written.push(`  ${filename} (${obns_cyr})`);
     }
 
