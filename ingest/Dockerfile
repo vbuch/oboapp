@@ -38,23 +38,23 @@ WORKDIR /app
 
 # Install system dependencies for Playwright/Chromium including fonts
 RUN apt-get update && apt-get install -y \
-    libnss3 \
-    libatk1.0-0 \
+    fonts-dejavu-core \
+    fonts-freefont-ttf \
+    fonts-liberation \
+    libasound2 \
     libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libatspi2.0-0 \
     libcups2 \
     libdrm2 \
-    libxkbcommon0 \
+    libgbm1 \
+    libnss3 \
     libxcomposite1 \
     libxdamage1 \
     libxfixes3 \
+    libxkbcommon0 \
     libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    libatspi2.0-0 \
     libxshmfence1 \
-    fonts-liberation \
-    fonts-dejavu-core \
-    fonts-freefont-ttf \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy workspace root config files
@@ -71,7 +71,7 @@ COPY ingest/package.json ./ingest/
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Copy Playwright browser cache
-COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
+COPY --from=builder /root/.cache/ms-playwright /home/node/.cache/ms-playwright
 
 # Copy built shared package dist folder
 COPY --from=builder /app/shared/dist ./shared/dist
@@ -86,9 +86,14 @@ COPY --from=builder /app/ingest/prompts ./ingest/prompts
 COPY --from=builder /app/ingest/crawlers ./ingest/crawlers
 COPY --from=builder /app/ingest/localities ./ingest/localities
 
+# Run as a non-root user in production image.
+RUN chown -R node:node /app /home/node/.cache
+
 ENV NODE_ENV=production
-ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
 
 WORKDIR /app/ingest
+
+USER node
 
 CMD ["pnpm", "run", "prebuilt:crawl", "--", "--help"]

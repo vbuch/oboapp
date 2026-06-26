@@ -13,6 +13,8 @@ RUN pnpm install --frozen-lockfile --filter @oboapp/db... --ignore-scripts
 COPY db ./db
 COPY shared ./shared
 
-RUN pnpm --filter @oboapp/shared build && pnpm --filter @oboapp/db build
+RUN pnpm --filter @oboapp/shared build && pnpm --filter @oboapp/db build && chown -R node:node /app
+
+USER node
 
 CMD ["pnpm", "--filter", "@oboapp/db", "indexes:ensure:built"]
