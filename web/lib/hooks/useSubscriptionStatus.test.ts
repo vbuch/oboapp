@@ -48,7 +48,8 @@ vi.mock("@/lib/auth-fetch", () => ({
 
 describe("useSubscriptionStatus", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.useRealTimers();
+    vi.resetAllMocks();
     vi.unstubAllGlobals();
 
     isMessagingSupportedMock.mockResolvedValue(true);
@@ -64,6 +65,7 @@ describe("useSubscriptionStatus", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
@@ -79,7 +81,9 @@ describe("useSubscriptionStatus", () => {
     expect(result.current.hasAnySubscriptions).toBe(true);
     expect(result.current.hasStatusCheckError).toBe(false);
 
-    fetchWithAuthMock.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    fetchWithAuthMock.mockResolvedValueOnce(
+      new Response(null, { status: 503 }),
+    );
 
     await act(async () => {
       await result.current.checkStatus();
@@ -93,7 +97,9 @@ describe("useSubscriptionStatus", () => {
 
   it("sets unsubscribed state when initial backend check fails", async () => {
     const user = { uid: "user-initial-failure" } as User;
-    fetchWithAuthMock.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    fetchWithAuthMock.mockResolvedValueOnce(
+      new Response(null, { status: 503 }),
+    );
 
     const { result } = renderHook(() => useSubscriptionStatus(user));
 
@@ -122,7 +128,9 @@ describe("useSubscriptionStatus", () => {
     expect(result.current.isCurrentDeviceSubscribed).toBe(true);
     expect(result.current.hasAnySubscriptions).toBe(true);
 
-    fetchWithAuthMock.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    fetchWithAuthMock.mockResolvedValueOnce(
+      new Response(null, { status: 503 }),
+    );
 
     await act(async () => {
       rerender({ user: user2 });
@@ -169,7 +177,9 @@ describe("useSubscriptionStatus", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    fetchWithAuthMock.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    fetchWithAuthMock.mockResolvedValueOnce(
+      new Response(null, { status: 503 }),
+    );
     await act(async () => {
       await result.current.checkStatus();
     });
@@ -179,7 +189,9 @@ describe("useSubscriptionStatus", () => {
       rerender({ currentUser: null });
     });
 
-    fetchWithAuthMock.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    fetchWithAuthMock.mockResolvedValueOnce(
+      new Response(null, { status: 503 }),
+    );
     await act(async () => {
       rerender({ currentUser: user });
     });
@@ -202,13 +214,17 @@ describe("useSubscriptionStatus", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    fetchWithAuthMock.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    fetchWithAuthMock.mockResolvedValueOnce(
+      new Response(null, { status: 503 }),
+    );
     await act(async () => {
       await result.current.checkStatus();
     });
     expect(sentryCaptureExceptionMock).toHaveBeenCalledTimes(1);
 
-    fetchWithAuthMock.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    fetchWithAuthMock.mockResolvedValueOnce(
+      new Response(null, { status: 503 }),
+    );
     await act(async () => {
       rerender({ user: user2 });
     });
@@ -228,10 +244,9 @@ describe("useSubscriptionStatus", () => {
       .mockImplementationOnce(async () => deferredToken.promise)
       .mockResolvedValueOnce("token-1");
 
-    const { rerender } = renderHook(
-      ({ user }) => useSubscriptionStatus(user),
-      { initialProps: { user: user1 } },
-    );
+    const { rerender } = renderHook(({ user }) => useSubscriptionStatus(user), {
+      initialProps: { user: user1 },
+    });
 
     await waitFor(() => {
       expect(getTokenMock).toHaveBeenCalledTimes(1);

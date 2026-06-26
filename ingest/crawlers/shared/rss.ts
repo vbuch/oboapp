@@ -40,12 +40,27 @@ function readTagValue(xml: string, tagName: string): string {
  * Remove the standard WordPress attribution paragraph from RSS descriptions.
  */
 export function stripWordPressFeedAttribution(contentHtml: string): string {
-  return contentHtml
-    .replace(
-      /(?:\s*<p>)?\s*Материалът[\s\S]*?публикуван за пръв път на[\s\S]*?<\/p>\s*$/i,
-      "",
-    )
-    .trim();
+  const marker = "публикуван за пръв път на";
+  const lowerHtml = contentHtml.toLowerCase();
+  const markerIndex = lowerHtml.lastIndexOf(marker);
+  if (markerIndex === -1) {
+    return contentHtml.trim();
+  }
+
+  const paragraphStart = lowerHtml.lastIndexOf("<p", markerIndex);
+  const openingTagEnd =
+    paragraphStart !== -1 ? lowerHtml.indexOf(">", paragraphStart) : -1;
+  const removeStart =
+    paragraphStart !== -1 && openingTagEnd !== -1
+      ? paragraphStart
+      : markerIndex;
+
+  const paragraphEnd = lowerHtml.indexOf("</p>", markerIndex);
+  const removeEnd = paragraphEnd === -1 ? contentHtml.length : paragraphEnd + 4;
+
+  return (
+    contentHtml.slice(0, removeStart) + contentHtml.slice(removeEnd)
+  ).trim();
 }
 
 /**

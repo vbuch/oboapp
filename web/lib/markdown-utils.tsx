@@ -1,6 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import { renderToStaticMarkup } from "react-dom/server";
+import { stripHtmlTags } from "@oboapp/shared";
 
 /**
  * Strip markdown formatting from text for plain text display
@@ -38,8 +39,7 @@ export function stripMarkdown(text: string): string {
   // The markup will still have some HTML tags, so extract text content
   // and normalize whitespace, then decode HTML entities
   return (
-    markup
-      .replace(/<[^>]*>/g, "") // Remove any remaining HTML tags
+    stripHtmlTags(markup)
       .replace(/\s+/g, " ") // Normalize whitespace
       .trim()
       // Decode common HTML entities to plain text

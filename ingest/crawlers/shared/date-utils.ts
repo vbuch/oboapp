@@ -42,7 +42,10 @@ export function parseBulgarianDate(dateStr: string): string {
     logger.warn("Unable to parse date, using current date", { dateStr });
     return new Date().toISOString();
   } catch (error) {
-    logger.error("Error parsing date", { dateStr, error: error instanceof Error ? error.message : String(error) });
+    logger.error("Error parsing date", {
+      dateStr,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return new Date().toISOString();
   }
 }
@@ -178,10 +181,17 @@ export function parseShortBulgarianDateTime(
       }
     }
 
-    logger.warn("Unable to parse short date, using current date", { dateStr, timeStr: timeStr || "" });
+    logger.warn("Unable to parse short date, using current date", {
+      dateStr,
+      timeStr: timeStr || "",
+    });
     return new Date().toISOString();
   } catch (error) {
-    logger.error("Error parsing short date", { dateStr, timeStr: timeStr || "", error: error instanceof Error ? error.message : String(error) });
+    logger.error("Error parsing short date", {
+      dateStr,
+      timeStr: timeStr || "",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return new Date().toISOString();
   }
 }
@@ -202,7 +212,9 @@ export function parseBulgarianMonthDate(dateStr: string): string {
     const match = cleaned.match(/^(\d{1,2})\s+(\S+)\s+(\d{4})$/);
 
     if (!match) {
-      logger.warn("Unable to parse Bulgarian month date, using current date", { dateStr });
+      logger.warn("Unable to parse Bulgarian month date, using current date", {
+        dateStr,
+      });
       return new Date().toISOString();
     }
 
@@ -211,7 +223,9 @@ export function parseBulgarianMonthDate(dateStr: string): string {
     const month = BULGARIAN_MONTH_TO_NUMBER[monthLower];
 
     if (!month) {
-      logger.warn("Unknown Bulgarian month name, using current date", { monthName });
+      logger.warn("Unknown Bulgarian month name, using current date", {
+        monthName,
+      });
       return new Date().toISOString();
     }
 
@@ -241,13 +255,18 @@ export function parseBulgarianMonthDate(dateStr: string): string {
       date.getMonth() !== parsedMonth ||
       date.getFullYear() !== parsedYear
     ) {
-      logger.warn("Invalid date (out of range), using current date", { dateStr });
+      logger.warn("Invalid date (out of range), using current date", {
+        dateStr,
+      });
       return new Date().toISOString();
     }
 
     return date.toISOString();
   } catch (error) {
-    logger.error("Error parsing Bulgarian month date", { dateStr, error: error instanceof Error ? error.message : String(error) });
+    logger.error("Error parsing Bulgarian month date", {
+      dateStr,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return new Date().toISOString();
   }
 }
@@ -283,6 +302,33 @@ function buildDate(year: number, month: number, day: number): Date {
   return date;
 }
 
+function removeParenthesizedText(text: string): string {
+  let depth = 0;
+  let result = "";
+
+  for (const char of text) {
+    if (char === "(") {
+      depth++;
+      continue;
+    }
+
+    if (char === ")") {
+      if (depth > 0) {
+        depth--;
+      } else {
+        result += char;
+      }
+      continue;
+    }
+
+    if (depth === 0) {
+      result += char;
+    }
+  }
+
+  return result;
+}
+
 /**
  * Parse Bulgarian date text into a date range.
  * Supported formats:
@@ -292,15 +338,18 @@ function buildDate(year: number, month: number, day: number): Date {
  * - 27 януари 2026
  * - 27 януари (сряда) 2026
  */
-export function parseBulgarianDateOrRange(dateText: string): { start: Date; end: Date } {
-  const normalized = dateText
-    .trim()
-    .toLowerCase()
-    .replace(/\([^)]*\)/g, " ")
-    .replace(/\s+/g, " ");
+export function parseBulgarianDateOrRange(dateText: string): {
+  start: Date;
+  end: Date;
+} {
+  const normalized = removeParenthesizedText(dateText.trim().toLowerCase())
+    .replace(/\s+/g, " ")
+    .trim();
 
   // DD.MM-DD.MM.YYYY
-  const crossMonthRange = normalized.match(/(\d{1,2})\.(\d{1,2})\s*-\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})/);
+  const crossMonthRange = normalized.match(
+    /(\d{1,2})\.(\d{1,2})\s*-\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})/,
+  );
   if (crossMonthRange) {
     const startDay = Number.parseInt(crossMonthRange[1], 10);
     const startMonth = Number.parseInt(crossMonthRange[2], 10);
@@ -316,7 +365,9 @@ export function parseBulgarianDateOrRange(dateText: string): { start: Date; end:
   }
 
   // DD-DD.MM.YYYY
-  const sameMonthRange = normalized.match(/(\d{1,2})\s*-\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})/);
+  const sameMonthRange = normalized.match(
+    /(\d{1,2})\s*-\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})/,
+  );
   if (sameMonthRange) {
     const startDay = Number.parseInt(sameMonthRange[1], 10);
     const endDay = Number.parseInt(sameMonthRange[2], 10);

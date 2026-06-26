@@ -28,13 +28,72 @@ if (!APP_URL_ENV && process.env.NODE_ENV === "production") {
 
 const APP_URL = APP_URL_ENV || "http://localhost:3000";
 
+function stripMarkdownInlineLinks(text: string): string {
+  let result = "";
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const openBracket = text.indexOf("[", cursor);
+    if (openBracket === -1) {
+      result += text.slice(cursor);
+      break;
+    }
+
+    const mid = text.indexOf("](", openBracket + 1);
+    if (mid === -1) {
+      result += text.slice(cursor);
+      break;
+    }
+
+    const closeParen = text.indexOf(")", mid + 2);
+    if (closeParen === -1) {
+      result += text.slice(cursor);
+      break;
+    }
+
+    result += text.slice(cursor, openBracket);
+    result += text.slice(openBracket + 1, mid);
+    cursor = closeParen + 1;
+  }
+
+  return result;
+}
+
+function stripMarkdownListMarkers(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => {
+      let i = 0;
+      while (i < line.length && (line[i] === " " || line[i] === "\t")) {
+        i++;
+      }
+
+      const marker = line[i];
+      if ((marker === "-" || marker === "*") && line[i + 1] === " ") {
+        return line.slice(i + 2);
+      }
+
+      let j = i;
+      while (j < line.length && line[j] >= "0" && line[j] <= "9") {
+        j++;
+      }
+
+      if (j > i && line[j] === "." && line[j + 1] === " ") {
+        return line.slice(j + 2);
+      }
+
+      return line;
+    })
+    .join("\n");
+}
+
 /**
  * Strip markdown formatting from text for use in plain-text notifications.
  * Handles bold, italic, headings, links, and list markers.
  */
 function stripMarkdown(text: string): string {
   return (
-    text
+    stripMarkdownListMarkers(stripMarkdownInlineLinks(text))
       // Bold: **text** or __text__
       .replace(/\*\*(.*?)\*\*/g, "$1")
       .replace(/__(.*?)__/g, "$1")
@@ -43,12 +102,6 @@ function stripMarkdown(text: string): string {
       .replace(/(?<!\w)_([^_]+)_(?!\w)/g, "$1")
       // Headings: # text
       .replace(/^#{1,6}\s+/gm, "")
-      // Links: [text](url)
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-      // List markers: - item or * item
-      .replace(/^[\s]*[-*]\s+/gm, "")
-      // Numbered list markers: 1. item
-      .replace(/^[\s]*\d+\.\s+/gm, "")
   );
 }
 

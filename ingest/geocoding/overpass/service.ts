@@ -357,12 +357,21 @@ function shouldRetryIntersectionLater(intersection: string): boolean {
 /**
  * Parse Overpass XML error response to extract error message
  */
-function parseOverpassError(responseText: string): string | null {
-  const remarkMatch = /<remark>\s*([\s\S]+?)\s*<\/remark>/.exec(responseText);
-  if (remarkMatch) {
-    return remarkMatch[1].trim();
+export function parseOverpassError(responseText: string): string | null {
+  const startTag = "<remark>";
+  const endTag = "</remark>";
+  const startIndex = responseText.indexOf(startTag);
+  if (startIndex === -1) {
+    return null;
   }
-  return null;
+
+  const contentStart = startIndex + startTag.length;
+  const endIndex = responseText.indexOf(endTag, contentStart);
+  if (endIndex === -1) {
+    return null;
+  }
+
+  return responseText.slice(contentStart, endIndex).trim();
 }
 
 /**

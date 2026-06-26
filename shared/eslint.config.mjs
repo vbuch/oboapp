@@ -40,6 +40,7 @@ const eslintConfig = [
         { assertionStyle: "never" },
       ],
       "sonarjs/no-commented-code": "error",
+      "sonarjs/slow-regex": "error",
       "unicorn/prefer-number-properties": "error",
     },
   },

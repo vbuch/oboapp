@@ -13,6 +13,7 @@ import {
   OVERPASS_RETRY_MAX_ATTEMPTS,
   OVERPASS_RETRY_BASE_DELAY_MS,
   OVERPASS_RETRY_MAX_DELAY_MS,
+  parseOverpassError,
   parseRetryAfterMs,
   calculateRetryDelayMs,
 } from "./service";
@@ -25,17 +26,6 @@ vi.mock("../../lib/delay", () => ({
 
 describe("overpass-geocoding-service", () => {
   describe("parseOverpassError", () => {
-    // Helper function copied for testing
-    function parseOverpassError(responseText: string): string | null {
-      const remarkMatch = /<remark>\s*([\s\S]+?)\s*<\/remark>/.exec(
-        responseText,
-      );
-      if (remarkMatch) {
-        return remarkMatch[1].trim();
-      }
-      return null;
-    }
-
     it("should extract error message from XML remark tag", () => {
       const xml =
         '<?xml version="1.0" encoding="UTF-8"?><remark>Error: Query timed out after 25 seconds</remark>';

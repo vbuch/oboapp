@@ -67,8 +67,14 @@ const eslintConfig = [
 
       // Disallow commented-out code blocks
       "sonarjs/no-commented-code": "error",
+      "sonarjs/slow-regex": "error",
       "unicorn/prefer-number-properties": "error",
       "no-duplicate-imports": ["error", { allowSeparateTypeImports: true }],
+
+      // Ensure non-native interactive elements remain keyboard/focus accessible
+      "jsx-a11y/no-static-element-interactions": "error",
+      "jsx-a11y/click-events-have-key-events": "error",
+      "jsx-a11y/interactive-supports-focus": "error",
     },
   },
   // Allow 'any' and type assertions in test files for mocking purposes

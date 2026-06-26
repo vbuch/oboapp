@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { resolve, join } from "node:path";
 import { readFileSync } from "node:fs";
 import type { IngestErrorRecorder } from "./ingest-errors";
+import { hasMarkdownInlineLink } from "./markdown-link-utils";
 
 // Load env vars before anything else (AGENTS.md pattern)
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -604,7 +605,7 @@ describe.skipIf(!HAS_API_KEY)(
         expect(msg.markdownText).not.toMatch(/https?:\/\//);
 
         // Markdown link syntax must be gone from markdownText
-        expect(msg.markdownText).not.toMatch(/\[[^\]]+\]\([^)]+\)/);
+        expect(hasMarkdownInlineLink(msg.markdownText)).toBe(false);
 
         // Lead-in phrase pointing to the link must be stripped
         expect(msg.plainText).not.toContain("С пълния текст");

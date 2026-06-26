@@ -8,6 +8,8 @@
  * AssertionValueFunction signature.
  */
 
+import { hasMarkdownInlineLink } from "../../lib/markdown-link-utils";
+
 type AssertionValueFunctionContext = {
   config?: {
     value?: unknown;
@@ -19,6 +21,34 @@ type GradingResult = {
   score: number;
   reason: string;
 };
+
+function hasMarkdownReferenceLink(text: string): boolean {
+  const lines = text.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (
+      trimmed.startsWith("[") &&
+      trimmed.includes("]:") &&
+      (trimmed.includes("http://") || trimmed.includes("https://"))
+    ) {
+      return true;
+    }
+  }
+
+  return text.includes("][") && text.includes("[") && text.includes("]");
+}
+
+function hasLinkLikeText(text: string): boolean {
+  return (
+    text.includes("http://") ||
+    text.includes("https://") ||
+    text.includes("www.") ||
+    text.includes("<http://") ||
+    text.includes("<https://") ||
+    hasMarkdownInlineLink(text) ||
+    hasMarkdownReferenceLink(text)
+  );
+}
 
 /**
  * Validates that the output is valid JSON parseable by the FilterSplitResponseSchema.
@@ -269,8 +299,6 @@ export function assertNoLinks(
   if (!parsed.success) return parsed.result;
 
   const items = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
-  const urlPattern =
-    /https?:\/\/[^\s)<>\]]+|www\.[^\s)<>\]]+|<https?:\/\/[^>\s]+>|\[[^\]]+\]\([^)]+\)|\[[^\]]+\]\s*\[[^\]]*\]|\[[^\]]+\]:\s*https?:\/\/\S+/im;
 
   if (items.some((item) => typeof item !== "object" || item === null)) {
     return {
@@ -293,7 +321,7 @@ export function assertNoLinks(
         };
       }
       const text = value;
-      if (urlPattern.test(text)) {
+      if (hasLinkLikeText(text)) {
         violations.push(`${field} contains a link`);
       }
     }

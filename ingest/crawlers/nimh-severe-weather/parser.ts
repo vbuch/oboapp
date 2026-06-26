@@ -4,6 +4,7 @@ import type {
   WarningLevel,
   WarningType,
 } from "./types";
+import { stripHtmlTags } from "@oboapp/shared";
 import { logger } from "@/lib/logger";
 
 /**
@@ -86,6 +87,21 @@ function parseNotes(cellText: string): string[] {
     .filter((note) => note.length > 0);
 }
 
+function extractRecommendationText(html: string, startIndex: number): string {
+  const lowerHtml = html.toLowerCase();
+  const markers = ["издадена на:", "<table"];
+  let endIndex = html.length;
+
+  for (const marker of markers) {
+    const markerIndex = lowerHtml.indexOf(marker, startIndex);
+    if (markerIndex !== -1 && markerIndex < endIndex) {
+      endIndex = markerIndex;
+    }
+  }
+
+  return stripHtmlTags(html.slice(startIndex, endIndex), " ").trim();
+}
+
 /**
  * Parse the weather warning page HTML
  *
@@ -100,7 +116,9 @@ export function parseWeatherPage(html: string): WeatherPageData | null {
     /прогноза за[:\s]+(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})/i;
   const forecastDateMatch = forecastDateRegex.exec(html);
   if (!forecastDateMatch) {
-    logger.warn("Could not find forecast date in HTML", { sourceType: "nimh-severe-weather" });
+    logger.warn("Could not find forecast date in HTML", {
+      sourceType: "nimh-severe-weather",
+    });
     return null;
   }
 
@@ -115,13 +133,10 @@ export function parseWeatherPage(html: string): WeatherPageData | null {
     ? `${issuedMatch[1]}-${issuedMatch[2]}-${issuedMatch[3]}T${issuedMatch[4]}:${issuedMatch[5]}:${issuedMatch[6]}`
     : new Date().toISOString();
 
-  // Extract recommendation text (between "прогноза за: DATE" and "издадена на:")
-  const recommendationRegex =
-    /прогноза за[:\s]+\d{1,2}[.\-/]\d{1,2}[.\-/]\d{4}\s*([\s\S]*?)(?=издадена на:|<table)/i;
-  const recommendationMatch = recommendationRegex.exec(html);
-  const recommendation = recommendationMatch
-    ? recommendationMatch[1].replaceAll(/<[^>]+>/g, "").trim()
-    : "";
+  // Extract recommendation text (between "прогноза за: DATE" and the next known section)
+  const recommendationStart =
+    (forecastDateMatch.index ?? 0) + forecastDateMatch[0].length;
+  const recommendation = extractRecommendationText(html, recommendationStart);
 
   // Find Sofia row in the table
   const sofiaWarnings = parseSofiaRow(html);
@@ -163,7 +178,7 @@ function parseSofiaRow(html: string): WarningCell[] {
     // Skip first cell (municipality name), process remaining 5 warning columns
     for (let i = 1; i < cellMatches.length && i <= 5; i++) {
       const cellHtml = cellMatches[i];
-      const cellText = cellHtml.replaceAll(/<[^>]+>/g, "").trim();
+      const cellText = stripHtmlTags(cellHtml, " ").trim();
       const level = parseWarningLevel(cellHtml, cellText);
       const notes = parseNotes(cellText);
 
