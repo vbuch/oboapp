@@ -64,17 +64,14 @@ Examples:
       throw new Error("Invalid GeoJSON: expected a FeatureCollection");
     }
 
-    console.log(`Found ${data.features.length} districts\n`);
+    console.log("Fetched district boundaries successfully\n");
 
     const written: string[] = [];
 
     for (const feature of data.features) {
       const { obns_cyr } = feature.properties;
       if (!obns_cyr) {
-        const featureId = feature.properties.id;
-        console.warn(
-          `⚠️  Skipping feature with missing obns_cyr (id=${featureId})`,
-        );
+        console.warn("⚠️  Skipping feature with missing obns_cyr");
         continue;
       }
 
@@ -91,7 +88,7 @@ Examples:
         filePath,
         JSON.stringify(featureCollection, null, 2) + "\n",
       );
-      written.push(`  ${filename} (${obns_cyr})`);
+      written.push(`  ${filename}`);
     }
 
     console.log(
