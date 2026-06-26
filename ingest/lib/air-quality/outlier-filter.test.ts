@@ -34,7 +34,7 @@ describe("filterOutliers", () => {
   it("removes readings with NaN or Infinity PM values", () => {
     const readings = [
       makeReading({ sensorId: 1, p1: 30, p2: 15 }),
-      makeReading({ sensorId: 2, p1: NaN, p2: 15 }),
+      makeReading({ sensorId: 2, p1: Number.NaN, p2: 15 }),
       makeReading({ sensorId: 3, p1: 30, p2: Infinity }),
     ];
     const filtered = filterOutliers(readings);

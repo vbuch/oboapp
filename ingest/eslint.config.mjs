@@ -1,5 +1,6 @@
 import tseslint from "typescript-eslint";
 import sonarjs from "eslint-plugin-sonarjs";
+import unicorn from "eslint-plugin-unicorn";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 
@@ -10,6 +11,7 @@ const eslintConfig = [
   {
     plugins: {
       sonarjs,
+      unicorn,
     },
     languageOptions: {
       parserOptions: {
@@ -42,6 +44,7 @@ const eslintConfig = [
         { assertionStyle: "never" },
       ],
       "sonarjs/no-commented-code": "error",
+      "unicorn/prefer-number-properties": "error",
       "no-duplicate-imports": ["error", { allowSeparateTypeImports: true }],
     },
   },

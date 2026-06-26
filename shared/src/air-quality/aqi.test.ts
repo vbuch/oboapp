@@ -90,14 +90,14 @@ describe("calculateNowCastAqi", () => {
   });
 
   it("ignores NaN values (treats them as invalid)", () => {
-    const hourly = [{ pm25: NaN, pm10: 10 }];
+    const hourly = [{ pm25: Number.NaN, pm10: 10 }];
     const aqi = calculateNowCastAqi(hourly);
     expect(aqi).toBeGreaterThanOrEqual(1);
     expect(aqi).toBeLessThan(2);
   });
 
   it("returns 0 when all values are non-finite", () => {
-    const hourly = [{ pm25: NaN, pm10: Infinity }];
+    const hourly = [{ pm25: Number.NaN, pm10: Infinity }];
     const aqi = calculateNowCastAqi(hourly);
     expect(aqi).toBe(0);
   });

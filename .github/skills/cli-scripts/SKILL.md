@@ -33,7 +33,7 @@ program
   .description("One-line description of what this script does")
   .option("--dry-run", "Preview changes without writing")
   .option("-s, --source <type>", "Filter by source type")
-  .option("-l, --limit <n>", "Maximum items to process", parseInt)
+  .option("-l, --limit <n>", "Maximum items to process", Number.parseInt)
   .addHelpText(
     "after",
     `

@@ -12,10 +12,7 @@ async function checkData() {
     "  FIRESTORE_EMULATOR_HOST:",
     process.env.FIRESTORE_EMULATOR_HOST,
   );
-  console.log(
-    "  FIREBASE_PROJECT_ID:",
-    process.env.FIREBASE_PROJECT_ID,
-  );
+  console.log("  FIREBASE_PROJECT_ID:", process.env.FIREBASE_PROJECT_ID);
 
   console.log();
 
@@ -47,7 +44,9 @@ async function checkData() {
       const data = doc.data();
       const timespanEnd = data.timespanEnd ? new Date(data.timespanEnd) : null;
       const isValid =
-        timespanEnd && !isNaN(timespanEnd.getTime()) && timespanEnd >= cutoff;
+        timespanEnd &&
+        !Number.isNaN(timespanEnd.getTime()) &&
+        timespanEnd >= cutoff;
 
       if (isValid) withinWindow++;
       else outsideWindow++;
@@ -55,7 +54,7 @@ async function checkData() {
       console.log(`  ${idx + 1}. ${doc.id}`);
       console.log(`     Categories: ${data.categories?.join(", ") || "none"}`);
       console.log(
-        `     Timespan End: ${timespanEnd && !isNaN(timespanEnd.getTime()) ? timespanEnd.toISOString() : "invalid/missing"}`,
+        `     Timespan End: ${timespanEnd && !Number.isNaN(timespanEnd.getTime()) ? timespanEnd.toISOString() : "invalid/missing"}`,
       );
       console.log(`     Within 7-day window: ${isValid ? "✅ YES" : "❌ NO"}`);
     });

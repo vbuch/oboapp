@@ -9,7 +9,7 @@ const negativeCacheMs = new Map<string, number>();
 
 function getNegativeCacheTtlMs(): number {
   const raw = process.env.PUBLIC_API_NEGATIVE_CACHE_TTL_S;
-  const parsed = raw ? parseInt(raw, 10) : NaN;
+  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
   return (Number.isFinite(parsed) && parsed > 0 ? parsed : 300) * 1000;
 }
 
@@ -89,26 +89,39 @@ async function validateApiKey(key: string): Promise<ApiPrincipal | null> {
   return getPrincipalFromClientRecord(client, normalizedKey);
 }
 
+function isApiPrincipal(value: unknown): value is ApiPrincipal {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  if (!("id" in value) || typeof value.id !== "string") {
+    return false;
+  }
+
+  if (
+    !("type" in value) ||
+    (value.type !== "api-client" && value.type !== "env")
+  ) {
+    return false;
+  }
+
+  if (
+    !("source" in value) ||
+    (value.source !== "db" && value.source !== "env")
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export function getApiPrincipal(c: Context): ApiPrincipal | null {
   const principal = c.get("apiPrincipal");
-  if (!principal || typeof principal !== "object") {
+  if (!isApiPrincipal(principal)) {
     return null;
   }
 
-  const candidate = principal as Partial<ApiPrincipal>;
-  if (
-    typeof candidate.id !== "string" ||
-    (candidate.type !== "api-client" && candidate.type !== "env") ||
-    (candidate.source !== "db" && candidate.source !== "env")
-  ) {
-    return null;
-  }
-
-  return {
-    id: candidate.id,
-    type: candidate.type,
-    source: candidate.source,
-  };
+  return principal;
 }
 
 export async function apiKeyAuth(c: Context, next: Next) {

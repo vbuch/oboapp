@@ -53,7 +53,7 @@ function timestampToDate(value: unknown): Date {
   }
   if (typeof value === "string") {
     const parsed = Date.parse(value);
-    if (!isNaN(parsed)) return new Date(parsed);
+    if (!Number.isNaN(parsed)) return new Date(parsed);
   }
   return new Date();
 }

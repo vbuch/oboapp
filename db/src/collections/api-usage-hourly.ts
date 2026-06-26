@@ -19,13 +19,16 @@ export function makeBucketId(params: {
   return `${params.principalId}:${params.periodStart}:${params.method}:${endpointKey}`;
 }
 
+function hasCode(error: Error): error is Error & { code?: unknown } {
+  return "code" in error;
+}
+
 export function isAlreadyExistsError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
   }
 
-  const maybeCode =
-    "code" in error ? (error as { code?: unknown }).code : undefined;
+  const maybeCode = hasCode(error) ? error.code : undefined;
   return (
     error.message.includes("already exists") ||
     error.message.includes("ALREADY_EXISTS") ||

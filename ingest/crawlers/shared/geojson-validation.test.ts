@@ -23,7 +23,7 @@ describe("geojson-validation", () => {
       expect(isValidCoordinate(23.32, 91)).toBe(false);
       expect(isValidCoordinate(-181, 0)).toBe(false);
       expect(isValidCoordinate(0, -91)).toBe(false);
-      expect(isValidCoordinate(NaN, 42.7)).toBe(false);
+      expect(isValidCoordinate(Number.NaN, 42.7)).toBe(false);
       expect(isValidCoordinate(23.32, Infinity)).toBe(false);
     });
   });
@@ -32,8 +32,12 @@ describe("geojson-validation", () => {
     it("should accept coordinates within Sofia bounds", () => {
       expect(isWithinBounds("bg.sofia", 42.7, 23.32)).toBe(true);
       expect(isWithinBounds("bg.sofia", 42.698, 23.319)).toBe(true);
-      expect(isWithinBounds("bg.sofia", SOFIA_BOUNDS.south, SOFIA_BOUNDS.west)).toBe(true);
-      expect(isWithinBounds("bg.sofia", SOFIA_BOUNDS.north, SOFIA_BOUNDS.east)).toBe(true);
+      expect(
+        isWithinBounds("bg.sofia", SOFIA_BOUNDS.south, SOFIA_BOUNDS.west),
+      ).toBe(true);
+      expect(
+        isWithinBounds("bg.sofia", SOFIA_BOUNDS.north, SOFIA_BOUNDS.east),
+      ).toBe(true);
     });
 
     it("should reject coordinates outside Sofia bounds", () => {

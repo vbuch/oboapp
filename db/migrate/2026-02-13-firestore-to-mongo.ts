@@ -65,7 +65,7 @@ function convertTimestamp(value: unknown): Date | unknown {
 
   if (typeof value === "string") {
     const parsed = Date.parse(value);
-    if (!isNaN(parsed)) return new Date(parsed);
+    if (!Number.isNaN(parsed)) return new Date(parsed);
   }
 
   return value;

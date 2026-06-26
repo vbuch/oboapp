@@ -22,11 +22,17 @@ const program = new Command();
 
 program
   .name("verify-events")
-  .description("Inspect event aggregation results: events, messages, match scores")
+  .description(
+    "Inspect event aggregation results: events, messages, match scores",
+  )
   .option("--source-name <name>", "Filter messages by source type")
   .option("--event-id <id>", "Inspect a specific event")
   .option("--verbose", "Show full event/message documents")
-  .option("--limit <n>", "Maximum number of events to inspect (default: 50)", "50")
+  .option(
+    "--limit <n>",
+    "Maximum number of events to inspect (default: 50)",
+    "50",
+  )
   .addHelpText(
     "after",
     `
@@ -49,7 +55,12 @@ Examples:
       return;
     }
 
-    await showOverview(db, options.sourceName, options.verbose, parseInt(options.limit, 10));
+    await showOverview(
+      db,
+      options.sourceName,
+      options.verbose,
+      Number.parseInt(options.limit, 10),
+    );
   });
 
 async function showOverview(
@@ -66,7 +77,9 @@ async function showOverview(
 
   if (events.length === 0) {
     console.log("\n📭 No events found.\n");
-    console.log("Tip: Run `pnpm ingest` first to ingest sources and create events.\n");
+    console.log(
+      "Tip: Run `pnpm ingest` first to ingest sources and create events.\n",
+    );
     return;
   }
 
@@ -78,11 +91,9 @@ async function showOverview(
 
     // If filtering by source, skip events that don't have messages from that source
     if (sourceName) {
-      const hasSource = eventMessages.some(
-        (em) => {
-          return em.source === sourceName;
-        },
-      );
+      const hasSource = eventMessages.some((em) => {
+        return em.source === sourceName;
+      });
       // Also check event sources array
       const eventSources = getStringArray(event.sources) ?? [];
       if (!hasSource && !eventSources.includes(sourceName)) continue;
@@ -135,7 +146,9 @@ async function showOverview(
       `⚠️  ${orphans.length} finalized message(s) with GeoJSON but NO eventMessages link:`,
     );
     for (const m of orphans) {
-      console.log(`  - ${m._id} (source: ${m.source}, categories: ${JSON.stringify(m.categories)})`);
+      console.log(
+        `  - ${m._id} (source: ${m.source}, categories: ${JSON.stringify(m.categories)})`,
+      );
     }
     console.log();
   }
@@ -175,7 +188,8 @@ async function inspectEvent(
     if (message) {
       console.log(`  📝 Message: ${messageId}`);
       console.log(`     source: ${message.source}`);
-      const messageText = getString(message.plainText) || getString(message.text);
+      const messageText =
+        getString(message.plainText) || getString(message.text);
       console.log(`     text: ${messageText.substring(0, 120)}`);
       console.log(`     categories: ${JSON.stringify(message.categories)}`);
       console.log(`     hasGeoJson: ${Boolean(message.geoJson)}`);
@@ -215,7 +229,8 @@ function printEventSummary(
     console.log(`   ── linked messages ──`);
     for (const em of eventMessages) {
       const signals = getRecord(em.matchSignals);
-      const fmtSig = (v: unknown): string => typeof v === "number" ? v.toFixed(2) : "?";
+      const fmtSig = (v: unknown): string =>
+        typeof v === "number" ? v.toFixed(2) : "?";
       console.log(
         `   ${em.messageId} (source: ${em.source}, confidence: ${em.confidence}${
           signals

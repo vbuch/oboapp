@@ -87,7 +87,7 @@ describe("geometry-utils", () => {
     });
 
     it("should throw error for NaN values", () => {
-      expect(() => toLatLng([NaN, 42.6977])).toThrow(
+      expect(() => toLatLng([Number.NaN, 42.6977])).toThrow(
         "Invalid coordinate: longitude and latitude must be numbers",
       );
     });
@@ -359,7 +359,7 @@ describe("geometry-utils", () => {
           type: "LineString",
           coordinates: [
             [Infinity, Infinity],
-            [NaN, NaN],
+            [Number.NaN, Number.NaN],
           ], // Invalid coordinates that will cause turf to throw
         } as any;
 
@@ -495,7 +495,7 @@ describe("geometry-utils", () => {
     });
 
     it("should throw error for invalid position with NaN", () => {
-      const positions = [{ lat: NaN, lng: 23.3219 }];
+      const positions = [{ lat: Number.NaN, lng: 23.3219 }];
       expect(() => jitterDuplicatePositions(positions)).toThrow(
         "Invalid position: lat and lng must be finite numbers",
       );
@@ -604,7 +604,7 @@ describe("geometry-utils", () => {
     });
 
     it("should throw error for NaN feature index", () => {
-      expect(() => createFeatureKey("msg123", NaN)).toThrow(
+      expect(() => createFeatureKey("msg123", Number.NaN)).toThrow(
         "Invalid featureIndex: must be a non-negative integer",
       );
     });
@@ -899,11 +899,11 @@ describe("geometry-utils", () => {
               type: "Polygon",
               coordinates: [
                 [
-                  [23.30, 42.69],
+                  [23.3, 42.69],
                   [23.37, 42.69],
                   [23.37, 42.73],
-                  [23.30, 42.73],
-                  [23.30, 42.69],
+                  [23.3, 42.73],
+                  [23.3, 42.69],
                 ],
               ],
             },
@@ -931,8 +931,8 @@ describe("geometry-utils", () => {
             geometry: {
               type: "MultiPoint",
               coordinates: [
-                [23.20, 42.60],
-                [23.40, 42.80],
+                [23.2, 42.6],
+                [23.4, 42.8],
               ],
             },
             properties: {},
@@ -1000,7 +1000,7 @@ describe("geometry-utils", () => {
             type: "Feature",
             geometry: {
               type: "Point",
-              coordinates: [NaN, Infinity],
+              coordinates: [Number.NaN, Infinity],
             },
             properties: {},
           },

@@ -29,7 +29,7 @@ export function aggregateMessageGeometryQuality(
   for (const feature of geoJson.features) {
     const quality = feature.properties?.geometryQuality;
     const hasQualityKey = quality !== undefined;
-    const isValid = typeof quality === "number" && isFinite(quality);
+    const isValid = typeof quality === "number" && Number.isFinite(quality);
     const effectiveQuality = isValid
       ? Math.min(3, Math.max(0, Math.floor(quality)))
       : 0;

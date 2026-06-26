@@ -70,16 +70,16 @@ export function parseSensorResponse(
     if (entry.location?.indoor === 1) continue;
 
     // Validate coordinates
-    const lat = parseFloat(String(entry.location?.latitude ?? ""));
-    const lng = parseFloat(String(entry.location?.longitude ?? ""));
+    const lat = Number.parseFloat(String(entry.location?.latitude ?? ""));
+    const lng = Number.parseFloat(String(entry.location?.longitude ?? ""));
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
     // Bounds check
     if (!isWithinBounds(locality, lat, lng)) continue;
 
     // Extract PM values from sensordatavalues
-    let pm10 = NaN;
-    let pm25 = NaN;
+    let pm10 = Number.NaN;
+    let pm25 = Number.NaN;
 
     if (!Array.isArray(entry.sensordatavalues)) continue;
 
@@ -94,7 +94,7 @@ export function parseSensorResponse(
       )
         continue;
 
-      const value = parseFloat(sdv.value);
+      const value = Number.parseFloat(sdv.value);
       if (!Number.isFinite(value) || value < 0) continue;
 
       // P1 = PM10, P2 = PM2.5 (sensor.community convention)

@@ -23,19 +23,19 @@ function parseTimestamp(value: unknown): Date | undefined {
   if (value == null) return undefined;
 
   if (value instanceof Date) {
-    return isNaN(value.getTime()) ? undefined : value;
+    return Number.isNaN(value.getTime()) ? undefined : value;
   }
 
   if (typeof value === "number") {
     const d = new Date(value);
-    return isNaN(d.getTime()) ? undefined : d;
+    return Number.isNaN(d.getTime()) ? undefined : d;
   }
 
   if (typeof value === "string") {
     const trimmed = value.trim();
     if (!trimmed) return undefined;
     const d = new Date(trimmed);
-    return isNaN(d.getTime()) ? undefined : d;
+    return Number.isNaN(d.getTime()) ? undefined : d;
   }
 
   // Handle Firestore Timestamp-like objects with a toDate() method
@@ -43,7 +43,7 @@ function parseTimestamp(value: unknown): Date | undefined {
   if (typeof maybeTs.toDate === "function") {
     try {
       const converted = maybeTs.toDate();
-      if (converted instanceof Date && !isNaN(converted.getTime())) {
+      if (converted instanceof Date && !Number.isNaN(converted.getTime())) {
         return converted;
       }
     } catch {

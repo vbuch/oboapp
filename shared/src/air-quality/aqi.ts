@@ -77,7 +77,7 @@ function eaqiFromBands(
  */
 function nowCastWeightedAverage(values: number[]): number {
   const valid = values.filter((v) => Number.isFinite(v) && v >= 0);
-  if (valid.length === 0) return NaN;
+  if (valid.length === 0) return Number.NaN;
 
   const min = Math.min(...valid);
   const max = Math.max(...valid);
@@ -94,7 +94,7 @@ function nowCastWeightedAverage(values: number[]): number {
     denominator += weight;
   }
 
-  return denominator > 0 ? numerator / denominator : NaN;
+  return denominator > 0 ? numerator / denominator : Number.NaN;
 }
 
 /**

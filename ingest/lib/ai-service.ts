@@ -184,7 +184,10 @@ export async function extractLocations(
  * Input should be plainText from Step 1.
  * Skipped if text is shorter than SUMMARIZE_MIN_LENGTH.
  */
-const _parsedMinLength = parseInt(process.env.SUMMARIZE_MIN_LENGTH ?? "", 10);
+const _parsedMinLength = Number.parseInt(
+  process.env.SUMMARIZE_MIN_LENGTH ?? "",
+  10,
+);
 export const SUMMARIZE_MIN_LENGTH = Number.isNaN(_parsedMinLength)
   ? 1000
   : _parsedMinLength;
