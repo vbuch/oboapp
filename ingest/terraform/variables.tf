@@ -63,7 +63,6 @@ variable "schedules" {
     pipeline_all                = string
     gtfs_sync                   = string
     educational_facilities_sync = optional(string, "0 4 1 * *")
-    air_quality_fetch           = optional(string, "*/15 * * * *")
     geocode_cache_report        = optional(string, "0 5 * * 1")
     heatmap_report              = optional(string, "0 4 * * 1")
     billing_cost_export         = optional(string, "0 5 3 * *")
@@ -74,7 +73,6 @@ variable "schedules" {
     pipeline_all                = "0 10,14,16 * * *" # 3x daily: 10:00, 14:00, 16:00
     gtfs_sync                   = "0 3 * * *"        # Daily at 3:00 AM
     educational_facilities_sync = "0 4 1 * *"        # Monthly on the 1st at 4:00 AM
-    air_quality_fetch           = "*/15 * * * *"     # Every 15 minutes, 24/7
     geocode_cache_report        = "0 5 * * 1"        # Weekly on Monday at 5:00 AM
     heatmap_report              = "0 4 * * 1"        # Weekly on Monday at 4:00 AM
     billing_cost_export         = "0 5 3 * *"        # Monthly on the 3rd at 5:00 AM, allowing billing export delays
