@@ -133,12 +133,5 @@
     "memory": "1Gi",
     "timeout": "1800s",
     "description": "Crawl SDVR news"
-  },
-  "sensor-community": {
-    "source": "sensor-community",
-    "memory": "512Mi",
-    "timeout": "600s",
-    "description": "Evaluate sensor.community air quality data",
-    "emergent": true
   }
 }
