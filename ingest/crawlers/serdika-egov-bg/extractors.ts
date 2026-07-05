@@ -234,7 +234,8 @@ function buildCanonicalDetailUrl(
     return `${SITE_HOST}${linkHref}`;
   }
 
-  return `${SITE_HOST}${normalizedPortalContextPath}?urile=${encodeURIComponent(`wcm:path:${contentPath}`)}`;
+  const uriPath = `wcm:path:${contentPath}`;
+  return `${SITE_HOST}${normalizedPortalContextPath}?urile=${encodeURIComponent(uriPath)}`;
 }
 
 async function fetchWithTimeout(
@@ -503,7 +504,7 @@ function extractBalancedElement(
   while ((tokenMatch = tokenRe.exec(html)) !== null) {
     const token = tokenMatch[0];
     const isClosingTag = token.startsWith("</");
-    const isSelfClosingTag = /\/>$/.test(token);
+    const isSelfClosingTag = token.endsWith("/>");
 
     if (isClosingTag) {
       depth--;
@@ -577,7 +578,7 @@ function extractAttachmentFallbackHtml(html: string): string {
 
 function extractAttachmentUrls(html: string): string[] {
   const urls = new Set<string>();
-  const attributeRe = /<(?:a|img)\b[^>]*(?:href|src)=("|')([^"']+)\1[^>]*>/gi;
+  const attributeRe = /<(?:a|img)\b[^>]*(?:href|src)=(["'])([^"']+)\1[^>]*>/gi;
 
   let match: RegExpExecArray | null;
   while ((match = attributeRe.exec(html)) !== null) {

@@ -86,13 +86,12 @@ export async function fetchFeedXml(
     }
 
     const text = await response.text();
-    if (!text.includes("<rss") && !text.includes("<channel>")) {
-      throw new Error(
-        `RSS feed response does not look like RSS (possible anti-bot or error page) for ${url}`,
-      );
+    if (text.includes("<rss") || text.includes("<channel>")) {
+      return text;
     }
-
-    return text;
+    throw new Error(
+      `RSS feed response does not look like RSS (possible anti-bot or error page) for ${url}`,
+    );
   } finally {
     clearTimeout(timeoutId);
   }
