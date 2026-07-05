@@ -23,7 +23,7 @@ export function parseBulgarianDate(dateStr: string): string {
   try {
     // Format: "19.12.2025" or "19/12/2025" or "17.07.25"
     // Handle both dot and slash separators
-    const normalized = dateStr.trim().replace(/\//g, ".");
+    const normalized = dateStr.trim().replaceAll("/", ".");
     const parts = normalized.split(".");
     if (parts.length === 3) {
       const [day, month, yearPart] = parts;
@@ -145,7 +145,7 @@ export function parseShortBulgarianDateTime(
 ): string {
   try {
     // Format: "DD.MM.YY" optionally with "HH:MM"
-    const normalized = dateStr.trim().replace(/\//g, ".");
+    const normalized = dateStr.trim().replaceAll("/", ".");
     const parts = normalized.split(".");
 
     if (parts.length === 3) {

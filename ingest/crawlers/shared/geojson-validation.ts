@@ -251,8 +251,8 @@ function validateAndFixPolygonRing(
 
   // Validate that ring is closed
   const first = fixedRing[0];
-  const last = fixedRing[fixedRing.length - 1];
-  if (first[0] !== last[0] || first[1] !== last[1]) {
+  const last = fixedRing.at(-1);
+  if (!last || first[0] !== last[0] || first[1] !== last[1]) {
     return null;
   }
 
