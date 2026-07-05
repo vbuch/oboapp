@@ -14,8 +14,11 @@ import {
   ErrorResponseSchema,
 } from "../schema/index";
 
-const compareStrings = (left: string, right: string): number =>
-  left < right ? -1 : left > right ? 1 : 0;
+const compareStrings = (left: string, right: string): number => {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+};
 
 const sortRecord = <T>(record: Record<string, T>): Record<string, T> =>
   Object.keys(record)
@@ -237,9 +240,7 @@ let cachedSpec: OpenAPIObject | null = null;
 export const openapiRoute = new Hono();
 
 openapiRoute.get("/openapi", (c) => {
-  if (!cachedSpec) {
-    cachedSpec = buildOpenApiSpec();
-  }
+  cachedSpec ??= buildOpenApiSpec();
   return c.json(cachedSpec);
 });
 

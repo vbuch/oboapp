@@ -464,7 +464,7 @@ messagesRoute.get(
       const viewportBounds = toViewportBounds({ north, south, east, west });
       const cutoffDate = getCutoffDate(timespanEndGte);
 
-      if (selectedCategories && selectedCategories.length === 0) {
+      if (selectedCategories?.length === 0) {
         return c.json({ messages: [] });
       }
 
