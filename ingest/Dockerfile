@@ -21,7 +21,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 WORKDIR /app/ingest
 
 # Install Chromium ONLY (no system deps here) using lockfile-pinned Playwright
-RUN pnpm --ignore-scripts exec playwright install chromium
+RUN pnpm exec playwright install chromium
 
 # Build ingest
 RUN pnpm build
