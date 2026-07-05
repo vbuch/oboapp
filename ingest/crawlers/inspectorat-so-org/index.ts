@@ -64,7 +64,7 @@ export function parseInspectoratDate(
 ): string {
   const candidate = (dateText || fallbackDateText || "").replace(/\s+/g, " ").trim();
 
-  const directMatch = candidate.match(/(\d{1,2})[./](\d{1,2})[./](\d{2,4})/);
+  const directMatch = /(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/.exec(candidate);
   if (directMatch) {
     const [, dayRaw, monthRaw, yearRaw] = directMatch;
     const day = dayRaw.padStart(2, "0");
@@ -76,7 +76,7 @@ export function parseInspectoratDate(
     }
   }
 
-  const shortMonthMatch = candidate.match(/(\d{1,2})\s*([а-я]+)/i);
+  const shortMonthMatch = /(\d{1,2})\s*([а-я]+)/i.exec(candidate);
   if (shortMonthMatch) {
     const [, dayRaw, monthRaw] = shortMonthMatch;
     const monthKey = monthRaw.toLowerCase().replace(/\.$/, "");

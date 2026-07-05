@@ -65,7 +65,7 @@ export function parseBulgarianDateTime(dateStr: string): Date {
   const trimmed = dateStr.trim();
 
   // Expected format: "DD.MM.YYYY HH:MM"
-  const match = trimmed.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
+  const match = /^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/.exec(trimmed);
 
   if (!match) {
     throw new Error(
@@ -209,7 +209,7 @@ export function parseBulgarianMonthDate(dateStr: string): string {
     const cleaned = dateStr.trim();
 
     // Match pattern: "DD Month YYYY" (e.g., "20 Октомври 2025")
-    const match = cleaned.match(/^(\d{1,2})\s+(\S+)\s+(\d{4})$/);
+    const match = /^(\d{1,2})\s+(\S+)\s+(\d{4})$/.exec(cleaned);
 
     if (!match) {
       logger.warn("Unable to parse Bulgarian month date, using current date", {
@@ -347,9 +347,7 @@ export function parseBulgarianDateOrRange(dateText: string): {
     .trim();
 
   // DD.MM-DD.MM.YYYY
-  const crossMonthRange = normalized.match(
-    /(\d{1,2})\.(\d{1,2})\s*-\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})/,
-  );
+  const crossMonthRange = /(\d{1,2})\.(\d{1,2})\s*-\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})/.exec(normalized);
   if (crossMonthRange) {
     const startDay = Number.parseInt(crossMonthRange[1], 10);
     const startMonth = Number.parseInt(crossMonthRange[2], 10);
@@ -365,9 +363,7 @@ export function parseBulgarianDateOrRange(dateText: string): {
   }
 
   // DD-DD.MM.YYYY
-  const sameMonthRange = normalized.match(
-    /(\d{1,2})\s*-\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})/,
-  );
+  const sameMonthRange = /(\d{1,2})\s*-\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})/.exec(normalized);
   if (sameMonthRange) {
     const startDay = Number.parseInt(sameMonthRange[1], 10);
     const endDay = Number.parseInt(sameMonthRange[2], 10);
@@ -382,7 +378,7 @@ export function parseBulgarianDateOrRange(dateText: string): {
   }
 
   // DD.MM.YYYY
-  const numericSingle = normalized.match(/(\d{1,2})\.(\d{1,2})\.(\d{2,4})/);
+  const numericSingle = /(\d{1,2})\.(\d{1,2})\.(\d{2,4})/.exec(normalized);
   if (numericSingle) {
     const day = Number.parseInt(numericSingle[1], 10);
     const month = Number.parseInt(numericSingle[2], 10);
@@ -397,7 +393,7 @@ export function parseBulgarianDateOrRange(dateText: string): {
   }
 
   // DD <month> YYYY
-  const monthNameSingle = normalized.match(/(\d{1,2})\s+([а-я]+)\s+(\d{4})/);
+  const monthNameSingle = /(\d{1,2})\s+([а-я]+)\s+(\d{4})/.exec(normalized);
   if (monthNameSingle) {
     const day = Number.parseInt(monthNameSingle[1], 10);
     const monthName = monthNameSingle[2];

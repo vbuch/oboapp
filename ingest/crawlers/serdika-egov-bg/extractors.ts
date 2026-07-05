@@ -70,29 +70,27 @@ export async function fetchPostLinksFromFeed(
     const entryXml = m[1];
 
     const title = decodeHtmlEntities(
-      entryXml
-        .match(/<atom:title[^>]*>([\s\S]*?)<\/atom:title>/)?.[1]
+      /<atom:title[^>]*>([\s\S]*?)<\/atom:title>/.exec(entryXml)?.[1]
         ?.trim() ?? "",
     );
     const linkHref = decodeHtmlEntities(
-      entryXml
-        .match(
-          /<atom:link[^>]*href="([^"]+)"[^>]*type="text\/html"[^>]*\/?/i,
-        )?.[1]
+      /<atom:link[^>]*href="([^"]+)"[^>]*type="text\/html"[^>]*\/?/i
+        .exec(entryXml)
+        ?.[1]
         ?.trim() ?? "",
     );
     const portalContextPath = decodeHtmlEntities(
-      entryXml
-        .match(
-          /<wplc:field id="portalcontextpath">([\s\S]*?)<\/wplc:field>/,
-        )?.[1]
+      /<wplc:field id="portalcontextpath">([\s\S]*?)<\/wplc:field>/
+        .exec(entryXml)
+        ?.[1]
         ?.trim() ?? DEFAULT_PORTAL_CONTEXT_PATH,
     );
 
     // contentpath field: "/content/site/actual/messages/<slug>"
     const contentPath =
-      entryXml
-        .match(/<wplc:field id="contentpath">([\s\S]*?)<\/wplc:field>/)?.[1]
+      /<wplc:field id="contentpath">([\s\S]*?)<\/wplc:field>/
+        .exec(entryXml)
+        ?.[1]
         ?.trim() ?? "";
     if (!contentPath.startsWith(WCM_CONTENT_PREFIX)) continue;
 
@@ -104,9 +102,9 @@ export async function fetchPostLinksFromFeed(
 
     // effectivedate is a Unix timestamp in milliseconds
     const effectiveDateMs = Number(
-      entryXml.match(
-        /<wplc:field id="effectivedate">(\d+)<\/wplc:field>/,
-      )?.[1] ?? "0",
+      /<wplc:field id="effectivedate">(\d+)<\/wplc:field>/
+        .exec(entryXml)
+        ?.[1] ?? "0",
     );
     const date = effectiveDateMs
       ? formatDateDDMMYYYY(new Date(effectiveDateMs))

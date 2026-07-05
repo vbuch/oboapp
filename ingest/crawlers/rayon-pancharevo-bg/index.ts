@@ -62,7 +62,7 @@ export function extractDateCandidate(text: string): string | null {
   ];
 
   for (const pattern of patterns) {
-    const match = normalized.match(pattern);
+    const match = pattern.exec(normalized);
     if (match?.[1]) {
       return match[1];
     }
