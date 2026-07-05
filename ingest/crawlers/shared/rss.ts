@@ -29,7 +29,7 @@ function escapeRegExp(text: string): string {
 
 function readTagValue(xml: string, tagName: string): string {
   const tagRe = new RegExp(
-    `<${escapeRegExp(tagName)}>([\\s\\S]*?)<\/${escapeRegExp(tagName)}>`,
+    String.raw`<${escapeRegExp(tagName)}>([\s\S]*?)<\/${escapeRegExp(tagName)}>`,
     "i",
   );
   const value = tagRe.exec(xml)?.[1]?.trim() ?? "";

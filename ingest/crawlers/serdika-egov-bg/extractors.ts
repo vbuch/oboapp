@@ -468,7 +468,7 @@ function extractElementOuterHtmlById(
   id: string,
 ): string | null {
   const pattern = new RegExp(
-    `<${tagName}\\b[^>]*\\bid=("|')${escapeRegExp(id)}\\1[^>]*>`,
+    String.raw`<${tagName}\b[^>]*\bid=("|')${escapeRegExp(id)}\1[^>]*>`,
     "i",
   );
   const match = pattern.exec(html);
@@ -481,7 +481,7 @@ function extractElementOuterHtmlByClass(
   className: string,
 ): string | null {
   const pattern = new RegExp(
-    `<${tagName}\\b[^>]*\\bclass=("|')[^"']*\\b${escapeRegExp(className)}\\b[^"']*\\1[^>]*>`,
+    String.raw`<${tagName}\b[^>]*\bclass=("|')[^"']*\b${escapeRegExp(className)}\b[^"']*\1[^>]*>`,
     "i",
   );
   const match = pattern.exec(html);
@@ -494,7 +494,7 @@ function extractBalancedElement(
   match: RegExpExecArray,
 ): string | null {
   const startIndex = match.index;
-  const tokenRe = new RegExp(`<\\/?${tagName}\\b[^>]*>`, "gi");
+  const tokenRe = new RegExp(String.raw`<\/?${tagName}\b[^>]*>`, "gi");
   tokenRe.lastIndex = startIndex + match[0].length;
 
   let depth = 1;
@@ -521,7 +521,7 @@ function extractBalancedElement(
 
 function extractFirstTagText(html: string, tagName: string): string | null {
   const match = new RegExp(
-    `<${tagName}\\b[^>]*>([\\s\\S]*?)<\\/${tagName}>`,
+    String.raw`<${tagName}\b[^>]*>([\s\S]*?)<\/${tagName}>`,
     "i",
   ).exec(html);
   return match ? stripTags(match[1]) : null;
@@ -529,8 +529,8 @@ function extractFirstTagText(html: string, tagName: string): string | null {
 
 function stripOuterTag(outerHtml: string, tagName: string): string {
   return outerHtml
-    .replace(new RegExp(`^<${tagName}\\b[^>]*>`, "i"), "")
-    .replace(new RegExp(`<\\/${tagName}>$`, "i"), "");
+    .replace(new RegExp(String.raw`^<${tagName}\b[^>]*>`, "i"), "")
+    .replace(new RegExp(String.raw`<\/${tagName}>$`, "i"), "");
 }
 
 function removeUnwantedElements(html: string, tagNames: string[]): string {
@@ -538,10 +538,10 @@ function removeUnwantedElements(html: string, tagNames: string[]): string {
 
   for (const tagName of tagNames) {
     cleaned = cleaned.replace(
-      new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, "gi"),
+      new RegExp(String.raw`<${tagName}\b[^>]*>[\s\S]*?<\/${tagName}>`, "gi"),
       "",
     );
-    cleaned = cleaned.replace(new RegExp(`<${tagName}\\b[^>]*/>`, "gi"), "");
+    cleaned = cleaned.replace(new RegExp(String.raw`<${tagName}\b[^>]*/>`, "gi"), "");
   }
 
   return cleaned;
