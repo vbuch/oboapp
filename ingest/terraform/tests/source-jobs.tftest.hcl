@@ -35,7 +35,6 @@ run "sofia_instance_defaults_preserve_selected_sources_and_resources" {
       nadezhda               = "nadezhda-org"
       inspectorat-so         = "inspectorat-so-org"
       nimh-severe-weather    = "nimh-severe-weather"
-      sensor-community       = "sensor-community"
       sofia-capital-of-sport = "sofia-capital-of-sport"
       sdvr-mvr               = "sdvr-mvr-bg"
     }
@@ -46,11 +45,11 @@ run "sofia_instance_defaults_preserve_selected_sources_and_resources" {
     condition = alltrue([
       for name, job in google_cloud_run_v2_job.crawlers :
       job.name == "crawl-${name}" &&
-      one(one(job.template).template).timeout == (name == "sensor-community" ? "600s" : "1800s") &&
+      one(one(job.template).template).timeout == "1800s" &&
       one(one(job.template).template).containers[0].args == tolist([
         "pnpm", "run", "prebuilt:crawl", "--source", local.crawlers[name].source
       ]) &&
-      one(one(job.template).template).containers[0].resources[0].limits.memory == (contains(["sofiyska-voda", "toplo", "erm-zapad", "nimh-severe-weather", "sensor-community"], name) ? "512Mi" : "1Gi")
+      one(one(job.template).template).containers[0].resources[0].limits.memory == (contains(["sofiyska-voda", "toplo", "erm-zapad", "nimh-severe-weather"], name) ? "512Mi" : "1Gi")
     ])
     error_message = "The Sofia instance must retain existing Cloud Run names, source arguments, timeouts and memory limits."
   }
@@ -58,7 +57,7 @@ run "sofia_instance_defaults_preserve_selected_sources_and_resources" {
   assert {
     condition = toset(
       yamldecode(google_workflows_workflow.pipeline_emergent.source_contents).main.steps[0].init.assign[2].crawlers
-    ) == toset(["sofiyska-voda", "toplo", "erm-zapad", "sensor-community"])
+    ) == toset(["sofiyska-voda", "toplo", "erm-zapad"])
     error_message = "The Sofia emergent workflow must contain exactly the selected emergent sources."
   }
 
