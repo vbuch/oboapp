@@ -81,13 +81,15 @@ export function isValidCoordinate(lng: number, lat: number): boolean {
 export function detectSwappedCoordinates(lng: number, lat: number): boolean {
   // If the "longitude" is in latitude range and "latitude" is in longitude range
   // and they would be valid if swapped
+  const swappedLat = lng;
+  const swappedLng = lat;
   const seemsSwapped =
     lng >= -90 &&
     lng <= 90 &&
     lat >= -180 &&
     lat <= 180 &&
     !isWithinTargetBounds(lat, lng) &&
-    isWithinTargetBounds(lng, lat);
+    isWithinTargetBounds(swappedLat, swappedLng);
 
   return seemsSwapped;
 }
