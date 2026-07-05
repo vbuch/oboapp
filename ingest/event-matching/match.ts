@@ -14,6 +14,8 @@ import {
   isFeatureCollection,
 } from "@/lib/record-fields";
 
+type Timestamp = string | Date | null;
+
 /**
  * Find the best matching event for a message, if any.
  * - Score >= MATCH_THRESHOLD (0.70): auto-match
@@ -42,8 +44,8 @@ export async function findBestMatch(
   db: OboDb,
   message: {
     geoJson?: GeoJSONFeatureCollection | null;
-    timespanStart?: string | Date | null;
-    timespanEnd?: string | Date | null;
+    timespanStart?: Timestamp;
+    timespanEnd?: Timestamp;
     categories?: string[];
     cityWide?: boolean;
     locality: string;
@@ -168,7 +170,7 @@ function buildTimeContext(
   }
   if (event.timespanStart || event.timespanEnd) {
     parts.push(
-      `Event: ${event.timespanStart ?? "?"} to ${event.timespanEnd ?? "?"}`,
+      `Event: ${getOptionalString(event.timespanStart) ?? "?"} to ${getOptionalString(event.timespanEnd) ?? "?"}`,
     );
   }
   return parts.join("; ") || "";

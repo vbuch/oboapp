@@ -38,7 +38,7 @@ export async function createEventFromMessage(
   if (existingLinks.length > 0) {
     return {
       eventId: getString(existingLinks[0].eventId),
-      confidence: 1.0,
+      confidence: 1,
       action: "attached",
     };
   }
@@ -69,7 +69,7 @@ export async function createEventFromMessage(
     categories: message.categories || [],
     sources: source ? [source] : [],
     messageCount: 1,
-    confidence: 1.0,
+    confidence: 1,
     locality: message.locality || getLocality(),
     cityWide: message.cityWide || false,
     ...(message.embedding && { embedding: message.embedding }),
@@ -89,7 +89,7 @@ export async function createEventFromMessage(
         eventId,
         messageId: message._id,
         source,
-        confidence: 1.0,
+        confidence: 1,
         geometryQuality,
         matchSignals: null, // No matching process occurred — this is a new event,
         createdAt: now,
@@ -123,8 +123,8 @@ export async function createEventFromMessage(
       throw error;
     }
 
-    return { eventId: concurrentEventId, confidence: 1.0, action: "attached" };
+    return { eventId: concurrentEventId, confidence: 1, action: "attached" };
   }
 
-  return { eventId, confidence: 1.0, action: "created" };
+  return { eventId, confidence: 1, action: "created" };
 }

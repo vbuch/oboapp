@@ -20,6 +20,8 @@ export interface MatchSignals {
   textSimilarity: number;
 }
 
+type Timestamp = string | Date | null;
+
 /**
  * Compute composite match score between a message and a candidate event.
  * Returns a score from 0 (no match) to 1 (perfect match) and the individual signals.
@@ -27,16 +29,16 @@ export interface MatchSignals {
 export function computeMatchScore(
   message: {
     geoJson?: GeoJSONFeatureCollection | null;
-    timespanStart?: string | Date | null;
-    timespanEnd?: string | Date | null;
+    timespanStart?: Timestamp;
+    timespanEnd?: Timestamp;
     categories?: string[];
     cityWide?: boolean;
     embedding?: number[] | null;
   },
   event: {
     geoJson?: GeoJSONFeatureCollection | null;
-    timespanStart?: string | Date | null;
-    timespanEnd?: string | Date | null;
+    timespanStart?: Timestamp;
+    timespanEnd?: Timestamp;
     categories?: string[];
     cityWide?: boolean;
     embedding?: number[] | null;
@@ -104,7 +106,7 @@ function computeLocationSimilarity(
   eventCityWide?: boolean,
 ): number {
   // City-wide: spatial comparison not meaningful
-  if (messageCityWide && eventCityWide) return 1.0;
+  if (messageCityWide && eventCityWide) return 1;
 
   if (!messageGeoJson?.features?.length || !eventGeoJson?.features?.length) {
     return 0;
@@ -133,10 +135,10 @@ function computeLocationSimilarity(
  * If either timespan is missing, returns 0.
  */
 function computeTimeOverlap(
-  msgStart: string | Date | null | undefined,
-  msgEnd: string | Date | null | undefined,
-  evtStart: string | Date | null | undefined,
-  evtEnd: string | Date | null | undefined,
+  msgStart: Timestamp | undefined,
+  msgEnd: Timestamp | undefined,
+  evtStart: Timestamp | undefined,
+  evtEnd: Timestamp | undefined,
 ): number {
   if (!msgStart || !msgEnd || !evtStart || !evtEnd) return 0;
 
