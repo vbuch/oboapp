@@ -17,6 +17,13 @@ COPY ingest ./ingest
 # Install workspace dependencies without lifecycle scripts
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
+# Build shared and db packages first (ingest depends on them)
+WORKDIR /app/shared
+RUN pnpm build
+
+WORKDIR /app/db
+RUN pnpm build
+
 # Run ingest package commands from package working directory
 WORKDIR /app/ingest
 
