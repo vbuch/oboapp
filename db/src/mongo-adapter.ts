@@ -257,7 +257,7 @@ export class MongoAdapter implements DbClient {
 
     const value = result?.[field];
     if (typeof value !== "number") {
-      throw new Error(
+      throw new TypeError(
         `Atomic increment failed to produce numeric value for ${collection}/${id}.${field}`,
       );
     }

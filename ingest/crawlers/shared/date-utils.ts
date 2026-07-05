@@ -112,7 +112,7 @@ export function parseBulgarianDateTime(dateStr: string): Date {
 
   // Check if date is valid (e.g., not 31st February)
   if (Number.isNaN(date.getTime())) {
-    throw new Error(`Invalid date: ${dateStr}`);
+    throw new TypeError(`Invalid date: ${dateStr}`);
   }
 
   // Verify the parsed date matches input (catches invalid dates like Feb 31)

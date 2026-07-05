@@ -45,10 +45,10 @@ async function main() {
   try {
     apiDataRaw = await response.json();
   } catch {
-    throw new Error("sensor.community API returned invalid JSON");
+    throw new TypeError("sensor.community API returned invalid JSON");
   }
   if (!Array.isArray(apiDataRaw)) {
-    throw new Error(
+    throw new TypeError(
       "sensor.community API returned non-array JSON payload",
     );
   }

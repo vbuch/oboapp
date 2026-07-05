@@ -175,7 +175,7 @@ export class FirestoreAdapter implements DbClient {
       const data = snapshot.data() ?? {};
       const current = data[field];
       if (typeof current !== "number") {
-        throw new Error(
+        throw new TypeError(
           `Atomic increment requires numeric field ${collection}/${id}.${field}`,
         );
       }
