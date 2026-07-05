@@ -10,7 +10,7 @@ import type { DbClient, FindManyOptions, WhereClause, BatchOperation } from "../
 export const GTFS_STOPS_COLLECTION = "gtfsStops";
 
 export class GtfsStopsRepository {
-  constructor(private db: DbClient) {}
+  constructor(private readonly db: DbClient) {}
 
   async findById(stopCode: string): Promise<Record<string, unknown> | null> {
     return this.db.findOne(GTFS_STOPS_COLLECTION, stopCode);

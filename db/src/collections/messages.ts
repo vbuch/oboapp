@@ -16,7 +16,7 @@ import type {
 export const MESSAGES_COLLECTION = "messages";
 
 export class MessagesRepository {
-  constructor(private db: DbClient) {}
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: string): Promise<Record<string, unknown> | null> {
     return this.db.findOne(MESSAGES_COLLECTION, id);

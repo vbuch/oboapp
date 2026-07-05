@@ -11,7 +11,7 @@ import type { DbClient, FindManyOptions, WhereClause, BatchOperation } from "../
 export const SOURCES_COLLECTION = "sources";
 
 export class SourcesRepository {
-  constructor(private db: DbClient) {}
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: string): Promise<Record<string, unknown> | null> {
     return this.db.findOne(SOURCES_COLLECTION, id);

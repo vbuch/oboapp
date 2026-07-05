@@ -41,7 +41,7 @@ function isUpdateOperators(data: unknown): data is UpdateOperators {
 }
 
 export class FirestoreAdapter implements DbClient {
-  constructor(private db: Firestore) {}
+  constructor(private readonly db: Firestore) {}
 
   async findOne(
     collection: string,

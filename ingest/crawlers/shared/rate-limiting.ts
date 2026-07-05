@@ -6,7 +6,7 @@ import { delay } from "@/lib/delay";
 export class RateLimiter {
   private lastRequest = 0;
 
-  constructor(private delayMs: number) {}
+  constructor(private readonly delayMs: number) {}
 
   /**
    * Throttle execution to ensure minimum delay between calls

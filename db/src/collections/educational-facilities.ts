@@ -10,7 +10,7 @@ import type { DbClient, FindManyOptions, WhereClause, BatchOperation } from "../
 export const EDUCATIONAL_FACILITIES_COLLECTION = "educationalFacilities";
 
 export class EducationalFacilitiesRepository {
-  constructor(private db: DbClient) {}
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: string): Promise<Record<string, unknown> | null> {
     return this.db.findOne(EDUCATIONAL_FACILITIES_COLLECTION, id);

@@ -109,8 +109,8 @@ function withId(
 }
 
 export class MongoAdapter implements DbClient {
-  private client: MongoClient;
-  private db: Db;
+  private readonly client: MongoClient;
+  private readonly db: Db;
 
   constructor(client: MongoClient, database: string) {
     this.client = client;

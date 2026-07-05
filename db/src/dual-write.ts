@@ -37,13 +37,13 @@ async function tryIncrementFieldAndGet(
 }
 
 export class DualWriteAdapter implements DbClient {
-  private primary: DbClient;
-  private secondary: DbClient;
+  private readonly primary: DbClient;
+  private readonly secondary: DbClient;
 
   constructor(
-    private readSource: DbBackend,
-    private firestore: DbClient,
-    private mongo: DbClient,
+    private readonly readSource: DbBackend,
+    private readonly firestore: DbClient,
+    private readonly mongo: DbClient,
   ) {
     this.primary = readSource === "firestore" ? firestore : mongo;
     this.secondary = readSource === "firestore" ? mongo : firestore;
