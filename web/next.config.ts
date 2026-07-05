@@ -45,10 +45,6 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "avatars.githubusercontent.com",
       },
-      {
-        protocol: "https",
-        hostname: "img.buymeacoffee.com",
-      },
     ],
   },
   // Production optimizations
