@@ -187,7 +187,7 @@ export class FirestoreAdapter implements DbClient {
 
       tx.update(docRef, {
         [field]: next,
-        ...(transformedSetFields ?? {}),
+        ...transformedSetFields,
       });
 
       return next;

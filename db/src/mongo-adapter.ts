@@ -311,7 +311,7 @@ export class MongoAdapter implements DbClient {
             return {
               replaceOne: {
                 filter,
-                replacement: { ...(op.data ?? {}), _id: op.id },
+                replacement: { ...op.data, _id: op.id },
                 upsert: true,
               },
             };
@@ -319,7 +319,7 @@ export class MongoAdapter implements DbClient {
             return {
               updateOne: {
                 filter,
-                update: { $set: op.data ?? {} },
+                update: { $set: op.data },
               },
             };
           case "delete":
