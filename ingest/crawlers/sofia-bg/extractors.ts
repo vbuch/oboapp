@@ -1,10 +1,7 @@
 import type { Page } from "playwright";
 import type { PostLink } from "./types";
-import {
-  fetchFeedXml,
-  parseRssFeedItems,
-  RSS_FEED_FETCH_TIMEOUT_MS,
-} from "../shared/rss";
+import { parseRssFeedItems } from "../shared/rss";
+export { fetchFeedXml, RSS_FEED_FETCH_TIMEOUT_MS as FEED_FETCH_TIMEOUT_MS } from "../shared/rss";
 
 const UNWANTED_ELEMENTS = [
   "script",
@@ -38,7 +35,6 @@ export function mergePostDetails(
 /**
  * Fetch the RSS feed XML for the sofia.bg repairs page.
  */
-export { fetchFeedXml, RSS_FEED_FETCH_TIMEOUT_MS as FEED_FETCH_TIMEOUT_MS };
 
 /**
  * Parse RSS feed XML into a list of post links.

@@ -1,7 +1,7 @@
-import { BaseSourceDocument, PostLink } from "../shared/types";
+import { BaseSourceDocument } from "../shared/types";
 
 export interface SourceDocument extends BaseSourceDocument {
   sourceType: "mladost-bg";
 }
 
-export type { PostLink };
+export type { PostLink } from "../shared/types";
