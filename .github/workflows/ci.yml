@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: read
 
 jobs:
@@ -242,7 +243,7 @@ jobs:
 
       - name: SonarCloud Scan (push)
         if: github.event_name == 'push'
-        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        uses: SonarSource/sonarqube-scan-action@0303d6b62e310685c0e34d0b9cde218036885c4d # v5.0.0
         with:
           args: >
             -Dsonar.host.url=https://sonarcloud.io
@@ -254,7 +255,7 @@ jobs:
 
       - name: SonarCloud Scan (PR)
         if: github.event_name == 'pull_request'
-        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        uses: SonarSource/sonarqube-scan-action@0303d6b62e310685c0e34d0b9cde218036885c4d # v5.0.0
         with:
           args: >
             -Dsonar.host.url=https://sonarcloud.io
