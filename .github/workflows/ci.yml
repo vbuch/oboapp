@@ -5,9 +5,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  pull_request_target:
-    branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
@@ -17,7 +14,6 @@ jobs:
   dependency-check:
     name: Dependency Check
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request_target'
 
     strategy:
       matrix:
@@ -118,7 +114,6 @@ jobs:
   test-ingest:
     name: Test Ingest
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request_target'
 
     strategy:
       matrix:
@@ -147,7 +142,6 @@ jobs:
   test-web:
     name: Test Web
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request_target'
 
     strategy:
       matrix:
@@ -176,7 +170,6 @@ jobs:
   build-web:
     name: Build Web
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request_target'
 
     strategy:
       matrix:
@@ -221,43 +214,30 @@ jobs:
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
+    needs: [dependency-check, test-ingest, test-web, build-web]
     if: |
       github.event_name == 'push' ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
-      (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository)
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
 
     steps:
       - name: Checkout code
-        if: github.event_name != 'pull_request_target'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Checkout fork PR merge ref (safe mode)
-        if: github.event_name == 'pull_request_target'
-        uses: actions/checkout@v4
-        with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
-          fetch-depth: 0
-          persist-credentials: false
 
       - name: Install pnpm
-        if: github.event_name != 'pull_request_target'
         uses: pnpm/action-setup@v4
 
       - name: Setup Node.js 20.x
-        if: github.event_name != 'pull_request_target'
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
           cache: "pnpm"
 
       - name: Install workspace dependencies
-        if: github.event_name != 'pull_request_target'
         run: pnpm install --frozen-lockfile
 
       - name: Generate coverage reports
-        if: github.event_name != 'pull_request_target'
         run: pnpm test:coverage:sonar
 
       - name: SonarCloud Scan (push)
@@ -273,7 +253,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: SonarCloud Scan (PR)
-        if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
+        if: github.event_name == 'pull_request'
         uses: SonarSource/sonarqube-scan-action@v5.0.0
         with:
           args: >
