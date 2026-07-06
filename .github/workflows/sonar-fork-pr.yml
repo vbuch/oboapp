@@ -22,6 +22,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Restore trusted Sonar config from base branch
+        run: git checkout "${{ github.event.pull_request.base.sha }}" -- sonar-project.properties
+
       - name: SonarCloud Scan (Fork PR)
         uses: SonarSource/sonarqube-scan-action@0303d6b62e310685c0e34d0b9cde218036885c4d # v5.0.0
         with:
