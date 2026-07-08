@@ -2,16 +2,18 @@
 
 ## Overview
 
-OboApp exposes a read-only public REST API for external consumption of Sofia city-infrastructure disruption data.
+OboApp exposes a read-only public REST API for external consumption of disruption data in the localities configured for your deployment.
 
 The public API is served by the dedicated API module and (sub)domain.
 The web app does not serve public API endpoints directly.
 
 For backwards compatibility with existing clients that still call the web domain, web permanently redirects `/api/v1/*` requests to the configured public API host.
 
-**Base URL:** `https://api.oboapp.online/v1`
+**Base URL:** deployment-specific (for example `https://api.oboapp.online/v1`)
 
-**Interactive documentation:** [`https://api.oboapp.online/v1/docs`](https://api.oboapp.online/v1/docs)
+**Interactive documentation:** `<your-api-host>/v1/docs` (for example [`https://api.oboapp.online/v1/docs`](https://api.oboapp.online/v1/docs))
+
+For configuring hosts and locality-specific deployment setup, see [Deploying oboapp for a New City](../setup/new-locality-instance.md) and [Production Setup](../setup/production-setup.md).
 
 All data endpoints require a registered API key. The OpenAPI specification is available without authentication.
 

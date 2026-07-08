@@ -228,7 +228,7 @@ Filter by error severity for issues.
 
 ## Cost Estimates
 
-Based on typical usage for Sofia, Bulgaria:
+Example profile (Sofia deployment):
 
 | Service             | Free Tier      | Typical Monthly Cost |
 | ------------------- | -------------- | -------------------- |
@@ -238,6 +238,10 @@ Based on typical usage for Sofia, Bulgaria:
 | Maps JavaScript API | $200 credit/mo | $0                   |
 | Gemini AI           | Free tier      | $0-5                 |
 | **Total**           | -              | **$1-22/month**      |
+
+Actual cost depends on your configured locality, traffic volume, crawler set, and schedule profile.
+
+For adapting configuration for another city/locality, see [Deploying oboapp for a New City](new-locality-instance.md).
 
 ## Troubleshooting
 
