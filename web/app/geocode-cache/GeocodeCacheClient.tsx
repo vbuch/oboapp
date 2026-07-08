@@ -732,7 +732,10 @@ export default function GeocodeCacheClient() {
               className={`fixed inset-0 ${zIndex.overlay} bg-black/20 sm:hidden`}
               onClick={() => setSelected(null)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") setSelected(null);
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelected(null);
+                }
               }}
             />
             <GeometryPanel
