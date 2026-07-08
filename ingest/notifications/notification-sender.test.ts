@@ -145,8 +145,22 @@ describe("notification-sender", () => {
       expect(payload.data.body).not.toContain("https://example.com");
       expect(payload.data.body).toContain("Предупреждение");
       expect(payload.data.body).toContain("Първо");
-      expect(payload.data.body).toContain("Второ");
-      expect(payload.data.body).toContain("линк");
+      expect(payload.data.body).not.toContain("Второ");
+      expect(payload.data.body).not.toContain("линк");
+    });
+
+    it("should condense multi-line message text into a concise preview", () => {
+      const markdownMessage: Message = {
+        ...baseMessage,
+        text: "**Планирано прекъсване**\n\n**Населено място:** София\n**Начало:** 08:00",
+      };
+
+      const payload = buildNotificationPayload(markdownMessage, {
+        ...baseMatch,
+        distance: undefined,
+      });
+
+      expect(payload.data.body).toBe("Планирано прекъсване · Населено място: София");
     });
   });
 

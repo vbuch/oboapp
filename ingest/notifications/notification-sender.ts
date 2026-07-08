@@ -105,6 +105,20 @@ function stripMarkdown(text: string): string {
   );
 }
 
+function buildMessagePreview(text: string): string {
+  const cleanText = stripMarkdown(text);
+  const lines = cleanText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  const condensedText = (lines.length > 1 ? lines.slice(0, 2).join(" · ") : lines[0] || "")
+    .replaceAll(/\s+/g, " ")
+    .trim();
+  return condensedText.length > 100
+    ? condensedText.substring(0, 100) + "..."
+    : condensedText;
+}
+
 /**
  * Build notification payload for FCM
  */
@@ -112,9 +126,7 @@ export function buildNotificationPayload(
   message: Message,
   match: NotificationMatch,
 ) {
-  const cleanText = stripMarkdown(message.text);
-  const messagePreview =
-    cleanText.length > 100 ? cleanText.substring(0, 100) + "..." : cleanText;
+  const messagePreview = buildMessagePreview(message.text);
 
   const distanceText = match.distance
     ? ` (${Math.round(match.distance)}m от вашия район)`
