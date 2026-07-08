@@ -420,6 +420,7 @@ function CopyCommand({
 }) {
   const addCmd = `pnpm geocode-cache:add --message ${messageId} --address "${entry.originalText}" --type ${type}`;
   const geocodeCmd = `pnpm geocode-cache:geocode --street "${entry.originalText}" --query "${entry.originalText}" --message ${messageId}`;
+  const synonymCmd = `pnpm geocode-cache:synonym --synonym "${entry.originalText}" --canonical "<canonical>"`;
 
   if (type === "street") {
     return (
@@ -427,6 +428,7 @@ function CopyCommand({
         <span className="text-neutral">cache:</span>
         <CopyCommandButton label="add" cmd={addCmd} />
         <CopyCommandButton label="geocode" cmd={geocodeCmd} />
+        <CopyCommandButton label="synonym" cmd={synonymCmd} />
       </span>
     );
   }
@@ -724,8 +726,14 @@ export default function GeocodeCacheClient() {
         {selected && (
           <>
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Затвори панела"
               className={`fixed inset-0 ${zIndex.overlay} bg-black/20 sm:hidden`}
               onClick={() => setSelected(null)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") setSelected(null);
+              }}
             />
             <GeometryPanel
               key={`${selected.entry.key}-${selected.type}`}
