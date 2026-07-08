@@ -111,9 +111,9 @@ function buildMessagePreview(text: string): string {
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
-  const condensedText = (lines.length > 1 ? lines.slice(0, 2).join(" · ") : lines[0] || "")
-    .replaceAll(/\s+/g, " ")
-    .trim();
+  const previewBase =
+    lines.length >= 2 ? lines.slice(0, 2).join(" · ") : (lines[0] ?? "");
+  const condensedText = previewBase.replaceAll(/\s+/g, " ").trim();
   return condensedText.length > 100
     ? condensedText.substring(0, 100) + "..."
     : condensedText;

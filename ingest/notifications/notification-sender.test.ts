@@ -162,6 +162,21 @@ describe("notification-sender", () => {
 
       expect(payload.data.body).toBe("Планирано прекъсване · Населено място: София");
     });
+
+    it("should truncate condensed multi-line previews above 100 characters", () => {
+      const markdownMessage: Message = {
+        ...baseMessage,
+        text: `${"Планирано прекъсване ".repeat(4)}\n${"Населено място София ".repeat(4)}`,
+      };
+
+      const payload = buildNotificationPayload(markdownMessage, {
+        ...baseMatch,
+        distance: undefined,
+      });
+
+      expect(payload.data.body.endsWith("...")).toBe(true);
+      expect(payload.data.body.length).toBe(103);
+    });
   });
 
   describe("sendPushNotification", () => {
