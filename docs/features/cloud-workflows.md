@@ -33,12 +33,12 @@ Google Cloud Workflows
 
 1. **Emergent Workflow** (`pipeline-emergent`)
    - **Crawlers**: A subset of sources that publish short-lived disruptions (utility outages, emergency works)
-  - **Schedule**: Every 30 minutes in the configured scheduler timezone
+    - **Schedule**: Every 30 minutes in the configured scheduler timezone
    - **Use case**: Short-lived disruptions requiring frequent updates
 
 2. **All Workflow** (`pipeline-all`)
    - **Crawlers**: All currently deployed crawlers
-  - **Schedule**: 3 times daily in the configured scheduler timezone
+    - **Schedule**: 3 times daily in the configured scheduler timezone
    - **Use case**: Long-term construction/repair projects and municipal announcements from district administrations
 
 The scheduler timezone is configured through Terraform (`schedule_timezone`).
