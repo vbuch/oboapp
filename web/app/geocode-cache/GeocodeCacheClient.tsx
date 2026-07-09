@@ -18,6 +18,8 @@ interface FrequencyEntry {
   count: number;
   cached: boolean;
   messageIds: string[];
+  canonicalKey?: string;
+  canonicalText?: string;
   partial?: boolean;
 }
 
@@ -520,6 +522,152 @@ function FrequencyTable({
   );
 }
 
+interface StreetFrequencyGroup {
+  canonicalKey: string;
+  canonicalText: string;
+  totalCount: number;
+  entries: FrequencyEntry[];
+}
+
+function formatVariantCount(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "вариант";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return "варианта";
+  }
+  return "варианти";
+}
+
+function buildStreetFrequencyGroups(entries: FrequencyEntry[]): StreetFrequencyGroup[] {
+  const groups = new Map<string, StreetFrequencyGroup>();
+
+  for (const entry of entries) {
+    const canonicalKey = entry.canonicalKey ?? entry.key;
+    const canonicalText = entry.canonicalText ?? entry.originalText;
+    const existing = groups.get(canonicalKey);
+
+    if (existing) {
+      existing.totalCount += entry.count;
+      existing.entries.push(entry);
+      continue;
+    }
+
+    groups.set(canonicalKey, {
+      canonicalKey,
+      canonicalText,
+      totalCount: entry.count,
+      entries: [entry],
+    });
+  }
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      entries: [...group.entries].sort((a, b) => {
+        if (a.key === group.canonicalKey && b.key !== group.canonicalKey) return -1;
+        if (b.key === group.canonicalKey && a.key !== group.canonicalKey) return 1;
+        if (b.count !== a.count) return b.count - a.count;
+        return a.originalText.localeCompare(b.originalText, "bg");
+      }),
+    }))
+    .sort((a, b) => b.totalCount - a.totalCount);
+}
+
+function StreetFrequencyTable({
+  title,
+  entries,
+  showAll,
+  selectedKey,
+  onSelect,
+}: {
+  title: string;
+  entries: FrequencyEntry[];
+  showAll: boolean;
+  selectedKey: string | null;
+  onSelect: (entry: FrequencyEntry, type: "pin" | "street") => void;
+}) {
+  const shownEntries = showAll ? entries : entries.slice(0, 50);
+  const groups = buildStreetFrequencyGroups(shownEntries);
+
+  return (
+    <section className="mb-8">
+      <h2 className="text-lg font-semibold text-neutral mb-3">{title}</h2>
+      <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-neutral-border">
+        <table className="w-full text-sm">
+          <thead className="bg-neutral-light text-neutral text-left">
+            <tr>
+              <th className="px-3 py-2 font-medium">Улица</th>
+              <th className="px-3 py-2 font-medium w-20 text-right">Брой</th>
+              <th className="px-3 py-2 font-medium w-24 text-center">Кеширан</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groups.flatMap((group) => [
+              <tr
+                key={`group-${group.canonicalKey}`}
+                className="border-t border-neutral-border bg-neutral-light/40"
+              >
+                <td className="px-3 py-2 font-medium text-foreground">
+                  {group.canonicalText}
+                  <span className="ml-2 text-xs text-neutral/50">{group.canonicalKey}</span>
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums font-medium">
+                  {group.totalCount}
+                </td>
+                <td className="px-3 py-2 text-center text-xs text-neutral/60">
+                  {group.entries.length} {formatVariantCount(group.entries.length)}
+                </td>
+              </tr>,
+              ...group.entries.map((e) => (
+                <tr
+                  key={e.key}
+                  className={`border-t border-neutral-border cursor-pointer transition-colors ${
+                    selectedKey === e.key ? "bg-info-light" : "hover:bg-neutral-light/50"
+                  }`}
+                  onClick={() => onSelect(e, "street")}
+                  onKeyDown={(ev) => {
+                    if (ev.key === "Enter" || ev.key === " ") {
+                      ev.preventDefault();
+                      onSelect(e, "street");
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                >
+                  <td className="px-3 py-2">
+                    <span className="text-neutral/50 mr-1">↳</span>
+                    <span className="text-neutral">{e.originalText}</span>
+                    <span className="ml-2 text-xs text-neutral/50">{e.key}</span>
+                    {e.partial && (
+                      <span className="ml-2 text-xs font-medium text-warning bg-warning-light px-1.5 py-0.5 rounded">
+                        в процес
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">{e.count}</td>
+                  <td className="px-3 py-2 text-center">
+                    {e.cached ? (
+                      <span className="text-success text-xs font-medium">✓ Да</span>
+                    ) : (
+                      <span className="text-destructive text-xs font-medium">✗ Не</span>
+                    )}
+                  </td>
+                </tr>
+              )),
+            ])}
+          </tbody>
+        </table>
+      </div>
+      {!showAll && entries.length > 50 && (
+        <p className="mt-2 text-xs text-neutral/60">
+          Показани 50 от {entries.length} резултата.
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default function GeocodeCacheClient() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -706,10 +854,9 @@ export default function GeocodeCacheClient() {
           </div>
         </div>
 
-        <FrequencyTable
+        <StreetFrequencyTable
           title={`Улици — ${streets.length}`}
           entries={streets}
-          type="street"
           showAll={showAll}
           selectedKey={selected?.type === "street" ? selected.entry.key : null}
           onSelect={handleSelect}

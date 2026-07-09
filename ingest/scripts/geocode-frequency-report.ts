@@ -21,7 +21,7 @@ import type {
   GeocodingPinEntry,
   GeocodingStreetEntry,
 } from "@/messageIngest/geocoding-progress-tracker";
-import { isRecord } from "@/lib/record-fields";
+import { getString, isRecord } from "@/lib/record-fields";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
@@ -145,6 +145,27 @@ async function buildReport(dryRun: boolean): Promise<void> {
     const cachedStreetKeys = new Set(
       cachedStreetEntries.map((e) => e.key as string),
     );
+    const cachedStreetOriginalTexts = new Map(
+      cachedStreetEntries.map((entry) => [
+        getString(entry["key"]),
+        getString(entry["originalText"]),
+      ]),
+    );
+    const streetSynonymEntries = await db.geocodeCacheStreetSynonyms.findAll();
+    const streetSynonymToCanonical = new Map<
+      string,
+      { canonicalKey: string; canonicalText: string }
+    >();
+    for (const entry of streetSynonymEntries) {
+      const synonymKey = getString(entry["synonymKey"]);
+      const canonicalKey = getString(entry["canonicalKey"]);
+      const canonicalText = getString(entry["canonicalText"]);
+      if (!synonymKey || !canonicalKey) continue;
+      streetSynonymToCanonical.set(synonymKey, {
+        canonicalKey,
+        canonicalText,
+      });
+    }
 
     // ── Aggregate frequencies ───────────────────────────────────────────────
     // Finalized messages: use top-level `pins` / `streets` fields (canonical).
@@ -277,14 +298,26 @@ async function buildReport(dryRun: boolean): Promise<void> {
       .sort((a, b) => b.count - a.count);
 
     const streets: FrequencyEntry[] = Array.from(streetCounts.entries())
-      .map(([key, { originalText, count, messageIds, partial }]) => ({
-        key,
-        originalText,
-        count,
-        cached: cachedStreetKeys.has(key),
-        messageIds,
-        ...(partial ? { partial: true as const } : {}),
-      }))
+      .map(([key, { originalText, count, messageIds, partial }]) => {
+        const synonym = streetSynonymToCanonical.get(key);
+        const canonicalKey = synonym?.canonicalKey ?? key;
+        // Prefer explicit canonical text from synonym mapping, then canonical
+        // cache entry text, and finally the current entry text as a safe fallback.
+        const canonicalText =
+          synonym?.canonicalText ||
+          cachedStreetOriginalTexts.get(canonicalKey) ||
+          originalText;
+        return {
+          key,
+          originalText,
+          count,
+          cached: cachedStreetKeys.has(key) || streetSynonymToCanonical.has(key),
+          messageIds,
+          canonicalKey,
+          canonicalText,
+          ...(partial ? { partial: true as const } : {}),
+        };
+      })
       .sort((a, b) => b.count - a.count);
 
     const report = {
