@@ -34,6 +34,7 @@ describe("POST /api/notifications/mark-read", () => {
       _id: "notif-1",
       userId: "user-1",
       readAt: null,
+      openedAt: null,
     });
     updateOneMock.mockResolvedValue(undefined);
 
@@ -54,7 +55,37 @@ describe("POST /api/notifications/mark-read", () => {
     expect(findByIdMock).toHaveBeenCalledWith("notif-1");
     expect(updateOneMock).toHaveBeenCalledWith("notif-1", {
       readAt: expect.any(String),
+      openedAt: expect.any(String),
     });
+  });
+
+  it("sets readAt but does not overwrite existing openedAt (first-write-wins)", async () => {
+    findByIdMock.mockResolvedValue({
+      _id: "notif-1",
+      userId: "user-1",
+      readAt: null,
+      openedAt: "2026-01-01T00:00:00.000Z",
+    });
+    updateOneMock.mockResolvedValue(undefined);
+
+    const request = new Request("http://localhost/api/notifications/mark-read", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer test-token",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ notificationId: "notif-1" }),
+    });
+
+    const response = await POST(request as any);
+
+    expect(response.status).toBe(200);
+    expect(updateOneMock).toHaveBeenCalledWith("notif-1", {
+      readAt: expect.any(String),
+      // openedAt NOT included because it was already set
+    });
+    const callArg = updateOneMock.mock.calls[0][1];
+    expect(callArg).not.toHaveProperty("openedAt");
   });
 
   it("returns 400 when notificationId is missing", async () => {
