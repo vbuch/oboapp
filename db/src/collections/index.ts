@@ -44,3 +44,7 @@ export {
   GeocodeCacheStreetsRepository,
   GEOCODE_CACHE_STREETS_COLLECTION,
 } from "./geocode-cache-streets";
+export {
+  GeocodeCacheStreetSynonymsRepository,
+  GEOCODE_CACHE_STREET_SYNONYMS_COLLECTION,
+} from "./geocode-cache-street-synonyms";
