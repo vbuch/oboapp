@@ -311,7 +311,10 @@ async function buildReport(dryRun: boolean): Promise<void> {
           key,
           originalText,
           count,
-          cached: cachedStreetKeys.has(key) || streetSynonymToCanonical.has(key),
+          cached:
+            cachedStreetKeys.has(key) ||
+            (streetSynonymToCanonical.has(key) &&
+              cachedStreetKeys.has(canonicalKey)),
           messageIds,
           canonicalKey,
           canonicalText,

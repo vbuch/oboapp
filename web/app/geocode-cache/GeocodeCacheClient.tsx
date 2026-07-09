@@ -587,8 +587,8 @@ function StreetFrequencyTable({
   selectedKey: string | null;
   onSelect: (entry: FrequencyEntry, type: "pin" | "street") => void;
 }) {
-  const shownEntries = showAll ? entries : entries.slice(0, 50);
-  const groups = buildStreetFrequencyGroups(shownEntries);
+  const groups = buildStreetFrequencyGroups(entries);
+  const shownKeys = showAll ? null : new Set(entries.slice(0, 50).map((e) => e.key));
 
   return (
     <section className="mb-8">
@@ -603,7 +603,9 @@ function StreetFrequencyTable({
             </tr>
           </thead>
           <tbody>
-            {groups.flatMap((group) => [
+            {groups
+              .filter((group) => !shownKeys || group.entries.some((e) => shownKeys.has(e.key)))
+              .flatMap((group) => [
               <tr
                 key={`group-${group.canonicalKey}`}
                 className="border-t border-neutral-border bg-neutral-light/40"
@@ -619,7 +621,7 @@ function StreetFrequencyTable({
                   {group.entries.length} {formatVariantCount(group.entries.length)}
                 </td>
               </tr>,
-              ...group.entries.map((e) => (
+              ...group.entries.filter((e) => !shownKeys || shownKeys.has(e.key)).map((e) => (
                 <tr
                   key={e.key}
                   className={`border-t border-neutral-border cursor-pointer transition-colors ${

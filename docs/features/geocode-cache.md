@@ -103,8 +103,8 @@ The `/geocode-cache` page (linked from `/sources`) provides:
 - **Filters** — toggle between top 50 / all entries, and filter to uncached-only
 - **Geometry visualization** — clicking an entry opens a side panel with a map showing markers (pins) or polylines (streets) from source messages. Partial results from interrupted runs appear here as soon as they are persisted.
 - **Copy command** — each message row has buttons that copy ready-to-run commands to the clipboard:
-  - `cache:add` — caches the geometry directly from the source message
-  - `cache:geocode` — (streets only) re-geocodes with an alternate Overpass query before caching
+  - `cache:add` — copies a `geocode-cache:add` command to cache the geometry directly from the source message
+  - `cache:geocode` — (streets only) copies a `geocode-cache:geocode` command to re-geocode with an alternate Overpass query before caching
   - `cache:synonym` — (streets only) copies a `geocode-cache:synonym` command with the current street pre-filled as `--synonym` and a `<canonical>` placeholder for you to replace with the canonical street name
 
 ## Historical Data Limitation
