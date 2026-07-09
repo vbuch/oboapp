@@ -38,7 +38,39 @@ jobs:
       - name: Check circular dependencies
         run: pnpm dlx dpdm@3.14.0 --no-tree --no-warning --exit-code circular:1 "db/src/**/*.ts" "shared/src/**/*.ts" "ingest/**/*.ts" "web/**/*.{ts,tsx}"
 
-      - name: Install APM CLI
+      - name: Check downstream identifier leakage
+        run: |
+          FORBIDDEN_REGEX='oborishte-map|oborishte-ingest'
+          MATCHES=$(git grep -nE "$FORBIDDEN_REGEX" -- \
+            ':!.github/workflows/ci.yml' \
+            ':!**/.next/**' \
+            ':!**/node_modules/**' \
+            ':!**/dist/**' \
+            ':!**/.env.local' \
+            || true)
+
+          if [ -n "$MATCHES" ]; then
+            echo "::error::Found forbidden downstream identifiers in tracked files:"
+            echo "$MATCHES"
+            exit 1
+          fi
+
+      - name: Check Terraform tfvars example schema drift
+        run: |
+          if grep -Eq '^[[:space:]]*#?[[:space:]]*(crawl_|ingest[[:space:]]*=|notify[[:space:]]*=)' ingest/terraform/terraform.tfvars.example; then
+            echo "::error::ingest/terraform/terraform.tfvars.example still contains legacy schedule keys (crawl_*, ingest, notify)."
+            exit 1
+          fi
+
+      - name: Install APM CLI (attempt 1)
+        id: install_apm_attempt_1
+        continue-on-error: true
+        uses: microsoft/apm-action@v1
+        with:
+          apm-version: "0.8.11"
+
+      - name: Install APM CLI (attempt 2)
+        if: steps.install_apm_attempt_1.outcome == 'failure'
         uses: microsoft/apm-action@v1
         with:
           apm-version: "0.8.11"
