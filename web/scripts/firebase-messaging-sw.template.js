@@ -53,6 +53,7 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const urlToOpen = event.notification.data?.url || "/";
+  const matchId = event.notification.data?.matchId;
 
   event.waitUntil(
     clients
@@ -69,9 +70,24 @@ self.addEventListener("notificationclick", (event) => {
             client.postMessage({
               type: "NOTIFICATION_CLICKED",
               messageId: event.notification.data?.messageId,
+              matchId,
             });
             return client.focus();
           }
+        }
+
+        // No app window open — fire-and-forget click tracking as unauthenticated fallback
+        if (matchId) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          fetch("/api/notifications/click", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ matchId }),
+            signal: controller.signal,
+          })
+            .catch(() => {/* best-effort */})
+            .finally(() => clearTimeout(timeoutId));
         }
 
         if (clients.openWindow) {

@@ -112,6 +112,16 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
     spec: { "messageSnapshot.source": 1 },
     options: { name: "notificationMatches_messageSnapshot_source" },
   },
+  {
+    collection: "notificationMatches",
+    spec: { userId: 1, clickedAt: 1 },
+    options: { name: "userId_clickedAt", sparse: true },
+  },
+  {
+    collection: "notificationMatches",
+    spec: { userId: 1, openedAt: 1 },
+    options: { name: "userId_openedAt", sparse: true },
+  },
 
   // --- notificationSubscriptions ---
   {

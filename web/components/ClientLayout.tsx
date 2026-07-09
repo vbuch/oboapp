@@ -12,9 +12,11 @@ import { Toaster, toast } from "sonner";
 export default function ClientLayout({
   children,
   showHistoryReportLink,
+  showNotificationsReportLink = false,
 }: Readonly<{
   children: React.ReactNode;
   showHistoryReportLink: boolean;
+  showNotificationsReportLink?: boolean;
 }>) {
   const pathname = usePathname();
   const isClient = typeof window !== "undefined";
@@ -90,6 +92,7 @@ export default function ClientLayout({
               <main className="flex-1 flex flex-col">{children}</main>
               <Footer
                 showHistoryReportLink={showHistoryReportLink}
+                showNotificationsReportLink={showNotificationsReportLink}
                 className={footerClassName || undefined}
               />
             </div>
