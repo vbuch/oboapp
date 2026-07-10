@@ -40,10 +40,26 @@ Each has its own `.env.local` configuration.
 ## Pull Request Process
 
 1. Fork and create feature branch
-
    - For shared or upstream-facing work, follow the [Fork and Upstream PR Workflow](docs/setup/fork-upstream-pr-workflow.md).
 
 2. Follow [AGENTS.md](AGENTS.md) patterns
 3. Add tests for new functionality
 4. Run `pnpm test:run` in `web/`, `ingest/`, and `api/`
 5. Submit PR with clear description
+
+## Commit Message Format
+
+Commit messages must use Conventional Commits and include a required scope.
+
+- Format: `type(scope): subject`
+- Valid scopes: `api`, `db`, `docs`, `e2e`, `ingest`, `shared`, `web`, `repo`
+
+Examples:
+
+- `feat(web): add map filter chips`
+- `fix(ingest): handle empty geocoding response`
+
+Invalid examples:
+
+- `feat: add map filter chips` (missing scope)
+- `feat(auth): add login` (invalid scope)
