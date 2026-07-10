@@ -88,12 +88,8 @@ export default function NotificationsReportClient() {
       {/* KPI cards */}
       <ReportKpis data={data} loading={loading} />
 
-      {/* Explanation of click vs open metrics + data freshness note */}
+      {/* Data freshness note */}
       <div className="text-xs text-neutral space-y-1">
-        <p>
-          <span className="font-medium">Кликнати</span> — потребителят е натиснал на системното известие (трей).
-          {" "}<span className="font-medium">Отворени</span> — известието е отворено от списъка във приложението.
-        </p>
         {data?.trackedSince ? (
           <p>Проследяването е активно от {new Date(data.trackedSince).toLocaleDateString("bg-BG")}.</p>
         ) : (
@@ -159,7 +155,7 @@ export default function NotificationsReportClient() {
             Карта на известията
           </h2>
           <div className="flex gap-2">
-            {(["all", "clicked", "opened"] satisfies HeatmapMode[]).map((m) => (
+            {(["all", "clicked"] satisfies HeatmapMode[]).map((m) => (
               <button
                 key={m}
                 type="button"
@@ -218,12 +214,11 @@ function ReportKpis({
         { label: "Изпратени", value: data.sent },
         { label: "Уникални потребители", value: data.uniqueUsers },
         { label: "Кликнати", value: data.clicked },
-        { label: "Отворени", value: data.opened },
       ]
     : null;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div className="grid grid-cols-3 gap-4">
       {kpis
         ? kpis.map(({ label, value }) => (
             <div
@@ -236,7 +231,7 @@ function ReportKpis({
               <div className="text-xs text-neutral mt-1">{label}</div>
             </div>
           ))
-        : Array.from({ length: 4 }).map((_, i) => (
+        : Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
               className="bg-white rounded-lg shadow-md border border-neutral-border p-6 h-[88px] animate-pulse"
