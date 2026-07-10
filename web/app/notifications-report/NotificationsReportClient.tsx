@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
+import { getCurrentLocalitySources } from "@/lib/source-utils";
 import type { HeatmapMode } from "../api/notifications/report/aggregation";
 
 const NotificationsReportMapClient = dynamic(
@@ -61,6 +62,14 @@ export default function NotificationsReportClient() {
   const [loadedMode, setLoadedMode] = useState<HeatmapMode | null>(null);
 
   const loading = loadedMode !== mode;
+
+  const sourceNameMap = useMemo(() => {
+    try {
+      return new Map(getCurrentLocalitySources().map((s) => [s.id, s.name]));
+    } catch {
+      return new Map<string, string>();
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,7 +142,9 @@ export default function NotificationsReportClient() {
                     key={row.source}
                     className="border-t border-neutral-border"
                   >
-                    <td className="px-4 py-3 text-foreground">{row.source}</td>
+                    <td className="px-4 py-3 text-foreground">
+                      {sourceNameMap.get(row.source) ?? row.source}
+                    </td>
                     <td className="px-4 py-3 text-right text-neutral">
                       {row.sent.toLocaleString("bg-BG")}
                     </td>
