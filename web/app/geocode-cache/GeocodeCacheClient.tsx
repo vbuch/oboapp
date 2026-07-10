@@ -701,7 +701,9 @@ export default function GeocodeCacheClient() {
 
         {selected && (
           <>
-            <div
+            <button
+              type="button"
+              aria-label="Затвори панела"
               className={`fixed inset-0 ${zIndex.overlay} bg-black/20 sm:hidden`}
               onClick={() => setSelected(null)}
             />
