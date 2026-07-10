@@ -7,7 +7,8 @@ import { APP_NAME } from "@/lib/pwa-metadata";
 
 export const metadata: Metadata = {
   title: `Известия | ${APP_NAME}`,
-  description: "Справка за доставените известия — брой изпратени, отворени и кликнати.",
+  description:
+    "Справка за доставените известия — брой изпратени, отворени и кликнати.",
 };
 
 export default function NotificationsReportPage() {
@@ -35,11 +36,6 @@ export default function NotificationsReportPage() {
           </Link>
         </div>
         <h1 className="text-3xl font-bold text-foreground mb-4">Известия</h1>
-        <p className="text-sm text-neutral">
-          Обобщена справка за всички изпратени известия. Показва колко
-          потребители са получили известие, колко са го кликнали и колко са го
-          отворили, заедно с разбивка по източник на данни.
-        </p>
       </div>
 
       <NotificationsReportClient />
