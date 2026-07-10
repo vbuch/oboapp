@@ -310,5 +310,22 @@ describe("sofiyska-voda/builders", () => {
       const doc = await buildSourceDocument(feature, mockLayer);
       expect(doc?.datePublished).toContain("2025-12-29");
     });
+
+    it("should fallback timespans to lastUpdate when dates are invalid", async () => {
+      const feature: ArcGisFeature = {
+        attributes: {
+          OBJECTID: 12345,
+          LASTUPDATE: new Date("2025-12-29T10:00:00").getTime(),
+          START_: 1,
+          ALERTEND: 1,
+        },
+        geometry: { x: 23.32, y: 42.69 },
+      };
+
+      const doc = await buildSourceDocument(feature, mockLayer);
+      expect(doc).not.toBeNull();
+      expect(doc?.timespanStart?.toISOString()).toBe(doc?.datePublished);
+      expect(doc?.timespanEnd?.toISOString()).toBe(doc?.datePublished);
+    });
   });
 });

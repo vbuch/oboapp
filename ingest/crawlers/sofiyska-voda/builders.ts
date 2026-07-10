@@ -159,6 +159,52 @@ export function buildGeoJsonFeatureCollection(
   return null;
 }
 
+async function resolveTimespans(
+  attributes: ArcGisFeature["attributes"] | undefined,
+  lastUpdate: Date,
+): Promise<{ timespanStart: Date; timespanEnd: Date }> {
+  let timespanStart: Date | undefined =
+    ensureDate(attributes?.START_) ?? undefined;
+  let timespanEnd: Date | undefined =
+    ensureDate(attributes?.ALERTEND) ?? undefined;
+
+  const { validateTimespanRange } = await import("@/lib/timespan-utils");
+  const isStartValid = timespanStart
+    ? validateTimespanRange(timespanStart)
+    : false;
+  const isEndValid = timespanEnd ? validateTimespanRange(timespanEnd) : false;
+
+  if (isStartValid && !isEndValid) {
+    timespanEnd = timespanStart;
+  } else if (!isStartValid && isEndValid) {
+    timespanStart = timespanEnd;
+  }
+
+  if (!isStartValid || !isEndValid) {
+    if (!isStartValid && attributes?.START_) {
+      logger.warn("START_ outside valid range", {
+        sourceType: SOURCE_TYPE,
+        objectId: attributes.OBJECTID,
+        startValue: attributes.START_,
+      });
+    }
+    if (!isEndValid && attributes?.ALERTEND) {
+      logger.warn("ALERTEND outside valid range", {
+        sourceType: SOURCE_TYPE,
+        objectId: attributes.OBJECTID,
+        alertEnd: attributes.ALERTEND,
+      });
+    }
+    timespanStart = lastUpdate;
+    timespanEnd = lastUpdate;
+  }
+
+  return {
+    timespanStart: timespanStart ?? lastUpdate,
+    timespanEnd: timespanEnd ?? lastUpdate,
+  };
+}
+
 /**
  * Build complete SourceDocument from ArcGIS feature
  */
@@ -169,7 +215,10 @@ export async function buildSourceDocument(
 ): Promise<SofiyskaVodaSourceDocument | null> {
   const objectId = feature.attributes?.OBJECTID;
   if (typeof objectId !== "number") {
-    logger.warn("Skipping feature without OBJECTID", { sourceType: SOURCE_TYPE, layerId: layer.id });
+    logger.warn("Skipping feature without OBJECTID", {
+      sourceType: SOURCE_TYPE,
+      layerId: layer.id,
+    });
     return null;
   }
 
@@ -177,16 +226,8 @@ export async function buildSourceDocument(
   const attrs: Record<string, unknown> | undefined = feature.attributes
     ? { ...feature.attributes }
     : undefined;
-  const message = buildPlainTextMessage(
-    attrs,
-    layer,
-    dateFormatter,
-  );
-  const markdownText = buildMarkdownMessage(
-    attrs,
-    layer,
-    dateFormatter,
-  );
+  const message = buildPlainTextMessage(attrs, layer, dateFormatter);
+  const markdownText = buildMarkdownMessage(attrs, layer, dateFormatter);
   const geoJson = buildGeoJsonFeatureCollection(feature, layer);
   if (!geoJson) {
     logger.warn("Skipping feature without geometry", { sourceType: SOURCE_TYPE, url });
@@ -197,45 +238,10 @@ export async function buildSourceDocument(
     ensureDate(feature.attributes?.START_) ??
     new Date();
 
-  // Extract timespans from ArcGIS attributes
-  let timespanStart: Date | undefined =
-    ensureDate(feature.attributes?.START_) ?? undefined;
-  let timespanEnd: Date | undefined =
-    ensureDate(feature.attributes?.ALERTEND) ?? undefined;
-
-  // Validate extracted dates (import at top of file)
-  const { validateTimespanRange } = await import("@/lib/timespan-utils");
-  const isStartValid = timespanStart
-    ? validateTimespanRange(timespanStart)
-    : false;
-  const isEndValid = timespanEnd ? validateTimespanRange(timespanEnd) : false;
-
-  // Use single date for both if only one available and valid
-  if (isStartValid && !isEndValid) {
-    timespanEnd = timespanStart;
-  } else if (!isStartValid && isEndValid) {
-    timespanStart = timespanEnd;
-  }
-
-  // Fallback to lastUpdate if invalid or missing
-  if (!isStartValid || !isEndValid) {
-    if (!isStartValid && feature.attributes?.START_) {
-      logger.warn("START_ outside valid range", {
-        sourceType: SOURCE_TYPE,
-        objectId: feature.attributes.OBJECTID,
-        startValue: feature.attributes.START_,
-      });
-    }
-    if (!isEndValid && feature.attributes?.ALERTEND) {
-      logger.warn("ALERTEND outside valid range", {
-        sourceType: SOURCE_TYPE,
-        objectId: feature.attributes.OBJECTID,
-        alertEnd: feature.attributes.ALERTEND,
-      });
-    }
-    timespanStart = lastUpdate;
-    timespanEnd = lastUpdate;
-  }
+  const { timespanStart, timespanEnd } = await resolveTimespans(
+    feature.attributes,
+    lastUpdate,
+  );
 
   return {
     url,
