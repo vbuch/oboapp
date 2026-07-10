@@ -40,6 +40,38 @@ function isUpdateOperators(data: unknown): data is UpdateOperators {
   return keys.some((k) => k.startsWith("$"));
 }
 
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [value];
+}
+
+function assignArrayOperatorUpdates(
+  updates: Record<string, unknown>,
+  payload: Record<string, unknown> | undefined,
+  mapValue: (value: unknown[]) => unknown,
+): void {
+  if (!payload) {
+    return;
+  }
+
+  for (const [key, value] of Object.entries(payload)) {
+    updates[key] = mapValue(asArray(value));
+  }
+}
+
+function assignIncrementUpdates(
+  updates: Record<string, unknown>,
+  payload: Record<string, number> | undefined,
+  increment: (n: number) => unknown,
+): void {
+  if (!payload) {
+    return;
+  }
+
+  for (const [key, value] of Object.entries(payload)) {
+    updates[key] = increment(value);
+  }
+}
+
 export class FirestoreAdapter implements DbClient {
   constructor(private readonly db: Firestore) {}
 
@@ -142,25 +174,16 @@ export class FirestoreAdapter implements DbClient {
         const transformed = transformForFirestoreWrite(collection, data.$set);
         Object.assign(updates, transformed);
       }
-      if (data.$addToSet) {
-        for (const [key, value] of Object.entries(data.$addToSet)) {
-          updates[key] = FieldValue.arrayUnion(
-            ...(Array.isArray(value) ? value : [value]),
-          );
-        }
-      }
-      if (data.$pull) {
-        for (const [key, value] of Object.entries(data.$pull)) {
-          updates[key] = FieldValue.arrayRemove(
-            ...(Array.isArray(value) ? value : [value]),
-          );
-        }
-      }
-      if (data.$inc) {
-        for (const [key, value] of Object.entries(data.$inc)) {
-          updates[key] = FieldValue.increment(value);
-        }
-      }
+
+      assignArrayOperatorUpdates(updates, data.$addToSet, (value) =>
+        FieldValue.arrayUnion(...value),
+      );
+      assignArrayOperatorUpdates(updates, data.$pull, (value) =>
+        FieldValue.arrayRemove(...value),
+      );
+      assignIncrementUpdates(updates, data.$inc, (value) =>
+        FieldValue.increment(value),
+      );
 
       await docRef.update(updates);
     } else {
