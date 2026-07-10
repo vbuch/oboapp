@@ -96,14 +96,14 @@ export default function NotificationsReportClient() {
       {data && data.sources.length > 0 && (
         <section className="bg-white rounded-lg shadow-md border border-neutral-border p-6">
           <h2 className="text-xl font-semibold text-foreground mb-4">
-            Разбивка по извор
+            Разбивка по източник
           </h2>
           <div className="overflow-x-auto rounded-lg border border-neutral-border">
             <table className="w-full text-sm">
               <thead className="bg-neutral-surface">
                 <tr>
                   <th className="text-left px-4 py-3 font-semibold text-foreground">
-                    Извор
+                    Източник
                   </th>
                   <th className="text-right px-4 py-3 font-semibold text-foreground">
                     Изпратени
