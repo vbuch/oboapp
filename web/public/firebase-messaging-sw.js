@@ -52,10 +52,9 @@ self.addEventListener("notificationclick", (event) => {
 
   event.notification.close();
 
-  // The notification URL is /notification?id=<matchId>. Navigating to it
-  // records the click server-side and redirects to the message. We must
-  // actually navigate (not just focus) so the tracking page loads even when
-  // an app window is already open.
+  // The notification URL is /n/<matchId>. Navigating to it records the click
+  // server-side and redirects to the message. We must actually navigate (not just
+  // focus) so the tracking page loads even when an app window is already open.
   const urlToOpen = event.notification.data?.url || "/";
 
   event.waitUntil(
