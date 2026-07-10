@@ -185,18 +185,25 @@ Examples:
 
         console.log(`Fetching ${uniqueMessageIds.length} unique messages for heatmap...`);
 
-        // Chunk into groups of 10 for Firestore in-operator limit
+        // Chunk into groups of 10 for Firestore in-operator limit.
+        // Run all chunks in parallel — same approach as the web API route.
         const CHUNK_SIZE = 10;
         const messageMap = new Map<string, HeatmapPoint[]>();
 
         if (uniqueMessageIds.length > 0) {
+          const chunks: string[][] = [];
           for (let i = 0; i < uniqueMessageIds.length; i += CHUNK_SIZE) {
-            const chunk = uniqueMessageIds.slice(i, i + CHUNK_SIZE);
-            const msgs = await db.messages.findMany({
-              where: [{ field: "_id", op: "in", value: chunk }],
-              select: ["_id", "geoJson", "cityWide"],
-            }) as Record<string, unknown>[];
-
+            chunks.push(uniqueMessageIds.slice(i, i + CHUNK_SIZE));
+          }
+          const chunkResults = await Promise.all(
+            chunks.map((chunk) =>
+              db.messages.findMany({
+                where: [{ field: "_id", op: "in", value: chunk }],
+                select: ["_id", "geoJson", "cityWide"],
+              }) as Promise<Record<string, unknown>[]>,
+            ),
+          );
+          for (const msgs of chunkResults) {
             for (const msg of msgs) {
               const id = typeof msg._id === "string" ? msg._id : "";
               if (id) {
