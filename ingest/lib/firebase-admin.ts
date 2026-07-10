@@ -17,6 +17,66 @@ let _adminAuth: Auth | undefined;
 let _initError: Error | null = null;
 let _initialized = false;
 
+function setInitError(message: string): void {
+  _initError = new Error(message);
+}
+
+function createAppFromServiceAccount(): App | undefined {
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    logger.warn(
+      "Firebase Admin not configured (FIREBASE_SERVICE_ACCOUNT_KEY missing) — running in MongoDB-only mode",
+    );
+    setInitError(
+      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is required. " +
+        "Please add your Firebase service account JSON to .env.local",
+    );
+    return undefined;
+  }
+
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    return initializeApp({
+      credential: cert(serviceAccount),
+      projectId: process.env.FIREBASE_PROJECT_ID,
+    });
+  } catch (error) {
+    logger.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    setInitError(
+      "Failed to initialize Firebase Admin SDK: Invalid service account JSON",
+    );
+    return undefined;
+  }
+}
+
+function createNewAdminApp(useEmulators: boolean): App | undefined {
+  if (useEmulators) {
+    logger.info("Firebase Admin using emulators");
+    return initializeApp({
+      projectId: process.env.FIREBASE_PROJECT_ID || "demo-project",
+    });
+  }
+
+  return createAppFromServiceAccount();
+}
+
+function configureEmulatorFirestore(
+  db: Firestore,
+  useEmulators: boolean,
+  emulatorHost: string | undefined,
+): void {
+  if (!useEmulators) {
+    return;
+  }
+
+  const [host, port] = (emulatorHost || "localhost:8080").split(":");
+  db.settings({
+    host: `${host}:${port}`,
+    ssl: false,
+  });
+}
+
 function initialize(): void {
   if (_initialized) return;
   _initialized = true;
@@ -26,45 +86,11 @@ function initialize(): void {
     process.env.USE_FIREBASE_EMULATORS === "true" || Boolean(emulatorHost);
 
   try {
-    if (!getApps().length) {
-      if (useEmulators) {
-        // Emulator mode - no credentials needed
-        logger.info("Firebase Admin using emulators");
-        _adminApp = initializeApp({
-          projectId: process.env.FIREBASE_PROJECT_ID || "demo-project",
-        });
-      } else {
-        // Production mode - use service account key from environment
-        if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-          logger.warn(
-            "Firebase Admin not configured (FIREBASE_SERVICE_ACCOUNT_KEY missing) — running in MongoDB-only mode",
-          );
-          _initError = new Error(
-            "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is required. " +
-              "Please add your Firebase service account JSON to .env.local",
-          );
-          return;
-        }
-        try {
-          const serviceAccount = JSON.parse(
-            process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
-          );
-          _adminApp = initializeApp({
-            credential: cert(serviceAccount),
-            projectId: process.env.FIREBASE_PROJECT_ID,
-          });
-        } catch (error) {
-          logger.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY", {
-            error: error instanceof Error ? error.message : String(error),
-          });
-          _initError = new Error(
-            "Failed to initialize Firebase Admin SDK: Invalid service account JSON",
-          );
-          return;
-        }
-      }
-    } else {
-      _adminApp = getApps()[0];
+    const existingApp = getApps()[0];
+    _adminApp = existingApp ?? createNewAdminApp(useEmulators);
+
+    if (!_adminApp) {
+      return;
     }
 
     const databaseId = process.env.FIREBASE_DATABASE_ID;
@@ -73,14 +99,7 @@ function initialize(): void {
       : getFirestore(_adminApp);
     _adminAuth = getAuth(_adminApp);
 
-    // In emulator mode, ensure we connect to the emulator
-    if (useEmulators) {
-      const [host, port] = (emulatorHost || "localhost:8080").split(":");
-      _adminDb.settings({
-        host: `${host}:${port}`,
-        ssl: false,
-      });
-    }
+    configureEmulatorFirestore(_adminDb, useEmulators, emulatorHost);
   } catch (error) {
     _initError = error instanceof Error ? error : new Error(String(error));
   }
