@@ -117,4 +117,53 @@ describe("MongoAdapter", () => {
       },
     ]);
   });
+
+  it("normalizes $addToSet arrays to $each in updateOne", async () => {
+    const adapter = new MongoAdapter(clientMock as any, "oboapp");
+
+    await adapter.updateOne("messages", "msg-1", {
+      $addToSet: {
+        tags: ["a", "b"],
+      },
+    });
+
+    expect(updateOneMock).toHaveBeenCalledWith(
+      { _id: "msg-1" },
+      {
+        $addToSet: {
+          tags: { $each: ["a", "b"] },
+        },
+      },
+    );
+  });
+
+  it("passes through scalar $addToSet values in updateOne", async () => {
+    const adapter = new MongoAdapter(clientMock as any, "oboapp");
+
+    await adapter.updateOne("messages", "msg-1", {
+      $addToSet: {
+        status: "active",
+      },
+    });
+
+    expect(updateOneMock).toHaveBeenCalledWith(
+      { _id: "msg-1" },
+      {
+        $addToSet: {
+          status: "active",
+        },
+      },
+    );
+  });
+
+  it("uses $set wrapper when updateOne receives plain object", async () => {
+    const adapter = new MongoAdapter(clientMock as any, "oboapp");
+
+    await adapter.updateOne("messages", "msg-1", { text: "hello" });
+
+    expect(updateOneMock).toHaveBeenCalledWith(
+      { _id: "msg-1" },
+      { $set: { text: "hello" } },
+    );
+  });
 });

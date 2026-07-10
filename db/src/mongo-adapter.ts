@@ -108,6 +108,27 @@ function withId(
   return doc;
 }
 
+function buildAddToSetUpdate(
+  addToSet: NonNullable<UpdateOperators["$addToSet"]>,
+): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(addToSet)) {
+    normalized[key] = Array.isArray(value) ? { $each: value } : value;
+  }
+  return normalized;
+}
+
+function buildUpdateOperatorsDocument(
+  data: UpdateOperators,
+): Record<string, unknown> {
+  const update: Record<string, unknown> = {};
+  if (data.$set) update.$set = data.$set;
+  if (data.$addToSet) update.$addToSet = buildAddToSetUpdate(data.$addToSet);
+  if (data.$pull) update.$pull = data.$pull;
+  if (data.$inc) update.$inc = data.$inc;
+  return update;
+}
+
 export class MongoAdapter implements DbClient {
   private readonly client: MongoClient;
   private readonly db: Db;
@@ -214,24 +235,10 @@ export class MongoAdapter implements DbClient {
     data: Record<string, unknown> | UpdateOperators,
   ): Promise<void> {
     const filter = idFilter(id);
-
-    if (isUpdateOperators(data)) {
-      const update: Record<string, unknown> = {};
-      if (data.$set) update.$set = data.$set;
-      if (data.$addToSet) {
-        const addToSet: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(data.$addToSet)) {
-          addToSet[key] = Array.isArray(value) ? { $each: value } : value;
-        }
-        update.$addToSet = addToSet;
-      }
-      if (data.$pull) update.$pull = data.$pull;
-      if (data.$inc) update.$inc = data.$inc;
-
-      await this.db.collection(collection).updateOne(filter, update);
-    } else {
-      await this.db.collection(collection).updateOne(filter, { $set: data });
-    }
+    const update = isUpdateOperators(data)
+      ? buildUpdateOperatorsDocument(data)
+      : { $set: data };
+    await this.db.collection(collection).updateOne(filter, update);
   }
 
   async incrementFieldAndGet(
