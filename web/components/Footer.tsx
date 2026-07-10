@@ -6,6 +6,7 @@ import { APP_NAME } from "@/lib/pwa-metadata";
 interface FooterProps {
   readonly className?: string;
   readonly showHistoryReportLink: boolean;
+  readonly showNotificationsReportLink?: boolean;
 }
 
 const ABOUT_OBOAPP_LINKS = [
@@ -24,11 +25,15 @@ const DATA_AND_REPORTS_LINKS = [
 export default function Footer({
   className = "",
   showHistoryReportLink,
+  showNotificationsReportLink = false,
 }: FooterProps) {
   const dataAndReportsLinks = showHistoryReportLink
     ? [
         ...DATA_AND_REPORTS_LINKS.slice(0, 2),
         { href: "/history", label: "Исторически данни" },
+        ...(showNotificationsReportLink
+          ? [{ href: "/notifications-report", label: "Известия" }]
+          : []),
         ...DATA_AND_REPORTS_LINKS.slice(2),
       ]
     : DATA_AND_REPORTS_LINKS;

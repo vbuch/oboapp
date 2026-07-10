@@ -106,7 +106,10 @@ export default function RootLayout({
             </Script>
           </>
         )}
-        <ClientLayout showHistoryReportLink={showHistoryReportLink}>
+        <ClientLayout
+          showHistoryReportLink={showHistoryReportLink}
+          showNotificationsReportLink={showHistoryReportLink}
+        >
           {children}
         </ClientLayout>
       </body>
