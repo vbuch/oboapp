@@ -36,6 +36,29 @@ function readTagValue(xml: string, tagName: string): string {
   return decodeHtmlEntities(stripCdata(value));
 }
 
+function parseFeedItemUrl(
+  url: string,
+  options: Pick<ParseRssFeedItemsOptions, "hostname" | "stripQuery">,
+): string | undefined {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return undefined;
+  }
+
+  if (options.hostname && parsedUrl.hostname !== options.hostname) {
+    return undefined;
+  }
+
+  if (options.stripQuery) {
+    parsedUrl.search = "";
+    parsedUrl.hash = "";
+  }
+
+  return parsedUrl.toString();
+}
+
 /**
  * Remove the standard WordPress attribution paragraph from RSS descriptions.
  */
@@ -115,27 +138,11 @@ export function parseRssFeedItems(
   while ((match = itemRe.exec(xml)) !== null) {
     const itemXml = match[1];
     const title = readTagValue(itemXml, titleTag);
-    const url = readTagValue(itemXml, linkTag);
+    const url = parseFeedItemUrl(readTagValue(itemXml, linkTag), options);
     const dateText = readTagValue(itemXml, dateTag);
 
     if (!title || !url || !dateText) {
       continue;
-    }
-
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(url);
-    } catch {
-      continue;
-    }
-
-    if (options.hostname && parsedUrl.hostname !== options.hostname) {
-      continue;
-    }
-
-    if (options.stripQuery) {
-      parsedUrl.search = "";
-      parsedUrl.hash = "";
     }
 
     const dateMs = Date.parse(dateText);
@@ -149,7 +156,7 @@ export function parseRssFeedItems(
       : undefined;
 
     items.push({
-      url: parsedUrl.toString(),
+      url,
       title,
       date: new Date(dateMs).toISOString(),
       contentHtml,
