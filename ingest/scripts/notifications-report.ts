@@ -135,7 +135,49 @@ Examples:
 
         console.log(`Found ${matches.length} notified matches`);
 
-        // Aggregate KPIs
+        // Collect unique messageIds upfront — needed for both the source lookup
+        // and the heatmap coordinate fetch.
+        const allMessageIds = matches
+          .filter((m) => typeof m.messageId === "string" && m.messageId)
+          .map((m) => m.messageId as string);
+        const uniqueMessageIds = [...new Set(allMessageIds)];
+
+        console.log(`Fetching ${uniqueMessageIds.length} unique messages...`);
+
+        // Chunk into groups of 10 for Firestore in-operator limit.
+        // Run all chunks in parallel — same approach as the web API route.
+        const CHUNK_SIZE = 10;
+        const messageMap = new Map<string, HeatmapPoint[]>();
+        const messageSourceMap = new Map<string, string>(); // messageId → source
+
+        if (uniqueMessageIds.length > 0) {
+          const chunks: string[][] = [];
+          for (let i = 0; i < uniqueMessageIds.length; i += CHUNK_SIZE) {
+            chunks.push(uniqueMessageIds.slice(i, i + CHUNK_SIZE));
+          }
+          const chunkResults = await Promise.all(
+            chunks.map((chunk) =>
+              db.messages.findMany({
+                where: [{ field: "_id", op: "in", value: chunk }],
+                select: ["_id", "geoJson", "cityWide", "source"],
+              }) as Promise<Record<string, unknown>[]>,
+            ),
+          );
+          for (const msgs of chunkResults) {
+            for (const msg of msgs) {
+              const id = typeof msg._id === "string" ? msg._id : "";
+              if (id) {
+                messageMap.set(id, extractHeatmapPoints(msg));
+                if (typeof msg.source === "string" && msg.source) {
+                  messageSourceMap.set(id, msg.source);
+                }
+              }
+            }
+          }
+        }
+
+        // Aggregate KPIs — use message source (from the fetch above) with
+        // messageSnapshot.source as fallback for any messages not in the map.
         const userIds = new Set<string>();
         let clicked = 0;
         let opened = 0;
@@ -159,13 +201,15 @@ Examples:
 
           if (match.openedAt) opened++;
 
+          const msgId = typeof match.messageId === "string" ? match.messageId : "";
           const source =
-            typeof match.messageSnapshot === "object" &&
+            (msgId ? messageSourceMap.get(msgId) : undefined) ??
+            (typeof match.messageSnapshot === "object" &&
             match.messageSnapshot !== null &&
             "source" in (match.messageSnapshot as object) &&
             typeof (match.messageSnapshot as Record<string, unknown>).source === "string"
               ? (match.messageSnapshot as Record<string, unknown>).source as string
-              : "(unknown)";
+              : "(unknown)");
 
           const existing = sourceMap.get(source) ?? { sent: 0, clicked: 0 };
           existing.sent++;
@@ -176,42 +220,6 @@ Examples:
         const sources = Array.from(sourceMap.entries())
           .map(([source, counts]) => ({ source, ...counts }))
           .sort((a, b) => b.sent - a.sent);
-
-        // Collect unique messageIds for heatmap
-        const messageIds = matches
-          .filter((m) => typeof m.messageId === "string" && m.messageId)
-          .map((m) => m.messageId as string);
-        const uniqueMessageIds = [...new Set(messageIds)];
-
-        console.log(`Fetching ${uniqueMessageIds.length} unique messages for heatmap...`);
-
-        // Chunk into groups of 10 for Firestore in-operator limit.
-        // Run all chunks in parallel — same approach as the web API route.
-        const CHUNK_SIZE = 10;
-        const messageMap = new Map<string, HeatmapPoint[]>();
-
-        if (uniqueMessageIds.length > 0) {
-          const chunks: string[][] = [];
-          for (let i = 0; i < uniqueMessageIds.length; i += CHUNK_SIZE) {
-            chunks.push(uniqueMessageIds.slice(i, i + CHUNK_SIZE));
-          }
-          const chunkResults = await Promise.all(
-            chunks.map((chunk) =>
-              db.messages.findMany({
-                where: [{ field: "_id", op: "in", value: chunk }],
-                select: ["_id", "geoJson", "cityWide"],
-              }) as Promise<Record<string, unknown>[]>,
-            ),
-          );
-          for (const msgs of chunkResults) {
-            for (const msg of msgs) {
-              const id = typeof msg._id === "string" ? msg._id : "";
-              if (id) {
-                messageMap.set(id, extractHeatmapPoints(msg));
-              }
-            }
-          }
-        }
 
         const snapshot: NotificationsReportSnapshot = {
           generatedAt: new Date().toISOString(),
@@ -227,8 +235,7 @@ Examples:
             all: buildHeatmapMode(matches, messageMap, () => true),
             clicked: buildHeatmapMode(matches, messageMap, (m) => Boolean(m.clickedAt)),
             opened: buildHeatmapMode(matches, messageMap, (m) => Boolean(m.openedAt)),
-          },
-        };
+          },        };
 
         console.log("Snapshot summary:");
         console.log(`  Sent: ${snapshot.kpis.sent}`);
