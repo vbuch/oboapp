@@ -43,6 +43,7 @@ describe("CategoryChips", () => {
   it("renders localized category labels", () => {
     render(<CategoryChips categories={["water"]} />);
     expect(screen.getByText("Вода")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Вода" })).toBeInTheDocument();
   });
 
   it("shows fades when chips overflow", async () => {

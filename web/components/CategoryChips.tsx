@@ -76,7 +76,8 @@ export default function CategoryChips({
           if (!isCategory(category)) return null;
 
           return (
-            <span
+            <button
+              type="button"
               key={category}
               className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-normal rounded-full border bg-white whitespace-nowrap"
               style={{
@@ -93,7 +94,7 @@ export default function CategoryChips({
             >
               <CategoryIcon category={category} size={14} showBackground />
               {CATEGORY_LABELS[category]}
-            </span>
+            </button>
           );
         })}
       </div>
