@@ -33,6 +33,8 @@ interface ReportData {
   heatmapPoints: [number, number][];
   heatmapHiddenForPrivacy: boolean;
   sources: SourceRow[];
+  generatedAt: string | null;
+  trackedSince: string | null;
 }
 
 const MODE_LABELS: Record<HeatmapMode, string> = {
@@ -85,6 +87,22 @@ export default function NotificationsReportClient() {
     <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-12 space-y-10">
       {/* KPI cards */}
       <ReportKpis data={data} loading={loading} />
+
+      {/* Explanation of click vs open metrics + data freshness note */}
+      <div className="text-xs text-neutral space-y-1">
+        <p>
+          <span className="font-medium">Кликнати</span> — потребителят е натиснал на системното известие (трей).
+          {" "}<span className="font-medium">Отворени</span> — известието е отворено от списъка във приложението.
+        </p>
+        {data?.trackedSince ? (
+          <p>Проследяването е активно от {new Date(data.trackedSince).toLocaleDateString("bg-BG")}.</p>
+        ) : (
+          <p>Все още няма записани кликове.</p>
+        )}
+        {data?.generatedAt && (
+          <p>Данните са от {new Date(data.generatedAt).toLocaleDateString("bg-BG")}.</p>
+        )}
+      </div>
 
       {error && (
         <p className="text-sm text-error">
@@ -164,6 +182,12 @@ export default function NotificationsReportClient() {
           <div className="px-6 pb-6 pt-2 text-sm text-neutral text-center">
             Картата е скрита — трябват поне 50 записа в избрания режим, за да
             бъде показана.
+          </div>
+        ) : (data?.heatmapPoints ?? []).length === 0 && !loading ? (
+          <div className="px-6 pb-6 pt-2 text-sm text-neutral text-center">
+            {mode === "all"
+              ? "Известията в тази система не съдържат геолокация."
+              : "Няма записани известия в избрания режим."}
           </div>
         ) : (
           <div className="h-[450px] border-t border-neutral-border">

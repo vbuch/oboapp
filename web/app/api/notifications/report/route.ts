@@ -1,42 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
 import { hasReportPagesEnabled } from "@/lib/report-pages";
-import {
-  aggregateNotificationKpis,
-  buildHeatmapResult,
-  extractHeatmapPointsFromMessage,
-  getMessageIdsForMode,
-  HEATMAP_PRIVACY_THRESHOLD,
-  type HeatmapMode,
-  type HeatmapPoint,
-} from "./aggregation";
+import type { HeatmapMode } from "./aggregation";
 
 export const runtime = "nodejs";
 
 const VALID_MODES: HeatmapMode[] = ["all", "clicked", "opened"];
 
-// Firestore limits `in` queries to 10 values per clause
-const FIRESTORE_IN_OPERATOR_LIMIT = 10;
-
-function chunkArray<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size));
-  }
-  return chunks;
-}
-
 /**
  * GET /api/notifications/report?mode=all|clicked|opened
  *
- * Returns all-time notification analytics:
+ * Returns pre-generated notification analytics from a GCS snapshot.
+ * The snapshot is produced weekly by the notifications-report ingest job.
+ *
+ * Response includes:
  * - KPIs: sent, unique users, clicked, opened
- * - Heatmap points from triggering message coordinates, filtered by mode
+ * - Heatmap points for the selected mode (with privacy threshold applied)
  * - Source breakdown: sent + clicked counts per source
+ * - generatedAt: when the snapshot was last computed
+ * - trackedSince: ISO timestamp of the earliest click recorded (null if none yet)
  *
- * Applies a privacy threshold: if the selected mode has fewer than 50 records,
- * heatmap points are withheld and heatmapHiddenForPrivacy=true is returned.
- *
+ * Returns 503 when GCS is not configured or the snapshot has not been generated yet.
  * Public route — no auth required. Gated by hasReportPagesEnabled().
  */
 export async function GET(request: NextRequest) {
@@ -47,96 +30,70 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const bucket = process.env.GCS_GENERIC_BUCKET;
+  if (!bucket) {
+    return NextResponse.json(
+      { error: "GCS_GENERIC_BUCKET not configured" },
+      { status: 503 },
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const rawMode = searchParams.get("mode") ?? "all";
   const mode: HeatmapMode = VALID_MODES.find((m) => m === rawMode) ?? "all";
 
   try {
-    const db = await getDb();
-
-    // Fetch all notified notification matches (select only fields needed)
-    const allMatches = await db.notificationMatches.findMany({
-      where: [{ field: "notified", op: "==", value: true }],
-      select: [
-        "_id",
-        "userId",
-        "messageId",
-        "clickedAt",
-        "openedAt",
-        "messageSnapshot",
-      ],
-    });
-
-    const kpis = aggregateNotificationKpis(allMatches);
-
-    // Collect unique messageIds for the selected heatmap mode
-    const messageIds = getMessageIdsForMode(allMatches, mode);
-    const uniqueMessageIds = [...new Set(messageIds)];
-
-    // Skip the message fetch entirely when the privacy threshold isn't met —
-    // buildHeatmapResult would discard the points anyway, and the fetch can be
-    // expensive for large datasets.
-    const heatmapPoints: HeatmapPoint[] = [];
-    if (messageIds.length >= HEATMAP_PRIVACY_THRESHOLD && uniqueMessageIds.length > 0) {
-      // Fetch matching messages to extract coordinates (only geoJson + cityWide).
-      // Chunk into groups of FIRESTORE_IN_OPERATOR_LIMIT to stay within Firestore's
-      // `in` operator limit of 10 values.
-      const idChunks = chunkArray(uniqueMessageIds, FIRESTORE_IN_OPERATOR_LIMIT);
-      const messageChunks = await Promise.all(
-        idChunks.map((chunk) =>
-          db.messages.findMany({
-            where: [{ field: "_id", op: "in", value: chunk }],
-            select: ["_id", "geoJson", "cityWide"],
-          }),
-        ),
-      );
-      const messages = messageChunks.flat();
-
-      // Build a map from messageId → coordinates
-      const messageCoordMap = new Map<string, HeatmapPoint[]>();
-      for (const msg of messages) {
-        const id = typeof msg._id === "string" ? msg._id : "";
-        if (id) {
-          messageCoordMap.set(id, extractHeatmapPointsFromMessage(msg));
-        }
-      }
-
-      // Each notification match contributes the points from its triggering message (1:1)
-      for (const matchMessageId of messageIds) {
-        const pts = messageCoordMap.get(matchMessageId);
-        if (pts) {
-          heatmapPoints.push(...pts);
-        }
-      }
+    let storage: import("@google-cloud/storage").Storage;
+    const { Storage } = await import("@google-cloud/storage");
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+      const credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+      storage = new Storage({ credentials });
+    } else {
+      storage = new Storage();
     }
 
-    const { points, heatmapHiddenForPrivacy } = buildHeatmapResult(
-      messageIds.length,
-      heatmapPoints,
-    );
+    const file = storage.bucket(bucket).file("notifications/report.json");
+    const [exists] = await file.exists();
+    if (!exists) {
+      return NextResponse.json(
+        { error: "Notifications report not generated yet" },
+        { status: 503 },
+      );
+    }
+
+    const [content] = await file.download();
+    const snapshot = JSON.parse(content.toString("utf-8"));
+
+    const heatmapForMode = snapshot.heatmap?.[mode] ?? {
+      points: [],
+      hiddenForPrivacy: true,
+    };
 
     return NextResponse.json(
       {
-        sent: kpis.sent,
-        uniqueUsers: kpis.uniqueUsers,
-        clicked: kpis.clicked,
-        opened: kpis.opened,
-        heatmapPoints: points,
-        heatmapHiddenForPrivacy,
-        sources: kpis.sources,
+        sent: snapshot.kpis?.sent ?? 0,
+        uniqueUsers: snapshot.kpis?.uniqueUsers ?? 0,
+        clicked: snapshot.kpis?.clicked ?? 0,
+        opened: snapshot.kpis?.opened ?? 0,
+        heatmapPoints: heatmapForMode.points ?? [],
+        heatmapHiddenForPrivacy: heatmapForMode.hiddenForPrivacy ?? true,
+        sources: snapshot.sources ?? [],
+        generatedAt: snapshot.generatedAt ?? null,
+        trackedSince: snapshot.trackedSince ?? null,
       },
       {
         headers: {
-          // Cache for 5 minutes — analytics data is not real-time
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60",
+          // Cache until next weekly regeneration — data only changes when the job runs
+          "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=3600",
         },
       },
     );
   } catch (error) {
-    console.error("Error generating notifications report:", error);
+    console.error("Error loading notifications report snapshot:", error);
     return NextResponse.json(
-      { error: "Failed to generate notifications report" },
+      { error: "Failed to load notifications report" },
       { status: 500 },
     );
   }
 }
+
