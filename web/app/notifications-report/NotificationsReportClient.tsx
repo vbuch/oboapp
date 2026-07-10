@@ -100,12 +100,18 @@ export default function NotificationsReportClient() {
       {/* Data freshness note */}
       <div className="text-xs text-neutral space-y-1">
         {data?.trackedSince ? (
-          <p>Проследяването е активно от {new Date(data.trackedSince).toLocaleDateString("bg-BG")}.</p>
+          <p>
+            Проследяването е активно от{" "}
+            {new Date(data.trackedSince).toLocaleDateString("bg-BG")}.
+          </p>
         ) : (
           <p>Все още няма записани кликове.</p>
         )}
         {data?.generatedAt && (
-          <p>Данните са от {new Date(data.generatedAt).toLocaleDateString("bg-BG")}.</p>
+          <p>
+            Данните са от{" "}
+            {new Date(data.generatedAt).toLocaleDateString("bg-BG")}.
+          </p>
         )}
       </div>
 
@@ -159,7 +165,8 @@ export default function NotificationsReportClient() {
         </section>
       )}
 
-      {/* Heatmap section */}
+      {/* Heatmap section — hidden entirely when data is loaded but has no points */}
+      {(!data || loading || data.heatmapHiddenForPrivacy || data.heatmapPoints.length > 0) && (
       <section className="bg-white rounded-lg shadow-md border border-neutral-border overflow-hidden">
         <div className="p-6 pb-4 flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-xl font-semibold text-foreground">
@@ -190,12 +197,6 @@ export default function NotificationsReportClient() {
             Картата е скрита — трябват поне 50 записа в избрания режим, за да
             бъде показана.
           </div>
-        ) : (data?.heatmapPoints ?? []).length === 0 && !loading ? (
-          <div className="px-6 pb-6 pt-2 text-sm text-neutral text-center">
-            {mode === "all"
-              ? "Известията в тази система не съдържат геолокация."
-              : "Няма записани известия в избрания режим."}
-          </div>
         ) : (
           <div className="h-[450px] border-t border-neutral-border">
             <NotificationsReportMapClient
@@ -206,6 +207,7 @@ export default function NotificationsReportClient() {
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }
