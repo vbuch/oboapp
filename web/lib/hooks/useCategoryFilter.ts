@@ -176,6 +176,24 @@ function saveFilterState(state: CategoryFilterState): void {
   }
 }
 
+function createCountsLoadingTransition(
+  setIsLoadingCounts: (value: boolean) => void,
+): () => void {
+  let isMounted = true;
+  setIsLoadingCounts(true);
+
+  const timer = setTimeout(() => {
+    if (isMounted) {
+      setIsLoadingCounts(false);
+    }
+  }, 300);
+
+  return () => {
+    isMounted = false;
+    clearTimeout(timer);
+  };
+}
+
 /**
  * Hook for category-based message filtering
  *
@@ -231,28 +249,7 @@ export function useCategoryFilter(
       return;
     }
 
-    // Use a flag to prevent state updates if the component unmounts
-    let isMounted = true;
-
-    // Defer loading state to avoid synchronous setState in effect
-    Promise.resolve().then(() => {
-      if (isMounted) {
-        setIsLoadingCounts(true);
-
-        // Keep loading state visible for at least 300ms for better UX
-        const timer = setTimeout(() => {
-          if (isMounted) {
-            setIsLoadingCounts(false);
-          }
-        }, 300);
-
-        return () => clearTimeout(timer);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-    };
+    return createCountsLoadingTransition(setIsLoadingCounts);
   }, [viewportMessages, availableCategoriesSet, isInitialLoad]);
 
   // Handle initial load separately

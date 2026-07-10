@@ -4,6 +4,50 @@ import { NotificationSubscription } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
 import { toRequiredISOString } from "@/lib/date-serialization";
 
+type SubscriptionRecord = Record<string, unknown>;
+type DeviceInfo = NonNullable<NotificationSubscription["deviceInfo"]>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function toDeviceInfo(rawDeviceInfo: unknown): DeviceInfo {
+  if (isRecord(rawDeviceInfo)) {
+    return {
+      userAgent:
+        typeof rawDeviceInfo.userAgent === "string"
+          ? rawDeviceInfo.userAgent
+          : undefined,
+      platform:
+        typeof rawDeviceInfo.platform === "string"
+          ? rawDeviceInfo.platform
+          : undefined,
+    };
+  }
+
+  return {};
+}
+
+function toDocId(record: SubscriptionRecord): string {
+  return typeof record._id === "string" ? record._id : "";
+}
+
+function mapSubscriptionRecord(
+  record: SubscriptionRecord,
+): NotificationSubscription {
+  const docId = toDocId(record);
+
+  return {
+    id: docId,
+    userId: typeof record.userId === "string" ? record.userId : "",
+    token: typeof record.token === "string" ? record.token : "",
+    endpoint: typeof record.endpoint === "string" ? record.endpoint : "",
+    createdAt: toRequiredISOString(record.createdAt, "createdAt"),
+    updatedAt: toRequiredISOString(record.updatedAt, "updatedAt"),
+    deviceInfo: toDeviceInfo(record.deviceInfo),
+  };
+}
+
 // GET - Check if user has a valid subscription
 export async function GET(request: NextRequest) {
   try {
@@ -40,10 +84,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const deviceInfo =
-      typeof rawDeviceInfo === "object" && rawDeviceInfo !== null && !Array.isArray(rawDeviceInfo)
-        ? rawDeviceInfo
-        : {};
+    const deviceInfo = toDeviceInfo(rawDeviceInfo);
 
     const db = await getDb();
     const now = new Date();
@@ -56,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       // Update existing subscription
-      const docId = typeof existing._id === "string" ? existing._id : "";
+      const docId = toDocId(existing);
       if (!docId) {
         return NextResponse.json(
           { error: "Existing subscription has no valid ID" },
@@ -76,19 +117,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const subscription: NotificationSubscription = {
-        id: docId,
-        userId: typeof updatedDoc.userId === "string" ? updatedDoc.userId : "",
-        token: typeof updatedDoc.token === "string" ? updatedDoc.token : "",
-        endpoint: typeof updatedDoc.endpoint === "string" ? updatedDoc.endpoint : "",
-        createdAt: toRequiredISOString(updatedDoc.createdAt, "createdAt"),
-        updatedAt: toRequiredISOString(updatedDoc.updatedAt, "updatedAt"),
-        deviceInfo:
-          typeof updatedDoc.deviceInfo === "object" &&
-          updatedDoc.deviceInfo !== null
-            ? updatedDoc.deviceInfo
-            : {},
-      };
+      const subscription = mapSubscriptionRecord(updatedDoc);
 
       return NextResponse.json(subscription);
     }

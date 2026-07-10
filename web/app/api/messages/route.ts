@@ -192,6 +192,44 @@ function isInvalidSourceForFilter(
   );
 }
 
+function shouldIncludeDocForPlan(
+  doc: MessageRecord,
+  uncategorizedOnly: boolean,
+  sourceSet?: Set<string>,
+): boolean {
+  if (uncategorizedOnly && !isUncategorizedDoc(doc)) {
+    return false;
+  }
+
+  return !isInvalidSourceForFilter(doc, sourceSet);
+}
+
+function addDocToMessagesMap(
+  doc: MessageRecord,
+  messagesMap: Map<string, InternalMessage>,
+): void {
+  const docId = typeof doc._id === "string" ? doc._id : "";
+  if (docId && !messagesMap.has(docId)) {
+    messagesMap.set(docId, recordToInternalMessage(doc));
+  }
+}
+
+function addPlanDocsToMessagesMap(
+  plan: { uncategorizedOnly: boolean; docs: MessageRecord[] },
+  sourceSet: Set<string> | undefined,
+  messagesMap: Map<string, InternalMessage>,
+): void {
+  const docs = applyOptionalSourceSet(plan.docs, sourceSet);
+
+  for (const doc of docs) {
+    if (!shouldIncludeDocForPlan(doc, plan.uncategorizedOnly, sourceSet)) {
+      continue;
+    }
+
+    addDocToMessagesMap(doc, messagesMap);
+  }
+}
+
 async function buildCategoryQueryPlans(
   db: DbClient,
   cutoffDate: Date,
@@ -262,23 +300,7 @@ async function findMessagesByCategoryFilters(
   const messagesMap = new Map<string, InternalMessage>();
 
   for (const plan of queryPlans) {
-    const docs = applyOptionalSourceSet(plan.docs, sourceSet);
-    const { uncategorizedOnly } = plan;
-
-    for (const doc of docs) {
-      if (uncategorizedOnly && !isUncategorizedDoc(doc)) {
-        continue;
-      }
-
-      if (isInvalidSourceForFilter(doc, sourceSet)) {
-        continue;
-      }
-
-      const docId = typeof doc._id === "string" ? doc._id : "";
-      if (docId && !messagesMap.has(docId)) {
-        messagesMap.set(docId, recordToInternalMessage(doc));
-      }
-    }
+    addPlanDocsToMessagesMap(plan, sourceSet, messagesMap);
   }
 
   return sortMessagesByRelevance(Array.from(messagesMap.values()));

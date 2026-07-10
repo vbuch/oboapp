@@ -691,7 +691,7 @@ function HomeContentInner() {
           position={interestMenuPosition}
           onMove={() => handleMoveInterest(selectedInterest)}
           onDelete={() => {
-            void handleDeleteInterest(selectedInterest);
+            handleDeleteInterest(selectedInterest);
           }}
           onClose={handleCloseInterestMenu}
         />

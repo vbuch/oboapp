@@ -40,6 +40,19 @@ interface GridCell {
   east: number;
 }
 
+interface CellAggregation {
+  sensorIds: Set<number>;
+  hourBins: Map<number, { p1: number[]; p2: number[] }>;
+}
+
+interface ReadingsAggregation {
+  uniqueSensors: number;
+  oldestTimestamp: number | null;
+  newestTimestamp: number | null;
+  grid: GridCell[];
+  cellMap: Map<string, CellAggregation>;
+}
+
 // In-memory cache keyed by locality
 const gcsCache = new Map<
   string,
@@ -66,7 +79,11 @@ async function getStorageInstance(): Promise<Storage> {
         `FIREBASE_SERVICE_ACCOUNT_KEY contains invalid JSON: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`,
       );
     }
-    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+    if (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed)
+    ) {
       credentials = parsed;
     } else {
       throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY must be a JSON object");
@@ -125,6 +142,163 @@ function assignToCell(
   return null;
 }
 
+function resolveLocality(localityFromQuery: string | null): string {
+  if (localityFromQuery !== null) {
+    return localityFromQuery;
+  }
+
+  return getConfiguredLocality();
+}
+
+function validateConfiguredLocality(locality: string): boolean {
+  try {
+    getBoundsForLocality(locality);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function createEmptyCellAggregation(): CellAggregation {
+  return {
+    sensorIds: new Set(),
+    hourBins: new Map(),
+  };
+}
+
+function addReadingToHourBin(
+  entry: CellAggregation,
+  timestampMs: number,
+  reading: StoredReading,
+): void {
+  const hourBin = Math.floor(timestampMs / 3_600_000);
+  if (!entry.hourBins.has(hourBin)) {
+    entry.hourBins.set(hourBin, { p1: [], p2: [] });
+  }
+
+  const bin = entry.hourBins.get(hourBin)!;
+  bin.p1.push(reading.p1);
+  bin.p2.push(reading.p2);
+}
+
+function aggregateReadingsByCell(
+  locality: string,
+  readings: StoredReading[],
+  windowStart: number,
+): ReadingsAggregation {
+  const uniqueSensors = new Set(readings.map((r) => r.sensorId)).size;
+  let oldestTimestamp: number | null = null;
+  let newestTimestamp: number | null = null;
+
+  const grid = buildGrid(locality);
+  const gridMaxNorth = grid.reduce((m, c) => Math.max(m, c.north), -Infinity);
+  const gridMaxEast = grid.reduce((m, c) => Math.max(m, c.east), -Infinity);
+  const cellMap = new Map<string, CellAggregation>();
+
+  for (const reading of readings) {
+    const timestampMs = Date.parse(reading.timestamp);
+    if (!Number.isFinite(timestampMs)) {
+      continue;
+    }
+
+    if (oldestTimestamp === null || timestampMs < oldestTimestamp) {
+      oldestTimestamp = timestampMs;
+    }
+    if (newestTimestamp === null || timestampMs > newestTimestamp) {
+      newestTimestamp = timestampMs;
+    }
+
+    if (timestampMs < windowStart) {
+      continue;
+    }
+
+    const cell = assignToCell(
+      grid,
+      reading.lat,
+      reading.lng,
+      gridMaxNorth,
+      gridMaxEast,
+    );
+    if (!cell) {
+      continue;
+    }
+
+    if (!cellMap.has(cell.id)) {
+      cellMap.set(cell.id, createEmptyCellAggregation());
+    }
+
+    const entry = cellMap.get(cell.id)!;
+    entry.sensorIds.add(reading.sensorId);
+    addReadingToHourBin(entry, timestampMs, reading);
+  }
+
+  return {
+    uniqueSensors,
+    oldestTimestamp,
+    newestTimestamp,
+    grid,
+    cellMap,
+  };
+}
+
+function buildAqiCells(
+  grid: GridCell[],
+  cellMap: Map<string, CellAggregation>,
+): Array<{
+  id: string;
+  aqi: number | null;
+  aqiLabel: string | null;
+  aqiCategory: string | null;
+  sensorCount: number;
+  bounds: {
+    south: number;
+    north: number;
+    west: number;
+    east: number;
+  } | null;
+}> {
+  const gridById = new Map(grid.map((c) => [c.id, c]));
+
+  return Array.from(cellMap.entries())
+    .map(([id, { sensorIds, hourBins }]) => {
+      const sortedBins = Array.from(hourBins.entries()).sort(
+        ([a], [b]) => b - a,
+      );
+      const hourlyAverages: HourlyAverage[] = sortedBins.map(
+        ([, { p1, p2 }]) => ({
+          pm10: p1.reduce((s, v) => s + v, 0) / p1.length,
+          pm25: p2.reduce((s, v) => s + v, 0) / p2.length,
+        }),
+      );
+
+      const rawAqi = calculateNowCastAqi(hourlyAverages);
+      const aqi = rawAqi > 0 ? rawAqi : null;
+      const cell = gridById.get(id);
+
+      return {
+        id,
+        aqi,
+        aqiLabel: aqi !== null ? getAqiLabel(aqi) : null,
+        aqiCategory: aqi !== null ? getAqiCategory(aqi) : null,
+        sensorCount: sensorIds.size,
+        bounds: cell
+          ? {
+              south: cell.south,
+              north: cell.north,
+              west: cell.west,
+              east: cell.east,
+            }
+          : null,
+      };
+    })
+    .sort((a, b) => {
+      if (a.aqi === null && b.aqi === null) return 0;
+      if (a.aqi === null) return 1;
+      if (b.aqi === null) return -1;
+      return b.aqi - a.aqi;
+    });
+}
+
 async function readGcsReadings(
   locality: string,
 ): Promise<StoredReading[] | null> {
@@ -167,8 +341,7 @@ async function readGcsReadings(
     // Local dev fallback — only permitted outside production.
     // In production a missing GCS_GENERIC_BUCKET is a misconfiguration; callers
     // should catch the 503 returned by GET() and not reach this branch.
-    const basePath =
-      process.env.LOCAL_READINGS_PATH ?? "./tmp/air-quality";
+    const basePath = process.env.LOCAL_READINGS_PATH ?? "./tmp/air-quality";
     const { readFile } = await import("node:fs/promises");
     try {
       const content = await readFile(
@@ -190,21 +363,17 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const localityFromQuery = searchParams.get("locality");
   let locality: string;
-  if (localityFromQuery !== null) {
-    locality = localityFromQuery;
-  } else {
-    try {
-      locality = getConfiguredLocality();
-    } catch (err) {
-      console.error(
-        "Missing NEXT_PUBLIC_LOCALITY configuration for /api/air-quality/status",
-        err,
-      );
-      return NextResponse.json(
-        { error: LOCALITY_ENV_ERROR_MESSAGE },
-        { status: 500 },
-      );
-    }
+  try {
+    locality = resolveLocality(localityFromQuery);
+  } catch (err) {
+    console.error(
+      "Missing NEXT_PUBLIC_LOCALITY configuration for /api/air-quality/status",
+      err,
+    );
+    return NextResponse.json(
+      { error: LOCALITY_ENV_ERROR_MESSAGE },
+      { status: 500 },
+    );
   }
 
   if (
@@ -217,9 +386,7 @@ export async function GET(request: Request) {
     );
   }
 
-  try {
-    getBoundsForLocality(locality); // validate locality
-  } catch {
+  if (!validateConfiguredLocality(locality)) {
     return NextResponse.json({ error: "Unknown locality" }, { status: 400 });
   }
 
@@ -232,93 +399,18 @@ export async function GET(request: Request) {
     const now = Date.now();
     const windowStart = now - EVALUATION_WINDOW_HOURS * 60 * 60 * 1000;
 
-    // Single pass: compute summary stats and build per-cell hour bins simultaneously.
-    // Parse r.timestamp once per reading to avoid redundant Date allocations.
     const readings: StoredReading[] = allReadings ?? [];
-    const uniqueSensors = new Set(readings.map((r) => r.sensorId)).size;
-    let oldestTimestamp: number | null = null;
-    let newestTimestamp: number | null = null;
+    const { uniqueSensors, oldestTimestamp, newestTimestamp, grid, cellMap } =
+      aggregateReadingsByCell(locality, readings, windowStart);
 
-    const grid = buildGrid(locality);
-    const gridMaxNorth = grid.reduce((m, c) => Math.max(m, c.north), -Infinity);
-    const gridMaxEast = grid.reduce((m, c) => Math.max(m, c.east), -Infinity);
-    const cellMap = new Map<
-      string,
-      { sensorIds: Set<number>; hourBins: Map<number, { p1: number[]; p2: number[] }> }
-    >();
+    const oldestAt =
+      oldestTimestamp !== null ? new Date(oldestTimestamp).toISOString() : null;
+    const newestAt =
+      newestTimestamp !== null ? new Date(newestTimestamp).toISOString() : null;
+    const isStale =
+      newestTimestamp === null || now - newestTimestamp > MAX_STALENESS_MS;
 
-    for (const r of readings) {
-      const t = Date.parse(r.timestamp);
-      if (!Number.isFinite(t)) continue;
-
-      // Update 24h summary stats
-      if (oldestTimestamp === null || t < oldestTimestamp) oldestTimestamp = t;
-      if (newestTimestamp === null || t > newestTimestamp) newestTimestamp = t;
-
-      // Accumulate into cells only for the evaluation window
-      if (t < windowStart) continue;
-
-      const cell = assignToCell(grid, r.lat, r.lng, gridMaxNorth, gridMaxEast);
-      if (!cell) continue;
-
-      if (!cellMap.has(cell.id)) {
-        cellMap.set(cell.id, {
-          sensorIds: new Set(),
-          hourBins: new Map(),
-        });
-      }
-      const entry = cellMap.get(cell.id)!;
-      entry.sensorIds.add(r.sensorId);
-
-      const hourBin = Math.floor(t / 3_600_000);
-      if (!entry.hourBins.has(hourBin)) {
-        entry.hourBins.set(hourBin, { p1: [], p2: [] });
-      }
-      const bin = entry.hourBins.get(hourBin)!;
-      bin.p1.push(r.p1);
-      bin.p2.push(r.p2);
-    }
-
-    const oldestAt = oldestTimestamp !== null ? new Date(oldestTimestamp).toISOString() : null;
-    const newestAt = newestTimestamp !== null ? new Date(newestTimestamp).toISOString() : null;
-    const isStale = newestTimestamp === null || now - newestTimestamp > MAX_STALENESS_MS;
-
-    // Build a lookup from cell id → GridCell for bounds
-    const gridById = new Map(grid.map((c) => [c.id, c]));
-
-    const cells = Array.from(cellMap.entries())
-      .map(([id, { sensorIds, hourBins }]) => {
-        // Build hourly averages ordered most-recent first
-        const sortedBins = Array.from(hourBins.entries()).sort(
-          ([a], [b]) => b - a,
-        );
-        const hourlyAverages: HourlyAverage[] = sortedBins.map(
-          ([, { p1, p2 }]) => ({
-            pm10: p1.reduce((s, v) => s + v, 0) / p1.length,
-            pm25: p2.reduce((s, v) => s + v, 0) / p2.length,
-          }),
-        );
-
-        const rawAqi = calculateNowCastAqi(hourlyAverages);
-        const aqi = rawAqi > 0 ? rawAqi : null;
-        const cell = gridById.get(id);
-        return {
-          id,
-          aqi,
-          aqiLabel: aqi !== null ? getAqiLabel(aqi) : null,
-          aqiCategory: aqi !== null ? getAqiCategory(aqi) : null,
-          sensorCount: sensorIds.size,
-          bounds: cell
-            ? { south: cell.south, north: cell.north, west: cell.west, east: cell.east }
-            : null,
-        };
-      })
-      .sort((a, b) => {
-        if (a.aqi === null && b.aqi === null) return 0;
-        if (a.aqi === null) return 1;
-        if (b.aqi === null) return -1;
-        return b.aqi - a.aqi;
-      });
+    const cells = buildAqiCells(grid, cellMap);
 
     const maxAqi = cells.find((cell) => cell.aqi !== null)?.aqi ?? null;
 
