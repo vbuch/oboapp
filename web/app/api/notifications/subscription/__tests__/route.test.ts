@@ -151,7 +151,7 @@ describe("/api/notifications/subscription route", () => {
     expect(updateOneMock).toHaveBeenCalledWith(
       "sub-1",
       expect.objectContaining({
-        deviceInfo: { userAgent: "ua", platform: undefined },
+        deviceInfo: { userAgent: "ua" },
       }),
     );
   });

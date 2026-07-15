@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { NotificationSubscription } from "@/lib/types";
@@ -12,20 +13,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function toDeviceInfo(rawDeviceInfo: unknown): DeviceInfo {
+  const deviceInfo: DeviceInfo = {};
+
   if (isRecord(rawDeviceInfo)) {
-    return {
-      userAgent:
-        typeof rawDeviceInfo.userAgent === "string"
-          ? rawDeviceInfo.userAgent
-          : undefined,
-      platform:
-        typeof rawDeviceInfo.platform === "string"
-          ? rawDeviceInfo.platform
-          : undefined,
-    };
+    if (typeof rawDeviceInfo.userAgent === "string") {
+      deviceInfo.userAgent = rawDeviceInfo.userAgent;
+    }
+
+    if (typeof rawDeviceInfo.platform === "string") {
+      deviceInfo.platform = rawDeviceInfo.platform;
+    }
   }
 
-  return {};
+  return deviceInfo;
 }
 
 function toDocId(record: SubscriptionRecord): string {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ hasSubscription });
   } catch (error) {
-    console.error("Error checking subscription:", error);
+    Sentry.captureException(error);
     return NextResponse.json(
       { error: "Failed to check subscription" },
       { status: 500 },
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(subscription);
   } catch (error) {
-    console.error("Error creating subscription:", error);
+    Sentry.captureException(error);
     return NextResponse.json(
       { error: "Failed to create subscription" },
       { status: 500 },
@@ -194,7 +194,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting subscription:", error);
+    Sentry.captureException(error);
     return NextResponse.json(
       { error: "Failed to delete subscription" },
       { status: 500 },
