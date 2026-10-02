@@ -11,7 +11,7 @@ function zones(count: number, coordinates = center, radius = 100) {
   }));
 }
 function report(records: Record<string, unknown>[]) {
-  return aggregateInterestCoverage(records, locality, "revision-1", "2026-10-02T10:00:00.000Z");
+  return aggregateInterestCoverage(records, locality, "2026-10-02T10:00:00.000Z");
 }
 
 describe("interest coverage privacy and geography", () => {

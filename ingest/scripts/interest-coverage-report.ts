@@ -16,11 +16,10 @@ program.name("interest-coverage-report")
   .action(async (opts: { dryRun?: boolean }) => {
     dotenv.config({ path: resolve(process.cwd(), ".env.local") });
     const { getDb, closeDb } = await import("@/lib/db");
-    const { loadInterestRevision, saveInterestReport } = await import("@/lib/interest-coverage/report-store");
+    const { saveInterestReport } = await import("@/lib/interest-coverage/report-store");
     try {
       const db = await getDb();
       const report = await generateInterestReport({
-        readRevision: loadInterestRevision,
         readInterests: () => db.interests.findMany({ select: ["userId", "coordinates", "radius"] }),
         save: saveInterestReport,
       }, process.env.LOCALITY || "bg.sofia", opts.dryRun);

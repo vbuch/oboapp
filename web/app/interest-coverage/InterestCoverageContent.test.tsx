@@ -1,7 +1,8 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { makeInterestCoverageGrid } from "@oboapp/shared";
 import InterestCoverageContent from "./InterestCoverageContent";
+import { formatDateTime } from "@/lib/date-format";
 
 vi.mock("next/dynamic", () => ({ default: () => () => <div data-testid="coverage-map">Map</div> }));
 
@@ -11,7 +12,7 @@ const publicReport = {
   cells: [{ ...makeInterestCoverageGrid("bg.sofia").cells[0], users: { min: 10, max: 19 } }],
 };
 
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 describe("interest coverage page privacy states", () => {
   it("displays count bands and the report timestamp with a safe map", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(publicReport))));
@@ -21,25 +22,20 @@ describe("interest coverage page privacy states", () => {
     expect(screen.getByText("10–19")).toBeInTheDocument();
     expect(screen.getByText("20–29")).toBeInTheDocument();
     expect(document.querySelector("time")?.dateTime).toBe(publicReport.generatedAt);
+    expect(screen.getByText(formatDateTime(publicReport.generatedAt))).toBeInTheDocument();
+    expect(screen.getByText(/Генериран:/)).toBeInTheDocument();
   });
-  it("clears the map when the next privacy refresh becomes unavailable", async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(publicReport)))
-      .mockResolvedValue(new Response('{"status":"unavailable"}', { status: 503 }));
-    vi.stubGlobal("fetch", fetchMock);
-    const timers = vi.spyOn(globalThis, "setTimeout");
+  it("shows a loading error without map or summary counts", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
     render(<InterestCoverageContent />);
-    await screen.findByTestId("coverage-map");
-    const refresh = timers.mock.calls.find((call) => call[1] === 60_000)?.[0];
-    expect(typeof refresh).toBe("function");
-    if (typeof refresh === "function") await act(async () => { refresh(); });
-    await waitFor(() => expect(screen.queryByTestId("coverage-map")).not.toBeInTheDocument());
-    expect(screen.getByText(/Картата временно не е достъпна/)).toBeInTheDocument();
-    timers.mockRestore();
+    expect(await screen.findByText(/Отчетът не може да се зареди/)).toBeInTheDocument();
+    expect(screen.queryByTestId("coverage-map")).not.toBeInTheDocument();
+    expect(screen.queryByText("Запазени зони")).not.toBeInTheDocument();
   });
   it("shows an unavailable state without counts or map", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...publicReport, status: "unavailable", cells: [], summary: null }))));
     render(<InterestCoverageContent />);
-    expect(await screen.findByText(/Картата временно не е достъпна/)).toBeInTheDocument();
+    expect(await screen.findByText(/Картата не е достъпна за този отчет/)).toBeInTheDocument();
     expect(screen.queryByTestId("coverage-map")).not.toBeInTheDocument();
     expect(screen.queryByText("Запазени зони")).not.toBeInTheDocument();
   });

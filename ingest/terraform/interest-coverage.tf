@@ -81,7 +81,7 @@ resource "google_cloud_run_v2_job" "interest_coverage_report" {
 resource "google_cloud_scheduler_job" "interest_coverage_report_schedule" {
   count            = var.gcs_generic_bucket != "" ? 1 : 0
   name             = "interest-coverage-report-schedule"
-  description      = "Generate anonymized interest coverage monthly"
+  description      = "Generate anonymized interest coverage weekly"
   schedule         = var.schedules.interest_coverage_report
   time_zone        = var.schedule_timezone
   attempt_deadline = "620s"

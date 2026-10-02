@@ -1,8 +1,6 @@
 import {
   INTEREST_REPORT_PATH,
-  INTEREST_REVISION_PATH,
   InterestCoverageReportSchema,
-  InterestRevisionSchema,
 } from "@oboapp/shared";
 import type { InterestCoverageReport } from "@oboapp/shared";
 
@@ -16,19 +14,6 @@ async function getBucket() {
     storage = new Storage();
   }
   return storage.bucket(name);
-}
-
-export async function loadInterestRevision() {
-  const bucket = await getBucket();
-  try {
-    const [content] = await bucket.file(INTEREST_REVISION_PATH).download();
-    return InterestRevisionSchema.parse(JSON.parse(content.toString("utf-8")));
-  } catch (error) {
-    if (typeof error === "object" && error !== null && "code" in error && error.code === 404) {
-      return { revision: "initial", pending: 0 };
-    }
-    throw error;
-  }
 }
 
 export async function saveInterestReport(report: InterestCoverageReport) {

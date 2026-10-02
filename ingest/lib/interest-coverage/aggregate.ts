@@ -36,7 +36,7 @@ function intersects(zone: NonNullable<ReturnType<typeof parseZone>>, cell: Retur
  * Suppressing whole signatures also protects sparse combinations of otherwise
  * populous cells. Unsafe contributors never enter published cell densities.
  */
-export function aggregateInterestCoverage(records: Record<string, unknown>[], locality: string, sourceRevision: string, generatedAt = new Date().toISOString()): InterestCoverageReport {
+export function aggregateInterestCoverage(records: Record<string, unknown>[], locality: string, generatedAt = new Date().toISOString()): InterestCoverageReport {
   const grid = makeCoverageGrid(locality);
   const users = new Map<string, Set<number>>();
   let interestCount = 0;
@@ -51,7 +51,7 @@ export function aggregateInterestCoverage(records: Record<string, unknown>[], lo
     users.set(zone.userId, signature);
   }
   const base: InterestCoverageReport = {
-    version: 1, locality, generatedAt, sourceRevision, gridMeters: INTEREST_GRID_METERS,
+    version: 1, locality, generatedAt, gridMeters: INTEREST_GRID_METERS,
     status: "unavailable", summary: null, cells: [],
   };
   if (users.size < INTEREST_PRIVACY_MIN_USERS) return base;

@@ -3,13 +3,7 @@ import { BOUNDS } from "../bounds";
 import { INTEREST_GRID_METERS, makeInterestCoverageGrid } from "../interest-coverage-grid";
 
 export const INTEREST_REPORT_PATH = "interests/report.json";
-export const INTEREST_REVISION_PATH = "interests/revision.json";
 export const INTEREST_PRIVACY_MIN_USERS = 10;
-
-export const InterestRevisionSchema = z.object({
-  revision: z.string().min(1),
-  pending: z.number().int().nonnegative(),
-}).strict();
 
 const CountBandSchema = z.object({
   min: z.number().int().nonnegative(),
@@ -20,7 +14,6 @@ export const InterestCoverageReportSchema = z.object({
   version: z.literal(1),
   locality: z.string().min(1),
   generatedAt: z.iso.datetime(),
-  sourceRevision: z.string().min(1),
   gridMeters: z.literal(INTEREST_GRID_METERS),
   status: z.enum(["available", "unavailable"]),
   summary: z.object({
@@ -53,7 +46,6 @@ export const InterestCoverageReportSchema = z.object({
   }
 });
 
-export type InterestRevision = z.infer<typeof InterestRevisionSchema>;
 export type InterestCoverageReport = z.infer<typeof InterestCoverageReportSchema>;
 
 export function countBand(count: number) {

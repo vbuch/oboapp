@@ -1,20 +1,22 @@
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import { GET } from "./route";
-import { loadCurrentInterestReport } from "@/lib/interest-coverage-store";
+import { loadInterestReport } from "@/lib/interest-coverage-store";
+import type { InterestCoverageReport } from "@oboapp/shared";
 
-vi.mock("@/lib/interest-coverage-store", () => ({ loadCurrentInterestReport: vi.fn() }));
+vi.mock("@/lib/interest-coverage-store", () => ({ loadInterestReport: vi.fn() }));
 vi.mock("@/lib/report-pages", () => ({ hasReportPagesEnabled: () => true }));
-describe("public interest report", () => {
+describe("public static interest report", () => {
   beforeEach(() => vi.clearAllMocks());
-  it("requires no auth and strips the internal revision", async () => {
-    vi.mocked(loadCurrentInterestReport).mockResolvedValue({ version: 1, locality: "bg.sofia", generatedAt: "2026-10-02T10:00:00.000Z", sourceRevision: "secret", gridMeters: 2000, status: "unavailable", summary: null, cells: [] });
+  it("serves the stored JSON without auth using the standard public report cache", async () => {
+    const report: InterestCoverageReport = { version: 1, locality: "bg.sofia", generatedAt: "2026-10-02T10:00:00.000Z", gridMeters: 2000, status: "unavailable", summary: null, cells: [] };
+    vi.mocked(loadInterestReport).mockResolvedValue(report);
     const response = await GET();
     expect(response.status).toBe(200);
-    expect(await response.json()).not.toHaveProperty("sourceRevision");
-    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response.json()).toEqual(report);
+    expect(response.headers.get("Cache-Control")).toBe("public, s-maxage=3600, stale-while-revalidate=86400");
   });
-  it("does not serve a missing, invalidated or unsafe report", async () => {
-    vi.mocked(loadCurrentInterestReport).mockResolvedValue(null);
+  it("does not cache missing report responses", async () => {
+    vi.mocked(loadInterestReport).mockResolvedValue(null);
     const response = await GET();
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ status: "unavailable" });

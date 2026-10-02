@@ -1,7 +1,7 @@
 # Public interest coverage report
 
-`/interest-coverage` displays a precomputed, anonymized report of currently saved
-zones through the public `GET /api/interests/report` endpoint. No sign-in is
+`/interest-coverage` displays a precomputed, anonymized snapshot of saved zones
+at generation time through the public `GET /api/interests/report` endpoint. No sign-in is
 required. Both are available when `GCS_GENERIC_BUCKET` is configured, using the
 same report-page gate and footer section as the history report.
 
@@ -11,19 +11,19 @@ From `ingest/`, run `pnpm interest-coverage-report` or
 `pnpm interest-coverage-report --dry-run`. The script loads dotenv before database
 initialization, reads only user ID, coordinates and radius through `@oboapp/db`,
 and uploads **only the approved aggregate** to `interests/report.json`.
-Terraform schedules a Cloud Run job monthly on the first day at 06:00 in
+Terraform schedules a Cloud Run job weekly on Monday at 06:00 in
 `schedule_timezone` (Europe/Sofia by default). Override
 `schedules.interest_coverage_report` to change the cadence, or execute the job
 manually. A failed job logs an error and is covered by the standard log alert.
 
-The report expires after 45 days. Existing report prefixes retain their ten-day
-retention. `interests/revision.json` has no lifecycle expiry: it is a persistent
-privacy control, not a disposable snapshot. For longer generation intervals,
-increase the report retention and its documented maximum age together.
+The report uses the existing generic bucket's ten-day retention, which covers
+the weekly interval. Each run overwrites the previous JSON. The web service uses
+the same read access as other report pages. The ingest job alone writes the
+report; there are no revision markers or additional web write permissions.
 
 ## Coverage and privacy
 
-Active means valid, currently saved zones with circle coverage intersecting the
+Active means valid zones saved when the report is generated, with circle coverage intersecting the
 configured locality's shared rectangular bounds. It does not imply a registered
 push device. Malformed IDs/coordinates and radii outside 100–1000 meters are
 excluded. Zones centered just outside the bounds can contribute if their circles
@@ -58,31 +58,24 @@ and compared over time. Review changes to grid resolution, thresholds, bands and
 release cadence as changes to the privacy policy; never introduce raw details or
 personalized subsets. If no signature can be published, the whole map is withheld.
 
-## Changes, invalidation and concurrency
+## Snapshot freshness
 
-Interest create/update/delete and account deletion wrap database mutations with a
-GCS revision update **before** writing. A generation-conditional write increments
-the pending-mutation count and changes the revision; completion decrements it and
-changes the revision again. Concurrent mutations use compare-and-swap retries.
-Failure to invalidate blocks the mutation. Failure to complete invalidation leaves
-the report unavailable; it must not silently restore an old snapshot.
+Privacy thresholds and spatial suppression are reevaluated from the data read on
+every scheduled or manual generation. If the next run has fewer than ten users
+or no safely publishable cells, it writes an unavailable snapshot with no counts
+or geometry, replacing the previous map.
 
-Generation checks the revision before and after reading/aggregating and refuses
-to publish across a mutation. The public endpoint reads the GCS revision before
-and after downloading the report, rejects pending/mismatched revisions, and uses
-`Cache-Control: no-store`. It never queries interests or aggregates on requests.
-The page rechecks every minute and clears the displayed map on unavailable/error
-responses. A source change makes the page unavailable until scheduled or manual
-regeneration; generation is intentionally infrequent.
+The public endpoint only reads and validates the stored JSON. Like the other
+reports, successful responses use a one-hour public cache with up to a day of
+stale-while-revalidate; missing/error responses are not cached. The page fetches
+once on load and shows **Генериран: <date time>** using the shared `formatDateTime`
+helper. There is no live refresh, database query, zone-mutation hook or effect on
+account/zone changes. Changes appear in the next generated report; the timestamp
+describes the snapshot's age rather than the current subscriber population.
 
-The web service account must be able to read report objects and write
-`interests/revision.json` (the existing ingest service account has bucket-scoped
-object admin). Keep the bucket private; public access is through the endpoint.
-Maintenance scripts or external writes that bypass the web mutation wrapper must
-invalidate the revision before modifying interests. If a crashed mutation leaves
-`pending` nonzero, confirm that no mutation is running before an operator resets
-the marker with a fresh revision and regenerates the report. Never delete the
-marker to bypass checks.
+This weekly snapshot behavior is the agreed downstream scope. It deliberately
+does not implement immediate withdrawal after individual zone changes. Keep the
+bucket private and expose the approved JSON through the public report endpoint.
 
 ## Interpreting a heartbeat with no matches
 

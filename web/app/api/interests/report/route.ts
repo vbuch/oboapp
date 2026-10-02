@@ -1,24 +1,23 @@
 import { NextResponse } from "next/server";
 import { hasReportPagesEnabled } from "@/lib/report-pages";
-import { loadCurrentInterestReport } from "@/lib/interest-coverage-store";
+import { loadInterestReport } from "@/lib/interest-coverage-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-const headers = { "Cache-Control": "no-store" };
+const unavailableHeaders = { "Cache-Control": "no-store" };
+const reportHeaders = { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" };
 
-/** Public GCS snapshot endpoint. Privacy revision checks must never be cached. */
+/** Public GCS snapshot endpoint. Privacy suppression is applied by the generator. */
 export async function GET() {
   if (!hasReportPagesEnabled()) {
-    return NextResponse.json({ status: "unavailable" }, { status: 503, headers });
+    return NextResponse.json({ status: "unavailable" }, { status: 503, headers: unavailableHeaders });
   }
   try {
-    const report = await loadCurrentInterestReport();
-    if (!report) return NextResponse.json({ status: "unavailable" }, { status: 503, headers });
-    // Revision identifiers are internal freshness controls, not public metadata.
-    const { sourceRevision: _revision, ...publicReport } = report;
-    return NextResponse.json(publicReport, { headers });
+    const report = await loadInterestReport();
+    if (!report) return NextResponse.json({ status: "unavailable" }, { status: 503, headers: unavailableHeaders });
+    return NextResponse.json(report, { headers: reportHeaders });
   } catch (error) {
     console.error("Failed to load interest coverage report", error);
-    return NextResponse.json({ status: "unavailable" }, { status: 503, headers });
+    return NextResponse.json({ status: "unavailable" }, { status: 503, headers: unavailableHeaders });
   }
 }
