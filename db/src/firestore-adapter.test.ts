@@ -40,14 +40,14 @@ describe("FirestoreAdapter", () => {
       get: vi.fn().mockResolvedValue({ docs: [] }),
     };
     const adapter = new FirestoreAdapter({ collection: () => query } as any);
-    await adapter.findMany("notificationMatches", {
-      where: [{ field: "_id", op: ">", value: "match-1" }],
-      orderBy: [{ field: "_id", direction: "asc" }],
+    const page = await adapter.findPage("notificationMatches", {
+      after: { backend: "firestore", value: "match-1" },
       limit: 500,
     });
     expect(query.where).toHaveBeenCalledWith("__name__", ">", "match-1");
     expect(query.orderBy).toHaveBeenCalledWith("__name__", "asc");
     expect(query.limit).toHaveBeenCalledWith(500);
+    expect(page).toEqual({ documents: [], nextCursor: null });
   });
 
   it("uses FieldValue operators for update operator payloads", async () => {

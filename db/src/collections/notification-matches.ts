@@ -2,7 +2,13 @@
  * Notification matches collection repository.
  */
 
-import type { DbClient, FindManyOptions, WhereClause } from "../types";
+import type {
+  DbClient,
+  FindManyOptions,
+  WhereClause,
+  DbPageCursor,
+  DbPage,
+} from "../types";
 
 /** Collection name constant */
 export const NOTIFICATION_MATCHES_COLLECTION = "notificationMatches";
@@ -25,15 +31,11 @@ export class NotificationMatchesRepository {
   }
 
   /** Stable keyset pagination for reports; avoids retaining all historical matches. */
-  async findNotifiedPage(
-    limit: number,
-    afterId?: string,
-  ): Promise<Record<string, unknown>[]> {
+  async findNotifiedPage(limit: number, after?: DbPageCursor): Promise<DbPage> {
     const where: WhereClause[] = [{ field: "notified", op: "==", value: true }];
-    if (afterId) where.push({ field: "_id", op: ">", value: afterId });
-    return this.db.findMany(NOTIFICATION_MATCHES_COLLECTION, {
+    return this.db.findPage(NOTIFICATION_MATCHES_COLLECTION, {
       where,
-      orderBy: [{ field: "_id", direction: "asc" }],
+      after,
       limit,
       select: [
         "userId",

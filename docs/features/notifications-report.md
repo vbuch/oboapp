@@ -49,10 +49,15 @@ pnpm notifications-report
 
 Dry run reads the database and logs aggregate counts without writing GCS.
 Normal execution requires `GCS_GENERIC_BUCKET` and fails if saving fails. It
-uses the normal `getDb()` configuration and either the configured Firebase
-service account or Application Default Credentials for GCS access.
+uses the normal `getDb()` configuration for database access and Application
+Default Credentials for GCS writes (the Cloud Run execution service account).
+The Firebase service account key is not used for snapshot uploads.
 
-The generator reads processed matches in pages of 500 ordered by document ID.
+The generator reads processed matches in pages of 500 ordered by native document
+ID, preserving MongoDB ObjectId cursors and handling mixed string/ObjectId IDs.
+The database integration regression can be run against a disposable MongoDB
+instance by setting `DB_TEST_MONGODB_URI` and running
+`pnpm --filter @oboapp/db test:run`. It creates and drops a uniquely named test database.
 It looks up missing sources sequentially in batches of ten, selecting only the
 source field. It retains only the current page, source totals and distinct
 successful recipient IDs in memory. No recipient IDs, notification IDs, device

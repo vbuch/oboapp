@@ -12,11 +12,8 @@ export async function saveNotificationsReportSnapshot(
       "GCS_GENERIC_BUCKET is required to save the notifications report",
     );
   const { Storage } = await import("@google-cloud/storage");
-  const storage = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-    ? new Storage({
-        credentials: JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY),
-      })
-    : new Storage();
+  // Cloud Run's execution identity has bucket access; the Firebase key does not.
+  const storage = new Storage();
   await storage
     .bucket(bucket)
     .file("notifications/report.json")

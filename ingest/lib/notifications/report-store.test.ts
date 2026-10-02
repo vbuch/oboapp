@@ -44,6 +44,17 @@ describe("notifications report storage", () => {
     );
     expect(mocks.save).not.toHaveBeenCalled();
   });
+  it("uses application default credentials even when a Firebase key is configured", async () => {
+    vi.stubEnv(
+      "FIREBASE_SERVICE_ACCOUNT_KEY",
+      JSON.stringify({
+        client_email: "firebase@example.com",
+        private_key: "firebase-key",
+      }),
+    );
+    await saveNotificationsReportSnapshot(snapshot);
+    expect(mocks.storage).toHaveBeenCalledWith(undefined);
+  });
   it("propagates upload failures so the job exits unsuccessfully", async () => {
     mocks.save.mockRejectedValue(new Error("upload failed"));
     await expect(saveNotificationsReportSnapshot(snapshot)).rejects.toThrow(

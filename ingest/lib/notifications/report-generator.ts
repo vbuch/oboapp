@@ -1,4 +1,5 @@
-import type { OboDb } from "@oboapp/db";
+import type { OboDb, DbPageCursor } from "@oboapp/db";
+import { isDeepStrictEqual } from "node:util";
 import {
   getSnapshotSource,
   NotificationsReportAggregator,
@@ -13,12 +14,13 @@ export async function generateNotificationsReport(
   generatedAt = new Date(),
 ) {
   const aggregator = new NotificationsReportAggregator();
-  let afterId: string | undefined;
+  let after: DbPageCursor | undefined;
   while (true) {
-    const matches = await db.notificationMatches.findNotifiedPage(
+    const page = await db.notificationMatches.findNotifiedPage(
       PAGE_SIZE,
-      afterId,
+      after,
     );
+    const matches = page.documents;
     if (matches.length === 0) break;
     const missingSourceIds = [
       ...new Set(
@@ -62,11 +64,10 @@ export async function generateNotificationsReport(
         getSnapshotSource(match) ?? fallback ?? "(unknown)",
       );
     }
-    const lastId = matches.at(-1)?._id;
-    if (typeof lastId !== "string" || (afterId && lastId <= afterId)) {
+    if (!page.nextCursor || isDeepStrictEqual(after, page.nextCursor)) {
       throw new Error("Notification report cursor did not advance");
     }
-    afterId = lastId;
+    after = page.nextCursor;
     if (matches.length < PAGE_SIZE) break;
   }
   return aggregator.snapshot(generatedAt);

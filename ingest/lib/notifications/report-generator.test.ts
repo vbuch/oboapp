@@ -10,7 +10,13 @@ function makeDb(
   messages: Record<string, unknown>[] = [],
 ) {
   const findNotifiedPage = vi.fn();
-  for (const page of pages) findNotifiedPage.mockResolvedValueOnce(page);
+  for (const page of pages)
+    findNotifiedPage.mockResolvedValueOnce({
+      documents: page,
+      nextCursor: page.length
+        ? { backend: "firestore", value: page.at(-1)?._id }
+        : null,
+    });
   const findMany = vi.fn().mockResolvedValue(messages);
   const db = {
     notificationMatches: { findNotifiedPage },
@@ -121,7 +127,7 @@ describe("generateNotificationsReport", () => {
     const report = await generateNotificationsReport(db, generatedAt);
     expect(findNotifiedPage.mock.calls).toEqual([
       [500, undefined],
-      [500, "0499"],
+      [500, { backend: "firestore", value: "0499" }],
     ]);
     expect(
       findMany.mock.calls.map(([options]) => options.where[0].value.length),
@@ -151,5 +157,24 @@ describe("generateNotificationsReport", () => {
     await expect(generateNotificationsReport(db)).rejects.toThrow(
       "cursor did not advance",
     );
+  });
+
+  it("passes opaque native cursors through even when public IDs repeat across BSON types", async () => {
+    const { db, findNotifiedPage } = makeDb([]);
+    const publicId = "0123456789abcdef01234567";
+    const stringCursor = { backend: "mongodb", value: publicId };
+    const nativeCursor = { backend: "mongodb", value: { nativeId: publicId } };
+    findNotifiedPage
+      .mockResolvedValueOnce({
+        documents: Array.from({ length: 500 }, () => ({ _id: publicId })),
+        nextCursor: stringCursor,
+      })
+      .mockResolvedValueOnce({
+        documents: [{ _id: publicId }],
+        nextCursor: nativeCursor,
+      });
+    const report = await generateNotificationsReport(db, generatedAt);
+    expect(report.kpis.processed).toBe(501);
+    expect(findNotifiedPage.mock.calls[1][1]).toBe(stringCursor);
   });
 });
