@@ -113,7 +113,12 @@ export class FirestoreAdapter implements DbClient {
 
     if (options?.orderBy) {
       for (const order of options.orderBy) {
-        query = query.orderBy(order.field, order.direction);
+        if (order.field === "_id") {
+          const { FieldPath } = await import("firebase-admin/firestore");
+          query = query.orderBy(FieldPath.documentId(), order.direction);
+        } else {
+          query = query.orderBy(order.field, order.direction);
+        }
       }
     }
 
