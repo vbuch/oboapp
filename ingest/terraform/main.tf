@@ -1084,9 +1084,9 @@ resource "google_cloud_scheduler_job" "educational_facilities_sync_schedule" {
 
 # ── Air Quality Fetch Job ─────────────────────────────────────────────────────
 
-# Holds ephemeral artifacts (weekly heatmap snapshots, air-quality fetch output) with a
-# short TTL. Versioning is intentionally disabled — objects are reproducible from source
-# data and the 10-day lifecycle delete would defeat object versioning anyway.
+# Holds report snapshots and air-quality output with prefix-specific retention.
+# The interest revision marker is persistent. Versioning is intentionally disabled
+# because reports are reproducible and prior private snapshots must not be served.
 resource "google_storage_bucket" "generic" {
   count         = var.gcs_generic_bucket != "" ? 1 : 0
   name          = var.gcs_generic_bucket
@@ -1098,7 +1098,19 @@ resource "google_storage_bucket" "generic" {
 
   lifecycle_rule {
     condition {
-      age = 10  # Weekly heatmap snapshot needs >7 days retention; 10 days gives buffer
+      age            = 10 # Existing ephemeral reports retain their current TTL.
+      matches_prefix = ["heatmap/", "air-quality/", "geocode-cache/", "billing/", "notifications/"]
+    }
+    action {
+      type = "Delete"
+    }
+  }
+  # Monthly report survives the next scheduled run; revision.json is persistent
+  # so expiry can never reset the privacy invalidation / pending-mutation state.
+  lifecycle_rule {
+    condition {
+      age            = 45
+      matches_prefix = ["interests/report.json"]
     }
     action {
       type = "Delete"

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
+import { withInterestReportMutation } from "@/lib/interest-coverage-store";
 
 // DELETE - Delete all user data and account
 export async function DELETE(request: NextRequest) {
@@ -13,7 +14,7 @@ export async function DELETE(request: NextRequest) {
     // Delete all user data from multiple collections
 
     // 1. Count and delete all interests
-    const interestsDeleted = await db.interests.deleteAllByUserId(userId);
+    const interestsDeleted = await withInterestReportMutation(() => db.interests.deleteAllByUserId(userId));
 
     // 2. Count and delete all notification subscriptions
     const subscriptionsDeleted =

@@ -4,6 +4,7 @@ import { Interest } from "@/lib/types";
 import { verifyAuthToken } from "@/lib/verifyAuthToken";
 import { toRequiredISOString } from "@/lib/date-serialization";
 import { sanitizeZoneColor, sanitizeZoneLabel } from "@/lib/zoneTypes";
+import { withInterestReportMutation } from "@/lib/interest-coverage-store";
 
 // Constants
 const MIN_RADIUS = 100; // meters
@@ -239,7 +240,7 @@ export async function POST(request: NextRequest) {
     }
 
     const db = await getDb();
-    const docId = await db.interests.insertOne(interestData);
+    const docId = await withInterestReportMutation(() => db.interests.insertOne(interestData));
 
     const newInterest: Interest = {
       id: docId,
@@ -307,7 +308,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await db.interests.deleteOne(interestId);
+    await withInterestReportMutation(() => db.interests.deleteOne(interestId));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -376,7 +377,7 @@ export async function PATCH(request: NextRequest) {
     applyRadiusUpdate(updates, radius);
     applyMetadataUpdates(updates, { label: body.label, color: body.color });
 
-    await db.interests.updateOne(id, updates);
+    await withInterestReportMutation(() => db.interests.updateOne(id, updates));
 
     // Fetch updated document
     const updatedDoc = await db.interests.findById(id);
