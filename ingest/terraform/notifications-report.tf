@@ -142,4 +142,3 @@ resource "google_monitoring_alert_policy" "notifications_report_failures" {
 
   depends_on = [google_project_service.monitoring]
 }
-
