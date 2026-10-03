@@ -35,6 +35,7 @@ function setup() {
       return id;
     }),
     findMany: vi.fn(),
+    findPage: vi.fn(),
     insertOne: vi.fn(),
     updateOne: vi.fn(),
     deleteOne: vi.fn(),
