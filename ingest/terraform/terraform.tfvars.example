@@ -34,5 +34,6 @@ app_url            = "https://your-domain.com"
 #   geocode_cache_report        = "0 5 * * 1"
 #   heatmap_report              = "0 4 * * 1"
 #   notifications_report        = "0 3 * * 1"
+#   interest_coverage_report    = "0 6 * * 1"
 #   heartbeat_check             = "30 17 * * *"
 # }
