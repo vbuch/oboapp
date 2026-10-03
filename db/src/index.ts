@@ -198,6 +198,9 @@ export type {
   WhereClause,
   OrderByClause,
   FindManyOptions,
+  FindPageOptions,
+  DbPage,
+  DbPageCursor,
   BatchOperation,
   UpdateOperators,
 } from "./types";
