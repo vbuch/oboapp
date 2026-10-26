@@ -7,7 +7,7 @@ import { discoverItems, FEED_URLS } from "./discovery";
 import { extractFeedItems } from "./extractors";
 
 vi.mock("../shared/rss", async (original) => ({
-  ...await original<typeof import("../shared/rss")>(),
+  ...(await original<typeof import("../shared/rss")>()),
   fetchFeedXml: vi.fn(),
 }));
 vi.mock("@/lib/delay", () => ({ delay: vi.fn().mockResolvedValue(undefined) }));
@@ -15,7 +15,8 @@ vi.mock("@/lib/delay", () => ({ delay: vi.fn().mockResolvedValue(undefined) }));
 const emptyFeed = "<rss><channel></channel></rss>";
 const feed = (name: string, date = "2026-09-08T08:00:00Z") =>
   `<rss><channel><item><title>${name}</title><link>https://sredec-sofia.org/${name}/</link><pubDate>${date}</pubDate></item></channel></rss>`;
-const fixture = (name: string) => readFileSync(resolve(__dirname, "fixtures", name), "utf8");
+const fixture = (name: string) =>
+  readFileSync(resolve(__dirname, "fixtures", name), "utf8");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -30,15 +31,26 @@ describe("Sredets RSS discovery", () => {
     vi.mocked(fetchFeedXml).mockImplementation(async (url) => {
       const parsed = new URL(url);
       const category = decodeURIComponent(parsed.pathname);
-      if (category.includes("saobshtenia")) return parsed.search ? emptyFeed : feed("graffiti");
-      if (!category.includes("новини")) return emptyFeed;
-      if (parsed.searchParams.get("paged") === "3") return emptyFeed;
+      if (category.includes("saobshtenia")) {
+        return parsed.search ? emptyFeed : feed("graffiti");
+      }
+      if (!category.includes("новини")) {
+        return emptyFeed;
+      }
+      if (parsed.searchParams.get("paged") === "3") {
+        return emptyFeed;
+      }
       return parsed.search ? feed("graffiti") : feed("washing");
     });
     const result = await discoverItems();
     expect(result.map((item) => item.title)).toEqual(["washing", "graffiti"]);
-    expect(result[1]).toMatchObject({ url: "https://sredec-sofia.org/graffiti/", date: "2026-09-08T08:00:00.000Z" });
-    for (const url of FEED_URLS) expect(fetchFeedXml).toHaveBeenCalledWith(new URL(url).toString());
+    expect(result[1]).toMatchObject({
+      url: "https://sredec-sofia.org/graffiti/",
+      date: "2026-09-08T08:00:00.000Z",
+    });
+    for (const url of FEED_URLS) {
+      expect(fetchFeedXml).toHaveBeenCalledWith(new URL(url).toString());
+    }
     expect(fetchFeedXml).toHaveBeenCalledTimes(8);
     expect(delay).toHaveBeenCalledTimes(8);
     expect(delay).toHaveBeenCalledWith(2000);
@@ -46,27 +58,37 @@ describe("Sredets RSS discovery", () => {
 
   it("stops at the exact ingestion age cutoff, preserving newer posts on the same page", async () => {
     vi.mocked(fetchFeedXml).mockResolvedValueOnce(
-      feed("recent", "2026-07-28T00:00:01Z").replace("</channel>",
-        "<item><title>old</title><link>https://sredec-sofia.org/old/</link><pubDate>2026-07-28T00:00:00Z</pubDate></item></channel>"),
+      feed("recent", "2026-07-28T00:00:01Z").replace(
+        "</channel>",
+        "<item><title>old</title><link>https://sredec-sofia.org/old/</link><pubDate>2026-07-28T00:00:00Z</pubDate></item></channel>",
+      ),
     );
-    expect((await discoverItems()).map((item) => item.title)).toEqual(["recent"]);
+    expect((await discoverItems()).map((item) => item.title)).toEqual([
+      "recent",
+    ]);
     expect(fetchFeedXml).toHaveBeenCalledTimes(5);
   });
 
   it("treats a later-page 404 as the end of a feed", async () => {
-    vi.mocked(fetchFeedXml).mockResolvedValueOnce(feed("notice"))
+    vi.mocked(fetchFeedXml)
+      .mockResolvedValueOnce(feed("notice"))
       .mockRejectedValueOnce(new RssFeedHttpError(404, "page2"));
     expect(await discoverItems()).toHaveLength(1);
     expect(fetchFeedXml).toHaveBeenCalledTimes(6);
   });
 
   it.each([404, 403, 500])("fails on first-page HTTP %s", async (status) => {
-    vi.mocked(fetchFeedXml).mockRejectedValueOnce(new RssFeedHttpError(status, "feed"));
-    await expect(discoverItems()).rejects.toThrow(`RSS feed returned ${status}`);
+    vi.mocked(fetchFeedXml).mockRejectedValueOnce(
+      new RssFeedHttpError(status, "feed"),
+    );
+    await expect(discoverItems()).rejects.toThrow(
+      `RSS feed returned ${status}`,
+    );
   });
 
   it("propagates later-page server failures", async () => {
-    vi.mocked(fetchFeedXml).mockResolvedValueOnce(feed("notice"))
+    vi.mocked(fetchFeedXml)
+      .mockResolvedValueOnce(feed("notice"))
       .mockRejectedValueOnce(new RssFeedHttpError(500, "page2"));
     await expect(discoverItems()).rejects.toThrow("RSS feed returned 500");
   });
@@ -78,15 +100,25 @@ describe("Sredets RSS discovery", () => {
   });
 
   it("fails visibly at the pagination safety limit", async () => {
-    vi.mocked(fetchFeedXml).mockImplementation(async (url) => feed(`post-${new URL(url).searchParams.get("paged") ?? "1"}`));
+    vi.mocked(fetchFeedXml).mockImplementation(async (url) =>
+      feed(`post-${new URL(url).searchParams.get("paged") ?? "1"}`),
+    );
     await expect(discoverItems()).rejects.toThrow("exceeded 100 pages");
     expect(fetchFeedXml).toHaveBeenCalledTimes(100);
   });
 
   it("reads live category fixtures and leaves administrative relevance to ingestion", async () => {
-    const files = ["useful.xml", "news.xml", "announcements.xml", "investment.xml", "discussion.xml"];
+    const files = [
+      "useful.xml",
+      "news.xml",
+      "announcements.xml",
+      "investment.xml",
+      "discussion.xml",
+    ];
     vi.mocked(fetchFeedXml).mockImplementation(async (url) => {
-      const index = FEED_URLS.findIndex((candidate) => new URL(candidate).pathname === new URL(url).pathname);
+      const index = FEED_URLS.findIndex(
+        (candidate) => new URL(candidate).pathname === new URL(url).pathname,
+      );
       return new URL(url).search ? emptyFeed : fixture(files[index]);
     });
     const result = await discoverItems();
@@ -103,9 +135,13 @@ describe("Sredets RSS discovery", () => {
   it("discovers the real graffiti notice behind the first announcements page", async () => {
     vi.mocked(fetchFeedXml).mockImplementation(async (url) => {
       const parsed = new URL(url);
-      if (!parsed.pathname.includes("saobshtenia")) return emptyFeed;
+      if (!parsed.pathname.includes("saobshtenia")) {
+        return emptyFeed;
+      }
       const page = parsed.searchParams.get("paged");
-      if (page === "3") return emptyFeed;
+      if (page === "3") {
+        return emptyFeed;
+      }
       return fixture(page ? "graffiti.xml" : "announcements.xml");
     });
     const result = await discoverItems();
@@ -114,6 +150,8 @@ describe("Sredets RSS discovery", () => {
       title: "Уведомление относно почистване на графити",
       date: "2026-09-08T12:39:00.000Z",
     });
-    expect(result[1].url).toBe(extractFeedItems(fixture("graffiti.xml"))[0].url);
+    expect(result[1].url).toBe(
+      extractFeedItems(fixture("graffiti.xml"))[0].url,
+    );
   });
 });

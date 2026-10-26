@@ -14,7 +14,9 @@ describe("sredec-sofia-org crawl contract", () => {
 
   it("wires discovery, source identity, locality and detail processing", async () => {
     await contract.assertWiring();
-    expect(vi.mocked(crawlHybridRss).mock.calls[0][0].discoverItems).toBe(discoverItems);
+    expect(vi.mocked(crawlHybridRss).mock.calls[0][0].discoverItems).toBe(
+      discoverItems,
+    );
   });
 
   it("propagates orchestration failures to the runner", async () => {

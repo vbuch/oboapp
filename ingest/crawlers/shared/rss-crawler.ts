@@ -61,7 +61,7 @@ export async function crawlFullRss({
 
   const uniqueItems = deduplicate(feedItems);
 
-  logger.debug("Fetched RSS feed", {
+  logger.debug("Fetched RSS feed", {
     sourceType,
     feedUrl,
     count: uniqueItems.length,
@@ -209,7 +209,9 @@ export async function crawlHybridRss({
 function deduplicate(items: RssFeedItem[]): RssFeedItem[] {
   const seen = new Set<string>();
   return items.filter((item) => {
-    if (seen.has(item.url)) return false;
+    if (seen.has(item.url)) {
+      return false;
+    }
     seen.add(item.url);
     return true;
   });
@@ -242,7 +244,9 @@ export async function filterUnprocessed(
       );
       wasProcessed = true;
     }
-    if (!wasProcessed) newItems.push(item);
+    if (!wasProcessed) {
+      newItems.push(item);
+    }
   }
   return newItems;
 }

@@ -3,7 +3,10 @@ import { decode as decodeHtmlEntities } from "html-entities";
 export const RSS_FEED_FETCH_TIMEOUT_MS = 30_000;
 
 export class RssFeedHttpError extends Error {
-  constructor(public readonly status: number, url: string) {
+  constructor(
+    public readonly status: number,
+    url: string,
+  ) {
     super(`RSS feed returned ${status} for ${url}`);
     this.name = "RssFeedHttpError";
   }
