@@ -54,8 +54,6 @@ The source package uses the same RSS Accept header as this deployment fork. Its 
 
 Version `0.2.0` collects the News feed and `https://triaditza.org/feed/?post_type=announcements`. It deduplicates shared URLs, preserves publication dates and document links, and removes embedded styles and scripts from Markdown. Obo's handoff test covers both feeds reaching ingestion and repeat scans skipping stored items.
 
-This is the feed-only first pass for [#35](https://github.com/vbuch/oboapp/issues/35). Remaining gaps are older notices outside the feed window, inline content on section pages such as the streets and sidewalks programme, edits to known URLs, and details available only inside attachments. The package README records the verified feed coverage. Assess these gaps from the expanded collection before adding more collection paths.
-
 ## Moving the next source
 
 1. Add contract tests for the source's existing identifiers, content, locality, schedule, and historical lookup rules. Include provider fixes made in the deployment fork.
