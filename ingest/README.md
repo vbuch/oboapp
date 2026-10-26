@@ -29,7 +29,7 @@ graph LR
     style F fill:#e1f5ff
 ```
 
-During the [source-package transition](../docs/features/source-packages.md), the same command and Cloud Run jobs select either a legacy implementation or a package adapter. Triaditsa is the first packaged source in this fork; the remaining implementations stay in `crawlers/`. These are two collection paths into one downstream pipeline, not duplicate runs of the same source. The package supplies data; Obo's runner owns deduplication, validation, and persistence. No queue or additional scheduler is introduced.
+During the [source-package transition](../docs/features/source-packages.md), the existing command and Cloud Run jobs run either a local crawler or a source package. Triaditsa is the first packaged source in this fork. Other sources keep their code in `crawlers/`. Both paths feed the same processing pipeline. The package supplies data. Obo's runner handles deduplication, validation, and persistence: it skips known items, checks new content, and saves valid records.
 
 ## Components
 

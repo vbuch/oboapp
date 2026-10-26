@@ -31,7 +31,7 @@ flowchart TD
     notify --> fcm[Firebase Cloud Messaging]
 ```
 
-During the [source-package transition](source-packages.md), these are two collection implementations within the existing jobs, not two independent orchestration systems. Triaditsa uses the packaged-source runner in this fork; all other source jobs retain their legacy implementation. Its job name and schedule do not change, and there is no additional discovery job, durable queue, or duplicate legacy Triaditsa execution.
+During the [source-package transition](source-packages.md), the existing jobs collect data in two ways. Triaditsa uses the source package and Obo runner. Other jobs use their existing crawlers. Triaditsa keeps its job name and schedule.
 
 ### Two Workflow Types
 
@@ -55,7 +55,7 @@ For adapting schedules and locality configuration for a new city instance, see [
 
 ### Step 1: Parallel Crawler Execution
 
-Selected source jobs run in parallel. Each fetches data from its provider (API or website) and persists complete raw documents through `@oboapp/db`. Legacy jobs use their existing helpers; the Triaditsa adapter delegates listing and content conversion to its npm package while Obo's runner owns deduplication and storage. Items within the packaged source scan are processed sequentially, independently of parallelism between jobs.
+Selected source jobs run at the same time. Each fetches data from an API or website and saves complete raw records through `@oboapp/db`. Legacy jobs use their existing helpers. Triaditsa uses its npm package to list items and convert their content. Obo's runner skips known items and saves new ones. Within a packaged source job, the runner processes one item at a time.
 
 **Failure behavior**: Crawlers are wrapped in `try`/`except` blocks. If one fails, it logs an ERROR but doesn't stop other crawlers or the workflow.
 

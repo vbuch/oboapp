@@ -52,7 +52,7 @@ flowchart LR
 
 Automated crawlers collect notices from public sources such as utility providers, heating companies, transport operators, and municipal sites. AI-powered filtering, categorization, location extraction, and multi-service geocoding convert raw text into map-ready GeoJSON. Event matching groups related disruptions, and the notification engine matches new events with user-defined interest areas.
 
-**Migration in progress:** this deployment fork uses two collection implementations. Triaditsa is supplied by an npm source package through Obo's runner; other sources still use the in-repository crawlers. Both produce the same raw documents for the existing ingestion and notification pipeline. Each source runs through only one implementation. See [the transition guide](docs/features/source-packages.md) for current scope, ownership, and rollout steps. Sources with precomputed GeoJSON bypass AI extraction and geocoding; that existing processing distinction is independent of package migration.
+**Migration in progress:** this fork collects data in two ways. Triaditsa uses an npm source package through Obo's runner. Other sources use crawlers stored in this repository. Both save raw records for the same processing and notification pipeline. Each source uses one collection path. See [the transition guide](docs/features/source-packages.md) for the current status, code responsibilities, and deployment steps. Sources that already provide GeoJSON continue to skip AI extraction and geocoding.
 
 The web app is a Next.js Progressive Web App with an interactive map. Users can browse current disruptions, define interest circles with a custom radius, and receive notifications when new issues affect their areas.
 

@@ -1,6 +1,6 @@
 # Crawlers
 
-Collection entrypoints for public notifications and disruptions. During the [source-package transition](../../docs/features/source-packages.md), most directories contain the legacy implementation; `triaditsa-org/index.ts` is a thin adapter to the published npm package and Obo's simple runner. Both paths persist raw documents through `@oboapp/db`.
+This directory contains the crawler entrypoints: the functions called by the collection commands. During the [source-package transition](../../docs/features/source-packages.md), most directories keep their existing crawler code. `triaditsa-org/index.ts` calls the published npm package through Obo's runner. Both paths save raw records through `@oboapp/db`.
 
 ## How They Work
 
@@ -11,7 +11,7 @@ Each legacy crawler:
 3. Stores documents in Firestore with `sourceType` identifier
 4. Tracks processed URLs to avoid duplicates
 
-For Triaditsa, maintain the parser and source-content tests in [oboapp/sources](https://github.com/oboapp/sources/tree/main/packages/source-triaditsa-org). Maintain the runner, historical lookup rules, raw-storage handoff, and deployment adapter here. Do not recreate a local parser alongside the package. Existing directory names and `crawl --source` commands remain for compatibility during migration.
+For Triaditsa, maintain the parser and source-content tests in [oboapp/sources](https://github.com/oboapp/sources/tree/main/packages/source-triaditsa-org). Maintain the runner, deduplication rules, persistence tests, and job entrypoint in this repository. Existing directory names and `crawl --source` commands remain for compatibility during migration.
 
 ## Pre-refactor contract tests
 
@@ -39,7 +39,7 @@ The handoff smoke suite stops at `messageIngest`, explicitly seeding downstream 
 
 Preserve literal identifiers byte-for-byte. Do not derive expected identifiers using the production builder. Freeze only shared contract fields, not entire HTML responses or log output. Existing records remain known even when `processed=false`, provider content changes, or a package is upgraded. NIMH's structured-warning hash remains part of its identifier, so a changed warning can still produce a different identifier.
 
-During #586, keep historical lookup/no-overwrite tests in Obo and reuse identifier/content fixtures for `discoverItems`/`fetchItem`. Replace obsolete wrapper call assertions as entrypoints change. Triaditsa's handoff test now exercises the actual package with mocked HTTP and create-only storage; runner tests cover retries on later scans and overlapping writes. The legacy check-then-write helper only guarantees sequential idempotency. Durable queues and persisted discovery checkpoints are deferred; they are not migration prerequisites.
+During #586, keep historical lookup/no-overwrite tests in Obo and reuse identifier/content fixtures for `discoverItems`/`fetchItem`. Replace obsolete wrapper call assertions as entrypoints change. Triaditsa's handoff test runs the actual package with simulated HTTP responses and storage. Runner tests cover later retries and scans that run at the same time. The legacy helper checks for an existing record before writing. It guarantees sequential idempotency: repeated scans avoid duplicates when they run one at a time. Queues and saved discovery checkpoints are deferred.
 
 Known boundaries: this baseline does not assert universal failure behavior. Some sources abort on a lookup/provider failure, while shared RSS skips unreadable items. It does not certify browser cleanup on every pre-existing exceptional path (for example Toplo navigation fails before its normal close). Such behavior changes should be reviewed separately, rather than silently encoded as desired compatibility.
 
