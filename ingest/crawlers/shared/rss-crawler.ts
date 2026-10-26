@@ -18,6 +18,7 @@ export interface CrawlHybridRssOptions {
   feedUrl: string;
   sourceType: string;
   extractItems: (xml: string) => RssFeedItem[];
+  discoverItems?: () => Promise<RssFeedItem[]>;
   processPost: (
     browser: Browser,
     item: RssFeedItem,
@@ -125,6 +126,7 @@ export async function crawlHybridRss({
   feedUrl,
   sourceType,
   extractItems,
+  discoverItems,
   processPost,
 }: CrawlHybridRssOptions): Promise<void> {
   const { getDb } = await import("@/lib/db");
@@ -134,8 +136,9 @@ export async function crawlHybridRss({
 
   let feedItems: RssFeedItem[];
   try {
-    const xml = await fetchFeedXml(feedUrl);
-    feedItems = extractItems(xml);
+    feedItems = discoverItems
+      ? await discoverItems()
+      : extractItems(await fetchFeedXml(feedUrl));
   } catch (error) {
     logger.error("Failed to fetch or parse RSS feed", {
       sourceType,

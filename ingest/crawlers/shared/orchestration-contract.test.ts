@@ -78,6 +78,22 @@ describe("RSS orchestration contracts", () => {
     expect(launchBrowser).toHaveBeenCalledTimes(1);
     expect(browser.browser.close).toHaveBeenCalledTimes(1);
   });
+
+  it("uses custom discovery and skips known and duplicate items before detail fetching", async () => {
+    store.records.set(encodeDocumentId(item("known").url), { processed: false });
+    const discoverItems = vi.fn().mockResolvedValue([item("known"), item("new"), item("new")]);
+    const processPost = vi.fn();
+    await crawlHybridRss({ ...fullOptions(), discoverItems, processPost });
+    expect(discoverItems).toHaveBeenCalledOnce();
+    expect(fetchFeedXml).not.toHaveBeenCalled();
+    expect(processPost).toHaveBeenCalledExactlyOnceWith(browser.instance, item("new"), store.db);
+  });
+
+  it("propagates custom discovery failures before launching a browser", async () => {
+    const discoverItems = vi.fn().mockRejectedValue(new Error("pagination failed"));
+    await expect(crawlHybridRss({ ...fullOptions(), discoverItems, processPost: vi.fn() })).rejects.toThrow("pagination failed");
+    expect(launchBrowser).not.toHaveBeenCalled();
+  });
 });
 
 describe("webpage orchestration contracts", () => {

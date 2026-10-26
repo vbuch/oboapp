@@ -2,6 +2,13 @@ import { decode as decodeHtmlEntities } from "html-entities";
 
 export const RSS_FEED_FETCH_TIMEOUT_MS = 30_000;
 
+export class RssFeedHttpError extends Error {
+  constructor(public readonly status: number, url: string) {
+    super(`RSS feed returned ${status} for ${url}`);
+    this.name = "RssFeedHttpError";
+  }
+}
+
 export interface RssFeedItem {
   url: string;
   title: string;
@@ -106,7 +113,7 @@ export async function fetchFeedXml(
     });
 
     if (!response.ok) {
-      throw new Error(`RSS feed returned ${response.status} for ${url}`);
+      throw new RssFeedHttpError(response.status, url);
     }
 
     const text = await response.text();
