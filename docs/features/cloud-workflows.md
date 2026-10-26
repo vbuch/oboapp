@@ -16,29 +16,33 @@ The ingestion pipeline uses **Google Cloud Workflows** to orchestrate crawler ex
 
 ## Architecture
 
+```mermaid
+flowchart TD
+    schedule[Cloud Scheduler] --> workflow[Cloud Workflows]
+    workflow --> legacy[Parallel source jobs: legacy implementations]
+    workflow --> pilot[Existing Triaditsa job: package adapter and runner]
+    legacy --> raw[(Raw sources)]
+    pilot --> raw
+    legacy --> join[Wait for all source jobs, including failures]
+    pilot --> join
+    join --> ingest[Ingest job]
+    raw --> ingest
+    ingest --> notify[Notify job]
+    notify --> fcm[Firebase Cloud Messaging]
 ```
-Cloud Scheduler
-    ↓
-Google Cloud Workflows
-    ↓
-    ├─→ [Parallel] Crawler Jobs
-    ↓   └─→ Firestore (sources collection)
-    ├─→ [Sequential] Ingest Job
-    ↓   └─→ Firestore (messages collection)
-    └─→ [Sequential] Notify Job
-        └─→ Firebase Cloud Messaging (push notifications)
-```
+
+During the [source-package transition](source-packages.md), these are two collection implementations within the existing jobs, not two independent orchestration systems. Triaditsa uses the packaged-source runner in this fork; all other source jobs retain their legacy implementation. Its job name and schedule do not change, and there is no additional discovery job, durable queue, or duplicate legacy Triaditsa execution.
 
 ### Two Workflow Types
 
 1. **Emergent Workflow** (`pipeline-emergent`)
    - **Crawlers**: A subset of sources that publish short-lived disruptions (utility outages, emergency works)
-    - **Schedule**: Every 30 minutes in the configured scheduler timezone
+    - **Schedule**: Every 30 minutes in the configured scheduler timezone
    - **Use case**: Short-lived disruptions requiring frequent updates
 
 2. **All Workflow** (`pipeline-all`)
    - **Crawlers**: All currently deployed crawlers
-    - **Schedule**: 3 times daily in the configured scheduler timezone
+    - **Schedule**: 3 times daily in the configured scheduler timezone
    - **Use case**: Long-term construction/repair projects and municipal announcements from district administrations
 
 The scheduler timezone is configured through Terraform (`schedule_timezone`).
@@ -51,7 +55,7 @@ For adapting schedules and locality configuration for a new city instance, see [
 
 ### Step 1: Parallel Crawler Execution
 
-All crawlers run simultaneously, each as a separate Cloud Run job. Each crawler fetches data from its respective external source (API or website) and writes raw documents to Firestore.
+Selected source jobs run in parallel. Each fetches data from its provider (API or website) and persists complete raw documents through `@oboapp/db`. Legacy jobs use their existing helpers; the Triaditsa adapter delegates listing and content conversion to its npm package while Obo's runner owns deduplication and storage. Items within the packaged source scan are processed sequentially, independently of parallelism between jobs.
 
 **Failure behavior**: Crawlers are wrapped in `try`/`except` blocks. If one fails, it logs an ERROR but doesn't stop other crawlers or the workflow.
 

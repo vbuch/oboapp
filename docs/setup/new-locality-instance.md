@@ -13,6 +13,8 @@ Never override upstream Terraform logic in instance files — configure via vari
 
 ## Configuring Sources
 
+**Temporary mixed implementation:** source packages are being introduced incrementally. This fork's Triaditsa entrypoint uses `@oboapp/source-triaditsa-org`; other sources still use local crawler code. Installing a package alone does not register a job or add it to the web catalog. Keep the entrypoint, instance source assembly, and Terraform selection aligned. The catalog still uses `shared/src/sources/` definitions, including Triaditsa's; automatic package-driven assembly and an image containing only selected packages are not implemented yet. See [the transition guide](../features/source-packages.md).
+
 Each source has its own definition file at `shared/src/sources/{id}.ts`. These live in the upstream repo and merge cleanly across rebases — adding a new upstream source creates a new file, no conflicts.
 
 `shared/src/sources.ts` is the **instance assembly**: it imports the individual definition files and assembles the `SOURCES` array used by both the web app and ingest pipeline. Fork operators replace this file to configure which sources their instance exposes.
