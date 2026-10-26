@@ -24,7 +24,7 @@ function stripCdata(text: string): string {
 }
 
 function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 function readTagValue(xml: string, tagName: string): string {
