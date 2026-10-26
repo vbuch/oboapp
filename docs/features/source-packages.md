@@ -8,7 +8,7 @@ This describes the `vbuch/oboapp` pilot introduced by [PR #29](https://github.co
 
 | Responsibility | Legacy sources | Packaged pilot: `triaditsa-org` |
 | --- | --- | --- |
-| Provider parsing and content conversion | `ingest/crawlers/{id}/` and local helpers | `@oboapp/source-triaditsa-org@0.1.1` in the sources repository |
+| Provider parsing and content conversion | `ingest/crawlers/{id}/` and local helpers | `@oboapp/source-triaditsa-org@0.2.0` in the sources repository |
 | Database lookup and raw persistence | Legacy crawler helpers in Obo | `ingest/sources/run-source.ts` in Obo |
 | Scheduled entrypoint | Existing `crawl --source {id}` job | Same job and command, which calls the package from `crawlers/triaditsa-org/index.ts` |
 | Web catalog and deployment selection | Instance source assembly (`shared/src/sources.ts`) and Terraform | The same instance assembly and Terraform configuration |
@@ -51,6 +51,10 @@ Triaditsa is the first package pilot. Its existing `triaditsa-org` entrypoint de
 With the normal ingest environment configured (`LOCALITY=bg.sofia` and database credentials), run `pnpm --dir ingest crawl --source triaditsa-org`. This scan writes new raw records and logs saved/skipped/failed totals. Existing records should be skipped on a second run. Use the existing Triaditsa job as the single scheduled entrypoint.
 
 The source package uses the same RSS Accept header as this deployment fork. Its own tests compare output against a fixture captured from the legacy parser and Markdown conversion. To roll back, revert the pilot switch commit and redeploy the previous entrypoint. Existing stored records remain valid.
+
+Version `0.2.0` collects the News feed and `https://triaditza.org/feed/?post_type=announcements`. It deduplicates shared URLs, preserves publication dates and document links, and removes embedded styles and scripts from Markdown. Obo's handoff test covers both feeds reaching ingestion and repeat scans skipping stored items.
+
+This is the feed-only first pass for [#35](https://github.com/vbuch/oboapp/issues/35). Remaining gaps are older notices outside the feed window, inline content on section pages such as the streets and sidewalks programme, edits to known URLs, and details available only inside attachments. The package README records the verified feed coverage. Assess these gaps from the expanded collection before adding more collection paths.
 
 ## Moving the next source
 
