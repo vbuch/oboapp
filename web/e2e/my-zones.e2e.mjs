@@ -100,6 +100,16 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
       return interest.userId === "mock-user-123";
     }));
     assert.equal(messages.fromServiceWorker(), true);
+    const messageData = await messages.json();
+    const cityWideMessage = messageData.messages.find((message) => {
+      return message.id === "msg-weather-citywide-1";
+    });
+    assert.ok(cityWideMessage, "The MSW response must include the citywide fixture.");
+    assert.equal(cityWideMessage.cityWide, true);
+    assert.equal(cityWideMessage.locality, "bg.sofia");
+    assert.equal(cityWideMessage.aiProcessed, true);
+    assert.equal(Object.hasOwn(cityWideMessage, "geoJson"), false,
+      "This regression must use a citywide record with no geoJson field.");
 
     const dismissNotifications = page.getByRole("button", {
       name: "Не сега", exact: true,
@@ -118,13 +128,30 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
     });
     const roadBlockCard = eventCard(page, "Затворена улица");
     const waterCard = eventCard(page, "Планирано спиране на водоподаването");
+    const cityWideCard = eventCard(page, "Жълт код за силен вятър в София");
     await expect(roadBlockCard).toBeVisible();
+    await expect(cityWideCard).toBeVisible();
     await expect.poll(() => mapFeatureCount(page), {
       timeout: 30_000,
     }).toBeGreaterThan(5);
     const allFeatureCount = await mapFeatureCount(page);
 
-    await zonesMode.click();
+    const [boundaryResponse] = await Promise.all([
+      page.waitForResponse((response) => {
+        return isApiResponse(response, "/api/localities/bg.sofia/boundary");
+      }, { timeout: 60_000 }),
+      zonesMode.click(),
+    ]);
+    assert.equal(boundaryResponse.ok(), true);
+    const localityBoundary = await boundaryResponse.json();
+    assert.equal(localityBoundary.type, "FeatureCollection");
+    assert.ok(localityBoundary.features.length > 0);
+    assert.ok(localityBoundary.features.every((feature) => {
+      return ["Polygon", "MultiPolygon"].includes(feature.geometry.type);
+    }));
+    assert.ok(localityBoundary.features.some((feature) => {
+      return feature.properties?.shapeISO === "BG-22";
+    }), "The returned boundary must identify Sofia City.");
     await expect(zonesMode).toHaveAttribute("aria-checked", "true");
     await expect(page.getByRole("button", { name: "Действия за Вкъщи" })).toBeVisible();
     await expect(page.getByText("Зареждане...", { exact: true })).toHaveCount(0, {
@@ -138,6 +165,8 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
     })).toBeVisible();
     await expect(eventCard(zoneEvents, "Планирано спиране на водоподаването"))
       .toBeVisible();
+    await expect(eventCard(zoneEvents, "Жълт код за силен вятър в София"))
+      .toBeVisible();
     const zoneListBox = await page.getByRole("list").filter({
       has: page.getByRole("button", { name: "Действия за Работа" }),
     }).boundingBox();
@@ -150,6 +179,21 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
     await expect.poll(() => mapFeatureCount(page)).toBeGreaterThan(0);
     const zonesFeatureCount = await mapFeatureCount(page);
     context.diagnostic(`Map features: Events=${allFeatureCount}, My zones=${zonesFeatureCount}.`);
+    context.diagnostic("A citywide record with no geoJson is visible in Events and My zones after loading its bg.sofia boundary.");
+
+    await cityWideCard.click();
+    await expect(page).toHaveURL((url) => {
+      return url.searchParams.get("messageId") === "msg-weather-citywide-1";
+    });
+    const details = page.getByRole("complementary", {
+      name: "Детайли за сигнала", exact: true,
+    });
+    await expect(details).toBeVisible();
+    await expect(details).toContainText("Жълт код за силен вятър в София");
+    await details.getByRole("button", { name: "Затвори детайлите", exact: true }).click();
+    await expect(details).toHaveCount(0);
+    await expect(zonesMode).toHaveAttribute("aria-checked", "true");
+    await expect(cityWideCard).toBeVisible();
 
     await page.getByRole("button", { name: "Отвори филтрите", exact: true }).click();
     const waterCategory = page.getByRole("region", { name: "Категории" })
@@ -206,6 +250,7 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
     assert.equal((await panResponse).fromServiceWorker(), true);
     await expect(roadBlockCard).toHaveCount(0);
     await expect(waterCard).toBeVisible();
+    await expect(cityWideCard).toBeVisible();
     await page.screenshot({ path: path.join(artifactDirectory, "my-zones.png") });
     context.diagnostic("Category/source choices and the zone restriction survived a viewport refetch.");
 
@@ -257,9 +302,6 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
     await expect(page).toHaveURL((url) => {
       return url.searchParams.get("messageId") === "msg-water-center-1";
     });
-    const details = page.getByRole("complementary", {
-      name: "Детайли за сигнала", exact: true,
-    });
     await expect(details).toBeVisible();
     await expect(details).toContainText("Граф Игнатиев");
     await details.getByRole("button", { name: "Затвори детайлите", exact: true }).click();
@@ -274,10 +316,12 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
     await deleteMockZone(page, "Вкъщи");
     await deleteMockZone(page, "Работа");
     await expect(page.getByText(/Нямаш добавени зони\. Натисни/)).toBeVisible();
+    await expect(cityWideCard).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Добави зона", exact: true })).toBeEnabled();
     await expect.poll(() => mapFeatureCount(page)).toBe(0);
     await eventsMode.click();
     await expect(waterCard).toBeVisible();
+    await expect(cityWideCard).toBeVisible();
     await expect.poll(() => mapFeatureCount(page)).toBeGreaterThan(0);
     assert.deepEqual(pageErrors, []);
     context.diagnostic("Narrow layout restored Events; deleting mock zones cleared the map; Events restored markers.");
