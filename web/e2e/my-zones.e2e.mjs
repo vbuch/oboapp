@@ -39,8 +39,6 @@ async function mapFeatureCount(page) {
 }
 
 function eventCard(page, text) {
-  // My zones keeps the hidden results panel mounted. Its DOM verifies that
-  // unrelated results were filtered out as well as removed from the map.
   return page.locator("button").filter({ hasText: text });
 }
 
@@ -59,7 +57,7 @@ async function deleteMockZone(page, label) {
   ).toHaveCount(0);
 }
 
-test("My zones filters the real map through tab switches, filters, panning, and zone deletion", {
+test("My zones shows filtered cards below zones and keeps map and responsive behavior consistent", {
   timeout: 240_000,
 }, async (context) => {
   const browser = await chromium.launch({ channel: browserChannel });
@@ -82,14 +80,15 @@ test("My zones filters the real map through tab switches, filters, panning, and 
       }));
     });
 
-    const interestsResponse = page.waitForResponse((response) => {
-      return isApiResponse(response, "/api/interests");
-    });
-    const messagesResponse = page.waitForResponse((response) => {
-      return isApiResponse(response, "/api/messages");
-    }, { timeout: 90_000 });
-    await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 90_000 });
-    const interests = await interestsResponse;
+    const [interests, messages] = await Promise.all([
+      page.waitForResponse((response) => {
+        return isApiResponse(response, "/api/interests");
+      }, { timeout: 90_000 }),
+      page.waitForResponse((response) => {
+        return isApiResponse(response, "/api/messages");
+      }, { timeout: 90_000 }),
+      page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 90_000 }),
+    ]);
     assert.equal(interests.fromServiceWorker(), true,
       "MSW must serve the interests before this test edits mock zones.");
     const interestData = await interests.json();
@@ -100,7 +99,7 @@ test("My zones filters the real map through tab switches, filters, panning, and 
     assert.ok(interestData.interests.every((interest) => {
       return interest.userId === "mock-user-123";
     }));
-    assert.equal((await messagesResponse).fromServiceWorker(), true);
+    assert.equal(messages.fromServiceWorker(), true);
 
     const dismissNotifications = page.getByRole("button", {
       name: "Не сега", exact: true,
@@ -111,6 +110,12 @@ test("My zones filters the real map through tab switches, filters, panning, and 
 
     const zonesMode = page.getByRole("radio", { name: "Моите зони" });
     const eventsMode = page.getByRole("radio", { name: "Събития" });
+    const zoneEvents = page.getByRole("region", {
+      name: "Събития в моите зони", exact: true,
+    });
+    const allEvents = page.getByRole("region", {
+      name: "Събития", exact: true,
+    });
     const roadBlockCard = eventCard(page, "Затворена улица");
     const waterCard = eventCard(page, "Планирано спиране на водоподаването");
     await expect(roadBlockCard).toBeVisible();
@@ -122,12 +127,28 @@ test("My zones filters the real map through tab switches, filters, panning, and 
     await zonesMode.click();
     await expect(zonesMode).toHaveAttribute("aria-checked", "true");
     await expect(page.getByRole("button", { name: "Действия за Вкъщи" })).toBeVisible();
+    await expect(page.getByText("Зареждане...", { exact: true })).toHaveCount(0, {
+      timeout: 60_000,
+    });
     await expect(roadBlockCard).toHaveCount(0);
-    await expect(waterCard).toHaveCount(1);
+    await expect(waterCard).toBeVisible();
+    await expect(zoneEvents).toBeVisible();
+    await expect(zoneEvents.getByRole("heading", {
+      name: "Събития в моите зони", exact: true,
+    })).toBeVisible();
+    await expect(eventCard(zoneEvents, "Планирано спиране на водоподаването"))
+      .toBeVisible();
+    const zoneListBox = await page.getByRole("list").filter({
+      has: page.getByRole("button", { name: "Действия за Работа" }),
+    }).boundingBox();
+    const eventSectionBox = await zoneEvents.boundingBox();
+    assert.ok(zoneListBox);
+    assert.ok(eventSectionBox);
+    assert.ok(eventSectionBox.y >= zoneListBox.y + zoneListBox.height,
+      "The visible filtered event section must follow the saved zones.");
     await expect.poll(() => mapFeatureCount(page)).toBeLessThan(allFeatureCount);
     await expect.poll(() => mapFeatureCount(page)).toBeGreaterThan(0);
     const zonesFeatureCount = await mapFeatureCount(page);
-    await page.screenshot({ path: path.join(artifactDirectory, "my-zones.png") });
     context.diagnostic(`Map features: Events=${allFeatureCount}, My zones=${zonesFeatureCount}.`);
 
     await page.getByRole("button", { name: "Отвори филтрите", exact: true }).click();
@@ -184,14 +205,71 @@ test("My zones filters the real map through tab switches, filters, panning, and 
     await page.mouse.up();
     assert.equal((await panResponse).fromServiceWorker(), true);
     await expect(roadBlockCard).toHaveCount(0);
-    await expect(waterCard).toHaveCount(1);
+    await expect(waterCard).toBeVisible();
+    await page.screenshot({ path: path.join(artifactDirectory, "my-zones.png") });
     context.diagnostic("Category/source choices and the zone restriction survived a viewport refetch.");
 
     await page.setViewportSize({ width: 1000, height: 900 });
+    await expect(zonesMode).toHaveCount(0);
+    await expect(allEvents).toBeVisible();
+    await expect(page.getByRole("button", { name: "Вкъщи", exact: true })).toBeVisible();
     await expect(roadBlockCard).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(zonesMode).toHaveCount(0);
+    await expect(allEvents).toBeVisible();
+    await expect(roadBlockCard).toBeVisible();
+    const homeBadge = page.getByRole("button", { name: "Вкъщи", exact: true });
+    await expect(homeBadge).toBeVisible();
+    await expect(page.getByRole("button", { name: "Работа", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Добави зона", exact: true })).toBeEnabled();
+    await page.screenshot({
+      path: path.join(artifactDirectory, "mobile-events.png"),
+      fullPage: true,
+    });
+
+    const badgeResponse = page.waitForResponse((response) => {
+      if (!isApiResponse(response, "/api/messages")) {
+        return false;
+      }
+      const params = new URL(response.url()).searchParams;
+      const north = Number(params.get("north"));
+      const south = Number(params.get("south"));
+      const east = Number(params.get("east"));
+      const west = Number(params.get("west"));
+      return Math.abs((north + south) / 2 - 42.6977) < 0.001 &&
+        Math.abs((east + west) / 2 - 23.3219) < 0.001 &&
+        north - south < 0.02 && east - west < 0.02;
+    });
+    await homeBadge.click();
+    assert.equal((await badgeResponse).fromServiceWorker(), true);
+    await expect(allEvents).toBeVisible();
+    await expect(zoneEvents).toHaveCount(0);
+    await expect(waterCard).toBeVisible();
+    context.diagnostic("Tablet and phone show zone badges and all Events; tapping a badge centers and zooms the map to that zone and keeps Events mode.");
+
     await page.setViewportSize({ width: 1600, height: 1000 });
     await expect(zonesMode).toHaveAttribute("aria-checked", "true");
+    await expect(zoneEvents).toBeVisible();
     await expect(roadBlockCard).toHaveCount(0);
+
+    await waterCard.click();
+    await expect(page).toHaveURL((url) => {
+      return url.searchParams.get("messageId") === "msg-water-center-1";
+    });
+    const details = page.getByRole("complementary", {
+      name: "Детайли за сигнала", exact: true,
+    });
+    await expect(details).toBeVisible();
+    await expect(details).toContainText("Граф Игнатиев");
+    await details.getByRole("button", { name: "Затвори детайлите", exact: true }).click();
+    await expect(page).toHaveURL((url) => {
+      return !url.searchParams.has("messageId");
+    });
+    await expect(details).toHaveCount(0);
+    await expect(zonesMode).toHaveAttribute("aria-checked", "true");
+    await expect(waterCard).toBeVisible();
+    context.diagnostic("The filtered desktop card is visible below the zones, opens its details, and returns to My zones when closed.");
 
     await deleteMockZone(page, "Вкъщи");
     await deleteMockZone(page, "Работа");
@@ -199,7 +277,7 @@ test("My zones filters the real map through tab switches, filters, panning, and 
     await expect(page.getByRole("button", { name: "Добави зона", exact: true })).toBeEnabled();
     await expect.poll(() => mapFeatureCount(page)).toBe(0);
     await eventsMode.click();
-    await expect(roadBlockCard).toBeVisible();
+    await expect(waterCard).toBeVisible();
     await expect.poll(() => mapFeatureCount(page)).toBeGreaterThan(0);
     assert.deepEqual(pageErrors, []);
     context.diagnostic("Narrow layout restored Events; deleting mock zones cleared the map; Events restored markers.");
