@@ -92,9 +92,12 @@ export default function MessagesGrid({
     [limit],
   );
 
-  // Filter messages with both geoJson.features and finalizedAt
+  // City-wide cards use their locality and do not require event geometry.
   const allFinalizedMessages = messages
-    .filter((message) => message.geoJson?.features && message.finalizedAt)
+    .filter(
+      (message) =>
+        message.finalizedAt && (message.cityWide || message.geoJson?.features),
+    )
     .sort((a, b) => {
       // Sort by finalizedAt descending (newest first)
       const dateA = parseDate(a.finalizedAt);

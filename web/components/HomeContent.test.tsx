@@ -502,11 +502,12 @@ describe("HomeContent pivot behavior", () => {
     expect(capturedMapContainerProps?.interests).toEqual(mockInterests);
   });
 
-  it("includes city-wide events once their locality boundary matches a zone", () => {
+  it("includes geometryless city-wide events once their locality boundary matches a zone", () => {
     isWideDesktopLayout = true;
     authUser = { uid: "user-1" };
     const cityWide = createMapMessage("city-wide", [23.38, 42.65], {
       cityWide: true,
+      geoJson: undefined,
     });
     const otherCity = { ...cityWide, id: "other-city", locality: "bg.other" };
     mockMessages = [cityWide, otherCity];
