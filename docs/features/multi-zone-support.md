@@ -13,7 +13,7 @@ On wide-desktop layouts, users see a segmented control header with two tabs:
 
 | Tab            | Content                                                               |
 | -------------- | --------------------------------------------------------------------- |
-| **Моите зони** | Saved zones with their color, label, and radius; the map shows matching events |
+| **Моите зони** | Saved zones with their color, label, and radius; matching event cards below the zones and matching events on the map |
 | **Събития**    | Events in the current map area, subject to the selected filters |
 
 In **Моите зони**, an event matches when its affected geometry intersects at least
@@ -28,9 +28,12 @@ load, a message explains that some events may be missing.
 
 Switching to **Събития** restores the usual event view. Mobile and narrower
 layouts use the Events view, including when resizing from the wide desktop layout.
+They show zone badges above the event cards. Tapping a badge centers the map on
+that zone, and the cards continue to show events from the current map area.
 
-A "Добави зона" button (visible only in the zones tab) puts the map into **target mode**
-for creating a new zone. A form opens after the user places the zone on the map.
+The "Добави зона" button puts the map into **target mode** for creating a new
+zone. On wide desktop it appears in the zones tab; on narrower layouts it appears
+with the zone badges. A form opens after the user places the zone on the map.
 
 ### Zone Creation Flow
 

@@ -73,8 +73,10 @@ Run before merging any changes to prompt files or AI service schemas. See [Promp
 
 The My zones browser check uses a local app running with
 [MSW mock data](../setup/quick-start-frontend-msw.md) and a working Google Maps key.
-It checks zone filtering, map interaction, existing filters, and zone deletion
-through the user interface.
+It checks visible event cards below saved zones, opening event details, zone
+filtering, map interaction, existing filters, and zone deletion through the user
+interface. It also checks the phone and tablet layouts, where zone badges center
+the map and the event list follows the current map area.
 
 With the local server running, execute from the repository root:
 
