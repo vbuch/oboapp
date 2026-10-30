@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import HomeContent from "@/components/HomeContent";
 import {
   PENDING_GUEST_UPGRADE_UID_KEY,
@@ -388,6 +388,43 @@ describe("HomeContent pivot behavior", () => {
     expect(capturedCategoryMessages).toEqual(mockMessages);
     expect(capturedSourceMessages).toEqual(mockMessages);
   });
+
+  it.each([false, true])(
+    "shows matching event cards below saved zones for anonymous=%s",
+    (isAnonymous) => {
+      isWideDesktopLayout = true;
+      authUser = { uid: "user-1", isAnonymous };
+      const inside = createMapMessage("inside", [23.3219, 42.6977]);
+      mockMessages = [inside, createMapMessage("outside", [23.38, 42.65])];
+
+      render(<HomeContent />);
+      fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
+
+      const eventSection = screen.getByRole("region", {
+        name: "Събития в моите зони",
+      });
+      expect(within(eventSection).getByTestId("messages-grid")).toBeVisible();
+      expectDisplayedMessages([inside]);
+      expect(
+        screen.getByTestId("zone-list").compareDocumentPosition(eventSection) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+
+      if (isAnonymous) {
+        expect(
+          screen.getByRole("button", { name: "Влез, за да запазиш" }),
+        ).toBeVisible();
+      }
+
+      fireEvent.click(screen.getByRole("button", { name: "Събития" }));
+      expect(
+        screen.getByRole("region", { name: "Събития" }),
+      ).toBeVisible();
+      expect(
+        screen.queryByRole("heading", { name: "Събития в моите зони" }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it("shows an event only once when duplicate results intersect overlapping zones", () => {
     isWideDesktopLayout = true;

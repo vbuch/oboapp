@@ -698,14 +698,22 @@ function HomeContentInner() {
               </div>
             )}
 
-            {/* Messages: always visible on mobile, conditional on desktop */}
-            <div
+            {/* Event cards follow the active view, below its zone controls. */}
+            <section
+              aria-label={
+                effectiveViewMode === "zones" ? "Събития в моите зони" : "Събития"
+              }
               className={
-                user && effectiveViewMode === "zones"
-                  ? "[@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:hidden"
+                effectiveViewMode === "zones"
+                  ? "mt-6 border-t border-neutral-border pt-6"
                   : ""
               }
             >
+              {effectiveViewMode === "zones" && (
+                <h2 className="mb-4 text-base font-semibold text-foreground">
+                  Събития в моите зони
+                </h2>
+              )}
               <MessagesGrid
                 messages={filteredMessages}
                 isLoading={isViewLoading}
@@ -715,7 +723,7 @@ function HomeContentInner() {
                 onMessageHover={setHoveredMessageId}
                 variant="list"
               />
-            </div>
+            </section>
           </div>
         </div>
 
