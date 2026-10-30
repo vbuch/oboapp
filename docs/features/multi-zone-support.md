@@ -20,6 +20,10 @@ In **Моите зони**, an event matches when its affected geometry intersec
 one saved zone circle. City-wide events match through the boundary of their
 locality. Events that match several zones appear once. Category, source, and
 archive filters continue to apply, and filter counts use the matching events.
+City-wide events can appear as cards even when they have no event geometry.
+
+The results remain a preview of the current map area. The existing card limit
+applies: more than ten results show six cards and a count of the remaining events.
 
 Panning and zooming keep this restriction active. Moving, adding, or deleting a
 zone updates the matches. Zones remain visible when there are no matching events;
