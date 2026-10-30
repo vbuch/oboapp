@@ -53,8 +53,8 @@ function GridContent({
           <div
             className={
               variant === "list"
-                ? "text-center text-gray-500 py-8"
-                : "col-span-full text-center text-gray-500 py-8"
+                ? "text-center text-neutral py-8"
+                : "col-span-full text-center text-neutral py-8"
             }
           >
             Няма налични съобщения
@@ -80,7 +80,9 @@ export default function MessagesGrid({
 }: MessagesGridProps) {
   // Helper to parse date
   const parseDate = (dateValue: Date | string | undefined): Date => {
-    if (!dateValue) return new Date(0);
+    if (!dateValue) {
+      return new Date(0);
+    }
     return typeof dateValue === "string" ? new Date(dateValue) : dateValue;
   };
 
@@ -129,7 +131,7 @@ export default function MessagesGrid({
   return variant === "list" ? (
     gridContent
   ) : (
-    <div className="bg-gray-50 py-12">
+    <div className="bg-neutral-light py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {gridContent}
       </div>
