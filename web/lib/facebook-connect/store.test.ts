@@ -6,6 +6,7 @@ import type { FacebookConnectionRecord, FacebookOAuthSession } from "./types";
 function database() {
   return {
     findOne: vi.fn().mockResolvedValue(null),
+    findPage: vi.fn().mockResolvedValue({ documents: [], nextCursor: null }),
     findMany: vi.fn().mockResolvedValue([]),
     insertOne: vi.fn().mockResolvedValue("id"),
     createOne: vi.fn().mockResolvedValue("id"),

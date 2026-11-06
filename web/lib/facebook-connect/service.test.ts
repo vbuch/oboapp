@@ -39,6 +39,7 @@ function createTestDatabase(): DbClient {
     async findOne(collection, id) {
       return records.get(`${collection}/${id}`) || null;
     },
+    findPage: vi.fn().mockResolvedValue({ documents: [], nextCursor: null }),
     async findMany(collection, options) {
       return [...records.entries()].filter(([key, record]) => {
         return key.startsWith(`${collection}/`) && options?.where?.every((clause) => {
