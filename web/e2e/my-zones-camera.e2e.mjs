@@ -49,6 +49,19 @@ async function expectCameraUnchanged(page, expected) {
   }, { intervals: [100] }).toBe(true);
 }
 
+async function expectNoMessageRefresh(requests, previousCount) {
+  assert.ok(previousCount > 0, "Initial message requests must be observable.");
+  let stableChecks = 0;
+  await expect.poll(() => {
+    if (requests.length !== previousCount) {
+      return false;
+    }
+
+    stableChecks += 1;
+    return stableChecks >= 6;
+  }, { intervals: [100] }).toBe(true);
+}
+
 async function waitForCameraStable(page) {
   let previous = null;
   let stableChecks = 0;
@@ -256,6 +269,12 @@ test("My zones fits saved circles once per entry and preserves later camera chan
   });
   page.setDefaultTimeout(30_000);
   const pageErrors = [];
+  const messageRequests = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/messages") {
+      messageRequests.push(request.url());
+    }
+  });
   page.on("pageerror", (error) => {
     pageErrors.push(error.message);
   });
@@ -344,6 +363,12 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     })).toBeVisible();
     await page.waitForFunction(() => globalThis.__zoneCamera.map !== null);
     await expectZonesFitted(page, zones, 0);
+    await expect(page.getByText("Зареждане...", { exact: true })).toHaveCount(0, {
+      timeout: 60_000,
+    });
+    const zoneEvents = page.getByRole("region", { name: "Събития в моите зони", exact: true });
+    const zoneTextBeforeMovement = await zoneEvents.innerText();
+    const requestsBeforeMovement = messageRequests.length;
     await expectLocalityLimits(page);
     await moveCamera(page, { lat: 41, lng: 26 }, 15);
     await expectLocalityLimits(page);
@@ -352,11 +377,7 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     context.diagnostic("Both native zone circles fit inside the visible map with padding.");
     context.diagnostic("My zones keeps the normal locality bounds when panning outside Sofia and requesting a world zoom.");
 
-    const viewportResponse = page.waitForResponse((response) => {
-      return isApiResponse(response, "/api/messages");
-    });
     await moveCamera(page, { lat: 42.69, lng: 23.34 }, 15);
-    assert.equal((await viewportResponse).fromServiceWorker(), true);
     const manualCamera = await cameraSnapshot(page);
     await page.evaluate(() => {
       globalThis.__cameraGeolocation.resolve({
@@ -365,6 +386,9 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     });
     await expectCameraUnchanged(page, manualCamera);
     await expectLocalityLimits(page);
+    await expectNoMessageRefresh(messageRequests, requestsBeforeMovement);
+    assert.equal(await zoneEvents.innerText(), zoneTextBeforeMovement);
+    await expect(page.getByText("Зареждане...", { exact: true })).toHaveCount(0);
 
     await page.getByRole("button", { name: "Отвори филтрите", exact: true }).click();
     const waterCategory = page.getByRole("region", { name: "Категории" })
@@ -378,7 +402,7 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     await expect(waterCategory).toHaveAttribute("aria-pressed", "true");
     await expectCameraUnchanged(page, manualCamera);
     await page.getByRole("button", { name: "Затвори филтрите", exact: true }).click();
-    context.diagnostic("Viewport/category refreshes and late geolocation preserve manual center and zoom.");
+    context.diagnostic("Map movement keeps My zones records and request count stable; category refresh and late geolocation preserve manual camera.");
 
     await eventsMode.click();
     await expectLocalityLimits(page);

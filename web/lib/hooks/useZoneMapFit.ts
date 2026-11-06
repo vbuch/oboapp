@@ -51,7 +51,6 @@ export function useZoneMapFit({
     const bounds = getZoneBounds(interests);
     if (bounds) {
       onBeforeFit?.();
-      // The resulting viewport change fetches events in the fitted map area.
       map.fitBounds(bounds, ZONE_FIT_PADDING_PX);
       // Reapply the requested center at the fitted zoom under strict map bounds.
       map.setCenter(new google.maps.LatLngBounds(bounds).getCenter());

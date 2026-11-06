@@ -22,8 +22,12 @@ locality. Events that match several zones appear once. Category, source, and
 archive filters continue to apply, and filter counts use the matching events.
 City-wide events can appear as cards even when they have no event geometry.
 
-The results remain a preview of the current map area. The existing card limit
-applies: more than ten results show six cards and a count of the remaining events.
+My zones matches saved circles against the full recent message batch, independent
+of the map viewport. Panning and zooming keep the event list in place without
+refetching messages. Changing the source or category filters reloads the batch;
+zone edits update its matches. Events continues to load messages for the map area.
+The existing card limit applies: more than ten results show six cards and a count
+of the remaining events.
 
 Panning and zooming keep this restriction active. Moving, adding, or deleting a
 zone updates the matches. Zones remain visible when there are no matching events;

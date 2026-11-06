@@ -19,6 +19,7 @@ let mockFeatureBounds: {
   west: number;
 } | null = null;
 let capturedMapContainerProps: Record<string, unknown> | null = null;
+let capturedMessageQueryOptions: Record<string, unknown> | null = null;
 let capturedZoneListProps: Record<string, unknown> | null = null;
 let capturedMessagesGridProps: Record<string, unknown> | null = null;
 let capturedFilterBoxProps: Record<string, unknown> | null = null;
@@ -202,16 +203,19 @@ vi.mock("@/lib/auth-context", () => ({
 }));
 
 vi.mock("@/lib/hooks/useMessages", () => ({
-  useMessages: () => ({
-    messages: mockMessages,
-    availableCategories: [],
-    isLoading: false,
-    error: null,
-    handleBoundsChanged: mockHandleBoundsChanged,
-    suppressNextViewportFetch: mockSuppressNextViewportFetch,
-    setSelectedCategories: mockSetSelectedCategories,
-    setSelectedSources: mockSetSelectedSources,
-  }),
+  useMessages: (options: Record<string, unknown>) => {
+    capturedMessageQueryOptions = options;
+    return {
+      messages: mockMessages,
+      availableCategories: [],
+      isLoading: false,
+      error: null,
+      handleBoundsChanged: mockHandleBoundsChanged,
+      suppressNextViewportFetch: mockSuppressNextViewportFetch,
+      setSelectedCategories: mockSetSelectedCategories,
+      setSelectedSources: mockSetSelectedSources,
+    };
+  },
 }));
 
 vi.mock("@/lib/hooks/useLocalityBoundaries", () => ({
@@ -304,6 +308,7 @@ vi.mock("@oboapp/shared", async (importOriginal) => {
 describe("HomeContent pivot behavior", () => {
   beforeEach(() => {
     capturedMapContainerProps = null;
+    capturedMessageQueryOptions = null;
     capturedZoneListProps = null;
     capturedMessagesGridProps = null;
     capturedFilterBoxProps = null;
@@ -361,7 +366,7 @@ describe("HomeContent pivot behavior", () => {
     expect(screen.getByTestId("interest-context-menu")).toBeInTheDocument();
   });
 
-  it("fits after delayed zone loading and keeps normal viewport fetching", () => {
+  it("fits after delayed zone loading and queries independently of the viewport", () => {
     isWideDesktopLayout = true;
     authUser = { uid: "user-1" };
     mockInterestsLoaded = false;
@@ -372,11 +377,13 @@ describe("HomeContent pivot behavior", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
     expect(fitBounds).not.toHaveBeenCalled();
+    expect(capturedMessageQueryOptions).toEqual({ scope: "all", enabled: false });
     expect(setCenter).not.toHaveBeenCalled();
     expect(capturedMapContainerProps?.automaticCenterEnabled).toBe(false);
 
     mockInterestsLoaded = true;
     rerender(<HomeContent />);
+    expect(capturedMessageQueryOptions).toEqual({ scope: "all", enabled: true });
     expect(fitBounds).toHaveBeenCalledTimes(1);
     expect(setCenter).toHaveBeenCalledExactlyOnceWith(mockZoneBoundsCenter);
     expect(fitBounds.mock.invocationCallOrder[0]).toBeLessThan(
@@ -401,6 +408,7 @@ describe("HomeContent pivot behavior", () => {
     expect(setCenter).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Събития" }));
+    expect(capturedMessageQueryOptions).toEqual({ scope: "viewport", enabled: true });
     expect(capturedMapContainerProps?.automaticCenterEnabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
     expect(fitBounds).toHaveBeenCalledTimes(2);
@@ -418,6 +426,7 @@ describe("HomeContent pivot behavior", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
     expect(fitBounds).not.toHaveBeenCalled();
+    expect(capturedMessageQueryOptions).toEqual({ scope: "all", enabled: false });
     expect(setCenter).not.toHaveBeenCalled();
 
     isWideDesktopLayout = false;
@@ -572,36 +581,39 @@ describe("HomeContent pivot behavior", () => {
     expect(capturedMapContainerProps?.interests).toHaveLength(2);
   });
 
-  it("keeps zone filtering active when panning supplies refreshed messages", () => {
+  it("keeps all saved-zone matches available when panning away from them", () => {
     isWideDesktopLayout = true;
     authUser = { uid: "user-1" };
-    const initialInside = createMapMessage("initial-inside", [23.3219, 42.6977]);
-    const refreshedInside = createMapMessage("refreshed-inside", [23.322, 42.698]);
-    const refreshedOutside = createMapMessage("refreshed-outside", [23.38, 42.65]);
-    mockMessages = [initialInside];
+    const homeEvent = createMapMessage("home", [23.3219, 42.6977]);
+    const workEvent = createMapMessage("work", [23.38, 42.65]);
+    const outside = createMapMessage("outside", [23.5, 42.8]);
+    mockInterests = [
+      ...initialInterests,
+      { ...initialInterests[0], id: "work", coordinates: { lat: 42.65, lng: 23.38 } },
+    ];
+    mockMessages = [homeEvent, workEvent, outside];
 
     const { rerender } = render(<HomeContent />);
     fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
-    expectDisplayedMessages([initialInside]);
+    expectDisplayedMessages([homeEvent, workEvent]);
+    expect(capturedMessageQueryOptions).toEqual({ scope: "all", enabled: true });
 
     const bounds = {
-      north: 42.8,
-      south: 42.6,
-      east: 23.5,
-      west: 23.2,
-      zoom: 12,
+      north: 42.81,
+      south: 42.79,
+      east: 23.51,
+      west: 23.49,
+      zoom: 16,
     };
     expect(capturedMapContainerProps?.onBoundsChanged).toBe(
       mockHandleBoundsChanged,
     );
-    mockHandleBoundsChanged.mockImplementationOnce(() => {
-      mockMessages = [refreshedOutside, refreshedInside];
-    });
     mockHandleBoundsChanged(bounds);
     rerender(<HomeContent />);
 
-    expectDisplayedMessages([refreshedInside]);
-    expect(capturedMapContainerProps?.interests).toEqual(initialInterests);
+    expectDisplayedMessages([homeEvent, workEvent]);
+    expect(capturedMessageQueryOptions).toEqual({ scope: "all", enabled: true });
+    expect(capturedMapContainerProps?.interests).toEqual(mockInterests);
   });
 
   it("recomputes matches when saved zones move", () => {
