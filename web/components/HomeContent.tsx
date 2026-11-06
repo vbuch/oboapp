@@ -627,9 +627,6 @@ function HomeContentInner() {
             targetMode={targetMode}
             initialMapCenter={initialMapCenter}
             automaticCenterEnabled={effectiveViewMode !== "zones" && !messageId}
-            unrestrictedCamera={
-              effectiveViewMode === "zones" && interests.length > 0
-            }
             hoveredMessageId={hoveredMessageId}
             selectedMessageId={selectedMessage?.id}
             onFeatureClick={handleFeatureClick}

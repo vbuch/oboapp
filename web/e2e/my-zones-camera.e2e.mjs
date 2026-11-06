@@ -5,9 +5,11 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { expect } from "playwright/test";
+import { getBoundsForLocality } from "@oboapp/shared";
 
 const baseUrl = process.env.E2E_BASE_URL || "http://localhost:3000";
 const browserChannel = process.env.PLAYWRIGHT_CHANNEL;
+const localityBounds = getBoundsForLocality("bg.sofia");
 const artifactDirectory = fileURLToPath(
   new URL("../../tmp/my-zones-camera-e2e/", import.meta.url),
 );
@@ -47,6 +49,18 @@ async function expectCameraUnchanged(page, expected) {
   }, { intervals: [100] }).toBe(true);
 }
 
+async function waitForCameraStable(page) {
+  let previous = null;
+  let stableChecks = 0;
+  await expect.poll(async () => {
+    const camera = await cameraSnapshot(page);
+    const current = JSON.stringify(camera);
+    stableChecks = current === previous ? stableChecks + 1 : 0;
+    previous = current;
+    return stableChecks >= 5;
+  }, { intervals: [100] }).toBe(true);
+}
+
 async function moveCamera(page, center, zoom) {
   await page.evaluate(async ({ center: nextCenter, zoom: nextZoom }) => {
     const map = globalThis.__zoneCamera.map;
@@ -65,10 +79,65 @@ async function moveCamera(page, center, zoom) {
   }, { center, zoom });
 }
 
+async function expectLocalityLimits(page) {
+  await expect.poll(async () => {
+    return page.evaluate((expected) => {
+      const map = globalThis.__zoneCamera.map;
+      const restriction = map.get("restriction");
+      if (!restriction?.strictBounds || !restriction.latLngBounds) {
+        return false;
+      }
+
+      const configured = new google.maps.LatLngBounds(
+        restriction.latLngBounds,
+      ).toJSON();
+      const viewport = map.getBounds().toJSON();
+      const tolerance = 0.000001;
+      return (
+        Object.entries(expected).every(([side, value]) => {
+          return Math.abs(configured[side] - value) < tolerance;
+        }) &&
+        map.get("minZoom") === 12 &&
+        map.get("maxZoom") === 18 &&
+        map.getZoom() >= 12 &&
+        map.getZoom() <= 18 &&
+        viewport.north <= expected.north + tolerance &&
+        viewport.south >= expected.south - tolerance &&
+        viewport.east <= expected.east + tolerance &&
+        viewport.west >= expected.west - tolerance
+      );
+    }, localityBounds);
+  }).toBe(true);
+}
+
+async function expectBoundedZoneFit(page, zones, previousFits) {
+  await expect.poll(async () => {
+    return (await cameraSnapshot(page)).fits;
+  }).toBe(previousFits + 1);
+  await waitForCameraStable(page);
+  await expectLocalityLimits(page);
+  await expect.poll(async () => {
+    return page.evaluate((savedZones) => {
+      const requested = new google.maps.LatLngBounds(
+        globalThis.__zoneCamera.fits.at(-1).bounds,
+      );
+      return savedZones.every((zone) => {
+        const circle = new google.maps.Circle({
+          center: zone.coordinates,
+          radius: zone.radius,
+        }).getBounds();
+        return requested.contains(circle.getNorthEast()) &&
+          requested.contains(circle.getSouthWest());
+      });
+    }, zones);
+  }).toBe(true);
+}
+
 async function expectZonesFitted(page, zones, previousFits) {
   await expect.poll(async () => {
     return (await cameraSnapshot(page)).fits;
   }).toBe(previousFits + 1);
+  await waitForCameraStable(page);
 
   // Check actual projected circles against the visible map, independently of
   // the application's bounds helper. Google Maps also supplies the circle bounds.
@@ -130,9 +199,19 @@ async function moveMockZone(page, zone, coordinates) {
   const save = page.getByRole("button", { name: "Запази зоната", exact: true });
   await expect(save).toBeEnabled();
   await moveCamera(page, coordinates, 16);
-  const mapBox = await page.locator(".gm-style").boundingBox();
-  assert.ok(mapBox);
-  await page.mouse.click(mapBox.x + mapBox.width / 2, mapBox.y + mapBox.height / 2);
+  // Place the mock zone through Maps' native click event for deterministic setup.
+  await page.evaluate((position) => {
+    google.maps.event.trigger(globalThis.__zoneCamera.map, "click", {
+      latLng: new google.maps.LatLng(position),
+    });
+  }, coordinates);
+  await expect.poll(async () => {
+    const placement = await page.getByText(/^-?\d+\.\d{6}, -?\d+\.\d{6}$/)
+      .textContent();
+    const [latitude, longitude] = (placement || "").split(",").map(Number);
+    return Math.abs(latitude - coordinates.lat) < 0.0001 &&
+      Math.abs(longitude - coordinates.lng) < 0.0001;
+  }).toBe(true);
   const saved = page.waitForResponse((response) => {
     return isApiResponse(response, "/api/interests", "PATCH");
   });
@@ -248,7 +327,10 @@ test("My zones fits saved circles once per entry and preserves later camera chan
       globalThis.__zoneCamera = { map: null, fits: [] };
       google.maps.Map.prototype.fitBounds = function (bounds, padding) {
         globalThis.__zoneCamera.map = this;
-        globalThis.__zoneCamera.fits.push({ padding });
+        globalThis.__zoneCamera.fits.push({
+          padding,
+          bounds: new google.maps.LatLngBounds(bounds).toJSON(),
+        });
         return original.call(this, bounds, padding);
       };
     });
@@ -262,7 +344,13 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     })).toBeVisible();
     await page.waitForFunction(() => globalThis.__zoneCamera.map !== null);
     await expectZonesFitted(page, zones, 0);
+    await expectLocalityLimits(page);
+    await moveCamera(page, { lat: 41, lng: 26 }, 15);
+    await expectLocalityLimits(page);
+    await moveCamera(page, { lat: 42.7, lng: 23.3 }, 0);
+    await expectLocalityLimits(page);
     context.diagnostic("Both native zone circles fit inside the visible map with padding.");
+    context.diagnostic("My zones keeps the normal locality bounds when panning outside Sofia and requesting a world zoom.");
 
     const viewportResponse = page.waitForResponse((response) => {
       return isApiResponse(response, "/api/messages");
@@ -276,6 +364,7 @@ test("My zones fits saved circles once per entry and preserves later camera chan
       });
     });
     await expectCameraUnchanged(page, manualCamera);
+    await expectLocalityLimits(page);
 
     await page.getByRole("button", { name: "Отвори филтрите", exact: true }).click();
     const waterCategory = page.getByRole("region", { name: "Категории" })
@@ -292,10 +381,11 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     context.diagnostic("Viewport/category refreshes and late geolocation preserve manual center and zoom.");
 
     await eventsMode.click();
+    await expectLocalityLimits(page);
     await zonesMode.click();
     await expectZonesFitted(page, zones, manualCamera.fits);
 
-    // Exercise the widest supported zone spread with real mock-zone edits.
+    // Extreme spreads request all circles while respecting the locality camera.
     zones = [
       await moveMockZone(page, zones[0], { lat: 42.615, lng: 23.205 }),
       await moveMockZone(page, zones[1], { lat: 42.82, lng: 23.51 }),
@@ -303,9 +393,10 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     const beforeWideFit = await cameraSnapshot(page);
     await eventsMode.click();
     await zonesMode.click();
-    await expectZonesFitted(page, zones, beforeWideFit.fits);
+    await expectBoundedZoneFit(page, zones, beforeWideFit.fits);
+    await expect.poll(async () => (await cameraSnapshot(page)).zoom).toBeLessThan(16);
     await page.screenshot({ path: path.join(artifactDirectory, "distant-zones.png") });
-    context.diagnostic("Distant zones at opposite locality edges fit with their different radii.");
+    context.diagnostic("Fitting distant zones at opposite locality edges preserves the normal map limits.");
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(zonesMode).toHaveCount(0);
@@ -313,7 +404,7 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     const beforeResponsiveEntry = await cameraSnapshot(page);
     await page.setViewportSize({ width: 1280, height: 960 });
     await expect(zonesMode).toHaveAttribute("aria-checked", "true");
-    await expectZonesFitted(page, zones, beforeResponsiveEntry.fits);
+    await expectBoundedZoneFit(page, zones, beforeResponsiveEntry.fits);
 
     await deleteMockZone(page, zones[1]);
     zones = [zones[0]];
@@ -321,7 +412,8 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     await eventsMode.click();
     await zonesMode.click();
     await expectZonesFitted(page, zones, beforeSingleFit.fits);
-    context.diagnostic("Returning to desktop and entering with one remaining zone fit the visible circles.");
+    await expectLocalityLimits(page);
+    context.diagnostic("Returning to desktop keeps the locality boundary; one remaining zone fits fully.");
 
     await deleteMockZone(page, zones[0]);
     await expect(page.getByText(/Нямаш добавени зони\. Натисни/)).toBeVisible();
@@ -330,10 +422,20 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     const emptyCamera = await cameraSnapshot(page);
     await zonesMode.click();
     await expectCameraUnchanged(page, emptyCamera);
+    await expectLocalityLimits(page);
     await page.screenshot({ path: path.join(artifactDirectory, "no-zones.png") });
     assert.deepEqual(pageErrors, []);
     context.diagnostic("Entering My zones without saved zones keeps the camera and add-zone action usable.");
   } catch (error) {
+    const cameraReady = await page.evaluate(() => {
+      return Boolean(globalThis.__zoneCamera?.map);
+    }).catch(() => false);
+    if (cameraReady) {
+      context.diagnostic(JSON.stringify(await cameraSnapshot(page)));
+      context.diagnostic(JSON.stringify(await page.evaluate(() => {
+        return globalThis.__zoneCamera.fits.at(-1);
+      })));
+    }
     await page.screenshot({
       path: path.join(artifactDirectory, "failure.png"),
       fullPage: true,

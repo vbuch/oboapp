@@ -34,6 +34,7 @@ const mockSuppressNextViewportFetch = vi.fn();
 const mockCloseFilterPanelSilently = vi.fn();
 const mockSetSelectedCategories = vi.fn();
 const mockSetSelectedSources = vi.fn();
+const mockZoneBoundsCenter = { lat: 42.6977, lng: 23.3219 };
 let authUser: {
   uid: string;
   isAnonymous?: boolean;
@@ -322,6 +323,15 @@ describe("HomeContent pivot behavior", () => {
     authUser = null;
     vi.clearAllMocks();
     vi.unstubAllGlobals();
+    vi.stubGlobal("google", {
+      maps: {
+        LatLngBounds: class {
+          getCenter() {
+            return mockZoneBoundsCenter;
+          }
+        },
+      },
+    });
     globalThis.sessionStorage.clear();
   });
 
@@ -356,17 +366,22 @@ describe("HomeContent pivot behavior", () => {
     authUser = { uid: "user-1" };
     mockInterestsLoaded = false;
     const fitBounds = vi.fn();
-    mockMapInstance = { fitBounds } as unknown as google.maps.Map;
+    const setCenter = vi.fn();
+    mockMapInstance = { fitBounds, setCenter } as unknown as google.maps.Map;
     const { rerender } = render(<HomeContent />);
 
     fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
     expect(fitBounds).not.toHaveBeenCalled();
+    expect(setCenter).not.toHaveBeenCalled();
     expect(capturedMapContainerProps?.automaticCenterEnabled).toBe(false);
-    expect(capturedMapContainerProps?.unrestrictedCamera).toBe(true);
 
     mockInterestsLoaded = true;
     rerender(<HomeContent />);
     expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(setCenter).toHaveBeenCalledExactlyOnceWith(mockZoneBoundsCenter);
+    expect(fitBounds.mock.invocationCallOrder[0]).toBeLessThan(
+      setCenter.mock.invocationCallOrder[0],
+    );
     expect(mockCloseFilterPanelSilently).toHaveBeenCalledTimes(1);
     expect(mockCloseFilterPanelSilently.mock.invocationCallOrder[0]).toBeLessThan(
       fitBounds.mock.invocationCallOrder[0],
@@ -383,12 +398,13 @@ describe("HomeContent pivot behavior", () => {
     mockMessages = [createMapMessage("refresh", [23.3219, 42.6977])];
     rerender(<HomeContent />);
     expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(setCenter).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Събития" }));
     expect(capturedMapContainerProps?.automaticCenterEnabled).toBe(true);
-    expect(capturedMapContainerProps?.unrestrictedCamera).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
     expect(fitBounds).toHaveBeenCalledTimes(2);
+    expect(setCenter).toHaveBeenCalledTimes(2);
   });
 
   it("leaves the camera usable without zones and refits after desktop re-entry", () => {
@@ -396,12 +412,13 @@ describe("HomeContent pivot behavior", () => {
     authUser = { uid: "user-1" };
     mockInterests = [];
     const fitBounds = vi.fn();
-    mockMapInstance = { fitBounds } as unknown as google.maps.Map;
+    const setCenter = vi.fn();
+    mockMapInstance = { fitBounds, setCenter } as unknown as google.maps.Map;
     const { rerender } = render(<HomeContent />);
 
     fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
     expect(fitBounds).not.toHaveBeenCalled();
-    expect(capturedMapContainerProps?.unrestrictedCamera).toBe(false);
+    expect(setCenter).not.toHaveBeenCalled();
 
     isWideDesktopLayout = false;
     rerender(<HomeContent />);
@@ -409,6 +426,7 @@ describe("HomeContent pivot behavior", () => {
     isWideDesktopLayout = true;
     rerender(<HomeContent />);
     expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(setCenter).toHaveBeenCalledTimes(1);
   });
 
   it("preserves explicit event navigation when entering My zones", () => {
@@ -428,7 +446,8 @@ describe("HomeContent pivot behavior", () => {
       },
     });
     const fitBounds = vi.fn();
-    mockMapInstance = { fitBounds } as unknown as google.maps.Map;
+    const setCenter = vi.fn();
+    mockMapInstance = { fitBounds, setCenter } as unknown as google.maps.Map;
 
     render(<HomeContent />);
     expect(fitBounds).toHaveBeenCalledExactlyOnceWith(createdBounds, 56);
@@ -436,6 +455,7 @@ describe("HomeContent pivot behavior", () => {
     fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
 
     expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(setCenter).not.toHaveBeenCalled();
     expect(capturedMapContainerProps?.automaticCenterEnabled).toBe(false);
     expect(capturedMapContainerProps?.selectedMessageId).toBe("selected");
   });

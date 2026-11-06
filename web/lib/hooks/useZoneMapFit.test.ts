@@ -1,8 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Interest } from "@/lib/types";
 import { getZoneBounds } from "@/lib/zone-bounds";
 import { useZoneMapFit } from "./useZoneMapFit";
+
+const sdkBoundsCenter = { lat: 42.65, lng: 23.4 };
+const boundsConstructor = vi.fn();
 
 const interests: Interest[] = [
   {
@@ -25,7 +28,8 @@ const interests: Interest[] = [
 
 function setup() {
   const fitBounds = vi.fn();
-  const map = { fitBounds } as unknown as google.maps.Map;
+  const setCenter = vi.fn();
+  const map = { fitBounds, setCenter } as unknown as google.maps.Map;
   const props = {
     active: false,
     interests,
@@ -35,13 +39,35 @@ function setup() {
     userId: "user",
   };
   const hook = renderHook(useZoneMapFit, { initialProps: props });
-  return { ...hook, props, map, fitBounds };
+  return { ...hook, props, map, fitBounds, setCenter };
 }
 
 describe("useZoneMapFit", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("google", {
+      maps: {
+        LatLngBounds: class {
+          constructor(bounds: google.maps.LatLngBoundsLiteral) {
+            boundsConstructor(bounds);
+          }
+
+          getCenter() {
+            return sdkBoundsCenter;
+          }
+        },
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("fits full saved circles on entry even with no event data", () => {
-    const { rerender, props, fitBounds } = setup();
+    const { rerender, props, fitBounds, setCenter } = setup();
     expect(fitBounds).not.toHaveBeenCalled();
+    expect(setCenter).not.toHaveBeenCalled();
 
     rerender({ ...props, active: true });
 
@@ -49,10 +75,20 @@ describe("useZoneMapFit", () => {
       getZoneBounds(interests),
       56,
     );
+    expect(boundsConstructor).toHaveBeenCalledExactlyOnceWith(
+      getZoneBounds(interests),
+    );
+    expect(setCenter).toHaveBeenCalledExactlyOnceWith(sdkBoundsCenter);
+    expect(fitBounds.mock.invocationCallOrder[0]).toBeLessThan(
+      setCenter.mock.invocationCallOrder[0],
+    );
   });
 
   it("handles entry directly into My zones", () => {
-    const map = { fitBounds: vi.fn() } as unknown as google.maps.Map;
+    const map = {
+      fitBounds: vi.fn(),
+      setCenter: vi.fn(),
+    } as unknown as google.maps.Map;
     renderHook(useZoneMapFit, {
       initialProps: {
         active: true,
@@ -63,10 +99,11 @@ describe("useZoneMapFit", () => {
       },
     });
     expect(map.fitBounds).toHaveBeenCalledTimes(1);
+    expect(map.setCenter).toHaveBeenCalledExactlyOnceWith(sdkBoundsCenter);
   });
 
   it.each(["map", "interests"])("waits when %s is the last thing ready", (last) => {
-    const { rerender, props, map, fitBounds } = setup();
+    const { rerender, props, map, fitBounds, setCenter } = setup();
     rerender({ ...props, active: true, map: null, interestsLoaded: false });
     rerender({
       ...props,
@@ -75,13 +112,15 @@ describe("useZoneMapFit", () => {
       interestsLoaded: last === "interests" ? false : true,
     });
     expect(fitBounds).not.toHaveBeenCalled();
+    expect(setCenter).not.toHaveBeenCalled();
 
     rerender({ ...props, active: true });
     expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(setCenter).toHaveBeenCalledTimes(1);
   });
 
   it("preserves manual camera changes through refreshes and zone edits", () => {
-    const { rerender, props, map, fitBounds } = setup();
+    const { rerender, props, map, fitBounds, setCenter } = setup();
     rerender({ ...props, active: true });
     const panTo = vi.fn();
     const setZoom = vi.fn();
@@ -98,30 +137,34 @@ describe("useZoneMapFit", () => {
       interests: [{ ...interests[0], radius: 200 }],
     });
     expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(setCenter).toHaveBeenCalledExactlyOnceWith(sdkBoundsCenter);
     expect(panTo).toHaveBeenCalledTimes(1);
     expect(setZoom).toHaveBeenCalledTimes(1);
   });
 
   it("fits again on the next entry using the current zones", () => {
-    const { rerender, props, fitBounds } = setup();
+    const { rerender, props, fitBounds, setCenter } = setup();
     rerender({ ...props, active: true });
     rerender(props);
     const updatedInterests = [{ ...interests[0], radius: 200 }];
     rerender({ ...props, active: true, interests: updatedInterests });
 
     expect(fitBounds).toHaveBeenCalledTimes(2);
+    expect(setCenter).toHaveBeenCalledTimes(2);
     expect(fitBounds).toHaveBeenLastCalledWith(getZoneBounds(updatedInterests), 56);
   });
 
   it("keeps the camera when no zones exist, including later zone creation", () => {
-    const { rerender, props, fitBounds } = setup();
+    const { rerender, props, fitBounds, setCenter } = setup();
     rerender({ ...props, active: true, interests: [] });
     rerender({ ...props, active: true });
     expect(fitBounds).not.toHaveBeenCalled();
+    expect(setCenter).not.toHaveBeenCalled();
 
     rerender(props);
     rerender({ ...props, active: true });
     expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(setCenter).toHaveBeenCalledTimes(1);
   });
 
   it("cancels pending entry when leaving before zones finish loading", () => {
@@ -144,14 +187,16 @@ describe("useZoneMapFit", () => {
   });
 
   it("preserves event or zone-edit navigation while entry is pending", () => {
-    const { rerender, props, fitBounds } = setup();
+    const { rerender, props, fitBounds, setCenter } = setup();
     rerender({ ...props, active: true, interestsLoaded: false });
     rerender({ ...props, active: true, suspended: true });
     rerender({ ...props, active: true });
     expect(fitBounds).not.toHaveBeenCalled();
+    expect(setCenter).not.toHaveBeenCalled();
 
     rerender(props);
     rerender({ ...props, active: true });
     expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(setCenter).toHaveBeenCalledTimes(1);
   });
 });

@@ -24,7 +24,6 @@ interface MapContainerProps {
   };
   readonly initialMapCenter?: { lat: number; lng: number } | null;
   readonly automaticCenterEnabled?: boolean;
-  readonly unrestrictedCamera?: boolean;
   readonly hoveredMessageId?: string | null;
   readonly selectedMessageId?: string | null;
   readonly onFeatureClick: (messageId: string) => void;
@@ -77,7 +76,6 @@ export default function MapContainer({
   targetMode,
   initialMapCenter,
   automaticCenterEnabled = true,
-  unrestrictedCamera = false,
   hoveredMessageId,
   selectedMessageId,
   onFeatureClick,
@@ -268,7 +266,6 @@ export default function MapContainer({
         onInterestClick={onInterestClick}
         interestsInteractive={interestsInteractive}
         initialCenter={initialMapCenter || undefined}
-        unrestrictedCamera={unrestrictedCamera}
         shouldTrackLocation={isTrackingLocation}
         hoveredMessageId={hoveredMessageId}
         selectedMessageId={selectedMessageId}

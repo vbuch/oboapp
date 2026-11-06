@@ -47,7 +47,6 @@ interface MapComponentProps {
     onCancel: () => void;
   };
   readonly initialCenter?: { lat: number; lng: number };
-  readonly unrestrictedCamera?: boolean;
   readonly shouldTrackLocation?: boolean;
   readonly hoveredMessageId?: string | null;
   readonly selectedMessageId?: string | null;
@@ -109,7 +108,6 @@ function MapLoaded({
   interestsInteractive = true,
   targetMode,
   initialCenter,
-  unrestrictedCamera = false,
   shouldTrackLocation = false,
   hoveredMessageId,
   selectedMessageId,
@@ -140,17 +138,14 @@ function MapLoaded({
       fullscreenControl: false,
       styles: mapStyles,
       clickableIcons: false, // Disable clicking on POIs (shops, hospitals, etc.)
-      // Saved circles may need a wider view than the usual locality camera.
-      restriction: unrestrictedCamera
-        ? null
-        : {
-            latLngBounds: localityBounds,
-            strictBounds: true,
-          },
-      minZoom: unrestrictedCamera ? 0 : 12,
+      restriction: {
+        latLngBounds: localityBounds,
+        strictBounds: true,
+      },
+      minZoom: 12,
       maxZoom: 18,
     }),
-    [initialCenter, localityBounds, localityCenter, unrestrictedCamera],
+    [initialCenter, localityBounds, localityCenter],
   );
 
   const centerMap = useCallback(
