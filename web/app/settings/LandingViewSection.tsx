@@ -54,7 +54,9 @@ export function LandingViewSection() {
         {OPTIONS.map((option) => (
           <label
             key={option.value}
-            className="flex items-start gap-3 text-foreground cursor-pointer"
+            className={`flex items-start gap-3 rounded-md text-foreground transition-colors ${
+              isLoading ? "cursor-not-allowed" : "cursor-pointer hover:bg-neutral-light"
+            }`}
           >
             <input
               type="radio"

@@ -92,6 +92,7 @@ export default function SegmentedControl({
           tabIndex = 0;
         }
         const isHome = homeValue === option.value;
+        const hasHomeAction = isActive && !isDisabled && Boolean(onHomeChange);
         const homeLabel = isHome
           ? `„${option.label}“ е началният ти изглед`
           : `Направи „${option.label}“ начален изглед`;
@@ -110,10 +111,12 @@ export default function SegmentedControl({
               tabIndex={tabIndex}
               onClick={isDisabled ? undefined : () => onChange(option.value)}
               onKeyDown={isDisabled ? undefined : handleKeyDown}
-              className={`min-h-10 whitespace-nowrap px-1.5 sm:px-3 py-1.5 rounded-full text-[13px] sm:text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+              className={`min-h-10 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                hasHomeAction ? "pl-1.5 pr-0 sm:pl-3" : "px-1.5 sm:px-3"
+              } ${
                 isDisabled
                   ? "opacity-40 cursor-not-allowed"
-                  : "cursor-pointer hover:text-neutral-dark"
+                  : "cursor-pointer hover:bg-neutral-border hover:text-neutral-dark"
               }`}
             >
               {option.label}
@@ -129,7 +132,7 @@ export default function SegmentedControl({
                     onHomeChange(option.value);
                   }
                 }}
-                className="flex h-10 w-9 shrink-0 items-center justify-center rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="flex h-10 w-9 shrink-0 items-center justify-center rounded-full cursor-pointer transition-colors hover:bg-neutral-border hover:text-neutral-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <House
                   className="h-4 w-4"
