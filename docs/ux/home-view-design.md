@@ -34,7 +34,9 @@ tab supplies the location action, so the map has no separate floating Locate but
 Show a house action beside the active tab label, inside the same visual segment.
 Hovering either action tints the whole active segment. The selection highlight
 slides between tabs in a short transition while the selected view updates
-immediately. Disable this movement when reduced motion is requested.
+immediately. The outgoing house shrinks away as the incoming house grows, and
+the tab widths and label padding animate with them. Disable this movement when
+reduced motion is requested.
 When another tab becomes active, the house moves with it:
 
 - **Outlined house:** the active tab can be saved as home.

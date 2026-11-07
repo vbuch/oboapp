@@ -34,6 +34,8 @@ export default function SegmentedControl({
 }: SegmentedControlProps) {
   const groupRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLSpanElement>(null);
+  const previousValueRef = useRef(value);
+  const hasHomeActions = Boolean(onHomeChange);
   const enabledOptions = options.filter((o) => !o.disabled);
 
   useLayoutEffect(() => {
@@ -49,22 +51,64 @@ export default function SegmentedControl({
       return;
     }
 
-    const updateIndicator = () => {
+    const paintIndicator = (
+      bounds: Pick<DOMRect, "left" | "top" | "width" | "height">,
+    ) => {
       const groupBounds = group.getBoundingClientRect();
-      const segmentBounds = activeSegment.getBoundingClientRect();
       indicator.style.setProperty(
         "--selection-x",
-        `${segmentBounds.left - groupBounds.left - group.clientLeft}px`,
+        `${bounds.left - groupBounds.left - group.clientLeft}px`,
       );
       indicator.style.setProperty(
         "--selection-y",
-        `${segmentBounds.top - groupBounds.top - group.clientTop}px`,
+        `${bounds.top - groupBounds.top - group.clientTop}px`,
       );
-      indicator.style.setProperty("--selection-width", `${segmentBounds.width}px`);
-      indicator.style.setProperty("--selection-height", `${segmentBounds.height}px`);
+      indicator.style.setProperty("--selection-width", `${bounds.width}px`);
+      indicator.style.setProperty("--selection-height", `${bounds.height}px`);
       group.dataset.indicatorReady = "true";
     };
 
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const duration = Number.parseFloat(
+      getComputedStyle(group).getPropertyValue("--selection-duration"),
+    );
+    let isAnimating =
+      previousValueRef.current !== value &&
+      group.dataset.indicatorReady === "true" &&
+      !reducedMotion.matches &&
+      duration > 0;
+    previousValueRef.current = value;
+    let frame = 0;
+
+    if (isAnimating) {
+      const startBounds = indicator.getBoundingClientRect();
+      const started = performance.now();
+      const animate = (now: number) => {
+        const progress = reducedMotion.matches
+          ? 1
+          : Math.min(Math.max((now - started) / duration, 0), 1);
+        const eased = 1 - (1 - progress) ** 3;
+        const target = activeSegment.getBoundingClientRect();
+        paintIndicator({
+          left: startBounds.left + (target.left - startBounds.left) * eased,
+          top: startBounds.top + (target.top - startBounds.top) * eased,
+          width: startBounds.width + (target.width - startBounds.width) * eased,
+          height: startBounds.height + (target.height - startBounds.height) * eased,
+        });
+        isAnimating = progress < 1;
+        if (isAnimating) {
+          frame = requestAnimationFrame(animate);
+        }
+      };
+      frame = requestAnimationFrame(animate);
+    }
+
+    // Read live tab bounds while their house slots expand and collapse.
+    const updateIndicator = () => {
+      if (!isAnimating) {
+        paintIndicator(activeSegment.getBoundingClientRect());
+      }
+    };
     updateIndicator();
     const observer = new ResizeObserver(updateIndicator);
     observer.observe(group);
@@ -72,9 +116,10 @@ export default function SegmentedControl({
       observer.observe(segment);
     }
     return () => {
+      cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [options, value, onHomeChange]);
+  }, [options, value, hasHomeActions]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -164,7 +209,7 @@ export default function SegmentedControl({
               tabIndex={tabIndex}
               onClick={isDisabled ? undefined : () => onChange(option.value)}
               onKeyDown={isDisabled ? undefined : handleKeyDown}
-              className={`min-h-10 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+              className={`${styles.label} min-h-10 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                 hasHomeAction ? "pl-1.5 pr-0 sm:pl-3" : "px-1.5 sm:px-3"
               } ${
                 isDisabled
@@ -174,25 +219,34 @@ export default function SegmentedControl({
             >
               {option.label}
             </button>
-            {isActive && !isDisabled && onHomeChange && (
-              <button
-                type="button"
-                aria-label={homeLabel}
-                title={homeLabel}
-                aria-pressed={isHome}
-                onClick={() => {
-                  if (!isHome) {
-                    onHomeChange(option.value);
-                  }
-                }}
-                className="flex h-10 w-9 shrink-0 items-center justify-center rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            {!isDisabled && onHomeChange && (
+              <span
+                data-slot="home-action-slot"
+                aria-hidden={!isActive}
+                inert={!isActive}
+                className={styles.homeSlot}
               >
-                <House
-                  className="h-4 w-4"
-                  fill={isHome ? "currentColor" : "none"}
-                  aria-hidden="true"
-                />
-              </button>
+                <button
+                  type="button"
+                  aria-label={homeLabel}
+                  title={homeLabel}
+                  aria-pressed={isHome}
+                  disabled={!isActive}
+                  tabIndex={isActive ? 0 : -1}
+                  onClick={() => {
+                    if (isActive && !isHome) {
+                      onHomeChange(option.value);
+                    }
+                  }}
+                  className={`${styles.homeButton} flex h-10 w-9 shrink-0 items-center justify-center rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
+                >
+                  <House
+                    className="h-4 w-4"
+                    fill={isHome ? "currentColor" : "none"}
+                    aria-hidden="true"
+                  />
+                </button>
+              </span>
             )}
           </div>
         );

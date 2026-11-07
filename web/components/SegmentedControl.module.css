@@ -1,3 +1,8 @@
+.control {
+  --selection-duration: 200ms;
+  --selection-easing: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
 .indicator {
   display: none;
   width: var(--selection-width);
@@ -7,11 +12,7 @@
 
 .control[data-indicator-ready] .indicator {
   display: block;
-  transition:
-    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    width 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    height 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    background-color 150ms ease;
+  transition: background-color 150ms ease;
 }
 
 .control[data-indicator-ready] .segment[data-active="true"] {
@@ -23,6 +24,35 @@
   transition:
     background-color 150ms ease,
     color 150ms ease;
+}
+
+.label {
+  transition: padding-right var(--selection-duration) var(--selection-easing);
+}
+
+.homeSlot {
+  display: flex;
+  flex-shrink: 0;
+  width: 0;
+  transition: width var(--selection-duration) var(--selection-easing);
+}
+
+.homeButton {
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: left center;
+  transition:
+    transform var(--selection-duration) var(--selection-easing),
+    opacity var(--selection-duration) var(--selection-easing);
+}
+
+.segment[data-active="true"] .homeSlot {
+  width: calc(var(--spacing) * 9);
+}
+
+.segment[data-active="true"] .homeButton {
+  opacity: 1;
+  transform: scale(1);
 }
 
 @media (hover: hover) {
@@ -38,6 +68,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .control {
+    --selection-duration: 0ms;
+  }
+
   .control[data-indicator-ready] .indicator,
   .segment {
     transition: none;

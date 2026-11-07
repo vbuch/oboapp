@@ -137,8 +137,18 @@ describe("SegmentedControl", () => {
     expect(onHomeChange).not.toHaveBeenCalled();
 
     rerender(<SegmentedControl options={OPTIONS} value="events" homeValue="zones" onChange={vi.fn()} onHomeChange={onHomeChange} />);
+    expect(filledHouse).toBeDisabled();
+    expect(filledHouse).toHaveAttribute("tabindex", "-1");
+    await userEvent.click(filledHouse);
+    expect(onHomeChange).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "„Моите зони“ е началният ти изглед" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Направи „Събития“ начален изглед" })).toHaveAttribute("aria-pressed", "false");
+    const outlinedHouse = screen.getByRole("button", { name: "Направи „Събития“ начален изглед" });
+    expect(outlinedHouse).toHaveAttribute("aria-pressed", "false");
+
+    rerender(<SegmentedControl options={OPTIONS} value="zones" homeValue="zones" onChange={vi.fn()} onHomeChange={onHomeChange} />);
+    expect(outlinedHouse).toBeDisabled();
+    await userEvent.click(outlinedHouse);
+    expect(onHomeChange).not.toHaveBeenCalled();
   });
 
   it("supports keyboard selection followed by the separate house action", async () => {
