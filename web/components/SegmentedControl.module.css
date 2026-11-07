@@ -43,7 +43,12 @@
   transform-origin: left center;
   transition:
     transform var(--selection-duration) var(--selection-easing),
-    opacity var(--selection-duration) var(--selection-easing);
+    opacity var(--selection-duration) var(--selection-easing),
+    color 150ms ease;
+}
+
+.homeButton > svg {
+  transition: transform 150ms ease;
 }
 
 .segment[data-active="true"] .homeSlot {
@@ -56,6 +61,14 @@
 }
 
 @media (hover: hover) {
+  .homeButton:enabled:hover {
+    color: var(--color-info-hover);
+  }
+
+  .homeButton:enabled:hover > svg {
+    transform: scale(1.125);
+  }
+
   .segment:not([data-disabled]):hover {
     color: var(--color-primary-hover);
   }
@@ -73,7 +86,13 @@
   }
 
   .control[data-indicator-ready] .indicator,
-  .segment {
+  .segment,
+  .homeButton,
+  .homeButton > svg {
     transition: none;
+  }
+
+  .homeButton:enabled:hover > svg {
+    transform: none;
   }
 }
