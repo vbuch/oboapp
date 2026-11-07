@@ -25,6 +25,7 @@ import { borderRadius } from "@/lib/colors";
 import { fetchWithAuth } from "@/lib/auth-fetch";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { toast } from "sonner";
+import { LandingViewSection } from "./LandingViewSection";
 
 export default function SettingsPage() {
   const {
@@ -416,6 +417,8 @@ export default function SettingsPage() {
         <SettingsHeader />
 
         {error && <ErrorBanner message={error} />}
+
+        <LandingViewSection />
 
         <NotificationsSection
           subscriptions={subscriptions}

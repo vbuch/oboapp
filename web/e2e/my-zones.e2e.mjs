@@ -276,14 +276,37 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
     context.diagnostic("Panning preserves My zones cards and filters without refetching messages.");
 
     await page.setViewportSize({ width: 1000, height: 900 });
-    await expect(zonesMode).toHaveCount(0);
-    await expect(allEvents).toBeVisible();
-    await expect(page.getByRole("button", { name: "Вкъщи", exact: true })).toBeVisible();
-    await expect(roadBlockCard).toBeVisible();
+    await expect(zonesMode).toBeVisible();
+    await expect(zonesMode).toHaveAttribute("aria-checked", "true");
+    await expect(zoneEvents).toBeVisible();
+    await expect(allEvents).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Действия за Вкъщи" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Вкъщи", exact: true })).toHaveCount(0);
+    await expect(roadBlockCard).toHaveCount(0);
+    await expect(waterCard).toBeVisible();
+    await expectNoMessageRefresh(messageRequests, requestsBeforePan);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(zonesMode).toHaveCount(0);
+    await expect(zonesMode).toBeVisible();
+    await expect(zonesMode).toHaveAttribute("aria-checked", "true");
+    await expect(zoneEvents).toBeVisible();
+    await expect(allEvents).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Действия за Работа" })).toBeVisible();
+    await expect(roadBlockCard).toHaveCount(0);
+    await expect(waterCard).toBeVisible();
+    await expect(cityWideCard).toBeVisible();
+    await expectNoMessageRefresh(messageRequests, requestsBeforePan);
+    assert.equal(await zoneEvents.innerText(), zoneTextBeforePan);
+    await page.screenshot({
+      path: path.join(artifactDirectory, "mobile-my-zones.png"),
+      fullPage: true,
+    });
+    context.diagnostic("Tablet and phone preserve My zones, its saved-zone list, filtered cards, and request count after resizing.");
+
+    await eventsMode.click();
+    await expect(eventsMode).toHaveAttribute("aria-checked", "true");
     await expect(allEvents).toBeVisible();
+    await expect(zoneEvents).toHaveCount(0);
     await expect(roadBlockCard).toBeVisible();
     const homeBadge = page.getByRole("button", { name: "Вкъщи", exact: true });
     await expect(homeBadge).toBeVisible();
@@ -312,9 +335,15 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
     await expect(allEvents).toBeVisible();
     await expect(zoneEvents).toHaveCount(0);
     await expect(waterCard).toBeVisible();
-    context.diagnostic("Tablet and phone show zone badges and all Events; tapping a badge centers and zooms the map to that zone and keeps Events mode.");
+    await expect(eventsMode).toHaveAttribute("aria-checked", "true");
+    context.diagnostic("Switching to Events on a phone restores all cards and zone badges; tapping a badge centers the map and keeps Events mode.");
 
     await page.setViewportSize({ width: 1600, height: 1000 });
+    await expect(eventsMode).toHaveAttribute("aria-checked", "true");
+    await expect(allEvents).toBeVisible();
+    await expect(zoneEvents).toHaveCount(0);
+    await expect(homeBadge).toBeHidden();
+    await zonesMode.click();
     await expect(zonesMode).toHaveAttribute("aria-checked", "true");
     await expect(zoneEvents).toBeVisible();
     await expect(roadBlockCard).toHaveCount(0);
@@ -345,7 +374,7 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
     await expect(cityWideCard).toBeVisible();
     await expect.poll(() => mapFeatureCount(page)).toBeGreaterThan(0);
     assert.deepEqual(pageErrors, []);
-    context.diagnostic("Narrow layout restored Events; deleting mock zones cleared the map; Events restored markers.");
+    context.diagnostic("View selection persists across layouts; deleting mock zones cleared the map; Events restored markers.");
   } catch (error) {
     await page.screenshot({
       path: path.join(artifactDirectory, "failure.png"),

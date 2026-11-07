@@ -33,6 +33,11 @@ import { useInterestManagement } from "@/lib/hooks/useInterestManagement";
 import { useCategoryFilter } from "@/lib/hooks/useCategoryFilter";
 import { useSourceFilter } from "@/lib/hooks/useSourceFilter";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import {
+  useLandingPreference,
+  type LandingView,
+} from "@/lib/hooks/useLandingPreference";
+import { parseMapCenterFromParams } from "@/lib/hooks/useMapNavigation.utils";
 import { classifyMessage } from "@/lib/message-classification";
 import { filterEventsByZones } from "@/lib/zone-event-filter";
 import { createMessageUrl } from "@/lib/url-utils";
@@ -52,7 +57,6 @@ import type { Interest } from "@/lib/types";
 import type { OnboardingState } from "@/lib/hooks/useOnboardingFlow";
 import { useMessageByIdFallback } from "@/lib/hooks/useMessageByIdFallback";
 
-type ViewMode = "zones" | "events";
 const WIDE_DESKTOP_MEDIA_QUERY =
   "(min-width: 1280px) and (min-aspect-ratio: 4/3)";
 const MESSAGE_FIT_BOUNDS_PADDING_PX = 56;
@@ -85,11 +89,29 @@ function HomeContentInner() {
     updateInterest,
     deleteInterest,
   } = useInterests();
-  const { user, signInWithGoogle } = useAuth();
+  const { user, loading: authLoading, signInWithGoogle } = useAuth();
   const isWideDesktopLayout = useMediaQuery(WIDE_DESKTOP_MEDIA_QUERY);
-  const [viewMode, setViewMode] = useState<ViewMode>("events");
-  // The view switch is available in the wide desktop layout.
-  const effectiveViewMode = user && isWideDesktopLayout ? viewMode : "events";
+  const { preferredLandingView, isLoading: preferenceLoading } =
+    useLandingPreference();
+  const messageId = searchParams.get("messageId");
+  const hasExplicitNavigation = Boolean(
+    messageId ||
+      parseMapCenterFromParams(searchParams.get("lat"), searchParams.get("lng")),
+  );
+  const [viewMode, setViewMode] = useState<LandingView | null>(null);
+  const isLandingPending =
+    viewMode === null &&
+    !hasExplicitNavigation &&
+    (authLoading || preferenceLoading || Boolean(user && !interestsLoaded));
+
+  // Capture the initial choice once. Later tab switches belong to this visit.
+  if (viewMode === null && !isLandingPending) {
+    setViewMode(
+      hasExplicitNavigation ? "events" : (preferredLandingView ?? "events"),
+    );
+  }
+
+  const effectiveViewMode = user ? (viewMode ?? "events") : "events";
 
   // My zones matches against the full recent batch, independently of the camera.
   const {
@@ -104,8 +126,9 @@ function HomeContentInner() {
   } = useMessages({
     scope: effectiveViewMode === "zones" ? "all" : "viewport",
     enabled:
-      effectiveViewMode !== "zones" ||
-      (interestsLoaded && interests.length > 0),
+      !isLandingPending &&
+      (effectiveViewMode !== "zones" ||
+        (interestsLoaded && interests.length > 0)),
   });
 
   const zoneLocalities = useMemo(() => {
@@ -132,6 +155,10 @@ function HomeContentInner() {
   } = useLocalityBoundaries(zoneLocalities);
 
   const scopedMessages = useMemo(() => {
+    if (isLandingPending) {
+      return [];
+    }
+
     if (effectiveViewMode !== "zones") {
       return messages;
     }
@@ -141,8 +168,16 @@ function HomeContentInner() {
     }
 
     return filterEventsByZones(messages, interests, localityBoundaries);
-  }, [effectiveViewMode, messages, interestsLoaded, interests, localityBoundaries]);
+  }, [
+    isLandingPending,
+    effectiveViewMode,
+    messages,
+    interestsLoaded,
+    interests,
+    localityBoundaries,
+  ]);
   const isViewLoading =
+    isLandingPending ||
     isLoading ||
     (effectiveViewMode === "zones" && (!interestsLoaded || boundariesLoading));
   const viewError =
@@ -441,10 +476,6 @@ function HomeContentInner() {
     navigateBackOrReplace(router, "/");
   }, [router]);
 
-  // Derive selected message from URL parameter
-  // Note: We search in unfiltered 'messages' to preserve selection even when filtered out
-  const messageId = searchParams.get("messageId");
-
   useZoneMapFit({
     active: effectiveViewMode === "zones",
     interests,
@@ -462,12 +493,12 @@ function HomeContentInner() {
 
   const selectedMessage = useMessageByIdFallback(messageId, viewportMatch);
 
-  // Sidebar header with segmented control (shown for all users on desktop)
+  // Both layouts use the same view selection and saved landing behavior.
   const viewModeOptions = user ? VIEW_MODE_OPTIONS : VIEW_MODE_OPTIONS_NO_USER;
 
   const sidebarHeaderContent = useMemo(() => {
     return (
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <SegmentedControl
           options={viewModeOptions}
           value={effectiveViewMode}
@@ -623,7 +654,12 @@ function HomeContentInner() {
             user={user}
             targetMode={targetMode}
             initialMapCenter={initialMapCenter}
-            automaticCenterEnabled={effectiveViewMode !== "zones" && !messageId}
+            initialNavigationReady={!isLandingPending}
+            automaticCenterEnabled={
+              !isLandingPending &&
+              effectiveViewMode !== "zones" &&
+              !hasExplicitNavigation
+            }
             hoveredMessageId={hoveredMessageId}
             selectedMessageId={selectedMessage?.id}
             onFeatureClick={handleFeatureClick}
@@ -653,8 +689,8 @@ function HomeContentInner() {
           className={`flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-none [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white overflow-y-auto ${selectedMessage ? "hidden sm:block" : ""}`}
         >
           <div className="p-6 @container">
-            {/* Mobile: zone badges + always messages */}
-            {user && (
+            {/* Compact zone shortcuts in the Events view. */}
+            {user && effectiveViewMode === "events" && (
               <div className="mb-4 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:hidden">
                 <ZoneBadges
                   interests={interests}
@@ -665,14 +701,12 @@ function HomeContentInner() {
               </div>
             )}
 
-            {/* Desktop: segmented control header */}
-            <div className="mb-4 hidden [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:block">
+            <div className="mb-4">
               {sidebarHeaderContent}
             </div>
 
-            {/* Desktop: zone list when in zones view mode */}
             {user && effectiveViewMode === "zones" && (
-              <div className="hidden [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:block">
+              <div>
                 <ZoneList
                   interests={interests}
                   onZoneClick={handleZoneClick}

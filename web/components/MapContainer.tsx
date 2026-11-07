@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import MapComponent from "@/components/MapComponent";
 import GeolocationButton from "@/components/GeolocationButton";
 import NotificationButton from "@/components/onboarding/NotificationButton";
@@ -23,6 +23,7 @@ interface MapContainerProps {
     pendingColor?: string;
   };
   readonly initialMapCenter?: { lat: number; lng: number } | null;
+  readonly initialNavigationReady?: boolean;
   readonly automaticCenterEnabled?: boolean;
   readonly hoveredMessageId?: string | null;
   readonly selectedMessageId?: string | null;
@@ -75,6 +76,7 @@ export default function MapContainer({
   user,
   targetMode,
   initialMapCenter,
+  initialNavigationReady = true,
   automaticCenterEnabled = true,
   hoveredMessageId,
   selectedMessageId,
@@ -162,7 +164,9 @@ export default function MapContainer({
   });
 
   const [isTrackingLocation, setIsTrackingLocation] = useState(false);
-  const allowAutomaticCenter = automaticCenterEnabled && !initialMapCenter;
+  const automaticCenterAttempted = useRef(false);
+  const allowAutomaticCenter =
+    initialNavigationReady && automaticCenterEnabled && !initialMapCenter;
 
   const {
     showPrompt,
@@ -172,6 +176,31 @@ export default function MapContainer({
     autoCenter,
     isLocating,
   } = useGeolocationPrompt({ automaticCenterEnabled: allowAutomaticCenter });
+
+  useEffect(() => {
+    if (
+      !centerMap ||
+      !initialNavigationReady ||
+      automaticCenterAttempted.current
+    ) {
+      return;
+    }
+
+    automaticCenterAttempted.current = true;
+    if (!allowAutomaticCenter) {
+      return;
+    }
+
+    autoCenter(centerMap)
+      .then((success) => {
+        if (success) {
+          setIsTrackingLocation(true);
+        }
+      })
+      .catch(() => {
+        // autoCenter already logs location errors.
+      });
+  }, [centerMap, initialNavigationReady, allowAutomaticCenter, autoCenter]);
 
   // Handle add interest button click in idle state
   // If logged in, go directly to creation mode (skip showing AddInterestsPrompt again)
@@ -225,20 +254,6 @@ export default function MapContainer({
   ) => {
     setCenterMap(() => centerMapFn);
     onMapReady(centerMapFn, mapInstance);
-
-    // Explicit navigation and the active view take priority over automatic location.
-    if (allowAutomaticCenter) {
-      autoCenter(centerMapFn)
-        .then((success) => {
-          if (success) {
-            // Enable location tracking to show the blue dot
-            setIsTrackingLocation(true);
-          }
-        })
-        .catch(() => {
-          // Silently handle errors - autoCenter already logs them
-        });
-    }
   };
 
   const handleGeolocationClick = () => {

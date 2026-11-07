@@ -7,10 +7,15 @@ import {
 } from "@/lib/auth-upgrade";
 import type { Interest, InternalMessage, Message } from "@/lib/types";
 import type { LocalityBoundaries } from "@/lib/zone-event-filter";
+import type { LandingView } from "@/lib/hooks/useLandingPreference";
 
 let isWideDesktopLayout = false;
 let mockMapInstance: google.maps.Map | null = null;
 let mockInterestsLoaded = true;
+let mockAuthLoading = false;
+let mockPreferenceLoading = false;
+let mockPreferredLandingView: LandingView | null = null;
+const mockSetPreferredLandingView = vi.fn();
 let mockSearchParams = new URLSearchParams();
 let mockFeatureBounds: {
   north: number;
@@ -199,7 +204,15 @@ vi.mock("@/lib/hooks/useInterests", () => ({
 }));
 
 vi.mock("@/lib/auth-context", () => ({
-  useAuth: () => ({ user: authUser }),
+  useAuth: () => ({ user: authUser, loading: mockAuthLoading }),
+}));
+
+vi.mock("@/lib/hooks/useLandingPreference", () => ({
+  useLandingPreference: () => ({
+    preferredLandingView: mockPreferredLandingView,
+    isLoading: mockPreferenceLoading,
+    setPreferredLandingView: mockSetPreferredLandingView,
+  }),
 }));
 
 vi.mock("@/lib/hooks/useMessages", () => ({
@@ -323,6 +336,9 @@ describe("HomeContent pivot behavior", () => {
     isWideDesktopLayout = false;
     mockMapInstance = null;
     mockInterestsLoaded = true;
+    mockAuthLoading = false;
+    mockPreferenceLoading = false;
+    mockPreferredLandingView = null;
     mockSearchParams = new URLSearchParams();
     mockFeatureBounds = null;
     authUser = null;
@@ -365,6 +381,174 @@ describe("HomeContent pivot behavior", () => {
     );
     expect(screen.getByTestId("interest-context-menu")).toBeInTheDocument();
   });
+
+  it.each([false, true])(
+    "opens the saved zones view with filtering and fitting for wide layout=%s",
+    (wideLayout) => {
+      isWideDesktopLayout = wideLayout;
+      authUser = { uid: "user-1" };
+      mockPreferredLandingView = "zones";
+      const inside = createMapMessage("inside", [23.3219, 42.6977]);
+      mockMessages = [inside, createMapMessage("outside", [23.38, 42.65])];
+      const fitBounds = vi.fn();
+      mockMapInstance = { fitBounds, setCenter: vi.fn() } as unknown as google.maps.Map;
+
+      render(<HomeContent />);
+
+      expectDisplayedMessages([inside]);
+      expect(capturedMessageQueryOptions).toEqual({ scope: "all", enabled: true });
+      expect(capturedMapContainerProps?.initialNavigationReady).toBe(true);
+      expect(capturedMapContainerProps?.automaticCenterEnabled).toBe(false);
+      expect(screen.getByTestId("zone-list")).toBeVisible();
+      expect(fitBounds).toHaveBeenCalledTimes(1);
+      expect(mockSetPreferredLandingView).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([null, "events"] as const)(
+    "keeps usual Events behavior for saved preference=%s",
+    (preference) => {
+      authUser = { uid: "user-1" };
+      mockPreferredLandingView = preference;
+      mockMessages = [createMapMessage("outside", [23.38, 42.65])];
+
+      render(<HomeContent />);
+
+      expectDisplayedMessages(mockMessages);
+      expect(capturedMessageQueryOptions).toEqual({ scope: "viewport", enabled: true });
+      expect(capturedMapContainerProps?.automaticCenterEnabled).toBe(true);
+      expect(mockSetPreferredLandingView).not.toHaveBeenCalled();
+    },
+  );
+
+  it("waits for preference, authentication, zones, and map before applying the landing view", () => {
+    mockAuthLoading = true;
+    mockPreferenceLoading = true;
+    mockInterestsLoaded = false;
+    mockMessages = [createMapMessage("outside", [23.38, 42.65])];
+    const { rerender } = render(<HomeContent />);
+    expectDisplayedMessages([]);
+    expect(capturedMessageQueryOptions?.enabled).toBe(false);
+    expect(capturedMapContainerProps?.initialNavigationReady).toBe(false);
+    expect(capturedMapContainerProps?.automaticCenterEnabled).toBe(false);
+
+    mockAuthLoading = false;
+    authUser = { uid: "user-1" };
+    rerender(<HomeContent />);
+    expect(capturedMessageQueryOptions?.enabled).toBe(false);
+
+    mockPreferenceLoading = false;
+    mockPreferredLandingView = "zones";
+    rerender(<HomeContent />);
+    expect(capturedMessageQueryOptions?.enabled).toBe(false);
+    expect(capturedMapContainerProps?.initialNavigationReady).toBe(false);
+
+    mockInterestsLoaded = true;
+    rerender(<HomeContent />);
+    expect(capturedMessageQueryOptions).toEqual({ scope: "all", enabled: true });
+    expect(capturedMapContainerProps?.initialNavigationReady).toBe(true);
+
+    const fitBounds = vi.fn();
+    mockMapInstance = { fitBounds, setCenter: vi.fn() } as unknown as google.maps.Map;
+    rerender(<HomeContent />);
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+    rerender(<HomeContent />);
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a temporary tab choice when a delayed preference arrives", () => {
+    authUser = { uid: "user-1" };
+    mockPreferenceLoading = true;
+    const { rerender } = render(<HomeContent />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Събития" }));
+    mockPreferenceLoading = false;
+    mockPreferredLandingView = "zones";
+    rerender(<HomeContent />);
+
+    expect(capturedMessageQueryOptions).toEqual({ scope: "viewport", enabled: true });
+    expect(screen.queryByTestId("zone-list")).not.toBeInTheDocument();
+    expect(mockSetPreferredLandingView).not.toHaveBeenCalled();
+  });
+
+  it("keeps the visit choice while preferences change and reapplies the saved choice on return", () => {
+    authUser = { uid: "user-1" };
+    mockPreferredLandingView = "zones";
+    const firstVisit = render(<HomeContent />);
+    fireEvent.click(screen.getByRole("button", { name: "Събития" }));
+    firstVisit.rerender(<HomeContent />);
+    expect(capturedMessageQueryOptions?.scope).toBe("viewport");
+    expect(mockSetPreferredLandingView).not.toHaveBeenCalled();
+    firstVisit.unmount();
+
+    const nextVisit = render(<HomeContent />);
+    expect(capturedMessageQueryOptions?.scope).toBe("all");
+    mockPreferredLandingView = "events";
+    nextVisit.rerender(<HomeContent />);
+    expect(capturedMessageQueryOptions?.scope).toBe("all");
+    nextVisit.unmount();
+
+    render(<HomeContent />);
+    expect(capturedMessageQueryOptions?.scope).toBe("viewport");
+  });
+
+  it("opens the add-zone empty state for a saved zones preference without zones", () => {
+    authUser = { uid: "user-1" };
+    mockPreferredLandingView = "zones";
+    mockInterests = [];
+    const fitBounds = vi.fn();
+    mockMapInstance = { fitBounds, setCenter: vi.fn() } as unknown as google.maps.Map;
+
+    render(<HomeContent />);
+
+    expectDisplayedMessages([]);
+    expect(capturedMessageQueryOptions).toEqual({ scope: "all", enabled: false });
+    expect(capturedZoneListProps?.interests).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Добави зона" }));
+    expect(selectedInterestState.handleStartAddInterest).toHaveBeenCalledOnce();
+    expect(fitBounds).not.toHaveBeenCalled();
+  });
+
+  it("keeps Events usable when authentication settles without a user", () => {
+    mockAuthLoading = true;
+    mockPreferredLandingView = "zones";
+    const { rerender } = render(<HomeContent />);
+    expect(capturedMessageQueryOptions?.enabled).toBe(false);
+
+    mockAuthLoading = false;
+    rerender(<HomeContent />);
+
+    expect(capturedMessageQueryOptions).toEqual({ scope: "viewport", enabled: true });
+    expect(capturedMapContainerProps?.automaticCenterEnabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Моите зони" })).toBeDisabled();
+    expect(mockSetPreferredLandingView).not.toHaveBeenCalled();
+  });
+
+  it.each(["messageId=selected", "lat=42.7&lng=23.3"])(
+    "preserves explicit navigation instead of the saved zones landing for %s",
+    (query) => {
+      authUser = { uid: "user-1" };
+      mockPreferredLandingView = "zones";
+      mockPreferenceLoading = true;
+      mockInterestsLoaded = false;
+      mockSearchParams = new URLSearchParams(query);
+      mockMessages = [createMapMessage("selected", [23.3219, 42.6977])];
+      const fitBounds = vi.fn();
+      mockMapInstance = { fitBounds, setCenter: vi.fn() } as unknown as google.maps.Map;
+
+      const { rerender } = render(<HomeContent />);
+      expect(capturedMessageQueryOptions).toEqual({ scope: "viewport", enabled: true });
+      expect(capturedMapContainerProps?.automaticCenterEnabled).toBe(false);
+      expect(fitBounds).not.toHaveBeenCalled();
+
+      mockSearchParams = new URLSearchParams();
+      mockPreferenceLoading = false;
+      mockInterestsLoaded = true;
+      rerender(<HomeContent />);
+      expect(capturedMessageQueryOptions?.scope).toBe("viewport");
+      expect(fitBounds).not.toHaveBeenCalled();
+    },
+  );
 
   it("fits after delayed zone loading and queries independently of the viewport", () => {
     isWideDesktopLayout = true;
@@ -415,7 +599,7 @@ describe("HomeContent pivot behavior", () => {
     expect(setCenter).toHaveBeenCalledTimes(2);
   });
 
-  it("leaves the camera usable without zones and refits after desktop re-entry", () => {
+  it("preserves the camera across layout changes and fits again on tab re-entry", () => {
     isWideDesktopLayout = true;
     authUser = { uid: "user-1" };
     mockInterests = [];
@@ -434,6 +618,9 @@ describe("HomeContent pivot behavior", () => {
     mockInterests = initialInterests;
     isWideDesktopLayout = true;
     rerender(<HomeContent />);
+    expect(fitBounds).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Събития" }));
+    fireEvent.click(screen.getByRole("button", { name: "Моите зони" }));
     expect(fitBounds).toHaveBeenCalledTimes(1);
     expect(setCenter).toHaveBeenCalledTimes(1);
   });
@@ -746,7 +933,7 @@ describe("HomeContent pivot behavior", () => {
   });
 
   it.each(["narrow layout", "sign out"])(
-    "restores Events when leaving My zones through %s",
+    "handles an active zones view through %s",
     (transition) => {
       isWideDesktopLayout = true;
       authUser = { uid: "user-1" };
@@ -765,8 +952,13 @@ describe("HomeContent pivot behavior", () => {
       }
       rerender(<HomeContent />);
 
-      expectDisplayedMessages(mockMessages);
-      expect(screen.queryByTestId("zone-list")).not.toBeInTheDocument();
+      if (transition === "narrow layout") {
+        expectDisplayedMessages([inside]);
+        expect(screen.getByTestId("zone-list")).toBeVisible();
+      } else {
+        expectDisplayedMessages(mockMessages);
+        expect(screen.queryByTestId("zone-list")).not.toBeInTheDocument();
+      }
     },
   );
 

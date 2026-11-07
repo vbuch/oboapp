@@ -422,13 +422,30 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     await page.screenshot({ path: path.join(artifactDirectory, "distant-zones.png") });
     context.diagnostic("Fitting distant zones at opposite locality edges preserves the normal map limits.");
 
+    // Keep the manual camera away from locality edges so native map restrictions
+    // do not need to adjust its center when the viewport dimensions change.
+    await moveCamera(page, { lat: 42.69, lng: 23.34 }, 15);
+    const beforeResponsiveResize = await cameraSnapshot(page);
+    const requestsBeforeResize = messageRequests.length;
+    const zoneTextBeforeResize = await zoneEvents.innerText();
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(zonesMode).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "Събития", exact: true })).toBeVisible();
-    const beforeResponsiveEntry = await cameraSnapshot(page);
+    await expect(zonesMode).toBeVisible();
+    await expect(zonesMode).toHaveAttribute("aria-checked", "true");
+    await expect(zoneEvents).toBeVisible();
+    await expect(page.getByRole("region", { name: "Събития", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Действия за Вкъщи" })).toBeVisible();
+    await expectCameraUnchanged(page, beforeResponsiveResize);
+    await expectNoMessageRefresh(messageRequests, requestsBeforeResize);
+    assert.equal(await zoneEvents.innerText(), zoneTextBeforeResize);
     await page.setViewportSize({ width: 1280, height: 960 });
     await expect(zonesMode).toHaveAttribute("aria-checked", "true");
-    await expectBoundedZoneFit(page, zones, beforeResponsiveEntry.fits);
+    await expectCameraUnchanged(page, beforeResponsiveResize);
+    await expectNoMessageRefresh(messageRequests, requestsBeforeResize);
+    assert.equal(await zoneEvents.innerText(), zoneTextBeforeResize);
+    await eventsMode.click();
+    await zonesMode.click();
+    await expectBoundedZoneFit(page, zones, beforeResponsiveResize.fits);
+    context.diagnostic("Responsive resizing preserves My zones and its manual camera without refitting or refetching; switching away and back fits the saved zones again.");
 
     await deleteMockZone(page, zones[1]);
     zones = [zones[0]];
@@ -437,7 +454,7 @@ test("My zones fits saved circles once per entry and preserves later camera chan
     await zonesMode.click();
     await expectZonesFitted(page, zones, beforeSingleFit.fits);
     await expectLocalityLimits(page);
-    context.diagnostic("Returning to desktop keeps the locality boundary; one remaining zone fits fully.");
+    context.diagnostic("Responsive layouts keep the locality boundary; one remaining zone fits fully.");
 
     await deleteMockZone(page, zones[0]);
     await expect(page.getByText(/Нямаш добавени зони\. Натисни/)).toBeVisible();

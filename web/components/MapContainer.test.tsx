@@ -83,6 +83,74 @@ describe("MapContainer automatic location", () => {
     });
   });
 
+  it("waits for the initial Events decision after the map is ready", async () => {
+    mocks.getCurrentPosition.mockImplementation((success: PositionCallback) => {
+      success({
+        coords: { latitude: 42.7, longitude: 23.4 },
+      } as GeolocationPosition);
+    });
+    const { rerender } = render(
+      <MapContainer
+        {...defaultProps}
+        initialNavigationReady={false}
+        automaticCenterEnabled={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Map ready" }));
+    expect(mocks.getCurrentPosition).not.toHaveBeenCalled();
+
+    rerender(<MapContainer {...defaultProps} initialNavigationReady />);
+
+    await waitFor(() => {
+      expect(mocks.centerMap).toHaveBeenCalledExactlyOnceWith(42.7, 23.4, 17, {
+        animate: false,
+      });
+      expect(screen.getByLabelText("Location tracking")).toHaveTextContent(
+        "enabled",
+      );
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Map ready" }));
+    expect(mocks.getCurrentPosition).toHaveBeenCalledOnce();
+  });
+
+  it("keeps automatic location skipped after an initial My zones decision", () => {
+    const { rerender } = render(
+      <MapContainer
+        {...defaultProps}
+        initialNavigationReady={false}
+        automaticCenterEnabled={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Map ready" }));
+    rerender(
+      <MapContainer
+        {...defaultProps}
+        initialNavigationReady
+        automaticCenterEnabled={false}
+      />,
+    );
+    rerender(<MapContainer {...defaultProps} initialNavigationReady />);
+
+    expect(mocks.getCurrentPosition).not.toHaveBeenCalled();
+    expect(mocks.centerMap).not.toHaveBeenCalled();
+  });
+
+  it("starts location once when the landing decision precedes map readiness", () => {
+    const { rerender } = render(
+      <MapContainer {...defaultProps} initialNavigationReady={false} />,
+    );
+
+    rerender(<MapContainer {...defaultProps} initialNavigationReady />);
+    expect(mocks.getCurrentPosition).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Map ready" }));
+    fireEvent.click(screen.getByRole("button", { name: "Map ready" }));
+
+    expect(mocks.getCurrentPosition).toHaveBeenCalledOnce();
+  });
+
   it("keeps explicit Locate usable when automatic centering is disabled", async () => {
     mocks.getCurrentPosition.mockImplementation((success: PositionCallback) => {
       success({
