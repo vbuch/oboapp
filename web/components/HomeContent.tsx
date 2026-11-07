@@ -9,20 +9,19 @@ import React, {
   Suspense,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import MapContainer from "@/components/MapContainer";
+import MapContainer, { type NearbyLocationState } from "@/components/MapContainer";
 import MessageDetailView from "@/components/MessageDetailView/MessageDetailView";
 import MessagesGrid from "@/components/MessagesGrid";
 import InterestContextMenu from "@/components/InterestContextMenu";
 import FilterBox from "@/components/FilterBox";
-import GeolocationPrompt from "@/components/GeolocationPrompt";
 import OnboardingPrompt from "@/components/onboarding/OnboardingPrompt";
 import UpgradeConflictPrompt from "@/components/onboarding/UpgradeConflictPrompt";
 import AddZoneModal from "@/components/onboarding/AddZoneModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import type { PendingZone } from "@/components/onboarding/AddZoneModal";
 import SegmentedControl from "@/components/SegmentedControl";
-import ZoneBadges from "@/components/ZoneBadges";
 import ZoneList from "@/components/ZoneList";
+import { NearbyLocationStatus } from "@/components/NearbyLocationStatus";
 import { useInterests } from "@/lib/hooks/useInterests";
 import { useLocalityBoundaries } from "@/lib/hooks/useLocalityBoundaries";
 import { useAuth } from "@/lib/auth-context";
@@ -61,13 +60,25 @@ const WIDE_DESKTOP_MEDIA_QUERY =
   "(min-width: 1280px) and (min-aspect-ratio: 4/3)";
 const MESSAGE_FIT_BOUNDS_PADDING_PX = 56;
 
+function getEventSectionLabel(view: LandingView): string {
+  if (view === "zones") {
+    return "Събития в моите зони";
+  }
+  if (view === "nearby") {
+    return "Събития около мен";
+  }
+  return "Събития";
+}
+
 const VIEW_MODE_OPTIONS = [
-  { value: "events" as const, label: "Събития" },
+  { value: "all" as const, label: "Всички" },
+  { value: "nearby" as const, label: "Около мен" },
   { value: "zones" as const, label: "Моите зони" },
 ] as const;
 
 const VIEW_MODE_OPTIONS_NO_USER = [
-  { value: "events" as const, label: "Събития" },
+  { value: "all" as const, label: "Всички" },
+  { value: "nearby" as const, label: "Около мен" },
   { value: "zones" as const, label: "Моите зони", disabled: true },
 ] as const;
 
@@ -91,14 +102,26 @@ function HomeContentInner() {
   } = useInterests();
   const { user, loading: authLoading, signInWithGoogle } = useAuth();
   const isWideDesktopLayout = useMediaQuery(WIDE_DESKTOP_MEDIA_QUERY);
-  const { preferredLandingView, isLoading: preferenceLoading } =
-    useLandingPreference();
+  const {
+    preferredLandingView,
+    isLoading: preferenceLoading,
+    setPreferredLandingView,
+  } = useLandingPreference();
   const messageId = searchParams.get("messageId");
   const hasExplicitNavigation = Boolean(
     messageId ||
       parseMapCenterFromParams(searchParams.get("lat"), searchParams.get("lng")),
   );
   const [viewMode, setViewMode] = useState<LandingView | null>(null);
+  const [navigation, setNavigation] = useState<{
+    source: "initial" | "manual";
+    requestId: number;
+  }>({ source: "initial", requestId: 0 });
+  const [nearbyLocation, setNearbyLocation] = useState<NearbyLocationState>({
+    status: "idle",
+    message: null,
+    retry: () => {},
+  });
   const isLandingPending =
     viewMode === null &&
     !hasExplicitNavigation &&
@@ -107,11 +130,14 @@ function HomeContentInner() {
   // Capture the initial choice once. Later tab switches belong to this visit.
   if (viewMode === null && !isLandingPending) {
     setViewMode(
-      hasExplicitNavigation ? "events" : (preferredLandingView ?? "events"),
+      hasExplicitNavigation ? "all" : (preferredLandingView ?? "all"),
     );
   }
 
-  const effectiveViewMode = user ? (viewMode ?? "events") : "events";
+  const effectiveViewMode =
+    viewMode === "zones" && !user ? "all" : (viewMode ?? "all");
+  const nearbyReady =
+    effectiveViewMode !== "nearby" || nearbyLocation.status === "ready";
 
   // My zones matches against the full recent batch, independently of the camera.
   const {
@@ -121,15 +147,51 @@ function HomeContentInner() {
     error,
     handleBoundsChanged,
     suppressNextViewportFetch,
+    resetViewport,
     setSelectedCategories,
     setSelectedSources,
   } = useMessages({
     scope: effectiveViewMode === "zones" ? "all" : "viewport",
     enabled:
       !isLandingPending &&
+      nearbyReady &&
       (effectiveViewMode !== "zones" ||
         (interestsLoaded && interests.length > 0)),
   });
+
+  const handleLocationStateChange = useCallback(
+    (state: NearbyLocationState) => {
+      if (state.status === "loading") {
+        resetViewport();
+      }
+      setNearbyLocation(state);
+    },
+    [resetViewport],
+  );
+
+  const handleViewChange = useCallback((value: string) => {
+    const mode = value === "zones" || value === "nearby" ? value : "all";
+    if (mode === "nearby") {
+      resetViewport();
+      setNearbyLocation((previous) => ({
+        ...previous,
+        status: "loading",
+        message: null,
+      }));
+    }
+    setNavigation((previous) => ({
+      source: "manual",
+      requestId: previous.requestId + 1,
+    }));
+    setViewMode(mode);
+  }, [resetViewport]);
+
+  const handleHomeChange = useCallback((value: string) => {
+    const mode = value === "zones" || value === "nearby" ? value : "all";
+    if (!setPreferredLandingView(mode)) {
+      toast.error("Началният изглед не се запази. Опитай отново.");
+    }
+  }, [setPreferredLandingView]);
 
   const zoneLocalities = useMemo(() => {
     if (
@@ -155,7 +217,7 @@ function HomeContentInner() {
   } = useLocalityBoundaries(zoneLocalities);
 
   const scopedMessages = useMemo(() => {
-    if (isLandingPending) {
+    if (isLandingPending || !nearbyReady) {
       return [];
     }
 
@@ -170,6 +232,7 @@ function HomeContentInner() {
     return filterEventsByZones(messages, interests, localityBoundaries);
   }, [
     isLandingPending,
+    nearbyReady,
     effectiveViewMode,
     messages,
     interestsLoaded,
@@ -179,6 +242,8 @@ function HomeContentInner() {
   const isViewLoading =
     isLandingPending ||
     isLoading ||
+    (effectiveViewMode === "nearby" &&
+      (nearbyLocation.status === "idle" || nearbyLocation.status === "loading")) ||
     (effectiveViewMode === "zones" && (!interestsLoaded || boundariesLoading));
   const viewError =
     error ?? (effectiveViewMode === "zones" ? boundariesError : null);
@@ -215,13 +280,6 @@ function HomeContentInner() {
     handleMapReady,
     handleAddressClick,
   } = useMapNavigation();
-
-  // Geolocation prompt state (lifted from MapContainer for proper DOM ordering)
-  const [geolocationPrompt, setGeolocationPrompt] = React.useState<{
-    show: boolean;
-    onAccept: () => void;
-    onDecline: () => void;
-  } | null>(null);
 
   // Message hover state for map highlight
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
@@ -502,10 +560,9 @@ function HomeContentInner() {
         <SegmentedControl
           options={viewModeOptions}
           value={effectiveViewMode}
-          onChange={(v) => {
-            const mode = v === "zones" || v === "events" ? v : "events";
-            setViewMode(mode);
-          }}
+          onChange={handleViewChange}
+          homeValue={preferredLandingView ?? "all"}
+          onHomeChange={preferenceLoading ? undefined : handleHomeChange}
         />
         {user && effectiveViewMode === "zones" && (
           <button
@@ -527,6 +584,10 @@ function HomeContentInner() {
     viewModeOptions,
     handleStartAddInterest,
     targetMode.active,
+    handleViewChange,
+    handleHomeChange,
+    preferredLandingView,
+    preferenceLoading,
   ]);
 
   const handleAddZoneConfirm = useCallback(
@@ -655,11 +716,13 @@ function HomeContentInner() {
             targetMode={targetMode}
             initialMapCenter={initialMapCenter}
             initialNavigationReady={!isLandingPending}
-            automaticCenterEnabled={
-              !isLandingPending &&
-              effectiveViewMode !== "zones" &&
-              !hasExplicitNavigation
-            }
+            navigationMode={effectiveViewMode}
+            navigationSource={navigation.source}
+            navigationRequestId={navigation.requestId}
+            navigationSuspended={Boolean(
+              messageId || (hasExplicitNavigation && navigation.source === "initial"),
+            )}
+            onLocationStateChange={handleLocationStateChange}
             hoveredMessageId={hoveredMessageId}
             selectedMessageId={selectedMessage?.id}
             onFeatureClick={handleFeatureClick}
@@ -672,7 +735,6 @@ function HomeContentInner() {
             onSaveInterest={handleSaveInterest}
             onCancelTargetMode={handleCancelTargetMode}
             onStartAddInterest={handleStartAddInterest}
-            onGeolocationPromptChange={setGeolocationPrompt}
             onOnboardingStateChange={handleOnboardingStateChange}
           />
           {isViewLoading && (
@@ -688,22 +750,16 @@ function HomeContentInner() {
         <div
           className={`flex-1 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:flex-none [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:w-2/5 bg-white overflow-y-auto ${selectedMessage ? "hidden sm:block" : ""}`}
         >
-          <div className="p-6 @container">
-            {/* Compact zone shortcuts in the Events view. */}
-            {user && effectiveViewMode === "events" && (
-              <div className="mb-4 [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:hidden">
-                <ZoneBadges
-                  interests={interests}
-                  onAddZone={handleStartAddInterest}
-                  addZoneDisabled={targetMode.active}
-                  onZoneClick={handleZoneClick}
-                />
-              </div>
-            )}
-
+          <div className="p-4 sm:p-6 @container">
             <div className="mb-4">
               {sidebarHeaderContent}
             </div>
+
+            {effectiveViewMode === "nearby" && (
+              <div className="mb-4" aria-live="polite">
+                <NearbyLocationStatus location={nearbyLocation} />
+              </div>
+            )}
 
             {user && effectiveViewMode === "zones" && (
               <div>
@@ -743,9 +799,7 @@ function HomeContentInner() {
 
             {/* Event cards follow the active view, below its zone controls. */}
             <section
-              aria-label={
-                effectiveViewMode === "zones" ? "Събития в моите зони" : "Събития"
-              }
+              aria-label={getEventSectionLabel(effectiveViewMode)}
               className={
                 effectiveViewMode === "zones"
                   ? "mt-6 border-t border-neutral-border pt-6"
@@ -757,15 +811,17 @@ function HomeContentInner() {
                   Събития в моите зони
                 </h2>
               )}
-              <MessagesGrid
-                messages={filteredMessages}
-                isLoading={isViewLoading}
-                onMessageClick={(message) => {
-                  router.push(createMessageUrl(message), { scroll: false });
-                }}
-                onMessageHover={setHoveredMessageId}
-                variant="list"
-              />
+              {(effectiveViewMode !== "nearby" || nearbyReady || isViewLoading) && (
+                <MessagesGrid
+                  messages={filteredMessages}
+                  isLoading={isViewLoading}
+                  onMessageClick={(message) => {
+                    router.push(createMessageUrl(message), { scroll: false });
+                  }}
+                  onMessageHover={setHoveredMessageId}
+                  variant="list"
+                />
+              )}
             </section>
           </div>
         </div>
@@ -837,13 +893,6 @@ function HomeContentInner() {
         />
       )}
 
-      {/* Geolocation Prompt - rendered last for proper z-index stacking */}
-      {geolocationPrompt?.show && (
-        <GeolocationPrompt
-          onAccept={geolocationPrompt.onAccept}
-          onDecline={geolocationPrompt.onDecline}
-        />
-      )}
     </div>
   );
 }

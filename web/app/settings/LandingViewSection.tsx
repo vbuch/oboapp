@@ -6,9 +6,26 @@ import {
   type LandingView,
 } from "@/lib/hooks/useLandingPreference";
 
-const OPTIONS: readonly { value: LandingView; label: string }[] = [
-  { value: "events", label: "Събития" },
-  { value: "zones", label: "Моите зони" },
+const OPTIONS: readonly {
+  value: LandingView;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "all",
+    label: "Всички",
+    description: "Общ изглед на града при отваряне.",
+  },
+  {
+    value: "nearby",
+    label: "Около мен",
+    description: "Използва текущото местоположение при отваряне.",
+  },
+  {
+    value: "zones",
+    label: "Моите зони",
+    description: "Показва събитията, които засягат запазените ти зони.",
+  },
 ];
 
 export function LandingViewSection() {
@@ -37,19 +54,31 @@ export function LandingViewSection() {
         {OPTIONS.map((option) => (
           <label
             key={option.value}
-            className="flex items-center gap-3 text-foreground cursor-pointer"
+            className="flex items-start gap-3 text-foreground cursor-pointer"
           >
             <input
               type="radio"
               name="landing-view"
               value={option.value}
-              checked={(preferredLandingView ?? "events") === option.value}
+              aria-labelledby={`landing-view-${option.value}-label`}
+              aria-describedby={`landing-view-${option.value}-description`}
+              checked={(preferredLandingView ?? "all") === option.value}
               onChange={() => {
                 handleChange(option.value);
               }}
-              className="accent-primary"
+              className="accent-primary mt-1"
             />
-            {option.label}
+            <span>
+              <span id={`landing-view-${option.value}-label`} className="block">
+                {option.label}
+              </span>
+              <span
+                id={`landing-view-${option.value}-description`}
+                className="block text-sm text-neutral"
+              >
+                {option.description}
+              </span>
+            </span>
           </label>
         ))}
       </fieldset>

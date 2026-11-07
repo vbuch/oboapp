@@ -2,23 +2,42 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-export type LandingView = "events" | "zones";
+export type LandingView = "all" | "nearby" | "zones";
 
-const STORAGE_KEY = "landingViewPreference:v1";
+const STORAGE_KEY = "landingViewPreference:v2";
+const LEGACY_STORAGE_KEY = "landingViewPreference:v1";
+const LEGACY_LOCATION_KEY = "geolocationPermissionGranted";
 const CHANGE_EVENT = "landing-view-preference-changed";
 
-function readPreference(): LandingView | null {
+function readPreference(): LandingView {
   try {
     const stored = globalThis.localStorage.getItem(STORAGE_KEY);
-    return stored === "events" || stored === "zones" ? stored : null;
+    if (stored === "all" || stored === "nearby" || stored === "zones") {
+      return stored;
+    }
+
+    if (globalThis.localStorage.getItem(LEGACY_STORAGE_KEY) === "zones") {
+      return "zones";
+    }
+
+    if (globalThis.localStorage.getItem(LEGACY_LOCATION_KEY) === "true") {
+      return "nearby";
+    }
+
+    return "all";
   } catch {
-    return null;
+    return "all";
   }
 }
 
 function subscribe(onChange: () => void): () => void {
   const handleStorage = (event: StorageEvent) => {
-    if (event.key === STORAGE_KEY || event.key === null) {
+    if (
+      event.key === STORAGE_KEY ||
+      event.key === LEGACY_STORAGE_KEY ||
+      event.key === LEGACY_LOCATION_KEY ||
+      event.key === null
+    ) {
       onChange();
     }
   };
@@ -36,9 +55,9 @@ function getServerSnapshot(): undefined {
   return undefined;
 }
 
-/** Browser-local preference, loaded after hydration before choosing a home view. */
+/** Resolve the browser's saved home, preserving earlier zone and location choices. */
 export function useLandingPreference() {
-  const preference = useSyncExternalStore<LandingView | null | undefined>(
+  const preference = useSyncExternalStore<LandingView | undefined>(
     subscribe,
     readPreference,
     getServerSnapshot,
