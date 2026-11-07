@@ -315,9 +315,11 @@ test("My zones shows filtered cards below zones and keeps map and responsive beh
     await expect(nearbyMode).toBeVisible();
     await expect(page.getByRole("button", { name: "Вкъщи", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Работа", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", {
-      name: "„Всички“ е началният ти изглед", exact: true,
-    })).toHaveAttribute("aria-pressed", "true");
+    const currentHome = page.getByRole("button", {
+      name: "Информация за началния изглед „Всички“", exact: true,
+    });
+    await expect(currentHome).toBeEnabled();
+    await expect(currentHome).not.toHaveAttribute("aria-pressed");
     await expect(page.getByRole("button", {
       name: "Покажи моето местоположение", exact: true,
     })).toHaveCount(0);
