@@ -47,6 +47,7 @@ import PlusIcon from "@/components/icons/PlusIcon";
 import { navigateBackOrReplace } from "@/lib/navigation-utils";
 import { trackEvent } from "@/lib/analytics";
 import { toast } from "sonner";
+import { APP_NAME } from "@/lib/pwa-metadata";
 import {
   PENDING_GUEST_UPGRADE_UID_KEY,
   PENDING_GUEST_UPGRADE_TOKEN_KEY,
@@ -59,6 +60,7 @@ import { useMessageByIdFallback } from "@/lib/hooks/useMessageByIdFallback";
 const WIDE_DESKTOP_MEDIA_QUERY =
   "(min-width: 1280px) and (min-aspect-ratio: 4/3)";
 const MESSAGE_FIT_BOUNDS_PADDING_PX = 56;
+const HOME_VIEW_TOAST_ID = "home-view-preference";
 
 function getEventSectionLabel(view: LandingView): string {
   if (view === "zones") {
@@ -190,10 +192,25 @@ function HomeContentInner() {
 
   const handleHomeChange = useCallback((value: string) => {
     const mode = value === "zones" || value === "nearby" ? value : "all";
-    if (!setPreferredLandingView(mode)) {
-      toast.error("Началният изглед не се запази. Опитай отново.");
+    const label =
+      VIEW_MODE_OPTIONS.find((option) => option.value === mode)?.label ??
+      VIEW_MODE_OPTIONS[0].label;
+    if ((preferredLandingView ?? "all") === mode) {
+      toast.info(`„${label}“ е началният ти изглед в ${APP_NAME}.`, {
+        id: HOME_VIEW_TOAST_ID,
+      });
+      return;
     }
-  }, [setPreferredLandingView]);
+    if (!setPreferredLandingView(mode)) {
+      toast.error("Началният изглед не се запази. Опитай отново.", {
+        id: HOME_VIEW_TOAST_ID,
+      });
+      return;
+    }
+    toast.success(`При следващото отваряне на ${APP_NAME} ще виждаш „${label}“.`, {
+      id: HOME_VIEW_TOAST_ID,
+    });
+  }, [preferredLandingView, setPreferredLandingView]);
 
   const zoneLocalities = useMemo(() => {
     if (

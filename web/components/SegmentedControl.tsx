@@ -196,8 +196,11 @@ export default function SegmentedControl({
         const isHome = homeValue === option.value;
         const hasHomeAction = isActive && !isDisabled && Boolean(onHomeChange);
         const homeLabel = isHome
-          ? `„${option.label}“ е началният ти изглед`
+          ? `Информация за началния изглед „${option.label}“`
           : `Направи „${option.label}“ начален изглед`;
+        const homeTitle = isHome
+          ? `„${option.label}“ е началният ти изглед`
+          : homeLabel;
         return (
           <div
             key={option.value}
@@ -237,19 +240,16 @@ export default function SegmentedControl({
                 <button
                   type="button"
                   aria-label={homeLabel}
-                  title={homeLabel}
-                  aria-disabled={isHome || undefined}
+                  title={homeTitle}
                   aria-describedby={isHome ? homeHintId : undefined}
                   disabled={!isActive}
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => {
-                    if (isActive && !isHome) {
+                    if (isActive) {
                       onHomeChange(option.value);
                     }
                   }}
-                  className={`${styles.homeButton} flex h-11 w-11 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                    isHome ? "cursor-default" : "cursor-pointer"
-                  }`}
+                  className={`${styles.homeButton} flex h-11 w-11 shrink-0 items-center justify-center rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
                 >
                   <House
                     className="h-5 w-5"

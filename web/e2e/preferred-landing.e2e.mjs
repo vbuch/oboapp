@@ -36,20 +36,17 @@ function tab(page, label) {
 function house(page, label, saved) {
   return page.getByRole("button", {
     name: saved
-      ? "„" + label + "“ е началният ти изглед"
+      ? "Информация за началния изглед „" + label + "“"
       : "Направи „" + label + "“ начален изглед",
     exact: true,
   });
 }
 
 async function expectHouse(page, label, saved) {
-  if (saved) {
-    await expect(house(page, label, saved)).toHaveAttribute("aria-disabled", "true");
-  } else {
-    await expect(house(page, label, saved)).not.toHaveAttribute("aria-disabled");
-  }
+  await expect(house(page, label, saved)).toBeEnabled();
+  await expect(house(page, label, saved)).not.toHaveAttribute("aria-disabled");
   await expect(page.getByRole("button", {
-    name: /началният ти изглед|Направи .* начален изглед/,
+    name: /Информация за началния изглед|Направи .* начален изглед/,
   })).toHaveCount(1);
 }
 
@@ -221,23 +218,27 @@ test("the active tab's house saves home across visits, mobile layouts, and empty
     await expect(allMode).toHaveAttribute("aria-checked", "true");
     await expect(tab(page, "Около мен")).toBeVisible();
     await expectHouse(page, "Всички", true);
+    const homeToast = page.locator("[data-sonner-toast]").filter({
+      hasText: /При следващото отваряне на OboApp|началният ти изглед в OboApp|Началният изглед не се запази/,
+    });
+    await expect(homeToast).toHaveCount(0);
     await expect(roadCard).toBeVisible();
     await installCameraProbe(page);
 
     await zonesMode.click();
     await expectHouse(page, "Моите зони", false);
+    await expect(homeToast).toHaveCount(0);
     await expect(roadCard).toHaveCount(0);
     await expect(waterCard).toBeVisible();
     await expectInitialCircleFit(page, zones);
     await house(page, "Моите зони", false).click();
     await expectHouse(page, "Моите зони", true);
+    await expect(homeToast).toContainText("При следващото отваряне на OboApp ще виждаш „Моите зони“.");
+    await expect(homeToast).toHaveCount(1);
     assert.equal(await savedPreference(page), "zones");
-    const savedHouseBounds = await house(page, "Моите зони", true).boundingBox();
-    assert.ok(savedHouseBounds);
-    await page.mouse.click(
-      savedHouseBounds.x + savedHouseBounds.width / 2,
-      savedHouseBounds.y + savedHouseBounds.height / 2,
-    );
+    await house(page, "Моите зони", true).click();
+    await expect(homeToast).toContainText("„Моите зони“ е началният ти изглед в OboApp.");
+    await expect(homeToast).toHaveCount(1);
     assert.equal(await savedPreference(page), "zones");
     assert.equal(await page.evaluate(() => globalThis.__landingCamera.zoneFits.length), 1);
 

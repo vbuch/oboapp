@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import HomeContent from "@/components/HomeContent";
+import { toast } from "sonner";
 import {
   PENDING_GUEST_UPGRADE_UID_KEY,
   PENDING_GUEST_UPGRADE_TOKEN_KEY,
@@ -9,6 +10,14 @@ import type { Interest, InternalMessage, Message } from "@/lib/types";
 import type { LocalityBoundaries } from "@/lib/zone-event-filter";
 import type { LandingView } from "@/lib/hooks/useLandingPreference";
 import type { NearbyLocationState } from "@/components/MapContainer";
+
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 let isWideDesktopLayout = false;
 let mockMapInstance: google.maps.Map | null = null;
@@ -362,20 +371,71 @@ describe("HomeContent pivot behavior", () => {
     authUser = { uid: "user-1" };
     mockPreferredLandingView = "all";
     const { rerender } = render(<HomeContent />);
-    expect(screen.getByRole("button", { name: "„Всички“ е началният ти изглед" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: "Информация за началния изглед „Всички“" })).toBeEnabled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.info).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("radio", { name: "Моите зони" }));
     expect(mockSetPreferredLandingView).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.info).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Направи „Моите зони“ начален изглед" }));
     expect(mockSetPreferredLandingView).toHaveBeenCalledExactlyOnceWith("zones");
+    expect(toast.success).toHaveBeenCalledExactlyOnceWith(
+      "При следващото отваряне на OboApp ще виждаш „Моите зони“.",
+      { id: "home-view-preference" },
+    );
     expect(capturedMapContainerProps?.navigationMode).toBe("zones");
 
     mockPreferredLandingView = "zones";
     rerender(<HomeContent />);
-    expect(screen.getByRole("button", { name: "„Моите зони“ е началният ти изглед" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: "Информация за началния изглед „Моите зони“" })).toBeEnabled();
     fireEvent.click(screen.getByRole("radio", { name: "Всички" }));
     expect(screen.getByRole("button", { name: "Направи „Всички“ начален изглед" })).not.toHaveAttribute("aria-disabled");
     expect(mockSetPreferredLandingView).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { preference: null, label: "Всички" },
+    { preference: "all", label: "Всички" },
+    { preference: "nearby", label: "Около мен" },
+    { preference: "zones", label: "Моите зони" },
+  ] as const)("explains the current home without saving for preference=$preference", ({ preference, label }) => {
+    authUser = { uid: "user-1" };
+    mockPreferredLandingView = preference;
+    render(<HomeContent />);
+
+    fireEvent.click(screen.getByRole("button", {
+      name: `Информация за началния изглед „${label}“`,
+    }));
+
+    expect(mockSetPreferredLandingView).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.info).toHaveBeenCalledExactlyOnceWith(
+      `„${label}“ е началният ти изглед в OboApp.`,
+      { id: "home-view-preference" },
+    );
+  });
+
+  it("keeps the previous home and only reports an error when saving fails", () => {
+    authUser = { uid: "user-1" };
+    mockPreferredLandingView = "all";
+    mockSetPreferredLandingView.mockReturnValue(false);
+    render(<HomeContent />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "Моите зони" }));
+    fireEvent.click(screen.getByRole("button", { name: "Направи „Моите зони“ начален изглед" }));
+
+    expect(mockSetPreferredLandingView).toHaveBeenCalledExactlyOnceWith("zones");
+    expect(screen.getByRole("button", { name: "Направи „Моите зони“ начален изглед" })).toBeEnabled();
+    expect(capturedMapContainerProps?.navigationMode).toBe("zones");
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.info).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledExactlyOnceWith(
+      "Началният изглед не се запази. Опитай отново.",
+      { id: "home-view-preference" },
+    );
   });
 
   it("keeps Nearby permission and retry actions in the list without showing unrelated events", () => {
@@ -434,7 +494,7 @@ describe("HomeContent pivot behavior", () => {
       navigationRequestId: 0,
     });
     expect(capturedMessageQueryOptions?.enabled).toBe(false);
-    expect(screen.getByRole("button", { name: "„Около мен“ е началният ти изглед" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: "Информация за началния изглед „Около мен“" })).toBeEnabled();
   });
 
   it.each([false, true])(

@@ -74,11 +74,11 @@
 }
 
 @media (hover: hover) {
-  .homeButton:enabled:not([aria-disabled="true"]):hover {
+  .homeButton:enabled:hover {
     color: var(--color-info-hover);
   }
 
-  .homeButton:enabled:not([aria-disabled="true"]):hover > svg {
+  .homeButton:enabled:hover > svg {
     transform: scale(1.125);
   }
 
@@ -98,11 +98,11 @@
   background-color: var(--color-neutral-border);
 }
 
-.homeButton:enabled:not([aria-disabled="true"]):active {
+.homeButton:enabled:active {
   color: var(--color-info-hover);
 }
 
-.homeButton:enabled:not([aria-disabled="true"]):active > svg {
+.homeButton:enabled:active > svg {
   transform: scale(0.9);
 }
 
@@ -120,7 +120,7 @@
     transition: none;
   }
 
-  .homeButton:enabled:not([aria-disabled="true"]):is(:hover, :active) > svg {
+  .homeButton:enabled:is(:hover, :active) > svg {
     transform: none;
   }
 }
