@@ -7,6 +7,9 @@ radius (100–1000 m).
 For guest-to-Google upgrade choices when both sides already have data, see
 [Onboarding Flow](onboarding-flow.md).
 
+See [User Journeys](../ux/user-journeys.md) for the proposed first-zone and
+home-view discovery journeys.
+
 ### Sidebar UI
 
 The home page has a view switch on desktop and mobile:
