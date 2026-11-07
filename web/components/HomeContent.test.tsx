@@ -476,7 +476,31 @@ describe("HomeContent pivot behavior", () => {
     },
   );
 
-  it("waits for preference, authentication, zones, and map before applying the landing view", () => {
+  it.each([null, "all"] as const)(
+    "opens All without waiting for account or zones for preference=%s",
+    (preference) => {
+      mockPreferredLandingView = preference;
+      mockAuthLoading = true;
+      mockInterestsLoaded = false;
+      mockMessages = [createMapMessage("public-event", [23.38, 42.65])];
+
+      const { rerender } = render(<HomeContent />);
+
+      expect(capturedMapContainerProps?.initialNavigationReady).toBe(true);
+      expect(capturedMapContainerProps?.navigationMode).toBe("all");
+      expect(capturedMessageQueryOptions).toEqual({ scope: "viewport", enabled: true });
+      expectDisplayedMessages(mockMessages);
+      expect(mockSetPreferredLandingView).not.toHaveBeenCalled();
+
+      authUser = { uid: "user-1" };
+      mockAuthLoading = false;
+      rerender(<HomeContent />);
+      expect(capturedMapContainerProps?.navigationMode).toBe("all");
+      expect(capturedMessageQueryOptions?.enabled).toBe(true);
+    },
+  );
+
+  it("waits for preference, authentication, zones, and map for a saved zones home", () => {
     mockAuthLoading = true;
     mockPreferenceLoading = true;
     mockInterestsLoaded = false;

@@ -125,7 +125,9 @@ function HomeContentInner() {
   const isLandingPending =
     viewMode === null &&
     !hasExplicitNavigation &&
-    (authLoading || preferenceLoading || Boolean(user && !interestsLoaded));
+    (preferenceLoading ||
+      (preferredLandingView === "zones" &&
+        (authLoading || Boolean(user && !interestsLoaded))));
 
   // Capture the initial choice once. Later tab switches belong to this visit.
   if (viewMode === null && !isLandingPending) {
