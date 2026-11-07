@@ -87,6 +87,8 @@
 
   .control[data-indicator-ready] .indicator,
   .segment,
+  .label,
+  .homeSlot,
   .homeButton,
   .homeButton > svg {
     transition: none;
