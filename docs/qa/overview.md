@@ -76,9 +76,11 @@ The My zones browser checks use a local app running with
 They check visible event cards below saved zones, opening event details, zone
 filtering, map interaction, existing filters, and zone deletion through the user
 interface. They verify that filtering and the camera survive phone and tablet
-resizing, and that the Events view keeps its zone badges and viewport behavior.
-The landing check covers Settings choices, returning visits, delayed zone loading,
-temporary tab switches, direct event links, and the empty-zone state.
+resizing, and that All and Nearby preserve viewport behavior after entry. The
+landing check covers all three tabs, the active tab's filled or outlined house,
+Settings choices, returning visits, delayed zone loading, temporary tab switches,
+direct event links, and the empty-zone state. Location checks cover inline
+permission and retry, stale results, and leaving Nearby without changing home.
 
 With the local server running, execute from the repository root:
 

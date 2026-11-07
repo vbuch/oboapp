@@ -1,23 +1,21 @@
 # User Journeys
 
-**Status: Proposed, awaiting UX review.** These home-view journeys extend the
-two-choice preference in [PR #44](https://github.com/vbuch/oboapp/pull/44).
+These journeys describe the three-tab home views in [PR #44](https://github.com/vbuch/oboapp/pull/44).
+The [home-view design](home-view-design.md) defines labels, house states, and recovery.
 
 ## Journey Index
 
-| Journey | Status and detail |
+| Journey | Detail |
 | --- | --- |
-| Notification enrollment, guest use, and login | [Current onboarding graph](../features/onboarding-flow.md#state-machine-diagram) |
-| Create and manage saved zones | [Current zone creation flow](../features/multi-zone-support.md#zone-creation-flow) |
-| Open the app, discover a home view, and control automatic location | Proposed below; [home-view design](home-view-design.md) |
+| Notification enrollment, guest use, and login | [Onboarding graph](../features/onboarding-flow.md#state-machine-diagram) |
+| Create and manage saved zones | [Zone creation flow](../features/multi-zone-support.md#zone-creation-flow) |
+| Choose a view or save it as home | Below; same behavior on desktop and mobile |
 
 ## Open the App
 
-Home has three destinations: **Моите зони**, **Карта на София**, and **Около мен**.
-The city label uses the configured locality name. A house icon with the text
-**Начален изглед** opens their menu beside the view tabs. Saving a choice confirms
-that it applies on later visits and keeps the current view and camera in place.
-Temporary tab changes keep the saved home.
+An explicit link takes priority. Otherwise load the saved home, defaulting to
+**Всички** for a new user. Location failure keeps Nearby selected with its inline
+recovery action. A saved zones home with no zones opens the creation empty state.
 
 ```mermaid
 flowchart TD
@@ -25,86 +23,86 @@ flowchart TD
     Link -->|Yes| Focus[Open the requested event or place]
     Link -->|No| Load[Wait for saved home and required user data]
     Load --> Home{Saved home}
+    Home -->|All| City[Select All and show configured city overview]
     Home -->|My zones| Zones{Any saved zones?}
     Zones -->|Yes| Matches[Fit saved circles and show matching events]
-    Zones -->|No| Empty[Show create-zone empty state]
-    Home -->|City map| City[Show configured city overview and Events]
-    Home -->|Around me| Permission{Location already allowed?}
-    Permission -->|No| Fallback[Show city map with Enable location and Change home actions]
-    Permission -->|Yes| Locate[Locate once for this open]
-    Locate --> Position{Position available within the supported map area?}
-    Position -->|Yes| Nearby[Show Events around the current location]
-    Position -->|No| Fallback
+    Zones -->|No| Empty[Show Add zone as the primary action]
+    Home -->|Nearby| Permission{Location permission already granted?}
+    Permission -->|Yes| Locate[Locate once]
+    Permission -->|No| Recovery[Keep Nearby active with inline enable or retry]
+    Locate --> Position{Position available inside the supported map area?}
+    Position -->|Yes| Nearby[Show nearby Events]
+    Position -->|No| Recovery
 ```
 
-Launching the app never opens a location permission prompt. A location failure
-uses the city overview for that visit and keeps the saved home. Deleting all
-zones also keeps the saved home and opens its create-zone empty state next time.
+Launching the app never opens a permission dialog. Recovery uses the city camera,
+hides unrelated event cards, and keeps the saved home. Background updates and
+manual map movement leave the chosen camera in place.
 
-## Discover My Zones and Choose It as Home
+## Browse and Save a Home
 
-Creating a zone is a goal of its own and can start directly from My zones,
-independently of notification enrollment. With no zones, **Добави зона** is the
-primary action. The home suggestion appears after a useful zone view is ready.
+The active tab carries the house action. A filled house means that tab is home;
+an outlined house can save it. Clicking a filled house keeps the current choice.
+The tab and house are independent actions even though they share a visual segment.
 
 ```mermaid
 flowchart TD
-    Enter[Manually enter My zones] --> Ready[Wait for saved zones to load]
+    Select[Select All, Nearby, or My zones] --> View[Open the tab for this visit]
+    View --> House[Show the house beside the active tab]
+    House --> Filled{Is this tab already home?}
+    Filled -->|Yes| Keep[Show filled house and keep the choice]
+    Filled -->|No| Outline[Show outlined house]
+    Outline -->|Click house| Save[Save this tab as home]
+    Save -->|Success| Confirm[Fill the house and confirm briefly]
+    Save -->|Failure| Retry[Keep previous home and show save error]
+```
+
+Tab selection, panning, and zooming leave the saved home intact. Choosing another
+tab moves the house to that tab and updates its filled or outlined state.
+Settings offers the same home choices as the house action.
+
+## Create the First Zone
+
+Creating a zone is a goal of its own, independent of notification enrollment.
+The house stays available as a secondary action while Add zone is primary.
+
+```mermaid
+flowchart TD
+    Enter[Select My zones] --> Ready[Wait for saved zones]
     Ready --> HasZones{Any saved zones?}
+    HasZones -->|Yes| View[Fit zones and show matching events]
     HasZones -->|No| Create[Show Add zone as the primary action]
     Create --> Place[Place and save the first zone]
     Place -->|Cancel| Create
-    Place -->|Save fails: keep input and retry| Place
-    Place -->|Saved| View[Show saved zones and their matching events]
-    HasZones -->|Yes| View
-    View --> Hint{Hint already shown, or zones already home?}
-    Hint -->|Yes| Continue[Continue using My zones]
-    Hint -->|No| Busy{Placement, modal, or onboarding prompt active?}
-    Busy -->|Yes| Wait[Wait for the current task to finish]
-    Wait --> Busy
-    Busy -->|No| Suggest[Show one inline hint pointing to Initial view]
-    Suggest -->|Dismiss| Continue
-    Suggest -->|Choose My zones as home| Save[Save choice and confirm later visits]
-    Save -->|Save fails| Suggest
+    Place -->|Save fails: retain input and retry| Place
+    Place -->|Saved| View
+    View --> Optional[Optional: save My zones with its house]
 ```
 
-The hint appears once per device after zones have loaded and at least one exists.
-It uses an inline message, so it does not interrupt the current task. It mentions
-that the choice can also be changed in Settings. Remember that it was shown so
-later visits do not repeat it; a failed save keeps the visible hint available
-for retry. An empty view has no home pitch,
-but the menu still allows an explicit My zones home choice with no saved zones.
+An explicit My zones home is valid with no zones. Deleting the last zone keeps
+that choice and opens its creation empty state on the next visit.
 
-## Choose Current Location as Home
+## Use Nearby and Stop Automatic Location
 
 ```mermaid
 flowchart TD
-    Choose[Explicitly choose Around me in Initial view or Settings] --> Access[Request location access if needed, then obtain a position]
-    Access --> Result{Position available within the supported map area?}
-    Result -->|Yes| Save[Save Around me and confirm later visits]
-    Result -->|Denied, timeout, unavailable, or outside area| Keep[Explain the result and keep the previous home]
+    Select[Select Nearby or click inline enable or retry] --> Access[Request browser access if needed and locate once]
+    Access --> Result{Position available inside the supported map area?}
+    Result -->|Yes| View[Show nearby Events and allow free map movement]
+    Result -->|No| Recovery[Keep Nearby active with inline retry and city fallback camera]
+    View --> Save[Optional: save Nearby with its house]
+    Save --> Later[Later visits use granted access or show inline enable]
+    Leave[Select All or My zones] --> Stop[Ignore pending location results and stop tracking]
+    Stop --> Home[Optional: save that tab as home to stop startup location]
 ```
 
-Permission prompts require an explicit click. If access later becomes denied or
-needs permission again, startup uses the city map and offers Enable location or
-Change home. It waits for a user action before requesting permission.
-
-## Stop Automatic Location and Locate Once
-
-```mermaid
-flowchart LR
-    City[Choose City map or My zones as home] --> Save[Save and confirm the choice]
-    Save --> Later[Later visits do not locate automatically]
-    Locate[Click Locate for this visit] --> Once[Center once without changing home]
-```
-
-Choosing another home stops future automatic location even if browser location
-permission remains granted. Discard any pending automatic location result after
-the choice changes. The Locate button stays available for a one-time use.
+Selecting Nearby for a visit leaves the saved home intact. Saving All or My zones
+prevents automatic location on later visits even when browser permission remains
+granted. Saving Nearby is allowed before access is granted; startup then waits
+for an explicit enable action. Re-select Nearby or use inline refresh to relocate.
 
 ## Existing Preference Migration
 
-An explicit new choice always wins. Preserve an existing My zones home. For all
-other legacy preferences, preserve automatic location when it was previously
-enabled; otherwise choose the configured city map. This separates the home
-choice from permission to access location.
+An explicit new choice always wins. Preserve an existing My zones home. For other
+returning users, preserve existing automatic location as Nearby; otherwise choose
+All. Permission to access location and the saved home remain separate choices.

@@ -1,93 +1,93 @@
-# Home View and Discovery
+# Home Views
 
-**Status: proposed UX for review.** The current draft offers two choices in
-Settings. This proposal adds contextual discovery and three distinct home choices.
+This document describes the three-tab home views in [PR #44](https://github.com/vbuch/oboapp/pull/44).
 See the [user journey graphs](user-journeys.md).
 
-## Three Starting Points
+## Three Tabs on Desktop and Mobile
 
-| Home choice | Events shown | Map on opening |
+Use the same tabs above the event and zone list on every supported layout:
+
+| Tab | Events shown | Map when entering the tab |
 | --- | --- | --- |
+| **Всички** | Events in the current map area | Configured city overview |
+| **Около мен** | Events in the current map area after location succeeds | Current location, once |
 | **Моите зони** | Events affecting saved zones | Fit all saved circles |
-| **Карта на София** | Normal Events view | The configured city overview |
-| **Около мен** | Normal Events view | Current location, once per visit |
 
-Use the configured locality name in the city label. New users start with the city
-overview. Location requires an explicit choice. My zones remains a valid saved
-choice after deleting the last zone; the next visit shows the creation empty state.
+Category, source, and archive filters continue to apply. After entry, users can
+pan and zoom freely. Background updates preserve the camera. Entering another
+tab changes the current visit and leaves the saved home intact. Explicit event
+and coordinate links keep their own navigation behavior.
 
-## Visible Home Control
+On mobile, keep all three labels and the house action readable and reachable
+above the list. Resizing keeps the active tab and the user's camera. The nearby
+tab supplies the location action, so the map has no separate floating Locate button.
 
-Place a house icon with the visible label **Начален изглед** beside the view
-switch on desktop and mobile. It opens the same three choices as Settings, with
-the saved choice selected. The label explains the control's purpose without
-depending on hover or a familiar icon.
+## The Active Tab's House
 
-The chooser says **С какво да се отваря приложението?** Each choice has a short
-description, followed by **Запази** and **Отказ**. Saving changes the next normal
-home-page visit. Confirm **Начален изглед: Моите зони. Ще се отвори следващия път.**
-Keep the current view and camera in place. Switching tabs, moving the map, and
-using Locate leave the saved choice intact. Explicit event and coordinate links
-keep their own navigation behavior.
+Show a house action beside the active tab label, inside the same visual segment.
+When another tab becomes active, the house moves with it:
 
-Settings uses the same choices and descriptions and remains a second way to
-change the home view. Selecting the city overview is the clear opt-out from
-automatic startup location.
+- **Outlined house:** the active tab can be saved as home.
+- **Filled house:** the active tab is already home.
 
-## Contextual Discovery
+Clicking the outlined house saves the active tab for future normal home visits
+and fills the icon. The filled icon confirms the saved choice. Keep the
+current camera in place. Clicking a filled house keeps the existing choice.
+There is always an effective home; new users start with **Всички**.
 
-After manual entry to My zones, show a small inline hint near the house control:
+The tab label and house are separate keyboard-accessible actions. Give the house
+a name such as **Направи „Моите зони“ начален изглед** and expose its saved state.
+The filled shape and accessible state communicate the selection alongside color.
+A failed save keeps the previous home and presents a concise error.
 
-> **Започвай от „Моите зони“**
->
-> Тук виждаш събитията, които засягат зоните ти. Направи този изглед начален от
-> бутона с къщичка. Можеш да го смениш и от Настройки.
->
-> **Направи начален** · **Не сега**
+The house is the direct way to save a home. Settings offers the same three
+choices. Both save in the current browser on the device. Ordinary tab changes
+leave this preference intact.
 
-The primary action saves My zones directly and confirms success. The persistent
-house control remains available after dismissal. Keep the hint in the page flow
-on mobile and avoid covering the map, zones, or event cards.
+## My Zones Without Zones
 
-Show it once per browser/device, after zones have loaded, when at least one zone
-exists and My zones is not already home. Remember that it was shown so later
-visits do not repeat it. Dismissal or saving closes it; a failed save keeps the
-visible hint available for retry. Do not show it on automatic landing,
-while placing/editing a zone, or while a modal or onboarding prompt is active.
-Wait until those interactions finish.
+The primary action is **Добави зона**. The user places and saves the first zone,
+then sees its relevant events. The house remains available as a small secondary
+action. Creating a zone is independent of notification enrollment. Keep failed
+creation input available for retry and let cancellation return to the empty state.
 
-With no zones, the primary journey is **Добави зона**. Show creation guidance
-without the home pitch. After the first zone is saved and other prompts finish,
-the user becomes eligible for the hint. Creating a zone is available independently
-of notification enrollment.
+Saving My zones as home is allowed before creating a zone. Deleting the last zone
+also keeps that home choice. Its next visit shows the creation empty state.
 
-## Location Consent and Recovery
+## Nearby Location and Recovery
 
-**Locate** means show the current location for this visit. Its permission copy
-must say that it leaves the saved home unchanged. Granting location access alone
-does not enable automatic location on later visits.
+Selecting **Около мен** requests location once for that entry. Request browser
+permission only through an explicit tab selection or the inline enable/retry
+action. Show loading and permission guidance in the list. Keep the tab active
+after refusal, timeout, unavailable location, or a position outside the supported
+map area. Use the city overview as the fallback camera and offer an inline retry.
+Keep unrelated event cards hidden while location is unavailable.
 
-Choosing **Около мен** explains that the app will use location on each normal
-opening. Request browser permission through this explicit action. Save the choice
-after a successful location result inside the supported map area. On refusal,
-timeout, or an unsupported location, explain the result and keep the previous home.
+Saving Nearby as home records the user's intent, including when access has not
+yet been granted. On startup, use existing permission to locate once. If access
+needs granting again, show the inline action and wait for a click. Launching the
+app never opens a permission dialog. Keep the saved home after location failures.
 
-On a later visit, unavailable location falls back to the city overview with a
-small notice and actions to retry or change home. Keep the saved choice intact.
-If permission needs to be granted again, offer an explicit enable-location action
-instead of opening a permission dialog on launch. Choosing city or zones prevents
-further automatic requests and ignores any pending automatic result. Browser
-permission itself remains under the user's browser controls.
+Switching away from Nearby cancels pending location results and stops location
+tracking. Saving All or My zones as home stops automatic location on later
+visits. Browser permission itself stays under browser controls. Selecting Nearby
+for a temporary visit leaves the saved home intact. Re-select Nearby or use its
+inline refresh action to locate again after moving the map.
 
-## Existing Users
+## Existing Users and Related Work
 
-Preserve an existing My zones choice. For other returning users, preserve existing
-automatic-location behavior as **Около мен**; users without that behavior start
-with the city overview. A choice made in the new UI always takes priority.
+Preserve an existing My zones home. For other returning users, preserve existing
+automatic-location behavior as Nearby; users without that behavior start with
+All. An explicit choice in the new UI always takes priority.
 
-## Review and Validation
+Related mobile work is included in [#654](https://github.com/oboapp/oboapp/issues/654)
+(mobile bottom-sheet experience and access to saved places) and the broader
+[#103 UI/UX redesign](https://github.com/oboapp/oboapp/issues/103). Neither issue
+specifically requests this three-tab control.
 
-Review the control, hint, and creation empty state at phone and desktop widths.
-Verify hint eligibility, dismissal, first-zone creation, storage failures, all
-three return visits, location opt-out, denied/expired permission, unsupported
-locations, and direct links. Avoid overlapping the hint with notification prompts.
+## Validation
+
+Cover home saving and return visits for each tab, house fill and movement,
+temporary switching, storage failures, no zones, first-zone creation, location
+denial and recovery, stale results, direct links, keyboard use, and 320 px reflow.
+Verify that desktop and mobile share the same behavior.
