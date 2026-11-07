@@ -258,6 +258,7 @@ test("the active tab's house saves home across visits, mobile layouts, and empty
     await page.waitForFunction(() => {
       return typeof globalThis.__releaseLandingZones === "function";
     });
+    await zonesMode.waitFor({ state: "visible" });
     await expect(page.getByText("Зареждане...", { exact: true })).toBeVisible();
     await expect(roadCard).toHaveCount(0);
     assert.equal(messageRequests.length, 0,
