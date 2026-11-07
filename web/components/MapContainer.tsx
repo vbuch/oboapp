@@ -9,9 +9,14 @@ import { useOnboardingFlow } from "@/lib/hooks/useOnboardingFlow";
 import { useAuth } from "@/lib/auth-context";
 import { Message, Interest } from "@/lib/types";
 import type { User } from "firebase/auth";
-import { getLocalityBounds, getLocalityCenter } from "@/lib/bounds-utils";
+import {
+  getLocality,
+  getLocalityBounds,
+  getLocalityCenter,
+  getMapViewportBounds,
+} from "@/lib/bounds-utils";
 import type { LandingView } from "@/lib/hooks/useLandingPreference";
-import { roundCoordinate } from "@oboapp/shared";
+import { isWithinBounds } from "@oboapp/shared";
 
 export interface NearbyLocationState {
   readonly status: "idle" | "loading" | "ready" | "permission-required" | "error";
@@ -244,29 +249,14 @@ export default function MapContainer({
       });
       const result = await locate(
         (position) => {
-          const bounds = getLocalityBounds();
-          if (
-            position.lat < bounds.south ||
-            position.lat > bounds.north ||
-            position.lng < bounds.west ||
-            position.lng > bounds.east
-          ) {
+          if (!isWithinBounds(getLocality(), position.lat, position.lng)) {
             throw new Error("Местоположението ти е извън поддържаната карта.");
           }
 
           centerMap(position.lat, position.lng, 17, { animate: false });
-          const viewportBounds = map?.getBounds();
-          const zoom = map?.getZoom();
-          if (viewportBounds && zoom !== undefined) {
-            const northEast = viewportBounds.getNorthEast();
-            const southWest = viewportBounds.getSouthWest();
-            onBoundsChanged({
-              north: roundCoordinate(northEast.lat()),
-              south: roundCoordinate(southWest.lat()),
-              east: roundCoordinate(northEast.lng()),
-              west: roundCoordinate(southWest.lng()),
-              zoom,
-            });
+          const viewportBounds = getMapViewportBounds(map);
+          if (viewportBounds) {
+            onBoundsChanged(viewportBounds);
           }
         },
         { automatic },

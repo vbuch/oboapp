@@ -44,7 +44,9 @@ vi.mock("@/components/MapComponent", () => ({
   },
 }));
 
-vi.mock("@/lib/bounds-utils", () => ({
+vi.mock("@/lib/bounds-utils", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/bounds-utils")>()),
+  getLocality: () => "bg.sofia",
   getLocalityBounds: () => cityBounds,
   getLocalityCenter: () => ({ lat: 42.6977, lng: 23.3219 }),
 }));
