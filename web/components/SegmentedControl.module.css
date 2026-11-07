@@ -1,0 +1,45 @@
+.indicator {
+  display: none;
+  width: var(--selection-width);
+  height: var(--selection-height);
+  transform: translate(var(--selection-x), var(--selection-y));
+}
+
+.control[data-indicator-ready] .indicator {
+  display: block;
+  transition:
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 150ms ease;
+}
+
+.control[data-indicator-ready] .segment[data-active="true"] {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.segment {
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+@media (hover: hover) {
+  .segment:not([data-disabled]):hover {
+    color: var(--color-primary-hover);
+  }
+
+  .segment[data-active="false"]:not([data-disabled]):hover,
+  .control:not([data-indicator-ready]) .segment[data-active="true"]:not([data-disabled]):hover,
+  .control:has(.segment[data-active="true"]:not([data-disabled]):hover) .indicator {
+    background-color: var(--color-neutral-border);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control[data-indicator-ready] .indicator,
+  .segment {
+    transition: none;
+  }
+}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { House } from "lucide-react";
+import styles from "./SegmentedControl.module.css";
 
 interface SegmentOption {
   readonly value: string;
@@ -31,7 +32,49 @@ export default function SegmentedControl({
   onHomeChange,
   className = "",
 }: SegmentedControlProps) {
+  const groupRef = useRef<HTMLDivElement>(null);
+  const indicatorRef = useRef<HTMLSpanElement>(null);
   const enabledOptions = options.filter((o) => !o.disabled);
+
+  useLayoutEffect(() => {
+    const group = groupRef.current;
+    const indicator = indicatorRef.current;
+    if (!group || !indicator) {
+      return;
+    }
+
+    const activeSegment = group.querySelector<HTMLElement>('[data-active="true"]');
+    if (!activeSegment) {
+      delete group.dataset.indicatorReady;
+      return;
+    }
+
+    const updateIndicator = () => {
+      const groupBounds = group.getBoundingClientRect();
+      const segmentBounds = activeSegment.getBoundingClientRect();
+      indicator.style.setProperty(
+        "--selection-x",
+        `${segmentBounds.left - groupBounds.left - group.clientLeft}px`,
+      );
+      indicator.style.setProperty(
+        "--selection-y",
+        `${segmentBounds.top - groupBounds.top - group.clientTop}px`,
+      );
+      indicator.style.setProperty("--selection-width", `${segmentBounds.width}px`);
+      indicator.style.setProperty("--selection-height", `${segmentBounds.height}px`);
+      group.dataset.indicatorReady = "true";
+    };
+
+    updateIndicator();
+    const observer = new ResizeObserver(updateIndicator);
+    observer.observe(group);
+    for (const segment of group.querySelectorAll<HTMLElement>("[data-active]")) {
+      observer.observe(segment);
+    }
+    return () => {
+      observer.disconnect();
+    };
+  }, [options, value, onHomeChange]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -78,10 +121,18 @@ export default function SegmentedControl({
 
   return (
     <div
+      ref={groupRef}
       role="radiogroup"
       aria-label="Изглед на събитията"
-      className={`inline-flex items-center rounded-full border border-neutral-border bg-neutral-light p-1 gap-1 ${className}`}
+      data-slot="segmented-control"
+      className={`${styles.control} relative isolate inline-flex items-center rounded-full border border-neutral-border bg-neutral-light p-1 gap-1 ${className}`}
     >
+      <span
+        ref={indicatorRef}
+        aria-hidden="true"
+        data-slot="selection-indicator"
+        className={`${styles.indicator} pointer-events-none absolute left-0 top-0 rounded-full bg-white shadow-sm`}
+      />
       {options.map((option) => {
         const isActive = option.value === value;
         const isDisabled = option.disabled === true;
@@ -99,7 +150,9 @@ export default function SegmentedControl({
         return (
           <div
             key={option.value}
-            className={`flex min-w-0 items-center rounded-full ${
+            data-active={isActive}
+            data-disabled={isDisabled || undefined}
+            className={`${styles.segment} relative flex min-w-0 items-center rounded-full ${
               isActive ? "bg-white shadow-sm text-primary" : "text-neutral"
             }`}
           >
@@ -111,12 +164,12 @@ export default function SegmentedControl({
               tabIndex={tabIndex}
               onClick={isDisabled ? undefined : () => onChange(option.value)}
               onKeyDown={isDisabled ? undefined : handleKeyDown}
-              className={`min-h-10 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+              className={`min-h-10 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                 hasHomeAction ? "pl-1.5 pr-0 sm:pl-3" : "px-1.5 sm:px-3"
               } ${
                 isDisabled
                   ? "opacity-40 cursor-not-allowed"
-                  : "cursor-pointer hover:bg-neutral-border hover:text-neutral-dark"
+                  : "cursor-pointer"
               }`}
             >
               {option.label}
@@ -132,7 +185,7 @@ export default function SegmentedControl({
                     onHomeChange(option.value);
                   }
                 }}
-                className="flex h-10 w-9 shrink-0 items-center justify-center rounded-full cursor-pointer transition-colors hover:bg-neutral-border hover:text-neutral-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="flex h-10 w-9 shrink-0 items-center justify-center rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <House
                   className="h-4 w-4"
