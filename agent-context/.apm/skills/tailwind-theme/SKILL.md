@@ -80,11 +80,27 @@ import { buttonStyles, buttonSizes, borderRadius } from "@/lib/theme";
 
 ## Opacity & Border Radius
 
-Import from `web/lib/colors.ts`: `opacity`, `borderRadius`. Use for consistent spacing and transparency across the app.
+Import `opacity` and `borderRadius` from `web/lib/colors.ts` for consistent
+transparency and corner radii across the app.
+
+## Interactive Feedback and Composite Controls
+
+- Every enabled interactive element must have a visible hover effect. Use theme
+  tokens and a short color transition. Keep keyboard focus visible as well.
+- The hover treatment must differ from the element's actual resting surface,
+  including when the control is selected. A pointer cursor alone is insufficient.
+- Disabled elements must not suggest that an action is available.
+- When a label and an icon are separate actions inside one visual segment, avoid
+  stacking label padding and icon padding between them. Preserve the outer label
+  padding and the icon's hit area while tightening their shared interior space.
+- Keep icon actions labeled for assistive technology and provide a concise title
+  when the icon's meaning benefits from explanation.
 
 ## Quick Checks
 
 - [ ] No hardcoded Tailwind color classes (`bg-blue-*`, `text-gray-*`, `border-red-*`, etc.)
 - [ ] Buttons use `getButtonClasses()` or `buttonStyles.*` from `web/lib/theme.ts`
 - [ ] Color tokens match the semantic intent (e.g., `error-*` for errors, not `destructive-*`)
+- [ ] Every enabled action has visible hover and keyboard-focus feedback
+- [ ] Adjacent label/icon actions avoid doubled interior spacing
 - [ ] New colors added to `web/lib/colors.ts` first, then consumed via CSS variables
