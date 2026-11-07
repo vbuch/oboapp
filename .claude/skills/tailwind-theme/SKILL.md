@@ -93,6 +93,9 @@ transparency and corner radii across the app.
   own clear feedback too. Keep icon actions named for assistive technology.
 - A concise title can help pointer users. Keep essential meaning and saved state
   available through labels, shape, text, or accessible state as appropriate.
+- For an icon action with a non-obvious result, use existing toast or inline
+  feedback after activation to explain what changed and what it means. Keep
+  keyboard focus on the triggering control and expose feedback to screen readers.
 
 ## Touch Targets and Contrast
 
@@ -116,6 +119,8 @@ transparency and corner radii across the app.
 - An already completed action can use `aria-disabled` and remain focusable when
   its status or explanation needs to be heard. Guard its handler and remove
   enabled-action feedback; `aria-disabled` does not prevent activation.
+- A control that shows information remains enabled, even when its underlying
+  choice is already saved. Give it an accessible name for the information action.
 - When a control leaves the interface, hide it from assistive technology, remove
   its tab stop, and make it inert or natively disabled while the exit animation
   finishes. Preserve focus on the active action.
