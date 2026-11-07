@@ -9,7 +9,7 @@ For guest-to-Google upgrade choices when both sides already have data, see
 
 ### Sidebar UI
 
-On wide-desktop layouts, users see a segmented control header with two tabs:
+The home page has a view switch on desktop and mobile:
 
 | Tab            | Content                                                               |
 | -------------- | --------------------------------------------------------------------- |
@@ -45,14 +45,27 @@ the tab fits the current zones again. With no zones, the camera stays where it i
 Explicit event links and zone placement keep their own camera behavior, and late automatic
 geolocation results do not replace the zone view.
 
-Switching to **Събития** restores the usual event view. Mobile and narrower
-layouts use the Events view, including when resizing from the wide desktop layout.
-They show zone badges above the event cards. Tapping a badge centers the map on
-that zone, and the cards continue to show events from the current map area.
+Switching to **Събития** restores the usual event view. Resizing the window keeps
+the selected view and camera. On narrower layouts, Events shows zone badges
+above its cards. Tapping a badge centers the map on that zone.
 
 The "Добави зона" button puts the map into **target mode** for creating a new
-zone. On wide desktop it appears in the zones tab; on narrower layouts it appears
-with the zone badges. A form opens after the user places the zone on the map.
+zone. It appears in the zones tab and with the zone badges on narrower layouts.
+A form opens after the user places the zone on the map.
+
+### Preferred Landing View
+
+In Settings, **Начален изглед** lets users choose **Събития** or **Моите зони**.
+The choice is saved in the current browser on the device and applies on the next
+home-page visit. With no saved choice, the app opens Events with its usual
+location behavior.
+
+Startup waits for the preference, authentication, and saved zones before loading
+the chosen view. My zones uses the same event filtering and map fitting as a
+manual switch. With no saved zones, it shows the add-zone empty state. Direct
+event links and links to specific map coordinates keep their navigation behavior.
+Switching tabs during a visit keeps the saved preference intact. If the browser
+blocks saving settings, the Settings page shows an error and keeps the previous choice.
 
 ### Zone Creation Flow
 
