@@ -20,6 +20,8 @@ The home page has a view switch on desktop and mobile:
 | **Около мен** | Events around the current location after location succeeds |
 | **Моите зони** | Saved zones with their color, label, and radius; matching event cards below the zones and matching events on the map |
 
+### Matching Events
+
 In **Моите зони**, an event matches when its affected geometry intersects at least
 one saved zone circle. City-wide events match through the boundary of their
 locality. Events that match several zones appear once. Category, source, and
@@ -38,6 +40,8 @@ zone updates the matches. Zones remain visible when there are no matching events
 users with no saved zones see the add-zone prompt. If locality boundaries cannot
 load, a message explains that some events may be missing.
 
+### Fitting Saved Zones
+
 Entering **Моите зони** centers and zooms the map around the saved circles,
 including their radii, with a margin inside the map area. The fit waits until
 the map and zones are ready and works even when no events match. It closes the filter panel
@@ -48,6 +52,8 @@ zooming, zone edits, and background refreshes then preserve the camera. Re-enter
 the tab fits the current zones again. With no zones, the camera stays where it is.
 Explicit event links and zone placement keep their own camera behavior, and late automatic
 geolocation results do not replace the zone view.
+
+### Switching Views
 
 Switching to **Всички** opens the configured city overview and the usual event
 view. **Около мен** requests location once on entry. Users can then move the map
@@ -60,19 +66,25 @@ opens after the user places the zone on the map.
 
 ### Preferred Landing View
 
-The active tab carries a house action. An outlined house saves that tab as the
-home view; a filled house means it is already home. Clicking a filled house keeps
-the choice. Switching tabs moves the house and updates its state without saving.
+The active tab carries a house action. Clicking an outlined house immediately
+shows that tab as home while saving the choice. Success clears the pending state;
+failure restores the previous home and shows an error for retry. Clicking a
+confirmed filled house keeps the choice. Switching tabs moves the house and
+updates its state without saving.
 Settings offers the same **Всички**, **Около мен**, and **Моите зони** choices.
 The preference is saved in the current browser on the device and applies on the
-next normal home-page visit. New users start with **Всички**.
+next normal home-page visit. The default is **Всички** (`all`) when no saved or
+migrated preference is available, because it needs no saved zones or location
+access.
 
-Startup waits for the preference, authentication, and saved zones before loading
-the chosen tab. My zones uses the same event filtering and map fitting as a
+Startup reads the preference and waits for saved-zone data when My zones is
+chosen. My zones uses the same event filtering and map fitting as a
 manual switch. With no saved zones, it shows the add-zone empty state. Direct
 event links and links to specific map coordinates keep their navigation behavior.
-If the browser blocks saving the preference, show an error and keep the previous
-choice. The current camera stays in place when saving a home.
+Settings uses the same optimistic saving behavior. The current browser save is
+synchronous and settles within the click. Show pending feedback only while a
+save is unresolved, with no artificial delay. The current tab and camera stay in
+place when saving or restoring a home after failure.
 
 Nearby can be saved before location access is granted. Opening the app uses
 existing permission or waits for the inline enable action. Selecting Nearby or

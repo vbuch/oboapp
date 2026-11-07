@@ -13,6 +13,13 @@ Use the same tabs above the event and zone list on every supported layout:
 | **Около мен** | Events in the current map area after location succeeds | Current location, once |
 | **Моите зони** | Events affecting saved zones | Fit all saved circles |
 
+The default home is **Всички** (`all`) when no saved or migrated preference is
+available. This choice needs no saved zones or location access. Only the My zones
+branch waits for saved-zone data.
+
+My zones follows the [event-matching specification](../features/multi-zone-support.md#matching-events)
+and [saved-zone fitting specification](../features/multi-zone-support.md#fitting-saved-zones).
+
 Category, source, and archive filters continue to apply. After entry, users can
 pan and zoom freely. Background updates preserve the camera. Entering another
 tab changes the current visit and leaves the saved home intact. Explicit event
@@ -28,21 +35,31 @@ Show a house action beside the active tab label, inside the same visual segment.
 When another tab becomes active, the house moves with it:
 
 - **Outlined house:** the active tab can be saved as home.
-- **Filled house:** the active tab is already home.
+- **Filled house:** the active tab is the selected home.
+- **Filled house with pending state:** the new home is shown immediately while
+  its save is in progress.
 
-Clicking the outlined house saves the active tab for future normal home visits
-and fills the icon. The filled icon confirms the saved choice. Keep the
-current camera in place. Clicking a filled house keeps the existing choice.
-There is always an effective home; new users start with **Всички**.
+Use an **optimistic update**: clicking an outlined house immediately shows the
+active tab as home, then saves the choice. Success clears the pending state and
+keeps the house filled. Failure restores the previous home and shows a concise
+error with a way to retry. A newer choice takes priority over an older save result.
+Keep the current tab and camera in place throughout. Clicking a confirmed filled
+house keeps the existing choice.
+
+A subtle loading marker may indicate a pending save, with an accessible busy
+state. Keep the icon position, hit area, title, hover, and focus feedback stable.
+Respect reduced-motion preferences if the marker moves. The current browser save
+is synchronous and settles within the click. Show pending feedback only while a
+save is unresolved; do not add a minimum delay for it.
 
 The tab label and house are separate keyboard-accessible actions. Give the house
 a name such as **Направи „Моите зони“ начален изглед** and expose its saved state.
 The filled shape and accessible state communicate the selection alongside color.
-A failed save keeps the previous home and presents a concise error.
+A failed save restores the previous home and presents a concise error.
 
 The house is the direct way to save a home. Settings offers the same three
-choices. Both save in the current browser on the device. Ordinary tab changes
-leave this preference intact.
+choices and optimistic saving behavior. Both save in the current browser on the
+device. Ordinary tab changes leave this preference intact.
 
 ## My Zones Without Zones
 
@@ -87,7 +104,8 @@ specifically requests this three-tab control.
 
 ## Validation
 
-Cover home saving and return visits for each tab, house fill and movement,
+Cover the explicit All default, home saving and return visits for each tab,
+immediate house fill, pending state, rollback, newer choices during a save,
 temporary switching, storage failures, no zones, first-zone creation, location
 denial and recovery, stale results, direct links, keyboard use, and 320 px reflow.
 Verify that desktop and mobile share the same behavior.

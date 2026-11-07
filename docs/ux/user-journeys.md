@@ -13,18 +13,23 @@ The [home-view design](home-view-design.md) defines labels, house states, and re
 
 ## Open the App
 
-An explicit link takes priority. Otherwise load the saved home, defaulting to
-**Всички** for a new user. Location failure keeps Nearby selected with its inline
+The default home is **Всички** (`all`) when no saved or migrated preference is
+available. It requires neither saved zones nor location access. An explicit link
+takes priority over the home choice. Location failure keeps Nearby selected with its inline
 recovery action. A saved zones home with no zones opens the creation empty state.
 
 ```mermaid
 flowchart TD
     Open[Open the app] --> Link{Explicit event or coordinate link?}
     Link -->|Yes| Focus[Open the requested event or place]
-    Link -->|No| Load[Wait for saved home and required user data]
-    Load --> Home{Saved home}
+    Link -->|No| Load[Read saved or migrated home]
+    Load --> Saved{Home preference available?}
+    Saved -->|No| Default[Use default home: All]
+    Default --> City
+    Saved -->|Yes| Home{Saved home}
     Home -->|All| City[Select All and show configured city overview]
-    Home -->|My zones| Zones{Any saved zones?}
+    Home -->|My zones| ZoneData[Wait for saved zones]
+    ZoneData --> Zones{Any saved zones?}
     Zones -->|Yes| Matches[Fit saved circles and show matching events]
     Zones -->|No| Empty[Show Add zone as the primary action]
     Home -->|Nearby| Permission{Location permission already granted?}
@@ -33,7 +38,11 @@ flowchart TD
     Locate --> Position{Position available inside the supported map area?}
     Position -->|Yes| Nearby[Show nearby Events]
     Position -->|No| Recovery
+    click Matches "../features/multi-zone-support.md#matching-events" "Event matching and map fitting specifications"
 ```
+
+The zone branch follows the [event-matching specification](../features/multi-zone-support.md#matching-events)
+and [saved-zone fitting specification](../features/multi-zone-support.md#fitting-saved-zones).
 
 Launching the app never opens a permission dialog. Recovery uses the city camera,
 hides unrelated event cards, and keeps the saved home. Background updates and
@@ -41,9 +50,12 @@ manual map movement leave the chosen camera in place.
 
 ## Browse and Save a Home
 
-The active tab carries the house action. A filled house means that tab is home;
-an outlined house can save it. Clicking a filled house keeps the current choice.
-The tab and house are independent actions even though they share a visual segment.
+The active tab carries the house action. An outlined house can save that tab as
+home. Clicking it immediately fills the house and marks the choice as pending
+while saving. Success keeps it filled; failure restores the previous home and
+shows an error. This is an **optimistic update**. Clicking a confirmed filled
+house keeps the current choice. The tab and house are independent actions even
+though they share a visual segment.
 
 ```mermaid
 flowchart TD
@@ -52,14 +64,20 @@ flowchart TD
     House --> Filled{Is this tab already home?}
     Filled -->|Yes| Keep[Show filled house and keep the choice]
     Filled -->|No| Outline[Show outlined house]
-    Outline -->|Click house| Save[Save this tab as home]
-    Save -->|Success| Confirm[Fill the house and confirm briefly]
-    Save -->|Failure| Retry[Keep previous home and show save error]
+    Outline -->|Click house| Pending[Fill house immediately and mark saving]
+    Pending --> Save[Persist this tab as home]
+    Save -->|Success| Confirm[Keep filled house and clear pending state]
+    Save -->|Failure| Revert[Restore previous home and clear pending state]
+    Revert --> Retry[Show save error and allow retry]
+    Retry -->|Retry| Pending
 ```
 
 Tab selection, panning, and zooming leave the saved home intact. Choosing another
 tab moves the house to that tab and updates its filled or outlined state.
-Settings offers the same home choices as the house action.
+Settings offers the same home choices and optimistic saving behavior. The current
+browser save is synchronous and settles within the click. Show pending feedback
+only while a save is unresolved, without an artificial delay. Saving, success,
+and rollback leave the current tab and camera in place.
 
 ## Create the First Zone
 
@@ -77,7 +95,12 @@ flowchart TD
     Place -->|Save fails: retain input and retry| Place
     Place -->|Saved| View
     View --> Optional[Optional: save My zones with its house]
+    click View "../features/multi-zone-support.md#fitting-saved-zones" "Saved-zone fitting specification"
 ```
+
+The saved view uses the same [matching](../features/multi-zone-support.md#matching-events)
+and [fitting](../features/multi-zone-support.md#fitting-saved-zones) rules as normal
+entry to My zones.
 
 An explicit My zones home is valid with no zones. Deleting the last zone keeps
 that choice and opens its creation empty state on the next visit.
