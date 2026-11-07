@@ -171,7 +171,7 @@ export default function SegmentedControl({
       role="radiogroup"
       aria-label="Изглед на събитията"
       data-slot="segmented-control"
-      className={`${styles.control} relative isolate inline-flex items-center rounded-full border border-neutral-border bg-neutral-light p-1 gap-1 ${className}`}
+      className={`${styles.control} relative isolate inline-flex items-center rounded-full border border-neutral-border bg-neutral-light p-1 gap-0 sm:gap-1 ${className}`}
     >
       <span
         ref={indicatorRef}
@@ -215,8 +215,10 @@ export default function SegmentedControl({
               tabIndex={tabIndex}
               onClick={isDisabled ? undefined : () => onChange(option.value)}
               onKeyDown={isDisabled ? undefined : handleKeyDown}
-              className={`${styles.label} min-h-11 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                hasHomeAction ? "pl-1.5 pr-0 sm:pl-3" : "px-1.5 sm:px-3"
+              className={`${styles.label} min-h-11 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium focus-visible:outline-none ${
+                hasHomeAction
+                  ? "pl-2.5 pr-0 min-[360px]:pl-3"
+                  : "px-2.5 min-[360px]:px-3"
               } ${
                 isDisabled
                   ? "opacity-40 cursor-not-allowed"

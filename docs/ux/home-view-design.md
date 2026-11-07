@@ -29,6 +29,8 @@ On mobile, keep all three labels and the house action readable and reachable
 above the list. Use at least 44 × 44 CSS px for each enabled action, with separate
 targets for the label and house. Provide visible feedback for taps and
 clear keyboard focus. Hover is an extra cue for devices that support it.
+Balance horizontal padding with the target height and check fit with fallback
+fonts. Label focus outlines the whole segment; house focus outlines its own target.
 Resizing keeps the active tab and the user's camera. The nearby
 tab supplies the location action, so the map has no separate floating Locate button.
 
