@@ -51,10 +51,22 @@ When another tab becomes active, the house moves with it:
 
 Use an **optimistic update**: clicking an outlined house immediately shows the
 active tab as home, then saves the choice. Success clears the pending state and
-keeps the house filled. Failure restores the previous home and shows a concise
-error with a way to retry. A newer choice takes priority over an older save result.
+keeps the house filled, with a toast explaining the next visit. Failure restores
+the previous home and shows a concise error with a way to retry. A newer choice
+takes priority over an older save result.
 Keep the current tab and camera in place throughout. Clicking a confirmed filled
-house keeps the existing choice.
+house keeps the existing choice and shows an explanation of the current home.
+
+Use the existing toast system to make the outcome clear on mobile:
+
+- **New home saved:** **При следващото отваряне на OboApp ще виждаш „{изглед}“.**
+- **Current home tapped:** **„{изглед}“ е началният ти изглед в OboApp.**
+
+The filled house remains an enabled information action. Tapping it does not save
+the preference again. Show these messages only after a house action. Opening the
+app and switching tabs leave them hidden. Replace the existing home-feedback
+toast on repeated taps so messages do not stack, and preserve the toast system's
+screen-reader announcements. Titles remain extra feedback for pointer users.
 
 A subtle loading marker may indicate a pending save, with an accessible busy
 state. Keep the icon position, hit area, title, hover, and focus feedback stable.
@@ -65,8 +77,9 @@ save is unresolved; do not add a minimum delay for it.
 The tab label and house are separate keyboard-accessible actions. Give the house
 a name such as **Направи „Моите зони“ начален изглед** and expose its saved state.
 The filled shape and accessible state communicate the selection alongside color.
-Treat the house as a save action. Once saved, keep it focusable and announce
-that this home is already set, with a description of how to choose another home.
+Use ordinary buttons for saving and showing information. A filled house stays
+enabled and focusable, with a name for its information action and a description
+of how to choose another home.
 A failed save restores the previous home and presents a concise error.
 
 The house is the direct way to save a home. Settings offers the same three
@@ -120,4 +133,6 @@ Cover the explicit All default, home saving and return visits for each tab,
 immediate house fill, pending state, rollback, newer choices during a save,
 temporary switching, storage failures, no zones, first-zone creation, location
 denial and recovery, stale results, direct links, keyboard use, and 320 px reflow.
+Check new-home and current-home toast messages, failure feedback, repeated taps,
+and the absence of unsolicited messages on startup or ordinary tab selection.
 Verify that desktop and mobile share the same behavior.

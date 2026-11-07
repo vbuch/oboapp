@@ -68,9 +68,14 @@ opens after the user places the zone on the map.
 
 The active tab carries a house action. Clicking an outlined house immediately
 shows that tab as home while saving the choice. Success clears the pending state;
-failure restores the previous home and shows an error for retry. Clicking a
-confirmed filled house keeps the choice. Switching tabs moves the house and
+its toast explains what opens on the next visit. Failure restores the previous
+home and shows an error for retry. The filled house remains an enabled
+information action: tapping it explains the current home in a toast and keeps
+the choice, without saving again. Switching tabs moves the house and
 updates its state without saving.
+Home-feedback toasts appear after house actions; repeated taps replace the
+existing message. See the [home-view design](../ux/home-view-design.md#the-active-tabs-house)
+for message copy and accessible feedback.
 Settings offers the same **Всички**, **Около мен**, and **Моите зони** choices.
 The preference is saved in the current browser on the device and applies on the
 next normal home-page visit. The default is **Всички** (`all`) when no saved or

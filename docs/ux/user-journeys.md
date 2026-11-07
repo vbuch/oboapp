@@ -54,19 +54,21 @@ The active tab carries the house action. An outlined house can save that tab as
 home. Clicking it immediately fills the house and marks the choice as pending
 while saving. Success keeps it filled; failure restores the previous home and
 shows an error. This is an **optimistic update**. Clicking a confirmed filled
-house keeps the current choice. The tab and house are independent actions even
-though they share a visual segment.
+house explains the current home in a toast and keeps the choice. Saving a new
+home shows a toast explaining what the user will see on their next visit. The tab
+and house are independent actions even though they share a visual segment.
 
 ```mermaid
 flowchart TD
     Select[Select All, Nearby, or My zones] --> View[Open the tab for this visit]
     View --> House[Show the house beside the active tab]
     House --> Filled{Is this tab already home?}
-    Filled -->|Yes| Keep[Show filled house and keep the choice]
+    Filled -->|Yes| Keep[Show filled house]
+    Keep -->|Click house| Explain[Explain current home in a toast and keep the choice]
     Filled -->|No| Outline[Show outlined house]
     Outline -->|Click house| Pending[Fill house immediately and mark saving]
     Pending --> Save[Persist this tab as home]
-    Save -->|Success| Confirm[Keep filled house and clear pending state]
+    Save -->|Success| Confirm[Keep filled house, clear pending state, and show next-visit toast]
     Save -->|Failure| Revert[Restore previous home and clear pending state]
     Revert --> Retry[Show save error and allow retry]
     Retry -->|Retry| Pending
@@ -78,6 +80,9 @@ Settings offers the same home choices and optimistic saving behavior. The curren
 browser save is synchronous and settles within the click. Show pending feedback
 only while a save is unresolved, without an artificial delay. Saving, success,
 and rollback leave the current tab and camera in place.
+Opening the app and switching tabs do not show a home-feedback toast. Repeated
+house taps replace the existing message. See the [home-view design](home-view-design.md#the-active-tabs-house)
+for the Bulgarian messages and accessible feedback.
 
 ## Create the First Zone
 
