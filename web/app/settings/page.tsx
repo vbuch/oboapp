@@ -59,7 +59,9 @@ export default function SettingsPage() {
   const [isUnsubscribingAll, setIsUnsubscribingAll] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -81,7 +83,7 @@ export default function SettingsPage() {
 
       const subscriptionsData = await subscriptionsRes.json();
       const apiClientData =
-        apiClientRes && apiClientRes.ok ? await apiClientRes.json() : null;
+        apiClientRes?.ok ? await apiClientRes.json() : null;
 
       setSubscriptions(
         Array.isArray(subscriptionsData) ? subscriptionsData : [],
@@ -108,7 +110,7 @@ export default function SettingsPage() {
       return;
     }
 
-    fetchData();
+    void fetchData();
   }, [authLoading, user, router, fetchData]);
 
   // Get current device FCM token
@@ -129,7 +131,9 @@ export default function SettingsPage() {
 
         const messaging = getMessaging(app);
         const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-        if (!vapidKey) return;
+        if (!vapidKey) {
+          return;
+        }
 
         const token = await getToken(messaging, { vapidKey });
         if (token) {
@@ -141,12 +145,14 @@ export default function SettingsPage() {
     };
 
     if (globalThis.window !== undefined) {
-      getCurrentToken();
+      void getCurrentToken();
     }
   }, []);
 
   const handleSubscribeCurrentDevice = async () => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     try {
       const result = await subscribeCurrentDeviceForUser(user);
@@ -181,7 +187,9 @@ export default function SettingsPage() {
   };
 
   const handleUnsubscribeDevice = async (deviceToken: string) => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     try {
       const response = await fetchWithAuth(
@@ -289,7 +297,9 @@ export default function SettingsPage() {
   };
 
   const handleGenerateApiKey = async (websiteUrl: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      return false;
+    }
     setIsApiClientLoading(true);
     try {
       const response = await fetchWithAuth(user, "/api/api-clients", {
@@ -317,7 +327,9 @@ export default function SettingsPage() {
   };
 
   const handleRevokeApiKey = async (): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      return false;
+    }
     setIsApiClientLoading(true);
     try {
       const response = await fetchWithAuth(user, "/api/api-clients", {
