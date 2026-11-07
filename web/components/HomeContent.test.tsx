@@ -362,7 +362,7 @@ describe("HomeContent pivot behavior", () => {
     authUser = { uid: "user-1" };
     mockPreferredLandingView = "all";
     const { rerender } = render(<HomeContent />);
-    expect(screen.getByRole("button", { name: "„Всички“ е началният ти изглед" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "„Всички“ е началният ти изглед" })).toHaveAttribute("aria-disabled", "true");
 
     fireEvent.click(screen.getByRole("radio", { name: "Моите зони" }));
     expect(mockSetPreferredLandingView).not.toHaveBeenCalled();
@@ -372,9 +372,9 @@ describe("HomeContent pivot behavior", () => {
 
     mockPreferredLandingView = "zones";
     rerender(<HomeContent />);
-    expect(screen.getByRole("button", { name: "„Моите зони“ е началният ти изглед" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "„Моите зони“ е началният ти изглед" })).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(screen.getByRole("radio", { name: "Всички" }));
-    expect(screen.getByRole("button", { name: "Направи „Всички“ начален изглед" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Направи „Всички“ начален изглед" })).not.toHaveAttribute("aria-disabled");
     expect(mockSetPreferredLandingView).toHaveBeenCalledTimes(1);
   });
 
@@ -434,7 +434,7 @@ describe("HomeContent pivot behavior", () => {
       navigationRequestId: 0,
     });
     expect(capturedMessageQueryOptions?.enabled).toBe(false);
-    expect(screen.getByRole("button", { name: "„Около мен“ е началният ти изглед" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "„Около мен“ е началният ти изглед" })).toHaveAttribute("aria-disabled", "true");
   });
 
   it.each([false, true])(

@@ -60,6 +60,8 @@ save is unresolved; do not add a minimum delay for it.
 The tab label and house are separate keyboard-accessible actions. Give the house
 a name such as **Направи „Моите зони“ начален изглед** and expose its saved state.
 The filled shape and accessible state communicate the selection alongside color.
+Treat the house as a save action. Once saved, keep it focusable and announce
+that this home is already set, with a description of how to choose another home.
 A failed save restores the previous home and presents a concise error.
 
 The house is the direct way to save a home. Settings offers the same three

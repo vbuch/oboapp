@@ -116,7 +116,8 @@ describe("SegmentedControl", () => {
       />,
     );
     const house = screen.getByRole("button", { name: "Направи „Моите зони“ начален изглед" });
-    expect(house).toHaveAttribute("aria-pressed", "false");
+    expect(house).not.toHaveAttribute("aria-disabled");
+    expect(house).not.toHaveAttribute("aria-pressed");
     expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(container.querySelector("button button")).toBeNull();
 
@@ -132,7 +133,10 @@ describe("SegmentedControl", () => {
       <SegmentedControl options={OPTIONS} value="zones" homeValue="zones" onChange={vi.fn()} onHomeChange={onHomeChange} />,
     );
     const filledHouse = screen.getByRole("button", { name: "„Моите зони“ е началният ти изглед" });
-    expect(filledHouse).toHaveAttribute("aria-pressed", "true");
+    expect(filledHouse).toHaveAttribute("aria-disabled", "true");
+    expect(filledHouse).toHaveAccessibleDescription(
+      "За да смениш началния изглед, избери друг изглед и натисни къщичката му.",
+    );
     await userEvent.click(filledHouse);
     expect(onHomeChange).not.toHaveBeenCalled();
 
@@ -143,7 +147,7 @@ describe("SegmentedControl", () => {
     expect(onHomeChange).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "„Моите зони“ е началният ти изглед" })).not.toBeInTheDocument();
     const outlinedHouse = screen.getByRole("button", { name: "Направи „Събития“ начален изглед" });
-    expect(outlinedHouse).toHaveAttribute("aria-pressed", "false");
+    expect(outlinedHouse).not.toHaveAttribute("aria-disabled");
 
     rerender(<SegmentedControl options={OPTIONS} value="zones" homeValue="zones" onChange={vi.fn()} onHomeChange={onHomeChange} />);
     expect(outlinedHouse).toBeDisabled();
@@ -169,6 +173,10 @@ describe("SegmentedControl", () => {
     await userEvent.tab();
     expect(screen.getByRole("button", { name: "Направи „Около мен“ начален изглед" })).toHaveFocus();
     await userEvent.keyboard("{Enter}");
-    expect(screen.getByRole("button", { name: "„Около мен“ е началният ти изглед" })).toHaveAttribute("aria-pressed", "true");
+    const savedHome = screen.getByRole("button", { name: "„Около мен“ е началният ти изглед" });
+    expect(savedHome).toHaveAttribute("aria-disabled", "true");
+    expect(savedHome).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    expect(savedHome).toHaveFocus();
   });
 });

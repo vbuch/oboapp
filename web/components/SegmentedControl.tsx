@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useCallback, useId, useLayoutEffect, useRef } from "react";
 import { House } from "lucide-react";
 import styles from "./SegmentedControl.module.css";
 
@@ -35,6 +35,7 @@ export default function SegmentedControl({
   const groupRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLSpanElement>(null);
   const previousValueRef = useRef(value);
+  const homeHintId = useId();
   const hasHomeActions = Boolean(onHomeChange);
   const enabledOptions = options.filter((o) => !o.disabled);
 
@@ -178,6 +179,11 @@ export default function SegmentedControl({
         data-slot="selection-indicator"
         className={`${styles.indicator} pointer-events-none absolute left-0 top-0 rounded-full bg-white shadow-sm`}
       />
+      {hasHomeActions && (
+        <span id={homeHintId} className="sr-only">
+          За да смениш началния изглед, избери друг изглед и натисни къщичката му.
+        </span>
+      )}
       {options.map((option) => {
         const isActive = option.value === value;
         const isDisabled = option.disabled === true;
@@ -209,7 +215,7 @@ export default function SegmentedControl({
               tabIndex={tabIndex}
               onClick={isDisabled ? undefined : () => onChange(option.value)}
               onKeyDown={isDisabled ? undefined : handleKeyDown}
-              className={`${styles.label} min-h-10 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+              className={`${styles.label} min-h-10 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 hasHomeAction ? "pl-1.5 pr-0 sm:pl-3" : "px-1.5 sm:px-3"
               } ${
                 isDisabled
@@ -230,7 +236,8 @@ export default function SegmentedControl({
                   type="button"
                   aria-label={homeLabel}
                   title={homeLabel}
-                  aria-pressed={isHome}
+                  aria-disabled={isHome || undefined}
+                  aria-describedby={isHome ? homeHintId : undefined}
                   disabled={!isActive}
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => {
@@ -238,7 +245,9 @@ export default function SegmentedControl({
                       onHomeChange(option.value);
                     }
                   }}
-                  className={`${styles.homeButton} flex h-10 w-9 shrink-0 items-center justify-center rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
+                  className={`${styles.homeButton} flex h-10 w-9 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                    isHome ? "cursor-default" : "cursor-pointer"
+                  }`}
                 >
                   <House
                     className="h-4 w-4"

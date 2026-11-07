@@ -61,11 +61,11 @@
 }
 
 @media (hover: hover) {
-  .homeButton:enabled:hover {
+  .homeButton:enabled:not([aria-disabled="true"]):hover {
     color: var(--color-info-hover);
   }
 
-  .homeButton:enabled:hover > svg {
+  .homeButton:enabled:not([aria-disabled="true"]):hover > svg {
     transform: scale(1.125);
   }
 

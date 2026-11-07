@@ -43,7 +43,11 @@ function house(page, label, saved) {
 }
 
 async function expectHouse(page, label, saved) {
-  await expect(house(page, label, saved)).toHaveAttribute("aria-pressed", String(saved));
+  if (saved) {
+    await expect(house(page, label, saved)).toHaveAttribute("aria-disabled", "true");
+  } else {
+    await expect(house(page, label, saved)).not.toHaveAttribute("aria-disabled");
+  }
   await expect(page.getByRole("button", {
     name: /началният ти изглед|Направи .* начален изглед/,
   })).toHaveCount(1);
@@ -228,7 +232,12 @@ test("the active tab's house saves home across visits, mobile layouts, and empty
     await house(page, "Моите зони", false).click();
     await expectHouse(page, "Моите зони", true);
     assert.equal(await savedPreference(page), "zones");
-    await house(page, "Моите зони", true).click();
+    const savedHouseBounds = await house(page, "Моите зони", true).boundingBox();
+    assert.ok(savedHouseBounds);
+    await page.mouse.click(
+      savedHouseBounds.x + savedHouseBounds.width / 2,
+      savedHouseBounds.y + savedHouseBounds.height / 2,
+    );
     assert.equal(await savedPreference(page), "zones");
     assert.equal(await page.evaluate(() => globalThis.__landingCamera.zoneFits.length), 1);
 
