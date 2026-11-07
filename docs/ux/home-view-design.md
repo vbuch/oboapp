@@ -26,7 +26,10 @@ tab changes the current visit and leaves the saved home intact. Explicit event
 and coordinate links keep their own navigation behavior.
 
 On mobile, keep all three labels and the house action readable and reachable
-above the list. Resizing keeps the active tab and the user's camera. The nearby
+above the list. Use at least 44 × 44 CSS px for each enabled action, with separate
+targets for the label and house. Provide visible feedback for taps and
+clear keyboard focus. Hover is an extra cue for devices that support it.
+Resizing keeps the active tab and the user's camera. The nearby
 tab supplies the location action, so the map has no separate floating Locate button.
 
 ## The Active Tab's House

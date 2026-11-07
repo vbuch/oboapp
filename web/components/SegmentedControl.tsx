@@ -204,7 +204,7 @@ export default function SegmentedControl({
             data-active={isActive}
             data-disabled={isDisabled || undefined}
             className={`${styles.segment} relative flex min-w-0 items-center rounded-full ${
-              isActive ? "bg-white shadow-sm text-primary" : "text-neutral"
+              isActive ? "bg-white shadow-sm text-primary" : "text-neutral-hover"
             }`}
           >
             <button
@@ -215,7 +215,7 @@ export default function SegmentedControl({
               tabIndex={tabIndex}
               onClick={isDisabled ? undefined : () => onChange(option.value)}
               onKeyDown={isDisabled ? undefined : handleKeyDown}
-              className={`${styles.label} min-h-10 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              className={`${styles.label} min-h-11 whitespace-nowrap py-1.5 rounded-full text-[13px] sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 hasHomeAction ? "pl-1.5 pr-0 sm:pl-3" : "px-1.5 sm:px-3"
               } ${
                 isDisabled
@@ -245,12 +245,12 @@ export default function SegmentedControl({
                       onHomeChange(option.value);
                     }
                   }}
-                  className={`${styles.homeButton} flex h-10 w-9 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  className={`${styles.homeButton} flex h-11 w-11 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     isHome ? "cursor-default" : "cursor-pointer"
                   }`}
                 >
                   <House
-                    className="h-4 w-4"
+                    className="h-5 w-5"
                     fill={isHome ? "currentColor" : "none"}
                     aria-hidden="true"
                   />

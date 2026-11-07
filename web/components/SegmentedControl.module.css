@@ -52,12 +52,16 @@
 }
 
 .segment[data-active="true"] .homeSlot {
-  width: calc(var(--spacing) * 9);
+  width: calc(var(--spacing) * 11);
 }
 
 .segment[data-active="true"] .homeButton {
   opacity: 1;
   transform: scale(1);
+}
+
+.homeButton:enabled:focus-visible {
+  color: var(--color-info-hover);
 }
 
 @media (hover: hover) {
@@ -80,6 +84,19 @@
   }
 }
 
+.segment[data-active="false"]:not([data-disabled]):has(.label:active),
+.control:has(.segment[data-active="true"] button:enabled:not([aria-disabled="true"]):active) .indicator {
+  background-color: var(--color-neutral-border);
+}
+
+.homeButton:enabled:not([aria-disabled="true"]):active {
+  color: var(--color-info-hover);
+}
+
+.homeButton:enabled:not([aria-disabled="true"]):active > svg {
+  transform: scale(0.9);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .control {
     --selection-duration: 0ms;
@@ -94,7 +111,7 @@
     transition: none;
   }
 
-  .homeButton:enabled:hover > svg {
+  .homeButton:enabled:not([aria-disabled="true"]):is(:hover, :active) > svg {
     transform: none;
   }
 }
