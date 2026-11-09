@@ -9,6 +9,11 @@ overrides:
   '@ungap/structured-clone': ^1.3.1
   basic-ftp: ^5.2.1
 
+patchedDependencies:
+  '@oboapp/source-toplo-bg@0.1.0':
+    hash: f2bdab984b525f53d9b5861f3320b7a392315f66cd533b8c32234abaf0e6c24a
+    path: patches/@oboapp__source-toplo-bg@0.1.0.patch
+
 importers:
 
   .:
@@ -172,12 +177,12 @@ importers:
       '@oboapp/source-rayon-oborishte-bg':
         specifier: 0.1.0
         version: 0.1.0
-      '@oboapp/source-so-slatina-org':
-        specifier: 0.1.0
-        version: 0.1.0
       '@oboapp/source-sdk':
         specifier: 0.1.1
         version: 0.1.1
+      '@oboapp/source-so-slatina-org':
+        specifier: 0.1.0
+        version: 0.1.0
       '@oboapp/source-sredec-sofia-org':
         specifier: 0.1.0
         version: 0.1.0
@@ -186,7 +191,7 @@ importers:
         version: 0.1.0
       '@oboapp/source-toplo-bg':
         specifier: 0.1.0
-        version: 0.1.0
+        version: 0.1.0(patch_hash=f2bdab984b525f53d9b5861f3320b7a392315f66cd533b8c32234abaf0e6c24a)
       '@oboapp/source-triaditsa-org':
         specifier: 0.2.0
         version: 0.2.0
@@ -2597,12 +2602,12 @@ packages:
     resolution: {integrity: sha512-lRzFHzpD6eWU7TfPfp+6BfKU+oOn0sUESxaUSDHY+aTScgrHKA1A0kbUfBcRYD8qJXM9ricMLqfxDGHdnXs99A==}
     engines: {node: '>=20'}
 
-  '@oboapp/source-so-slatina-org@0.1.0':
-    resolution: {integrity: sha512-b8EyGZ1LeuHNbPPwa5O+vleojMWwL7qkro+ak1XVEsiBn9nw09YsNF2QnWpRKqXAQh4MlJcHWyYSBM5RhN/duw==}
-    engines: {node: '>=20'}
-
   '@oboapp/source-sdk@0.1.1':
     resolution: {integrity: sha512-kCSJ04z+/yDvD2CikBLTGNjLAIdg/d91CuCMMHIzzwkffhXDqnPii1eM+SdlRmel54x7Eux1TTVqApVwGwWlVQ==}
+    engines: {node: '>=20'}
+
+  '@oboapp/source-so-slatina-org@0.1.0':
+    resolution: {integrity: sha512-b8EyGZ1LeuHNbPPwa5O+vleojMWwL7qkro+ak1XVEsiBn9nw09YsNF2QnWpRKqXAQh4MlJcHWyYSBM5RhN/duw==}
     engines: {node: '>=20'}
 
   '@oboapp/source-sredec-sofia-org@0.1.0':
@@ -13619,14 +13624,14 @@ snapshots:
       playwright: 1.61.1
       turndown: 7.2.2
 
+  '@oboapp/source-sdk@0.1.1': {}
+
   '@oboapp/source-so-slatina-org@0.1.0':
     dependencies:
       '@oboapp/source-sdk': 0.1.1
       html-entities: 2.6.0
       playwright: 1.61.1
       turndown: 7.2.2
-
-  '@oboapp/source-sdk@0.1.1': {}
 
   '@oboapp/source-sredec-sofia-org@0.1.0':
     dependencies:
@@ -13638,7 +13643,7 @@ snapshots:
       '@oboapp/source-sdk': 0.1.1
       '@oboapp/source-web-utils': 0.1.0
 
-  '@oboapp/source-toplo-bg@0.1.0':
+  '@oboapp/source-toplo-bg@0.1.0(patch_hash=f2bdab984b525f53d9b5861f3320b7a392315f66cd533b8c32234abaf0e6c24a)':
     dependencies:
       '@oboapp/source-sdk': 0.1.1
 

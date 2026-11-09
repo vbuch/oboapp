@@ -191,3 +191,13 @@ export const SourceSchema = z.object({
 });
 
 export type Source = z.infer<typeof SourceSchema>;
+
+export const SourceSnapshotSchema = z.object({
+  sourceType: z.string().min(1),
+  locality: z.string().min(1),
+  count: z.number().int().min(0),
+  observedAt: z.iso.datetime(),
+  sourceUrl: z.url(),
+});
+
+export type SourceSnapshot = z.infer<typeof SourceSnapshotSchema>;
