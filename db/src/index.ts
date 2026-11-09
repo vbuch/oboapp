@@ -16,6 +16,7 @@ import { DualWriteAdapter } from "./dual-write";
 import { MessagesRepository } from "./collections/messages";
 import { SourcesRepository } from "./collections/sources";
 import { SourceSnapshotsRepository } from "./collections/source-snapshots";
+import { SourceDailyCountsRepository } from "./collections/source-daily-counts";
 import { InterestsRepository } from "./collections/interests";
 import { NotificationMatchesRepository } from "./collections/notification-matches";
 import { NotificationSubscriptionsRepository } from "./collections/notification-subscriptions";
@@ -39,8 +40,10 @@ export interface OboDb {
   messages: MessagesRepository;
   /** Sources collection */
   sources: SourcesRepository;
-  /** Observed source listings and counts */
+  /** Count history observed from complete source listings */
   sourceSnapshots: SourceSnapshotsRepository;
+  /** One closing count for each source and Sofia calendar day */
+  sourceDailyCounts: SourceDailyCountsRepository;
   /** Interests collection */
   interests: InterestsRepository;
   /** Notification matches collection */
@@ -93,6 +96,7 @@ function buildRepositories(client: DbClient): OboDb {
     messages: new MessagesRepository(client),
     sources: new SourcesRepository(client),
     sourceSnapshots: new SourceSnapshotsRepository(client),
+    sourceDailyCounts: new SourceDailyCountsRepository(client),
     interests: new InterestsRepository(client),
     notificationMatches: new NotificationMatchesRepository(client),
     notificationSubscriptions: new NotificationSubscriptionsRepository(client),

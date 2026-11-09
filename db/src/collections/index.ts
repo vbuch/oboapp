@@ -48,3 +48,4 @@ export {
   GeocodeCacheStreetSynonymsRepository,
   GEOCODE_CACHE_STREET_SYNONYMS_COLLECTION,
 } from "./geocode-cache-street-synonyms";
+export { SourceDailyCountsRepository, SOURCE_DAILY_COUNTS_COLLECTION } from "./source-daily-counts";

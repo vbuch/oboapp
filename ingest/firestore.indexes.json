@@ -181,6 +181,15 @@
       ]
     },
     {
+      "collectionGroup": "sourceDailyCounts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "locality", "order": "ASCENDING" },
+        { "fieldPath": "sourceType", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "sources",
       "queryScope": "COLLECTION",
       "fields": [

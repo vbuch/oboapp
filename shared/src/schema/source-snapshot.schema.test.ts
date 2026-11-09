@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SourceDailyCountSchema } from "./source-daily-count.schema";
 import {
   SourceIncidentSchema,
   SourceSnapshotSchema,
@@ -107,5 +108,15 @@ describe("SourceSnapshotSchema", () => {
       count: 2,
       incidents: [incident, { ...incident, ...identities }],
     }).success).toBe(false);
+  });
+});
+
+describe("daily source counts", () => {
+  it("keeps daily records count-only after detailed captures", () => {
+    expect(SourceDailyCountSchema.parse({
+      ...observation,
+      incidents: [],
+      date: "2026-11-11",
+    })).toEqual({ ...observation, date: "2026-11-11" });
   });
 });
