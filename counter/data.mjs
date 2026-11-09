@@ -51,19 +51,12 @@ function validateDaily(value) {
   return { date: value.date, ...observation };
 }
 
-export function normalizeTimeline(input, historical = []) {
+export function normalizeTimeline(input) {
   if (!input || input.sourceType !== "toplo-bg" || input.locality !== "bg.sofia" || !Array.isArray(input.daily)) {
     throw new Error("Unexpected Toplo timeline response");
   }
   const current = input.current === null ? null : validateObservation(input.current);
   const points = new Map();
-  for (const value of historical) {
-    if (value.sourceType !== "toplo-bg" || value.locality !== "bg.sofia") {
-      throw new Error("Historical count belongs to a different source");
-    }
-    const point = validateDaily(value);
-    points.set(point.date, point);
-  }
   for (const value of input.daily) {
     const point = validateDaily(value);
     points.set(point.date, point);

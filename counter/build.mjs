@@ -8,17 +8,6 @@ import { renderShareImage } from "./share-image.mjs";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 
-async function readHistorical() {
-  try {
-    return JSON.parse(await readFile(resolve(directory, "data/historical-daily-counts.json"), "utf8"));
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return [];
-    }
-    throw error;
-  }
-}
-
 export async function fetchTimeline(url, apiKey) {
   const target = new URL(url);
   if (target.protocol !== "https:" && !(target.protocol === "http:" && ["localhost", "127.0.0.1"].includes(target.hostname))) {
@@ -42,7 +31,13 @@ export async function fetchTimeline(url, apiKey) {
   return JSON.parse(content);
 }
 
-export async function buildSite({ data, outDirectory = resolve(directory, "dist"), siteUrl = "https://nastud.site/", requireCurrent = false, now = new Date(), historical } = {}) {
+export async function buildSite({
+  data,
+  outDirectory = resolve(directory, "dist"),
+  siteUrl = "https://nastud.site/",
+  requireCurrent = false,
+  now = new Date(),
+} = {}) {
   const canonical = new URL(siteUrl);
   if (canonical.protocol !== "https:" || canonical.username || canonical.password || canonical.search || canonical.hash) {
     throw new Error("The public site URL must be an HTTPS URL without credentials, query or fragment");
@@ -51,8 +46,12 @@ export async function buildSite({ data, outDirectory = resolve(directory, "dist"
     canonical.pathname += "/";
   }
   const timeline = normalizeTimeline(data ?? {
-    sourceType: "toplo-bg", locality: "bg.sofia", current: null, daily: [], comparison: null,
-  }, historical ?? await readHistorical());
+    sourceType: "toplo-bg",
+    locality: "bg.sofia",
+    current: null,
+    daily: [],
+    comparison: null,
+  });
   if (requireCurrent && !timeline.current) {
     throw new Error("A current snapshot is required before publishing");
   }

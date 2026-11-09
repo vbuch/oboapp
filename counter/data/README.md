@@ -37,5 +37,13 @@ listing. That parser validated geometry before reporting its total. The new
 snapshot collector counts the complete verified source listing independently
 of map geometry. Historical HTML was not retained for a separate recheck.
 
-The file supplies historical observations for import. Future nightly records
-should use the latest successful source snapshot for each completed Sofia day.
+## Import and ongoing updates
+
+These 30 records have already been imported into the production database.
+The file remains an archive for a one-time import into a new database.
+The counter build reads the API response and never loads this file.
+
+Future nightly records use the latest successful source snapshot for each
+completed Sofia day. The API returns those stored records alongside the
+imported history. The scheduled Pages build publishes the API data, so future
+dates require no changes to this archive.

@@ -29,9 +29,16 @@ Daily records have no automatic expiry. The API accepts 1 through 366 days per
 request. Historical dates without observations remain gaps.
 
 `data/historical-daily-counts.json` contains recovered closing counts from
-11 October through 9 November 2026. The build merges these with the API data;
-API records take priority for a matching date. See `data/README.md` for the
-source and selection rules.
+11 October through 9 November 2026. These 30 records have already been imported
+into the production database. The file remains a one-time import archive.
+Every production build uses only the API response for the current count and
+daily history, then derives the comparison from those daily records. See
+`data/README.md` for the source and selection rules.
+
+Each night adds that day's closing count to the database. On the following
+day, the API includes it in the timeline and uses it as the comparison
+baseline. The next Pages build publishes the updated data automatically.
+No JSON file needs editing.
 
 The current source check time is always preserved. Older data shows an explicit
 date and a stale-data notice. A missing baseline omits the comparison. A failed
@@ -59,7 +66,8 @@ The default public URL is `https://nastud.site/`. The build supports
 ## Deployment
 
 Deploy the new backend, database indexes and Terraform nightly job first.
-Import the recovered history once through the database abstraction:
+The production database already contains the recovered history. For a new
+database, import it once through the database abstraction:
 
 ```sh
 cd ingest

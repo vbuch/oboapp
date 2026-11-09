@@ -16,10 +16,8 @@ test("shows yesterday's change, retaining explicit dates when the data is old", 
   assert.match(stale.comparison, /8 ноември/);
 });
 
-test("prefers recorded daily data to the historical backfill and handles a real zero", () => {
-  const timeline = normalizeTimeline({ ...fixture, current: { ...fixture.current, count: 0 } }, [
-    { sourceType: "toplo-bg", locality: "bg.sofia", date: "2026-11-08", count: 100, observedAt: "2026-11-08T20:00:00Z" },
-  ]);
+test("handles a real zero using the API's daily baseline", () => {
+  const timeline = normalizeTimeline({ ...fixture, current: { ...fixture.current, count: 0 } });
   assert.equal(timeline.comparison.count, 103);
   assert.equal(timeline.comparison.change, -103);
   assert.equal(presentation(timeline).count, "0");
@@ -27,6 +25,27 @@ test("prefers recorded daily data to the historical backfill and handles a real 
 
 test("omits a comparison when yesterday is missing", () => {
   assert.equal(normalizeTimeline({ ...fixture, daily: [] }).comparison, null);
+});
+
+test("uses the new nightly closing count after the next Sofia day begins", () => {
+  const daily = [
+    ...fixture.daily,
+    { date: "2026-11-10", count: 98, observedAt: "2026-11-10T20:30:00.000Z" },
+  ];
+  const timeline = normalizeTimeline({
+    ...fixture,
+    current: { count: 95, observedAt: "2026-11-11T05:00:00.000Z" },
+    daily,
+  });
+
+  assert.deepEqual(timeline.daily, daily);
+  assert.deepEqual(timeline.comparison, {
+    date: "2026-11-10",
+    count: 98,
+    observedAt: "2026-11-10T20:30:00.000Z",
+    change: -3,
+  });
+  assert.equal(presentation(timeline, new Date("2026-11-11T05:10:00Z")).comparison, "С 3 по-малко спрямо вчера.");
 });
 
 test("rejects malformed or mismatched source data", () => {
@@ -61,7 +80,7 @@ test("escapes JSON bootstrap values that could close its script element", () => 
 test("builds crawler-visible metadata and real landscape and square PNG cards", async () => {
   const outDirectory = await mkdtemp(join(tmpdir(), "nastud-build-"));
   try {
-    const { html, imageName } = await buildSite({ data: fixture, historical: [], outDirectory, now: new Date("2026-11-09T20:40:00Z") });
+    const { html, imageName } = await buildSite({ data: fixture, outDirectory, now: new Date("2026-11-09T20:40:00Z") });
     assert.match(html, /99 аварии/);
     assert.match(html, /property="og:image"/);
     assert.match(html, new RegExp("https://nastud\\.site/" + imageName.replace(".", "\\.")));
@@ -83,6 +102,30 @@ test("builds crawler-visible metadata and real landscape and square PNG cards", 
   }
 });
 
+test("publishes exactly the supplied API dates and counts without a historical-file input", async () => {
+  const outDirectory = await mkdtemp(join(tmpdir(), "nastud-api-build-"));
+  const daily = [
+    { date: "2026-11-08", count: 104, observedAt: "2026-11-08T20:30:00.000Z" },
+    { date: "2026-11-10", count: 98, observedAt: "2026-11-10T20:30:00.000Z" },
+  ];
+  const current = { count: 95, observedAt: "2026-11-11T05:00:00.000Z" };
+  try {
+    await buildSite({
+      data: { ...fixture, current, daily },
+      outDirectory,
+      requireCurrent: true,
+      now: new Date("2026-11-11T05:10:00Z"),
+    });
+    const published = JSON.parse(await readFile(join(outDirectory, "timeline.json"), "utf8"));
+
+    assert.deepEqual(published.current, current);
+    assert.deepEqual(published.daily, daily);
+    assert.deepEqual(published.comparison, { ...daily[1], change: -3 });
+  } finally {
+    await rm(outDirectory, { recursive: true, force: true });
+  }
+});
+
 test("refuses to publish an unavailable snapshot as a false count", async () => {
-  await assert.rejects(buildSite({ data: { ...fixture, current: null }, historical: [], requireCurrent: true }), /current snapshot is required/);
+  await assert.rejects(buildSite({ data: { ...fixture, current: null }, requireCurrent: true }), /current snapshot is required/);
 });
