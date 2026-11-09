@@ -125,6 +125,32 @@ describe("SourcesRepository", () => {
     repo = new SourcesRepository(db);
   });
 
+  it("reads only requested source baselines in batches of at most 30 distinct URLs", async () => {
+    const urls = Array.from({ length: 65 }, (_, index) => {
+      return `https://toplo.bg/incidents/${index}`;
+    });
+    vi.mocked(db.findMany)
+      .mockResolvedValueOnce([{ url: urls[0] }])
+      .mockResolvedValueOnce([{ url: urls[30] }])
+      .mockResolvedValueOnce([{ url: urls[60] }]);
+
+    const results = await repo.findByUrls([...urls, urls[0]]);
+
+    expect(results).toEqual([{ url: urls[0] }, { url: urls[30] }, { url: urls[60] }]);
+    expect(db.findMany).toHaveBeenCalledTimes(3);
+    for (const [index, batch] of vi.mocked(db.findMany).mock.calls.entries()) {
+      expect(batch).toEqual(["sources", {
+        where: [{ field: "url", op: "in", value: urls.slice(index * 30, (index + 1) * 30) }],
+        select: ["url", "sourceType", "locality", "crawledAt", "timespanStart", "timespanEnd"],
+      }]);
+    }
+  });
+
+  it("does not issue an empty source URL query", async () => {
+    expect(await repo.findByUrls([])).toEqual([]);
+    expect(db.findMany).not.toHaveBeenCalled();
+  });
+
   it("setOne uses batchWrite with set operation", async () => {
     const data = { url: "https://example.com" };
     await repo.setOne("src-1", data);

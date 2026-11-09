@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock the adapters so we don't need real Firestore/MongoDB connections
 vi.mock("./firestore-adapter", () => {
-  const MockFirestoreAdapter = vi.fn().mockImplementation(function (this: Record<string, unknown>) {
+  const MockFirestoreAdapter = vi.fn().mockImplementation(function (this: any) {
     Object.assign(this, {
       findOne: vi.fn(),
       findMany: vi.fn(),
@@ -37,7 +37,7 @@ vi.mock("./mongo-adapter", () => ({
 }));
 
 vi.mock("./dual-write", () => {
-  const MockDualWriteAdapter = vi.fn().mockImplementation(function (this: Record<string, unknown>) {
+  const MockDualWriteAdapter = vi.fn().mockImplementation(function (this: any) {
     Object.assign(this, {
       findOne: vi.fn(),
       findMany: vi.fn(),
@@ -77,6 +77,7 @@ describe("createDbFromConfig", () => {
     expect(db.messages).toBeDefined();
     expect(db.sources).toBeDefined();
     expect(db.sourceSnapshots).toBeDefined();
+    expect(db.sourceDailyCounts).toBeDefined();
     expect(db.interests).toBeDefined();
     expect(db.notificationMatches).toBeDefined();
     expect(db.notificationSubscriptions).toBeDefined();

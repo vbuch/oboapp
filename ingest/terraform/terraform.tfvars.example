@@ -46,4 +46,5 @@ app_url            = "https://your-domain.com"
 #   interest_coverage_report    = "0 6 * * 1"
 #   billing_cost_export        = "0 5 3 * *"
 #   heartbeat_check             = "30 17 * * *"
+#   source_daily_counts         = "0 23 * * *"
 # }
