@@ -8,11 +8,18 @@ import type { HeaderObject, OpenAPIObject } from "openapi3-ts/oas30";
 import {
   MessageSchema,
   SourceSchema,
+  SourceSnapshotSchema,
+} from "../schema/contract";
+import {
   SourcesResponseSchema,
+  SourceSnapshotResponseSchema,
+  SourceTimelineResponseSchema,
+  SourceIncidentsResponseSchema,
+  SourceIncidentChangesResponseSchema,
   MessagesResponseSchema,
   MessageResponseSchema,
   ErrorResponseSchema,
-} from "../schema/index";
+} from "../schema/response";
 import { getMaxMessagesLimit } from "../lib/messages-limit-config";
 
 const compareStrings = (left: string, right: string): number => {
@@ -83,9 +90,23 @@ function buildOpenApiSpec(): OpenAPIObject {
   );
   registry.register("V1Message", MessageSchema);
   registry.register("V1Source", SourceSchema);
+  registry.register("V1SourceSnapshot", SourceSnapshotSchema);
   const sourcesResponse = registry.register(
     "V1SourcesResponse",
     SourcesResponseSchema,
+  );
+  const sourceSnapshotResponse = registry.register(
+    "V1SourceSnapshotResponse",
+    SourceSnapshotResponseSchema,
+  );
+  const sourceTimelineResponse = registry.register("V1SourceTimelineResponse", SourceTimelineResponseSchema);
+  const sourceIncidentsResponse = registry.register(
+    "V1SourceIncidentsResponse",
+    SourceIncidentsResponseSchema,
+  );
+  const sourceIncidentChangesResponse = registry.register(
+    "V1SourceIncidentChangesResponse",
+    SourceIncidentChangesResponseSchema,
   );
   const messagesResponse = registry.register(
     "V1MessagesResponse",
@@ -127,6 +148,167 @@ function buildOpenApiSpec(): OpenAPIObject {
         description: "Server error",
         content: { "application/json": { schema: errorResponse } },
       },
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/v1/sources/{sourceId}/snapshot",
+    description:
+      "Fetch the latest successful complete listing count for a configured source. observedAt is the source check time and remains unchanged when a later crawl fails. Snapshot collection is currently supported for toplo-bg and includes accidents and repairs.",
+    security: [{ ApiKeyAuth: [] }],
+    request: {
+      params: z.object({
+        sourceId: z.string().min(1),
+      }),
+    },
+    responses: {
+      200: {
+        description: "Latest successful source snapshot, including a valid zero count",
+        content: { "application/json": { schema: sourceSnapshotResponse } },
+        headers: {
+          "X-RateLimit-Limit": rateLimitLimitHeader,
+          "X-RateLimit-Remaining": rateLimitRemainingHeader,
+        },
+      },
+      401: {
+        description: "Invalid or missing API key",
+        content: { "application/json": { schema: errorResponse } },
+      },
+      404: {
+        description:
+          "Source is not configured for this locality, or no successful snapshot has been recorded",
+        content: { "application/json": { schema: errorResponse } },
+      },
+      429: {
+        description: "Rate limit exceeded (only when rate limiting is enabled)",
+        content: { "application/json": { schema: errorResponse } },
+        headers: {
+          "X-RateLimit-Limit": rateLimitLimitHeader,
+          "X-RateLimit-Remaining": rateLimitRemainingHeader,
+          "Retry-After": retryAfterHeader,
+        },
+      },
+      500: {
+        description: "Server error",
+        content: { "application/json": { schema: errorResponse } },
+      },
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/v1/sources/{sourceId}/timeline",
+    description: "Current count, daily closing history, and the change from the previous Sofia calendar day. Daily records are collected nightly and retained until explicitly deleted. Missing days are omitted.",
+    security: [{ ApiKeyAuth: [] }],
+    request: {
+      params: z.object({ sourceId: z.string().min(1) }),
+      query: z.object({ days: z.coerce.number().int().min(1).max(366).default(90) }),
+    },
+    responses: {
+      200: { description: "Source timeline; unavailable current or comparison values are null", content: { "application/json": { schema: sourceTimelineResponse } } },
+      400: { description: "Invalid days query", content: { "application/json": { schema: errorResponse } } },
+      401: { description: "Invalid or missing API key", content: { "application/json": { schema: errorResponse } } },
+      404: { description: "Source is not configured for this locality", content: { "application/json": { schema: errorResponse } } },
+      429: { description: "Rate limit exceeded", content: { "application/json": { schema: errorResponse } }, headers: { "Retry-After": retryAfterHeader } },
+      500: { description: "Server error", content: { "application/json": { schema: errorResponse } } },
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/v1/sources/{sourceId}/incidents",
+    description: [
+      "Complete incident listing for the selected source, including accidents and repairs, with separate first-record baselines.",
+      "Detailed incident listings currently support only toplo-bg in bg.sofia. Other source and locality combinations return 404.",
+      "Without date, returns the latest listing in its recorded order.",
+      "With date, returns the last successful complete capture from that Europe/Sofia calendar day, preserving its actual observedAt and all recorded incident fields.",
+      "Dated listings are ordered by reportedStart ascending across both types, missing starts last, then Bulgarian name (Intl.Collator with locale bg and default options), then stable id in binary lexicographic order. Consumers can calculate one-based positions from this complete array.",
+      "Today's selected capture can change after later successful checks. Daily samples can omit intraday revisions; full observations remain retained until explicitly deleted.",
+      "The deployed Sofia instance's earliest retained detailed capture is 2026-11-11T15:55:42.543Z (Sofia date 2026-11-11), verified on 2026-11-13. Other deployments start at their own first successful detailed capture. Imported aggregate daily counts and earlier first-record baselines do not provide detailed captures.",
+      "Missing detailed history and legacy count-only captures return a 503 gap without falling back to another day. Verified empty detailed captures return count 0 and incidents [].",
+      "Listing presence does not confirm continuous loss of service, and disappearance does not confirm restoration. Missing dates and first observations are null.",
+    ].join(" "),
+    security: [{ ApiKeyAuth: [] }],
+    request: {
+      params: z.object({
+        sourceId: z.literal("toplo-bg").openapi({
+          description: "Source with detailed incident listing support. Currently only toplo-bg is supported.",
+          example: "toplo-bg",
+        }),
+      }),
+      query: z.object({
+        date: z.iso.date().optional().openapi({
+          description:
+            "One real Gregorian calendar date in YYYY-MM-DD format, from 0001-01-01 through today's Europe/Sofia date inclusive. Future dates, year 0000, invalid dates and repeated date parameters return 400. Omit for the latest listing.",
+          example: "2026-11-12",
+        }),
+      }),
+    },
+    responses: {
+      200: {
+        description:
+          "Selected complete incident listing with count and actual observedAt from the same capture, including a verified empty list",
+        content: { "application/json": { schema: sourceIncidentsResponse } },
+      },
+      400: {
+        description: "Invalid, out-of-bounds or repeated date query parameter",
+        content: { "application/json": { schema: errorResponse } },
+      },
+      401: {
+        description: "Invalid or missing API key",
+        content: { "application/json": { schema: errorResponse } },
+      },
+      404: {
+        description: "Incident listing is not configured for this source and locality",
+        content: { "application/json": { schema: errorResponse } },
+      },
+      429: {
+        description: "Rate limit exceeded",
+        content: { "application/json": { schema: errorResponse } },
+        headers: { "Retry-After": retryAfterHeader },
+      },
+      503: {
+        description:
+          "Detailed-history gap: no capture exists for the requested day, or the selected capture has only a legacy count. Without date, no complete latest listing is available.",
+        content: { "application/json": { schema: errorResponse } },
+      },
+      500: {
+        description: "Server error or invalid stored listing",
+        content: { "application/json": { schema: errorResponse } },
+      },
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/v1/sources/{sourceId}/incident-changes",
+    description: [
+      "Observed listing transition counts across every retained detailed capture between the previous Sofia day's closing capture and the selected day's last capture. Omit date for today.",
+      "Stable ContentItemId (id), scoped to source and locality, determines additions and removals. Field revisions do not count. Reappearances and temporary entries count on each transition; totals are not distinct incident counts.",
+      "baseline and end preserve the selected count and actual observedAt. netChange is end.count minus baseline.count; when totals are available it equals added minus removed.",
+      "Missing endpoints, count-only captures, missing end history, or more than 256 captures after baseline make totals null with coverage reasons. Verified empty captures are valid. Missing dates never fall back to another day.",
+      "Failed/incomplete checks write no capture. Comparisons bridge to the next complete capture. coverage.gaps lists every elapsed interval longer than 45 minutes, including scheduled overnight pauses. Failed checks and deletion history are not recorded, so continuity remains unknown even with no gaps.",
+      "The default schedule is every 30 minutes from 07:00 through 22:30 Europe/Sofia; deployment overrides, failures and delays can change actual cadence. Capture timestamps show actual observations. Records appearing and disappearing between checks remain unobserved.",
+      "For today, coverage.latestObservedAt shows the latest retained observation even if today's end is missing; stale is true when it is older than 60 minutes, including overnight. Historical requests have null latestObservedAt and stale.",
+      "Removal from the source listing does not confirm restored service. Unknown coverage must remain visible to consumers.",
+    ].join(" "),
+    security: [{ ApiKeyAuth: [] }],
+    request: {
+      params: z.object({ sourceId: z.literal("toplo-bg") }),
+      query: z.object({
+        date: z.iso.date().optional().openapi({
+          description: "One valid Sofia calendar date from 0001-01-02 through today inclusive. Repeated dates return 400. Defaults to today in Europe/Sofia.",
+        }),
+      }),
+    },
+    responses: {
+      200: { description: "Observed transitions or explicit unavailable coverage with null totals", content: { "application/json": { schema: sourceIncidentChangesResponse } } },
+      400: { description: "Invalid or repeated date", content: { "application/json": { schema: errorResponse } } },
+      401: { description: "Invalid or missing API key", content: { "application/json": { schema: errorResponse } } },
+      404: { description: "Incident changes are not configured for this source and locality", content: { "application/json": { schema: errorResponse } } },
+      429: { description: "Rate limit exceeded", content: { "application/json": { schema: errorResponse } }, headers: { "Retry-After": retryAfterHeader } },
+      500: { description: "Database error or invalid stored capture", content: { "application/json": { schema: errorResponse } } },
     },
   });
 

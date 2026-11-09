@@ -1,0 +1,155 @@
+diff --git a/dist/cjs/index.d.ts b/dist/cjs/index.d.ts
+index 11860b013c0e5d57b259276dd6f2c27c131130ba..8a00df522ea8219341652d3c8a0c345b4760ebb5 100644
+--- a/dist/cjs/index.d.ts
++++ b/dist/cjs/index.d.ts
+@@ -1,2 +1,7 @@
+-import type { CreateSource } from "@oboapp/source-sdk";
+-export declare const createSource: CreateSource;
++import type { DataSource, SourceContext } from "@oboapp/source-sdk";
++import type { ToploListingObserver } from "./toplo.js";
++export type { ToploListingObservation, ToploListingResult, ToploListingObserver } from "./toplo.js";
++export interface ToploSourceOptions {
++    onListing?: ToploListingObserver;
++}
++export declare const createSource: (context: SourceContext, options?: ToploSourceOptions) => DataSource;
+diff --git a/dist/cjs/index.js b/dist/cjs/index.js
+index 6ae1e1b3e559367dd18cfdba4e9a1e4fe6f791a7..760d247f0190d1959e2a92c66bf887c1dfac9669 100644
+--- a/dist/cjs/index.js
++++ b/dist/cjs/index.js
+@@ -2,8 +2,9 @@
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.createSource = void 0;
+ const toplo_js_1 = require("./toplo.js");
+-const createSource = (context) => (0, toplo_js_1.createToploSource)({
++const createSource = (context, options = {}) => (0, toplo_js_1.createToploSource)({
+     fetch: (...args) => globalThis.fetch(...args),
+     ...(context.signal === undefined ? {} : { signal: context.signal }),
++    ...(options.onListing === undefined ? {} : { onListing: options.onListing }),
+ });
+ exports.createSource = createSource;
+diff --git a/dist/cjs/toplo.d.ts b/dist/cjs/toplo.d.ts
+index 465099b57dbeab4d0c5e0cdc23feb18cb1f12869..400b95e4461d6ddd6f4db7d7aa133cf0a6fcbd70 100644
+--- a/dist/cjs/toplo.d.ts
++++ b/dist/cjs/toplo.d.ts
+@@ -1,6 +1,15 @@
+ import type { DataSource } from "@oboapp/source-sdk";
+ import type { ToploWarning } from "./geometry.js";
++export interface ToploListingObservation {
++    readonly html: string;
++    readonly observedAt: string;
++}
++export interface ToploListingResult {
++    readonly count: number;
++}
++export type ToploListingObserver = (listing: ToploListingObservation) => ToploListingResult | Promise<ToploListingResult>;
+ export interface ToploDependencies {
++    onListing?: ToploListingObserver;
+     fetch: typeof globalThis.fetch;
+     signal?: AbortSignal;
+     warn?: ToploWarning;
+diff --git a/dist/cjs/toplo.js b/dist/cjs/toplo.js
+index e16298e22148db1a69d92bb60adc17b562bfcc63..866bc72c492d47fa3ce454aa7ad73a9f3e3b152b 100644
+--- a/dist/cjs/toplo.js
++++ b/dist/cjs/toplo.js
+@@ -32,12 +32,24 @@ function createToploSource(dependencies = defaults) {
+             }
+             const html = await response.text();
+             requestSignal.throwIfAborted();
++            let listedCount;
++            if (dependencies.onListing !== undefined) {
++                const observation = await dependencies.onListing({
++                    html,
++                    observedAt: new Date().toISOString(),
++                });
++                if (!observation || !Number.isSafeInteger(observation.count) || observation.count < 0) {
++                    throw new TypeError("Toplo listing observer must return a nonnegative integer count");
++                }
++                listedCount = observation.count;
++                requestSignal.throwIfAborted();
++            }
+             for (const incident of (0, parser_js_1.parseIncidents)(html, dependencies.warn)) {
+                 if (!incidents.has(incident.identifier)) {
+                     incidents.set(incident.identifier, incident);
+                 }
+             }
+-            if (incidents.size === 0) {
++            if (incidents.size === 0 && listedCount !== 0) {
+                 throw new Error("No incidents found in HTML");
+             }
+             return {
+diff --git a/dist/esm/index.d.ts b/dist/esm/index.d.ts
+index 11860b013c0e5d57b259276dd6f2c27c131130ba..8a00df522ea8219341652d3c8a0c345b4760ebb5 100644
+--- a/dist/esm/index.d.ts
++++ b/dist/esm/index.d.ts
+@@ -1,2 +1,7 @@
+-import type { CreateSource } from "@oboapp/source-sdk";
+-export declare const createSource: CreateSource;
++import type { DataSource, SourceContext } from "@oboapp/source-sdk";
++import type { ToploListingObserver } from "./toplo.js";
++export type { ToploListingObservation, ToploListingResult, ToploListingObserver } from "./toplo.js";
++export interface ToploSourceOptions {
++    onListing?: ToploListingObserver;
++}
++export declare const createSource: (context: SourceContext, options?: ToploSourceOptions) => DataSource;
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+index 484eb2a460aae6341c33024b105ee790b9073fd3..1738c91209f05e49aaf82e9d9ac39370c713360d 100644
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -1,5 +1,6 @@
+ import { createToploSource } from "./toplo.js";
+-export const createSource = (context) => createToploSource({
++export const createSource = (context, options = {}) => createToploSource({
+     fetch: (...args) => globalThis.fetch(...args),
+     ...(context.signal === undefined ? {} : { signal: context.signal }),
++    ...(options.onListing === undefined ? {} : { onListing: options.onListing }),
+ });
+diff --git a/dist/esm/toplo.d.ts b/dist/esm/toplo.d.ts
+index 465099b57dbeab4d0c5e0cdc23feb18cb1f12869..400b95e4461d6ddd6f4db7d7aa133cf0a6fcbd70 100644
+--- a/dist/esm/toplo.d.ts
++++ b/dist/esm/toplo.d.ts
+@@ -1,6 +1,15 @@
+ import type { DataSource } from "@oboapp/source-sdk";
+ import type { ToploWarning } from "./geometry.js";
++export interface ToploListingObservation {
++    readonly html: string;
++    readonly observedAt: string;
++}
++export interface ToploListingResult {
++    readonly count: number;
++}
++export type ToploListingObserver = (listing: ToploListingObservation) => ToploListingResult | Promise<ToploListingResult>;
+ export interface ToploDependencies {
++    onListing?: ToploListingObserver;
+     fetch: typeof globalThis.fetch;
+     signal?: AbortSignal;
+     warn?: ToploWarning;
+diff --git a/dist/esm/toplo.js b/dist/esm/toplo.js
+index 67a9ebb59739207653d78bafbfc8ec2b43a5afaf..cd6417ab67cb3213ee2275e503497492bf8e8297 100644
+--- a/dist/esm/toplo.js
++++ b/dist/esm/toplo.js
+@@ -29,12 +29,24 @@ export function createToploSource(dependencies = defaults) {
+             }
+             const html = await response.text();
+             requestSignal.throwIfAborted();
++            let listedCount;
++            if (dependencies.onListing !== undefined) {
++                const observation = await dependencies.onListing({
++                    html,
++                    observedAt: new Date().toISOString(),
++                });
++                if (!observation || !Number.isSafeInteger(observation.count) || observation.count < 0) {
++                    throw new TypeError("Toplo listing observer must return a nonnegative integer count");
++                }
++                listedCount = observation.count;
++                requestSignal.throwIfAborted();
++            }
+             for (const incident of parseIncidents(html, dependencies.warn)) {
+                 if (!incidents.has(incident.identifier)) {
+                     incidents.set(incident.identifier, incident);
+                 }
+             }
+-            if (incidents.size === 0) {
++            if (incidents.size === 0 && listedCount !== 0) {
+                 throw new Error("No incidents found in HTML");
+             }
+             return {

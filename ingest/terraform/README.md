@@ -186,6 +186,7 @@ All variables are defined in `variables.tf`. Override them in `terraform.tfvars`
 | `localities`                | Locality IDs to deploy crawlers for    | `["bg.sofia"]`        |
 | `crawlers`                  | Manual override for the crawler map    | `{}` (auto-assembled) |
 | `gcs_generic_bucket`        | GCS bucket for file storage (optional) | `""`                  |
+| `schedules.source_daily_counts` | Daily source-count rollup in Europe/Sofia | `"0 23 * * *"` |
 | `sentry_dsn_secret_id`      | Secret Manager ID for Sentry DSN       | `""`                  |
 
 ### Modifying Schedules
