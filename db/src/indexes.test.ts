@@ -3,6 +3,13 @@ import { describe, expect, it } from "vitest";
 import { INDEX_DEFINITIONS } from "./indexes";
 
 describe("INDEX_DEFINITIONS", () => {
+  it("indexes each source's daily timeline", () => {
+    expect(INDEX_DEFINITIONS).toContainEqual({
+      collection: "sourceDailyCounts",
+      spec: { locality: 1, sourceType: 1, date: 1 },
+      options: { name: "locality_sourceType_date" },
+    });
+  });
   const expectedMessageIndexes = [
     {
       name: "locality_timespanEnd_finalizedAt",
@@ -47,5 +54,13 @@ describe("INDEX_DEFINITIONS", () => {
       expect(seen.has(key)).toBe(false);
       seen.add(key);
     }
+  });
+
+  it("indexes source observation history by locality, source, and newest time", () => {
+    expect(INDEX_DEFINITIONS).toContainEqual({
+      collection: "sourceSnapshots",
+      spec: { locality: 1, sourceType: 1, observedAt: -1 },
+      options: { name: "locality_sourceType_observedAt" },
+    });
   });
 });
