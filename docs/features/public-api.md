@@ -26,12 +26,70 @@ If `PUBLIC_API_HOST` is not set, web still starts, but `/api/v1/*` requests fail
 
 ## Endpoints
 
-| Method | Path                 | Description                                                          |
-| ------ | -------------------- | -------------------------------------------------------------------- |
-| `GET`  | `/v1/sources`        | List all data sources                                                |
-| `GET`  | `/v1/messages`       | Fetch messages filtered by geographic bounds and optional categories |
-| `GET`  | `/v1/messages/by-id` | Fetch a single message by ID                                         |
-| `GET`  | `/v1/openapi`        | OpenAPI 3.0 specification (no key required)                          |
+| Method | Path                            | Description                                                         |
+| ------ | ------------------------------- | ------------------------------------------------------------------- |
+| `GET`  | `/v1/sources`                   | List all data sources                                               |
+| `GET`  | `/v1/sources/:sourceId/snapshot` | Latest successful complete listing count for a source                |
+| `GET`  | `/v1/sources/:sourceId/timeline` | Current count, daily closing history, and yesterday comparison       |
+| `GET`  | `/v1/messages`                  | Fetch messages filtered by geographic bounds and optional categories |
+| `GET`  | `/v1/messages/by-id`            | Fetch a single message by ID                                         |
+| `GET`  | `/v1/openapi`                   | OpenAPI 3.0 specification (no key required)                           |
+
+## Source Count Snapshots
+
+`GET /v1/sources/toplo-bg/snapshot` returns the latest successful count from the Toplo crawler. The count includes both accidents and repairs currently listed on the source website, before message deduplication and map validation.
+
+```json
+{
+  "snapshot": {
+    "sourceType": "toplo-bg",
+    "locality": "bg.sofia",
+    "count": 99,
+    "observedAt": "2026-11-09T19:30:00.000Z",
+    "sourceUrl": "https://toplo.bg/accidents-and-maintenance"
+  }
+}
+```
+
+- `observedAt` is the UTC time of the successful source check. Display it in `Europe/Sofia` for the Bulgarian counter.
+- Failed fetches and incomplete parses leave the previous snapshot and its timestamp available. Clients should use `observedAt` to indicate stale data.
+- A verified empty listing returns `count: 0`.
+- An unknown source or a source outside the configured locality returns `404` with `Source not found`. A configured source without a recorded snapshot returns `404` with `No successful snapshot available for this source`.
+- Database errors return `500`.
+
+Snapshot collection currently runs for `toplo-bg`. It follows the deployed crawler schedule. The repository default runs every 30 minutes from 07:00 through 22:30 in `Europe/Sofia`.
+
+Each successful listing check is retained in snapshot history. This endpoint returns only the latest snapshot; the timeline endpoint adds daily closing counts and yesterday's comparison. Counts measure the number of entries published by the source.
+
+## Daily Count Timeline
+
+`GET /v1/sources/toplo-bg/timeline?days=90` returns daily closing counts in ascending date order, together with the latest source check. `days` is an integer from 1 through 366 and defaults to 90. The query window ends on the current Sofia calendar date. Daily records remain stored until explicitly deleted; this query limit controls the size of each response.
+
+```json
+{
+  "sourceType": "toplo-bg",
+  "locality": "bg.sofia",
+  "sourceUrl": "https://toplo.bg/accidents-and-maintenance",
+  "current": { "count": 99, "observedAt": "2026-11-09T20:30:00.000Z" },
+  "daily": [
+    { "date": "2026-11-08", "count": 103, "observedAt": "2026-11-08T20:30:00.000Z" }
+  ],
+  "comparison": {
+    "date": "2026-11-08",
+    "count": 103,
+    "observedAt": "2026-11-08T20:30:00.000Z",
+    "change": -4
+  }
+}
+```
+
+The nightly job runs at 23:00 in `Europe/Sofia`. It records the latest successful check within that Sofia calendar day. Repeating a job updates the same source/date point. A missing day remains a gap; no zero or carried-forward count is created.
+
+`comparison` uses the daily closing count from the calendar day before `current.observedAt` in Sofia. Its `change` is the current count minus that daily count. A stale current check retains its actual date, so clients should display `comparison.date` when needed. `current` and `comparison` are `null` when their inputs are missing. Daily history can still be returned without a current check.
+
+Use each point's `observedAt` for the actual source-check time. It can be earlier than the nightly recording time. The endpoint uses the normal API key authentication, rate limits, and usage tracking.
+
+The endpoint requires the same API key as the other data endpoints. Keep that key in server configuration or a GitHub Actions secret. For a counter hosted on GitHub Pages, a workflow can fetch the snapshot and publish a public `snapshot.json` alongside the HTML. The page reads that file and displays the original `observedAt` time. The API response uses `Cache-Control: private, max-age=60`.
 
 ## Authentication
 
