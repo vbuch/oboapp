@@ -42,7 +42,20 @@ The integration tests cover these provider contracts.
 | Krasna Polyana | Current WordPress notices use their public links. The July 2026 cutover keeps earlier Joomla records under their original identifiers. |
 | Sensor.Community | The adapter supplies locality bounds and a read-only window of stored sensor readings. The package calculates air-quality alerts. Obo persists the historical grid-cell identifiers and native GeoJSON. |
 
-Toplo illustrates synthetic identifiers: raw-record URLs identify incidents, while empty public detail links prevent navigation to invented detail pages. Its restricted compatibility profile preserves historical empty titles and malformed publication-date strings while validating content and geometry. Its preview validates candidates without database initialization; preview counts describe items that would be saved.
+Toplo uses `@oboapp/source-toplo-bg@0.2.0`. Raw-record URLs identify incidents,
+while empty public detail links prevent navigation to invented detail pages.
+Its restricted compatibility profile preserves historical empty titles and
+malformed publication-date strings while validating content and geometry. Its
+preview validates candidates without database initialization; preview counts
+describe items that would be saved.
+
+The published package's `onListing` observer receives the complete listing HTML
+and UTC observation time before geometry filtering. Obo validates and retains
+the complete incident snapshot on every successful listing check, including
+known incidents whose estimates have changed. A verified empty listing records
+zero. Version 0.2.0 replaces the temporary provider-package patch. See the
+[Toplo integration guide](../../ingest/crawlers/toplo-bg/README.md#packaged-source-integration)
+for snapshot persistence, failure handling and the incident APIs.
 
 NIMH uses `@oboapp/source-nimh-severe-weather@0.1.1` with SDK 0.2.0. Chromium
 waits for `domcontentloaded` before reading the server-rendered warning text and

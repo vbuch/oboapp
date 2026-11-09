@@ -1,5 +1,6 @@
 # Ignore web directory (not needed for ingest deployment)
 web/
+counter/
 
 # Ignore node_modules
 **/node_modules/

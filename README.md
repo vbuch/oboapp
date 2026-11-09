@@ -32,6 +32,11 @@ Built for Sofia first, OboApp is designed so other cities can fork the platform,
 - A read-only public disruption API
 - A local civic data platform backed by Firebase, MongoDB, and geospatial enrichment
 
+[Na Stud](https://nastud.site/) uses the OboApp public API to show Toplo's current
+accidents and repairs, daily history, and incident comparisons. Its frontend,
+product specs, working instructions, and publishing workflow live in the
+separate [vbuch/nastud repository](https://github.com/vbuch/nastud).
+
 ## How It Works
 
 ```mermaid

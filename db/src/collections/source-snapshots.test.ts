@@ -25,6 +25,40 @@ const incident = {
   createdAt: null,
 };
 
+function mockStoredSnapshots(db: DbClient, records: SourceSnapshot[]): void {
+  vi.mocked(db.findMany).mockImplementation((_collection, options) => {
+    const matching = records.filter((record) => {
+      return options?.where?.every(({ field, op, value }) => {
+        const actual = record[field as keyof SourceSnapshot];
+        if (op === "==") {
+          return actual === value;
+        }
+        if (typeof actual !== "string" || typeof value !== "string") {
+          return false;
+        }
+        if (op === ">=") {
+          return actual >= value;
+        }
+        if (op === "<") {
+          return actual < value;
+        }
+        if (op === ">") {
+          return actual > value;
+        }
+        if (op === "<=") {
+          return actual <= value;
+        }
+        throw new Error(`Unsupported fixture filter: ${op}`);
+      }) ?? true;
+    });
+    matching.sort((first, second) => {
+      const comparison = first.observedAt.localeCompare(second.observedAt);
+      return options?.orderBy?.[0]?.direction === "desc" ? -comparison : comparison;
+    });
+    return Promise.resolve(matching.slice(0, options?.limit));
+  });
+}
+
 function createMockClient(): DbClient {
   return {
     findOne: vi.fn().mockResolvedValue(null),
@@ -184,5 +218,154 @@ describe("SourceSnapshotsRepository", () => {
     await expect(repository.save(snapshot)).rejects.toThrow("Write failed");
     await expect(repository.findLatest("toplo-bg", "bg.sofia"))
       .rejects.toThrow("Read failed");
+  });
+  it("reads a scoped bounded interval in chronological order with exact endpoint bounds", async () => {
+    const baseline = { ...snapshot, observedAt: "2026-03-28T20:30:00.000Z" };
+    const first = { ...snapshot, observedAt: "2026-03-28T22:00:00.000Z" };
+    const last = { ...snapshot, observedAt: "2026-03-29T19:30:00.000Z" };
+    mockStoredSnapshots(db, [
+      baseline,
+      last,
+      first,
+      { ...first, sourceType: "another-source" },
+      { ...first, locality: "bg.plovdiv" },
+      { ...last, observedAt: "2026-03-29T20:00:00.000Z" },
+    ]);
+    expect(await repository.findRange("toplo-bg", "bg.sofia", baseline.observedAt, last.observedAt)).toEqual({
+      snapshots: [first, last], truncated: false,
+    });
+    expect(db.findMany).toHaveBeenCalledWith(SOURCE_SNAPSHOTS_COLLECTION, {
+      where: [
+        { field: "locality", op: "==", value: "bg.sofia" },
+        { field: "sourceType", op: "==", value: "toplo-bg" },
+        { field: "observedAt", op: ">", value: baseline.observedAt },
+        { field: "observedAt", op: "<=", value: last.observedAt },
+      ],
+      orderBy: [{ field: "observedAt", direction: "desc" }],
+      limit: 257,
+    });
+  });
+
+  it("signals truncated history instead of silently claiming all captures were read", async () => {
+    const records = Array.from({ length: 257 }, (_, index) => {
+      return { ...snapshot, observedAt: new Date(Date.UTC(2026, 10, 9, 0, index)).toISOString() };
+    });
+    mockStoredSnapshots(db, records);
+    const result = await repository.findRange("toplo-bg", "bg.sofia", "2026-11-08T22:00:00.000Z", "2026-11-09T22:00:00.000Z");
+    expect(result.truncated).toBe(true);
+    expect(result.snapshots).toEqual(records.slice(1));
+  });
+
+  it("returns complete history at the exact limit and permits empty ranges", async () => {
+    vi.mocked(db.findMany).mockResolvedValue(Array.from({ length: 256 }, () => ({ ...snapshot })));
+    expect((await repository.findRange("toplo-bg", "bg.sofia", snapshot.observedAt, snapshot.observedAt)).truncated).toBe(false);
+    vi.mocked(db.findMany).mockResolvedValue([]);
+    expect(await repository.findRange("toplo-bg", "bg.sofia", snapshot.observedAt, snapshot.observedAt)).toEqual({ snapshots: [], truncated: false });
+  });
+
+  it("rejects invalid detailed records in range reads", async () => {
+    vi.mocked(db.findMany).mockResolvedValue([{ ...snapshot, incidents: [] }]);
+    await expect(repository.findRange("toplo-bg", "bg.sofia", snapshot.observedAt, snapshot.observedAt)).rejects.toThrow();
+  });
+
+  describe("findLatestForDate", () => {
+    it.each([
+      ["2026-03-29", "2026-03-28T22:00:00.000Z", "2026-03-29T21:00:00.000Z"],
+      ["2026-10-25", "2026-10-24T21:00:00.000Z", "2026-10-25T22:00:00.000Z"],
+      ["2026-07-15", "2026-07-14T21:00:00.000Z", "2026-07-15T21:00:00.000Z"],
+      ["2026-11-09", "2026-11-08T22:00:00.000Z", "2026-11-09T22:00:00.000Z"],
+    ])("selects one complete capture within the Sofia day %s", async (date, start, end) => {
+      const latest: SourceSnapshot = {
+        ...snapshot,
+        observedAt: new Date(Date.parse(end) - 60_000).toISOString(),
+        count: 2,
+        incidents: [
+          { ...incident, addresses: "Променен адрес", estimatedEnd: null },
+          {
+            ...incident,
+            id: "repair-two",
+            accidentId: "listing-two",
+            type: "repair",
+            reportedStart: null,
+          },
+        ],
+      };
+      mockStoredSnapshots(db, [
+        { ...snapshot, observedAt: end },
+        { ...latest, sourceType: "other-source", observedAt: new Date(Date.parse(end) - 1).toISOString() },
+        { ...latest, locality: "bg.plovdiv", observedAt: new Date(Date.parse(end) - 1).toISOString() },
+        { ...snapshot, observedAt: new Date(Date.parse(start) - 1).toISOString() },
+        latest,
+        { ...snapshot, count: 1, incidents: [incident], observedAt: start },
+      ]);
+
+      await expect(repository.findLatestForDate("toplo-bg", "bg.sofia", date)).resolves.toEqual(latest);
+      expect(db.findMany).toHaveBeenCalledWith(SOURCE_SNAPSHOTS_COLLECTION, {
+        where: [
+          { field: "locality", op: "==", value: "bg.sofia" },
+          { field: "sourceType", op: "==", value: "toplo-bg" },
+          { field: "observedAt", op: ">=", value: start },
+          { field: "observedAt", op: "<", value: end },
+        ],
+        orderBy: [{ field: "observedAt", direction: "desc" }],
+        limit: 1,
+      });
+    });
+
+    it("includes Sofia midnight and excludes the next day's midnight", async () => {
+      const midnight = { ...snapshot, observedAt: "2026-11-08T22:00:00.000Z" };
+      mockStoredSnapshots(db, [
+        { ...snapshot, observedAt: "2026-11-09T22:00:00.000Z" },
+        midnight,
+      ]);
+
+      await expect(repository.findLatestForDate("toplo-bg", "bg.sofia", "2026-11-09")).resolves.toEqual(midnight);
+    });
+
+    it("returns a gap without using an observation from another day", async () => {
+      mockStoredSnapshots(db, [
+        { ...snapshot, observedAt: "2026-11-08T21:59:59.999Z" },
+        { ...snapshot, observedAt: "2026-11-09T22:00:00.000Z" },
+      ]);
+
+      await expect(repository.findLatestForDate("toplo-bg", "bg.sofia", "2026-11-09")).resolves.toBeNull();
+    });
+
+    it("preserves a legacy count-only capture as missing detailed history", async () => {
+      mockStoredSnapshots(db, [
+        { ...snapshot, count: 1, incidents: [incident], observedAt: "2026-11-09T19:00:00.000Z" },
+        snapshot,
+      ]);
+
+      await expect(repository.findLatestForDate("toplo-bg", "bg.sofia", "2026-11-09")).resolves.toEqual(snapshot);
+    });
+
+    it("returns a verified empty detailed capture", async () => {
+      const empty = { ...snapshot, count: 0, incidents: [] };
+      mockStoredSnapshots(db, [empty]);
+
+      await expect(repository.findLatestForDate("toplo-bg", "bg.sofia", "2026-11-09")).resolves.toEqual(empty);
+    });
+
+    it("propagates storage failures", async () => {
+      vi.mocked(db.findMany).mockRejectedValue(new Error("Storage unavailable"));
+
+      await expect(repository.findLatestForDate("toplo-bg", "bg.sofia", "2026-11-09")).rejects.toThrow("Storage unavailable");
+    });
+
+    it.each([
+      { ...snapshot, count: -1 },
+      { ...snapshot, count: 2, incidents: [incident] },
+      { ...snapshot, count: 2, incidents: [incident, incident] },
+    ])("rejects corrupt detailed captures instead of returning a gap", async (stored) => {
+      vi.mocked(db.findMany).mockResolvedValue([stored]);
+
+      await expect(repository.findLatestForDate("toplo-bg", "bg.sofia", "2026-11-09")).rejects.toThrow();
+    });
+
+    it("rejects an impossible date before querying storage", async () => {
+      await expect(repository.findLatestForDate("toplo-bg", "bg.sofia", "2026-02-30")).rejects.toThrow();
+      expect(db.findMany).not.toHaveBeenCalled();
+    });
   });
 });

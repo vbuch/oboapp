@@ -11,3 +11,4 @@ export * from "./normalize-address";
 export * from "./air-quality/aqi";
 export * from "./geocoding-sources";
 export * from "./html-utils";
+export * from "./sofia-calendar";
