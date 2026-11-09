@@ -17,6 +17,7 @@ export * from "./notifications-report.schema";
 export * from "./pin.schema";
 export * from "./source.schema";
 export * from "./source-snapshot.schema";
+export * from "./source-daily-count.schema";
 export * from "./street-section.schema";
 export * from "./timespan.schema";
 export * from "./user-preferences.schema";

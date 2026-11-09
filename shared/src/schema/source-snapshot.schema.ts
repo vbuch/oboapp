@@ -12,24 +12,25 @@ export const SourceIncidentSchema = z.object({
   createdAt: z.iso.datetime().nullable(),
 });
 
-export const SourceSnapshotSchema = z.object({
+export const SourceCountSnapshotSchema = z.object({
   sourceType: z.string().min(1),
   locality: z.string().min(1),
   count: z.number().int().nonnegative(),
   observedAt: z.iso.datetime(),
+});
+
+export const SourceSnapshotSchema = SourceCountSnapshotSchema.extend({
   incidents: z.array(SourceIncidentSchema).optional(),
 }).superRefine((snapshot, context) => {
   if (!snapshot.incidents) {
     return;
   }
-
   const ids = new Set(snapshot.incidents.map((incident) => {
     return incident.id;
   }));
   const accidentIds = new Set(snapshot.incidents.map((incident) => {
     return incident.accidentId;
   }));
-
   if (
     snapshot.incidents.length !== snapshot.count ||
     ids.size !== snapshot.count ||

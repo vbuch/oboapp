@@ -38,7 +38,20 @@ Website packages can reuse Chromium for listing and detail requests. Full-conten
 
 Each migration preserves provider-specific URL filtering, date fallback, content conversion and legacy deduplication. Contract fixtures protect these behaviors before the old provider implementation is removed. Sofia's historical title fallback must remain supported when that source migrates.
 
-Toplo illustrates synthetic identifiers: raw-record URLs identify incidents, while empty public detail links prevent navigation to invented detail pages. Its restricted compatibility profile preserves historical empty titles and malformed publication-date strings while validating content and geometry. Its preview validates candidates without database initialization; preview counts describe items that would be saved.
+Toplo uses `@oboapp/source-toplo-bg@0.2.0`. Raw-record URLs identify incidents,
+while empty public detail links prevent navigation to invented detail pages.
+Its restricted compatibility profile preserves historical empty titles and
+malformed publication-date strings while validating content and geometry. Its
+preview validates candidates without database initialization; preview counts
+describe items that would be saved.
+
+The published package's `onListing` observer receives the complete listing HTML
+and UTC observation time before geometry filtering. Obo validates and retains
+the complete incident snapshot on every successful listing check, including
+known incidents whose estimates have changed. A verified empty listing records
+zero. Version 0.2.0 replaces the temporary provider-package patch. See the
+[Toplo integration guide](../../ingest/crawlers/toplo-bg/README.md#packaged-source-integration)
+for snapshot persistence, failure handling and the incident APIs.
 
 NIMH uses `@oboapp/source-nimh-severe-weather@0.1.1` with SDK 0.2.0. Chromium
 waits for `domcontentloaded` before reading the server-rendered warning text and
