@@ -1,5 +1,8 @@
 import { Hono } from "hono";
 import { sourcesRoute } from "./routes/sources";
+import { sourceSnapshotRoute } from "./routes/source-snapshot";
+import { sourceTimelineRoute } from "./routes/source-timeline";
+import { sourceIncidentsRoute } from "./routes/source-incidents";
 import { messagesRoute } from "./routes/messages";
 import { messageByIdRoute } from "./routes/messages-by-id";
 import { openapiRoute } from "./routes/openapi";
@@ -16,6 +19,9 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 
 // Public API routes (v1)
 app.route("/v1", sourcesRoute);
+app.route("/v1", sourceSnapshotRoute);
+app.route("/v1", sourceTimelineRoute);
+app.route("/v1", sourceIncidentsRoute);
 app.route("/v1", messagesRoute);
 app.route("/v1", messageByIdRoute);
 app.route("/v1", openapiRoute);
