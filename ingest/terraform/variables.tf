@@ -69,6 +69,7 @@ variable "schedules" {
     interest_coverage_report    = optional(string, "0 6 * * 1")
     billing_cost_export         = optional(string, "0 5 3 * *")
     heartbeat_check             = optional(string, "30 17 * * *")
+    source_daily_counts         = optional(string, "0 23 * * *")
   })
   default = {
     pipeline_emergent           = "*/30 7-22 * * *"  # Every 30 minutes, 7:00AM–10:30PM (hours 7-22)
@@ -81,6 +82,7 @@ variable "schedules" {
     interest_coverage_report    = "0 6 * * 1"        # Weekly on Monday at 6:00 AM
     billing_cost_export         = "0 5 3 * *"        # Monthly on the 3rd at 5:00 AM, allowing billing export delays
     heartbeat_check             = "30 17 * * *"      # Daily at 17:30, after the last pipeline-all run (16:00)
+    source_daily_counts         = "0 23 * * *"       # Daily at 23:00 Sofia, after the last 22:30 crawl
   }
 }
 

@@ -76,6 +76,8 @@ describe("createDbFromConfig", () => {
     expect(DualWriteAdapter).not.toHaveBeenCalled();
     expect(db.messages).toBeDefined();
     expect(db.sources).toBeDefined();
+    expect(db.sourceSnapshots).toBeDefined();
+    expect(db.sourceDailyCounts).toBeDefined();
     expect(db.interests).toBeDefined();
     expect(db.notificationMatches).toBeDefined();
     expect(db.notificationSubscriptions).toBeDefined();

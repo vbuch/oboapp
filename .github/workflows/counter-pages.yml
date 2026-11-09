@@ -1,0 +1,82 @@
+name: Publish Na Stud counter
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "counter/**"
+      - ".github/workflows/counter-pages.yml"
+  pull_request:
+    paths:
+      - "counter/**"
+      - ".github/workflows/counter-pages.yml"
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: counter-pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'vbuch/oboapp'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: counter/pnpm-lock.yaml
+      - name: Install counter build dependencies
+        run: pnpm --dir counter --ignore-workspace install --frozen-lockfile --ignore-scripts
+      - name: Test counter
+        run: pnpm --dir counter test
+      - name: Build pull request preview
+        if: github.event_name == 'pull_request'
+        run: node counter/build.mjs --data counter/test/fixtures/timeline.json
+      - name: Build current counter and share images
+        if: github.event_name != 'pull_request'
+        env:
+          COUNTER_TIMELINE_URL: ${{ vars.COUNTER_TIMELINE_URL }}
+          COUNTER_API_KEY: ${{ secrets.COUNTER_API_KEY }}
+        run: node counter/build.mjs --fetch --require-current
+      - name: Save pull request preview
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: counter-preview
+          path: counter/dist
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+      - name: Upload counter
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: counter/dist
+
+  deploy:
+    if: github.repository == 'vbuch/oboapp' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy counter
+        id: deployment
+        uses: actions/deploy-pages@v4

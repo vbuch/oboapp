@@ -152,6 +152,18 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
     options: { name: "processed_sourceType" },
   },
 
+  // --- sourceSnapshots ---
+  {
+    collection: "sourceDailyCounts",
+    spec: { locality: 1, sourceType: 1, date: 1 },
+    options: { name: "locality_sourceType_date" },
+  },
+  {
+    collection: "sourceSnapshots",
+    spec: { locality: 1, sourceType: 1, observedAt: -1 },
+    options: { name: "locality_sourceType_observedAt" },
+  },
+
   // --- apiClients ---
   // apiKey is looked up on every authenticated API request — needs an index
   {
