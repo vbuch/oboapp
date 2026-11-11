@@ -44,7 +44,7 @@ jobs:
         run: pnpm --dir counter test
       - name: Build pull request preview
         if: github.event_name == 'pull_request'
-        run: node counter/build.mjs --data counter/test/fixtures/timeline.json
+        run: node counter/build.mjs --data counter/test/fixtures/timeline.json --incidents counter/test/fixtures/incidents.json
       - name: Build current counter and share images
         if: github.event_name != 'pull_request'
         env:
