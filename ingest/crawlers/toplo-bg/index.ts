@@ -8,7 +8,7 @@ import { createSource } from "@oboapp/source-toplo-bg";
 import { metadata } from "@oboapp/source-toplo-bg/metadata";
 import { runSource } from "@/sources/run-source";
 import { logger } from "@/lib/logger";
-import { countListingIncidents } from "./listing";
+import { parseListingIncidents } from "./listing";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
@@ -16,7 +16,8 @@ function createObservedSource(db: OboDb | null): CreateSource {
   return (context) => {
     return createSource(context, {
       onListing: async ({ html, observedAt }) => {
-        const count = countListingIncidents(html);
+        const incidents = parseListingIncidents(html);
+        const count = incidents.length;
 
         if (db) {
           await db.sourceSnapshots.save({
@@ -24,6 +25,7 @@ function createObservedSource(db: OboDb | null): CreateSource {
             locality: context.locality,
             count,
             observedAt,
+            incidents,
           });
         }
 
