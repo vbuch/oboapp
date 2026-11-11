@@ -32,7 +32,13 @@ export async function recordSourceDailyCount(
   if (!snapshot) {
     return null;
   }
-  const dailyCount: SourceDailyCount = { ...snapshot, date };
+  const dailyCount: SourceDailyCount = {
+    sourceType: snapshot.sourceType,
+    locality: snapshot.locality,
+    count: snapshot.count,
+    observedAt: snapshot.observedAt,
+    date,
+  };
   await db.sourceDailyCounts.save(dailyCount);
   return dailyCount;
 }

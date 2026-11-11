@@ -1,7 +1,7 @@
 import { z } from "../zod-openapi";
-import { SourceSnapshotSchema } from "./source-snapshot.schema";
+import { SourceCountSnapshotSchema } from "./source-snapshot.schema";
 
-export const SourceDailyCountSchema = SourceSnapshotSchema.extend({
+export const SourceDailyCountSchema = SourceCountSnapshotSchema.extend({
   date: z.iso.date(),
 });
 

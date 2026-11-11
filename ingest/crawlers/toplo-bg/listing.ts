@@ -1,9 +1,21 @@
-interface IncidentIdentity {
-  AccidentId: string;
-  ContentItemId: string;
+import { SourceIncidentSchema, type SourceIncident } from "@oboapp/shared";
+
+function nullableDate(value: unknown): string | null {
+  const date = SourceIncidentSchema.shape.reportedStart.safeParse(value);
+  return date.success ? date.data : null;
 }
 
-function parseIdentity(json: string): IncidentIdentity {
+function incidentName(info: object, id: string): string {
+  for (const field of ["Name", "Region"]) {
+    const value: unknown = Reflect.get(info, field);
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return id;
+}
+
+function parseIncident(json: string): SourceIncident {
   const info: unknown = JSON.parse(json);
 
   if (
@@ -19,7 +31,20 @@ function parseIdentity(json: string): IncidentIdentity {
     throw new Error("Toplo listing contains an incident without a valid identity");
   }
 
-  return { AccidentId: info.AccidentId, ContentItemId: info.ContentItemId };
+  if (!("Type" in info) || (info.Type !== 0 && info.Type !== 1)) {
+    throw new Error("Toplo listing contains an unknown incident type");
+  }
+  return SourceIncidentSchema.parse({
+    id: info.ContentItemId,
+    accidentId: info.AccidentId,
+    name: incidentName(info, info.ContentItemId),
+    addresses: Reflect.get(info, "Addresses") ?? "",
+    type: info.Type === 0 ? "accident" : "repair",
+    status: Reflect.get(info, "Status"),
+    reportedStart: nullableDate(Reflect.get(info, "FromDate")),
+    estimatedEnd: nullableDate(Reflect.get(info, "UntilDate")),
+    createdAt: nullableDate(Reflect.get(info, "CreatedOn")),
+  });
 }
 
 function readListedIds(html: string): Set<string> {
@@ -42,8 +67,8 @@ function readListedIds(html: string): Set<string> {
   return listedIds;
 }
 
-/** Count the complete source listing before geometry or ingestion filtering. */
-export function countListingIncidents(html: string): number {
+/** Read the complete source listing before geometry or ingestion filtering. */
+export function parseListingIncidents(html: string): SourceIncident[] {
   const scripts = html.match(/<script\b[^>]*>[\s\S]*?<\/script>/gi);
   const incidentScript = scripts?.find((script) => {
     return script.includes("function parseAll()");
@@ -68,11 +93,17 @@ export function countListingIncidents(html: string): number {
   const listedIds = readListedIds(html);
   const accidentIds = new Set<string>();
   const contentIds = new Set<string>();
+  const incidents = new Map<string, SourceIncident>();
 
   for (const record of records) {
-    const info = parseIdentity(record[1]);
-    accidentIds.add(info.AccidentId);
-    contentIds.add(info.ContentItemId);
+    const incident = parseIncident(record[1]);
+    const previous = incidents.get(incident.id);
+    if (previous && JSON.stringify(previous) !== JSON.stringify(incident)) {
+      throw new Error("Toplo listing contains conflicting incident metadata");
+    }
+    accidentIds.add(incident.accidentId);
+    contentIds.add(incident.id);
+    incidents.set(incident.id, incident);
   }
 
   if (
@@ -85,5 +116,10 @@ export function countListingIncidents(html: string): number {
     throw new Error("Toplo incident metadata does not match the visible listing");
   }
 
-  return contentIds.size;
+  return [...incidents.values()];
+}
+
+/** Count every listed incident, including entries without usable map geometry. */
+export function countListingIncidents(html: string): number {
+  return parseListingIncidents(html).length;
 }

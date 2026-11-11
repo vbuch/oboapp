@@ -2,13 +2,27 @@
 
 The crawler fetches `https://toplo.bg/accidents-and-maintenance` on its existing
 schedule. Every complete source listing produces a count snapshot in
-`sourceSnapshots`, with `sourceType`, `locality`, `count`, and `observedAt`.
+`sourceSnapshots`, with `sourceType`, `locality`, `count`, `observedAt`, and a
+complete `incidents` array.
 The count includes both accidents and repairs.
 
 The listing count uses distinct incident identities before geometry validation
 and message deduplication. Previously saved incidents still contribute to each
 new count. Incidents that disappear stop contributing to the next snapshot.
 Historical source documents remain available for message ingestion.
+
+Each incident capture retains the source identities, name, addresses, accident
+or repair type, numeric status, reported start, estimated end, and creation date.
+Missing or invalid dates remain null. Names fall back to the source region or
+identity when the source provides no name. Every successful crawl captures
+changed fields even when the create-only source record has already been saved.
+The captures are kept independently of the historical ingestion documents.
+
+The incident API at `GET /v1/sources/toplo-bg/incidents` joins current entries to
+their first saved source records by URL. It exposes first captured estimates
+for deadline comparisons. Legacy count-only observations remain readable; the
+incident API returns unavailable until the first detailed capture. The nightly
+daily records and the existing count APIs retain their compact count-only shape.
 
 Before publishing a count, the crawler checks the expected page structure and
 verifies that embedded incident metadata matches the visible list. A complete
