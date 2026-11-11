@@ -10,7 +10,7 @@ variable "region" {
 }
 
 variable "localities" {
-  description = "List of locality IDs whose crawlers should be deployed (e.g. [\"bg.sofia\"]). Each ID must have a corresponding crawlers.\u003clocality-id\u003e.tf file (e.g. \"bg.sofia\" \u2192 crawlers.bg.sofia.tf) wired into crawlers.tf. Crawlers for all listed localities are merged into a single Cloud Run job set. Note: all crawler jobs currently share the same var.locality execution context; per-job locality scoping is planned."
+  description = "List of locality IDs whose source jobs should be deployed (e.g. [\"bg.sofia\"]). Each ID must have a source-jobs.<locality-id>.json file, discovered automatically by crawlers.tf. Jobs for selected localities are merged into a single Cloud Run job set. All source jobs currently share var.locality as their execution context; per-job locality scoping is planned."
   type        = list(string)
   default     = ["bg.sofia"]
 

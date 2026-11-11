@@ -13,7 +13,9 @@ Never override upstream Terraform logic in instance files — configure via vari
 
 ## Configuring Sources
 
-**Migration in progress:** each selected source uses either a published package or a remaining legacy crawler. For a packaged source, install its exact published version in `ingest/` and connect its command entrypoint to Obo's runner. Select sources through `shared/src/sources.ts` and the Terraform configuration. Catalog definitions remain in `shared/src/sources/`. A later stage will build the source list from installed packages and include only selected sources in the deployment image. See [the transition guide](../features/source-packages.md) for the current source inventory and integration steps.
+**Migration in progress:** each selected source uses either a published package or a remaining legacy crawler. For a packaged source, install its exact published version in `ingest/` and connect its command entrypoint to Obo's runner. Select sources through `shared/src/sources.ts` and `ingest/terraform/source-jobs.<locality>.json`. Catalog definitions remain in `shared/src/sources/`. CI and the ingest image build validate the selected catalog, package metadata, entrypoints and job data. A later stage will build the catalog from installed packages and include only selected sources in the deployment image. See [the transition guide](../features/source-packages.md) for the current source inventory and integration steps.
+
+Remove unselected source package dependencies with `pnpm --dir ingest remove <package>`. Run `pnpm --dir ingest exec tsx scripts/check-source-config.ts` to check your selection without provider or database access.
 
 Each source has its own definition file at `shared/src/sources/{id}.ts`. These live in the upstream repo and merge cleanly across rebases — adding a new upstream source creates a new file, no conflicts.
 
@@ -38,7 +40,7 @@ The ingest pipeline validates the configuration at startup (fail-fast if invalid
 
 ## Configuring Which Localities to Deploy
 
-Each city's crawlers are defined in a dedicated Terraform file named after its locality ID. The naming pattern is `crawlers.<locality-id>.tf` — for example, locality `bg.sofia` maps to `crawlers.bg.sofia.tf`. The `localities` Terraform variable controls which of these are active for a given deployment.
+Each city's jobs are defined in `ingest/terraform/source-jobs.<locality-id>.json`. For example, locality `bg.sofia` maps to `source-jobs.bg.sofia.json`. Terraform discovers these files automatically. The `localities` variable selects which maps are active for a deployment. Job keys must be unique across locality files.
 
 **In your forked `deploy.yml`**, create a GitHub Actions repository variable named `LOCALITIES` with a JSON string value:
 
@@ -63,7 +65,7 @@ vars.LOCALITY = "bg.sofia"
 To add crawler support for a new city, contribute to the upstream repository:
 
 1. Add the new locality's crawler support in the upstream ingestion code and shared source configuration.
-2. Update the upstream Terraform locality configuration using the existing `crawlers.<locality-id>.tf` naming pattern and the standard supported-localities wiring.
+2. Add `ingest/terraform/source-jobs.<locality-id>.json` with the new locality's jobs. Keep source IDs and emergent flags aligned with the instance catalog, then run the source configuration check.
 3. Follow the [Crawler Development guidelines](../../AGENTS.md#crawler-development) for the full checklist and current file-level requirements.
 
 Once merged upstream, any deployment can activate the new city by adding its locality ID to the deployment locality configuration described above.
