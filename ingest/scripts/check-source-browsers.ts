@@ -9,6 +9,7 @@ const browserSources = [
   { source: "@oboapp/source-rayon-ilinden-bg", browserDependency: "@oboapp/source-web-utils" },
   { source: "@oboapp/source-nadezhda-org", browserDependency: "@oboapp/source-web-utils" },
   { source: "@oboapp/source-raioniskar-bg", browserDependency: "@oboapp/source-web-utils" },
+  { source: "@oboapp/source-mladost-bg", browserDependency: "@oboapp/source-web-utils" },
 ];
 
 async function main(): Promise<void> {
