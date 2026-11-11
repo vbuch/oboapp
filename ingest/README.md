@@ -29,7 +29,7 @@ graph LR
     style F fill:#e1f5ff
 ```
 
-During the [source-package transition](../docs/features/source-packages.md), the existing command and Cloud Run jobs run either a local crawler or a source package. Triaditsa, Oborishte, Slatina and Toplo use published packages in this fork. Other sources keep their code in `crawlers/`. Both paths feed the same processing pipeline. The package supplies data. Obo's runner handles deduplication, validation, and persistence: it skips known items, checks new content, and saves complete records.
+During the [source-package transition](../docs/features/source-packages.md), the existing command and Cloud Run jobs run either a legacy crawler or an adapter to a published source package. The transition guide tracks the current source inventory. Provider collection for packaged sources lives in the sources repository; remaining legacy implementations stay in `crawlers/`. Both paths feed the same processing pipeline. Packages supply data. Obo's runner handles deduplication, validation, and persistence: it skips known items, checks new content, and saves complete records.
 
 ## Components
 
