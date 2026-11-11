@@ -31,6 +31,7 @@ If `PUBLIC_API_HOST` is not set, web still starts, but `/api/v1/*` requests fail
 | `GET`  | `/v1/sources`                   | List all data sources                                               |
 | `GET`  | `/v1/sources/:sourceId/snapshot` | Latest successful complete listing count for a source                |
 | `GET`  | `/v1/sources/:sourceId/timeline` | Current count, daily closing history, and yesterday comparison       |
+| `GET`  | `/v1/sources/:sourceId/incidents` | Complete current Toplo listing and first recorded estimates         |
 | `GET`  | `/v1/messages`                  | Fetch messages filtered by geographic bounds and optional categories |
 | `GET`  | `/v1/messages/by-id`            | Fetch a single message by ID                                         |
 | `GET`  | `/v1/openapi`                   | OpenAPI 3.0 specification (no key required)                           |
@@ -90,6 +91,65 @@ The nightly job runs at 23:00 in `Europe/Sofia`. It records the latest successfu
 Use each point's `observedAt` for the actual source-check time. It can be earlier than the nightly recording time. The endpoint uses the normal API key authentication, rate limits, and usage tracking.
 
 The endpoint requires the same API key as the other data endpoints. Keep that key in server configuration or a GitHub Actions secret. For a counter hosted on GitHub Pages, a workflow can fetch the snapshot and publish a public `snapshot.json` alongside the HTML. The page reads that file and displays the original `observedAt` time. The API response uses `Cache-Control: private, max-age=60`.
+
+## Current Incident List
+
+`GET /v1/sources/toplo-bg/incidents` returns every accident and repair from the
+latest complete listing capture. Its `count` and `observedAt` belong to the same
+capture as the returned `incidents` array. The source check runs before geometry
+validation and message deduplication, so existing entries and entries without
+usable map data remain in the list.
+
+```json
+{
+  "sourceType": "toplo-bg",
+  "locality": "bg.sofia",
+  "sourceUrl": "https://toplo.bg/accidents-and-maintenance",
+  "observedAt": "2026-11-11T15:00:00.000Z",
+  "count": 1,
+  "incidents": [{
+    "id": "example-content-item-id",
+    "accidentId": "example-accident-id",
+    "name": "Част от Яворов",
+    "addresses": "ул. Цар Иван Асен II 42",
+    "type": "accident",
+    "status": 1,
+    "reportedStart": "2025-11-04T15:00:00Z",
+    "estimatedEnd": "2026-11-15T20:00:00Z",
+    "createdAt": "2025-11-04T13:20:43Z",
+    "firstObservedAt": "2026-02-06T19:01:12.027Z",
+    "firstReportedStart": "2025-11-04T15:00:00.000Z",
+    "firstEstimatedEnd": "2026-02-27T20:00:00.000Z"
+  }]
+}
+```
+
+`id` is Toplo's stable `ContentItemId`; `accidentId` is its visible listing ID.
+`type` is `accident` or `repair`. `status` preserves the source's numeric value.
+`reportedStart`, `estimatedEnd`, and `createdAt` preserve source dates; missing
+or invalid dates are `null`. The source's displayed clock values and its `Z`
+suffix need separate timezone verification before treating them as precise
+elapsed hours.
+
+The three `first*` fields come from the earliest saved source record with the
+same source URL and locality. They are `null` if no baseline is available.
+`firstEstimatedEnd` is also `null` for the legacy missing-estimate fallback
+where the crawler substituted the start date. These fields describe the first
+estimate OboApp captured, which may be later than the original announcement.
+They support a net deadline-extension comparison; they cannot reconstruct
+intermediate revisions made before per-incident snapshots were enabled.
+
+Age is based on the reported start. Start dates and affected addresses can
+change under the same source ID. Listing presence therefore identifies a
+currently published record and does not establish continuous loss of service.
+Passing an estimated end does not remove an entry from this endpoint.
+
+A verified empty listing returns `count: 0` and `incidents: []`. No detailed
+capture, including a legacy count-only snapshot, returns `503`. Unsupported
+sources and localities return `404`; corrupt data and storage failures return
+`500`. Authentication, rate limits, usage tracking, and the private 60-second
+cache policy match the other source endpoints. Existing snapshot and timeline
+responses continue to return counts only.
 
 ## Authentication
 

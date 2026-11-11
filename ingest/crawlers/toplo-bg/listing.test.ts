@@ -1,10 +1,52 @@
 import { describe, expect, it } from "vitest";
 import { toploHtml } from "@/__mocks__/source-contract-fixtures";
-import { countListingIncidents } from "./listing";
+import { countListingIncidents, parseListingIncidents } from "./listing";
 
 describe("countListingIncidents", () => {
+  it("captures the complete incident fields without requiring geometry", () => {
+    const html = toploHtml(["one"])
+      .replace('"Type":1', '"Type":0')
+      .replace('"UntilDate":null', '"UntilDate":"2026-11-15T20:00:00Z"');
+
+    expect(parseListingIncidents(html)).toEqual([{
+      id: "one",
+      accidentId: "one",
+      name: "Ремонт",
+      addresses: "ул. Тест",
+      type: "accident",
+      status: 1,
+      reportedStart: "2026-10-04T08:00:00.000Z",
+      estimatedEnd: "2026-11-15T20:00:00Z",
+      createdAt: "2026-10-04T08:00:00.000Z",
+    }]);
+  });
+
+  it("preserves unknown dates as null rather than inventing restoration times", () => {
+    const html = toploHtml(["one"], "invalid")
+      .replace('"UntilDate":null', '"UntilDate":"2026-02-30T20:00:00Z"');
+
+    expect(parseListingIncidents(html)[0]).toMatchObject({
+      reportedStart: null,
+      estimatedEnd: null,
+      createdAt: null,
+    });
+  });
+
+  it("falls back to region and identity when the source name is empty", () => {
+    const html = toploHtml(["one"]).replace('"Name":"Ремонт"', '"Name":""');
+
+    expect(parseListingIncidents(html)[0].name).toBe("Sofia");
+    expect(parseListingIncidents(html.replace('"Region":"Sofia"', '"Region":""'))[0].name).toBe("one");
+  });
+
+  it("rejects conflicting duplicates and unknown incident types", () => {
+    const duplicate = toploHtml(["one", "one"])
+      .replace('"UntilDate":null', '"UntilDate":"2026-11-15T20:00:00Z"');
+    expect(() => parseListingIncidents(duplicate)).toThrow("conflicting");
+    expect(() => parseListingIncidents(toploHtml().replace('"Type":1', '"Type":2'))).toThrow("type");
+  });
   it("counts distinct listed incidents, including repairs", () => {
-    const html = toploHtml(["one", "two", "one"]).replace('"Type":1', '"Type":0');
+    const html = toploHtml(["one", "two", "one"]);
 
     expect(countListingIncidents(html)).toBe(2);
   });

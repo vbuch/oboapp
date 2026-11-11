@@ -39,6 +39,27 @@ afterEach(() => {
 });
 
 describe("Toplo packaged crawl contract", () => {
+  it("refreshes incident estimates on every crawl while retaining the first source record", async () => {
+    await crawl();
+    const historical = store.records.get(documentId);
+    vi.setSystemTime(new Date(contractDate.getTime() + 30 * 60 * 1000));
+    fetchListing.mockResolvedValue(new Response(toploHtml().replace(
+      '"UntilDate":null',
+      '"UntilDate":"2026-11-15T20:00:00Z"',
+    )));
+
+    await crawl();
+
+    expect(store.records.get(documentId)).toBe(historical);
+    expect(store.client.createOne).toHaveBeenCalledOnce();
+    expect(store.snapshots[0].incidents?.[0].estimatedEnd).toBeNull();
+    expect(store.snapshots[1].incidents?.[0]).toMatchObject({
+      id: "item-1",
+      type: "repair",
+      estimatedEnd: "2026-11-15T20:00:00Z",
+    });
+    expect(store.snapshots[1].observedAt).not.toBe(store.snapshots[0].observedAt);
+  });
   it("persists the historical raw fields once and fetches only the listing", async () => {
     await crawl();
     await crawl();
@@ -63,7 +84,7 @@ describe("Toplo packaged crawl contract", () => {
       timespanEnd: new Date("2026-10-04T08:00:00.000Z"),
     });
     expect(fetchListing).toHaveBeenCalledTimes(2);
-    expect(store.snapshots).toEqual([
+    expect(store.snapshots).toMatchObject([
       {
         sourceType: "toplo-bg",
         locality: "bg.sofia",
@@ -210,7 +231,7 @@ describe("Toplo packaged crawl contract", () => {
     vi.setSystemTime(nextCrawl);
     await crawl();
 
-    expect(store.snapshots).toEqual([
+    expect(store.snapshots).toMatchObject([
       {
         sourceType: "toplo-bg",
         locality: "bg.sofia",
@@ -233,7 +254,7 @@ describe("Toplo packaged crawl contract", () => {
 
     await crawl();
 
-    expect(store.snapshots).toEqual([
+    expect(store.snapshots).toMatchObject([
       {
         sourceType: "toplo-bg",
         locality: "bg.sofia",
@@ -243,6 +264,7 @@ describe("Toplo packaged crawl contract", () => {
     ]);
     expect(store.client.createOne).not.toHaveBeenCalled();
     expect(fetchListing).toHaveBeenCalledOnce();
+    expect(store.snapshots[0].incidents).toEqual([]);
     expect(fetchListing.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
   });
 
