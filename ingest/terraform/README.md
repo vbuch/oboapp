@@ -233,11 +233,23 @@ terraform plan   # Workflows will be updated
 terraform apply
 ```
 
-**Adding new crawlers**: Add an entry to the relevant locality file (e.g. `crawlers.bg.sofia.tf`):
+**Adding source jobs**: Add an entry to the relevant locality's JSON file, such as `source-jobs.bg.sofia.json`. `crawlers.tf` discovers these files, reads the selected localities with `jsondecode(file(...))`, and supplies the assembled `local.crawlers` map to the jobs and workflows.
 
-1. Add an entry to `crawlers.bg.<locality>.tf` — the workflow templates pick it up automatically via `local.crawlers`.
-2. For emergent crawlers (30-min intervals): set `emergent = true` in the Terraform crawler entry — this controls Cloud Scheduler/Workflows scheduling. Also set `emergent: true` on the matching source definition in `shared/src/sources/{source-id}.ts` — this keeps `EMERGENT_CRAWLERS` (used by `pipeline --emergent`) in sync. The Terraform `source` value must match the source definition `id` (e.g., `toplo-bg`).
-3. The full list of available crawlers is discovered automatically via `local.crawlers` in Terraform.
+```json
+{
+  "toplo": {
+    "source": "toplo-bg",
+    "memory": "512Mi",
+    "timeout": "1800s",
+    "description": "Crawl Toplo BG",
+    "emergent": true
+  }
+}
+```
+
+The JSON key is the existing Cloud Run job name. Its `source` must match the instance catalog source ID and runtime entrypoint. Include `memory`, `timeout` and `description` for each job. Set `"emergent": true` for the 30-minute schedule; omitting it uses the regular schedule. Keep the matching source definition's `emergent` flag in sync with this value.
+
+For a new locality, create `source-jobs.<locality-id>.json` and select that ID in `var.localities`. Job keys must be unique across selected locality files. The current deployment supports one selected locality because all jobs share the same execution context. A non-empty `var.crawlers` remains a full manual override for the assembled map.
 
 **Manual workflow testing**:
 
