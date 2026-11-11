@@ -1,8 +1,12 @@
-# Historical daily counts
+# Historical source daily counts
 
-`historical-daily-counts.json` contains recovered closing counts for
+`toplo-bg-2026-10-11-to-2026-11-09.json` contains recovered closing counts for
 `toplo-bg` in `bg.sofia`. It is an import array with `sourceType`, `locality`,
 `date`, `count`, and `observedAt` on every record.
+
+OboApp owns this archive, its import process, and the ongoing stored history.
+API consumers such as [Na Stud](https://github.com/vbuch/nastud) read that history
+through the public API.
 
 ## Coverage
 
@@ -37,13 +41,24 @@ listing. That parser validated geometry before reporting its total. The new
 snapshot collector counts the complete verified source listing independently
 of map geometry. Historical HTML was not retained for a separate recheck.
 
+This archive was originally stored at `counter/data/historical-daily-counts.json`.
+Its 30 records were retained unchanged when the frontend moved to its own
+repository.
+
 ## Import and ongoing updates
 
 These 30 records have already been imported into the production database.
 The file remains an archive for a one-time import into a new database.
-The counter build reads the API response and never loads this file.
+Run from `ingest/` with the target locality and database configuration loaded
+from `ingest/.env.local`:
+
+```sh
+pnpm exec tsx source-daily-counts.ts --import data/source-daily-counts/toplo-bg-2026-10-11-to-2026-11-09.json
+```
+
+The importer validates every record before writing. Repeated imports update
+the same source, locality, and date records.
 
 Future nightly records use the latest successful source snapshot for each
 completed Sofia day. The API returns those stored records alongside the
-imported history. The scheduled Pages build publishes the API data, so future
-dates require no changes to this archive.
+imported history, so future dates require no changes to this archive.

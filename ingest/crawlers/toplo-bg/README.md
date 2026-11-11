@@ -84,12 +84,14 @@ Run from `ingest/`:
 ```sh
 pnpm exec tsx source-daily-counts.ts
 pnpm exec tsx source-daily-counts.ts --date 2026-11-09
-pnpm exec tsx source-daily-counts.ts --import /path/to/historical-daily-counts.json
+pnpm exec tsx source-daily-counts.ts --import data/source-daily-counts/toplo-bg-2026-10-11-to-2026-11-09.json
 ```
 
 Historical import files contain an array of `{sourceType, locality, date,
 count, observedAt}` records. Every row is validated before writing any records.
 Use confirmed source counts and preserve their original check times.
+The recovered 30-day archive and its provenance are kept in
+[ingest/data/source-daily-counts](../../data/source-daily-counts/README.md).
 
 `GET /v1/sources/toplo-bg/timeline?days=90` returns the current observation,
 daily history, and a comparison with the previous Sofia day. Queries support
@@ -97,12 +99,12 @@ up to 366 days per response. Daily records have no automatic expiry, so the
 stored timeline can grow over time. Deploy the daily-count index alongside
 the nightly job and API changes.
 
-## Separate counter on GitHub Pages
+## API consumers
 
-The standalone page lives in `counter/` in `vbuch/oboapp`. Its GitHub Actions
-workflow fetches the authenticated timeline endpoint, then publishes the HTML,
-public `timeline.json`, and social images together through GitHub Pages.
-The page reads that JSON from the same site and preserves the source's
-`observedAt` time. Failed API reads leave the previous publication in place.
-The API key stays in the workflow secret. See
-[the counter setup and deployment guide](../../../counter/README.md).
+[Na Stud](https://nastud.site/) consumes the authenticated timeline and incident
+endpoints. Its frontend, product specs, working instructions, and GitHub Pages
+publishing workflow live in [vbuch/nastud](https://github.com/vbuch/nastud).
+
+OboApp owns the crawler, stored snapshots, nightly counts, historical imports,
+and public API contract. See [the public API documentation](../../../docs/features/public-api.md)
+for the data supplied to consumers.
