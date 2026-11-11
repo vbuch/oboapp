@@ -14,6 +14,7 @@ import {
   SourcesResponseSchema,
   SourceSnapshotResponseSchema,
   SourceTimelineResponseSchema,
+  SourceIncidentsResponseSchema,
   MessagesResponseSchema,
   MessageResponseSchema,
   ErrorResponseSchema,
@@ -98,6 +99,10 @@ function buildOpenApiSpec(): OpenAPIObject {
     SourceSnapshotResponseSchema,
   );
   const sourceTimelineResponse = registry.register("V1SourceTimelineResponse", SourceTimelineResponseSchema);
+  const sourceIncidentsResponse = registry.register(
+    "V1SourceIncidentsResponse",
+    SourceIncidentsResponseSchema,
+  );
   const messagesResponse = registry.register(
     "V1MessagesResponse",
     MessagesResponseSchema,
@@ -202,6 +207,43 @@ function buildOpenApiSpec(): OpenAPIObject {
       404: { description: "Source is not configured for this locality", content: { "application/json": { schema: errorResponse } } },
       429: { description: "Rate limit exceeded", content: { "application/json": { schema: errorResponse } }, headers: { "Retry-After": retryAfterHeader } },
       500: { description: "Server error", content: { "application/json": { schema: errorResponse } } },
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/v1/sources/{sourceId}/incidents",
+    description: "Complete current Toplo listing, including accidents and repairs, with first recorded estimates. Listing presence does not confirm uninterrupted disruption. Missing dates and first observations are null. Legacy count-only snapshots return 503 until a complete capture is available.",
+    security: [{ ApiKeyAuth: [] }],
+    request: {
+      params: z.object({ sourceId: z.string().min(1) }),
+    },
+    responses: {
+      200: {
+        description: "Latest complete incident listing, including a verified empty list",
+        content: { "application/json": { schema: sourceIncidentsResponse } },
+      },
+      401: {
+        description: "Invalid or missing API key",
+        content: { "application/json": { schema: errorResponse } },
+      },
+      404: {
+        description: "Incident listing is not configured for this source and locality",
+        content: { "application/json": { schema: errorResponse } },
+      },
+      429: {
+        description: "Rate limit exceeded",
+        content: { "application/json": { schema: errorResponse } },
+        headers: { "Retry-After": retryAfterHeader },
+      },
+      503: {
+        description: "No complete incident listing has been captured yet",
+        content: { "application/json": { schema: errorResponse } },
+      },
+      500: {
+        description: "Server error or invalid stored listing",
+        content: { "application/json": { schema: errorResponse } },
+      },
     },
   });
 

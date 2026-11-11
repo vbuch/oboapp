@@ -97,6 +97,30 @@ describe("SourceSnapshotsRepository", () => {
     expect(db.batchWrite).not.toHaveBeenCalled();
   });
 
+  it("retains incident fields and rejects incomplete incident snapshots", async () => {
+    const incident = {
+      id: "one",
+      accidentId: "accident-one",
+      name: "Яворов",
+      addresses: "Цар Иван Асен II 42",
+      type: "accident" as const,
+      status: 1,
+      reportedStart: "2025-11-04T15:00:00Z",
+      estimatedEnd: "2026-11-15T20:00:00Z",
+      createdAt: null,
+    };
+    const complete = { ...snapshot, count: 1, incidents: [incident] };
+
+    await repository.save(complete);
+    expect(db.batchWrite).toHaveBeenCalledWith([
+      expect.objectContaining({ data: complete }),
+    ]);
+    await expect(repository.save({ ...complete, count: 2 })).rejects.toThrow();
+    await expect(repository.save({ ...complete, count: 2, incidents: [incident, incident] })).rejects.toThrow();
+    vi.mocked(db.findMany).mockResolvedValue([complete]);
+    expect(await repository.findLatest("toplo-bg", "bg.sofia")).toEqual(complete);
+  });
+
   it("finds the newest observation for the requested source and locality", async () => {
     vi.mocked(db.findMany).mockResolvedValue([{ ...snapshot, _id: "snapshot-id" }]);
 

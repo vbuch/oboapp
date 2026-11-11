@@ -21,6 +21,22 @@ export class SourcesRepository {
     return this.db.findMany(SOURCES_COLLECTION, options);
   }
 
+  /** Read source baselines without scanning unrelated incidents or map data. */
+  async findByUrls(urls: readonly string[]): Promise<Record<string, unknown>[]> {
+    const distinctUrls = [...new Set(urls)];
+    const records: Record<string, unknown>[] = [];
+    for (let index = 0; index < distinctUrls.length; index += 30) {
+      const batch = await this.db.findMany(SOURCES_COLLECTION, {
+        where: [{ field: "url", op: "in", value: distinctUrls.slice(index, index + 30) }],
+        select: [
+          "url", "sourceType", "locality", "crawledAt", "timespanStart", "timespanEnd",
+        ],
+      });
+      records.push(...batch);
+    }
+    return records;
+  }
+
   async insertOne(data: Record<string, unknown>, id: string): Promise<string> {
     return this.db.insertOne(SOURCES_COLLECTION, data, id);
   }
