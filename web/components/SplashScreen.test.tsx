@@ -12,5 +12,6 @@ describe("SplashScreen", () => {
     render(<SplashScreen />);
     const logo = screen.getByAltText("OboApp");
     expect(logo).toBeInTheDocument();
+    expect(logo.getAttribute("src")).toMatch(/\/logo\.svg$/);
   });
 });

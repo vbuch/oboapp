@@ -1,15 +1,34 @@
-import { readFileSync } from "fs";
-import { join } from "path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { peachColors } from "@/lib/colors";
 import { APP_NAME } from "@/lib/pwa-metadata";
 
-// Read once at module load — avoids an HTTP round-trip and works in Node.js runtime
 const logoBuffer = readFileSync(join(process.cwd(), "public/logo.png"));
-const LOGO_SRC = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+const logoBackground = `url(data:image/png;base64,${logoBuffer.toString("base64")})`;
 
-/**
- * Shared JSX card for opengraph-image and twitter-image.
- * Rendered by next/og ImageResponse (Satori) — not a browser component.
- */
+interface OgFont {
+  name: string;
+  data: Buffer;
+  weight: 400 | 700;
+  style: "normal";
+}
+
+export const ogFonts: OgFont[] = [
+  {
+    name: "Sofia Sans",
+    data: readFileSync(join(process.cwd(), "lib/og-fonts/SofiaSans-Regular.ttf")),
+    weight: 400,
+    style: "normal",
+  },
+  {
+    name: "Sofia Sans",
+    data: readFileSync(join(process.cwd(), "lib/og-fonts/SofiaSans-Bold.ttf")),
+    weight: 700,
+    style: "normal",
+  },
+];
+
+/** Shared social card rendered by next/og in the Node.js runtime. */
 export function buildOgCard(tagline: string) {
   return (
     <div
@@ -20,58 +39,56 @@ export function buildOgCard(tagline: string) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#2c3e50",
+        backgroundColor: peachColors.background,
+        color: peachColors.ink,
         position: "relative",
+        padding: "64px",
+        fontFamily: "Sofia Sans",
       }}
     >
-      {/* Brand red accent bar at top */}
       <div
         style={{
           position: "absolute",
           top: 0,
           left: 0,
           right: 0,
-          height: "10px",
-          backgroundColor: "#E74C3C",
+          height: "12px",
+          backgroundColor: peachColors.accent,
           display: "flex",
         }}
       />
-
-      {/* Logo in white rounded container, matching Header style */}
+      <div style={{ display: "flex", alignItems: "center", gap: "28px" }}>
+        <div
+          aria-hidden="true"
+          style={{
+            display: "flex",
+            width: "148px",
+            height: "148px",
+            backgroundImage: logoBackground,
+            backgroundSize: "148px 148px",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+        <div
+          style={{
+            display: "flex",
+            fontSize: 96,
+            fontWeight: 700,
+            letterSpacing: "-2px",
+          }}
+        >
+          {APP_NAME}
+        </div>
+      </div>
       <div
         style={{
           display: "flex",
-          backgroundColor: "#ffffff",
-          borderRadius: "20px",
-          padding: "16px",
-          marginBottom: "36px",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- Satori (next/og) does not support next/image */}
-        <img src={LOGO_SRC} width={120} height={120} alt="" />
-      </div>
-
-      {/* App name */}
-      <div
-        style={{
-          fontSize: 96,
-          fontWeight: 700,
-          color: "#ffffff",
-          letterSpacing: "-2px",
-          display: "flex",
-        }}
-      >
-        {APP_NAME}
-      </div>
-
-      {/* Tagline */}
-      <div
-        style={{
+          maxWidth: "960px",
           fontSize: 36,
-          color: "#5DADE2",
-          marginTop: 16,
-          display: "flex",
+          lineHeight: 1.3,
+          color: peachColors.muted,
+          marginTop: 36,
+          textAlign: "center",
         }}
       >
         {tagline}
