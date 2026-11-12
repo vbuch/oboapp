@@ -19,7 +19,10 @@ interface MessageCardProps {
 
 export function MessageCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-neutral-border overflow-clip">
+    <div
+      data-surface="card"
+      className="bg-white rounded-lg shadow-md p-6 border border-neutral-border overflow-clip"
+    >
       <div className="space-y-4 animate-pulse">
         {/* Source logo skeleton */}
         <div className="flex items-center space-x-3">
@@ -73,7 +76,9 @@ export default function MessageCard({
     // Strip markdown formatting for clean preview
     const cleanText = stripMarkdown(text);
 
-    if (cleanText.length <= maxLength) return cleanText;
+    if (cleanText.length <= maxLength) {
+      return cleanText;
+    }
 
     // Try to cut at a word boundary near 150 chars
     const truncated = cleanText.substring(0, maxLength);
@@ -88,10 +93,14 @@ export default function MessageCard({
 
   // Format date in Bulgarian
   const formatDate = (dateStr: Date | string | undefined): string => {
-    if (!dateStr) return "";
+    if (!dateStr) {
+      return "";
+    }
 
     const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
-    if (Number.isNaN(date.getTime())) return "";
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
 
     const day = date.getDate().toString().padStart(2, "0");
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -123,6 +132,7 @@ export default function MessageCard({
   return (
     <button
       type="button"
+      data-surface="card"
       className={`bg-white rounded-lg shadow-md p-4 border border-neutral-border hover:shadow-lg transition-shadow cursor-pointer w-full text-left relative h-full flex flex-col min-w-0 overflow-clip${className ? ` ${className}` : ""}`}
       onClick={handleClick}
       onMouseEnter={() => message.id && onHover?.(message.id)}

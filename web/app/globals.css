@@ -3,53 +3,52 @@
 
 /* Color variables - see lib/colors.ts for the centralized color palette */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--peach-background);
+  --foreground: var(--peach-ink);
 
-  /* Typography — font-family name from @fontsource-variable/sofia-sans */
+  /* Font-family name from @fontsource-variable/sofia-sans */
   --font-sofia-sans: "Sofia Sans Variable";
   --font-family-sofia:
     var(--font-sofia-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
-  /* Theme colors from colors.ts */
-  --color-primary: #2c3e50; /* colors.primary.blueDark - matches header background */
-  --color-primary-hover: #243447; /* darker hover state */
-  --color-destructive: #e74c3c; /* colors.primary.red - for destructive actions */
-  --color-destructive-hover: #c0392b; /* colors.primary.redDark - for destructive hover */
+  /* RootLayout supplies these palette variables from lib/colors.ts. */
+  --color-primary: var(--peach-action);
+  --color-primary-hover: var(--peach-ink);
+  --color-destructive: var(--peach-error-ink);
+  --color-destructive-hover: var(--peach-error-hover);
 
-  /* Semantic colors from colors.semantic */
-  --color-neutral: #6b7280;
-  --color-neutral-hover: #4b5563;
-  --color-neutral-light: #f3f4f6;
-  --color-neutral-border: #e5e7eb;
+  /* Semantic roles backed by peachColors. */
+  --color-neutral: var(--peach-muted);
+  --color-neutral-hover: var(--peach-ink);
+  --color-neutral-light: var(--peach-background);
+  --color-neutral-border: var(--peach-divider);
 
-  --color-error: #dc2626;
-  --color-error-hover: #b91c1c;
-  --color-error-light: #fee2e2;
-  --color-error-border: #fecaca;
+  --color-error: var(--peach-error-ink);
+  --color-error-hover: var(--peach-error-hover);
+  --color-error-light: var(--peach-error-paper);
+  --color-error-border: var(--peach-error-tint);
 
-  --color-warning: #f59e0b;
-  --color-warning-hover: #d97706;
-  --color-warning-light: #fef3c7;
-  --color-warning-border: #fde68a;
+  --color-warning: var(--peach-warning-ink);
+  --color-warning-hover: var(--peach-warning-hover);
+  --color-warning-light: var(--peach-warning-paper);
+  --color-warning-border: var(--peach-warning-tint);
 
-  --color-success: #10b981;
-  --color-success-hover: #059669;
-  --color-success-light: #d1fae5;
-  --color-success-border: #a7f3d0;
+  --color-success: var(--peach-success-ink);
+  --color-success-hover: var(--peach-success-hover);
+  --color-success-light: var(--peach-success-paper);
+  --color-success-border: var(--peach-success-tint);
 
-  --color-info: #3b82f6;
-  --color-info-hover: #2563eb;
-  --color-info-light: #dbeafe;
-  --color-info-border: #bfdbfe;
+  --color-info: var(--peach-info-ink);
+  --color-info-hover: var(--peach-info-hover);
+  --color-info-light: var(--peach-info-paper);
+  --color-info-border: var(--peach-info-tint);
 
-  /* Layout-specific colors from colors.primary and colors.ui */
-  --color-header-bg: #2c3e50; /* colors.primary.blueDark */
-  --color-nav-bg: #5dade2; /* colors.primary.blue */
-  --color-footer-bg: #f8f9fa; /* colors.ui.footerBg */
-  --color-link: #5dade2; /* colors.primary.blue */
-  --color-link-hover: #3498db; /* slightly darker for hover */
+  --color-header-bg: var(--peach-panel);
+  --color-nav-bg: var(--peach-background);
+  --color-footer-bg: var(--peach-background);
+  --color-link: var(--peach-action);
+  --color-link-hover: var(--peach-ink);
 }
 
 @theme inline {

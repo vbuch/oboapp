@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { colors } from "@/lib/colors";
 
 interface SourceFilterItemProps {
   readonly label: string;
@@ -25,6 +26,7 @@ export default function SourceFilterItem({
     <button
       type="button"
       onClick={onChange}
+      data-slot="filter-row"
       aria-pressed={checked}
       className={`w-full flex items-center gap-3 py-2 px-3 rounded-md cursor-pointer transition-colors ${
         checked ? "bg-neutral-light hover:bg-neutral-border" : "bg-transparent hover:bg-neutral-light"
@@ -32,12 +34,19 @@ export default function SourceFilterItem({
       style={{
         borderWidth: "1px",
         borderStyle: "solid",
-        borderColor: checked ? "#6B7280" : "transparent", // neutral-500 for checked state
+        borderColor: checked
+          ? `var(--filter-row-ink, ${colors.semantic.neutral})`
+          : "transparent",
       }}
       aria-label={`${checked ? "Премахни" : "Филтрирай"} ${label}`}
     >
       {/* Label - same as CategoryFilterItem */}
-      <span className="flex-1 text-left text-sm text-foreground">{label}</span>
+      <span
+        data-slot="filter-label"
+        className="flex-1 text-left text-sm text-foreground"
+      >
+        {label}
+      </span>
 
       {/* Count Badge - same style as CategoryFilterItem */}
       {count !== undefined && (

@@ -1,0 +1,523 @@
+/* Paper surfaces and interaction states for the peach identity. */
+html[data-obo-skin="peach"] body {
+  background-color: var(--peach-background);
+  color: var(--peach-ink);
+}
+
+html[data-obo-skin="peach"] .text-neutral-dark {
+  color: var(--peach-ink);
+}
+
+html[data-obo-skin="peach"] .border-neutral-border {
+  border-color: var(--peach-border);
+}
+
+html[data-obo-skin="peach"] :is(.border-t, .border-b).border-neutral-border {
+  border-color: var(--peach-divider);
+}
+
+html[data-obo-skin="peach"] header.bg-header-bg {
+  background-color: var(--peach-panel);
+  color: var(--peach-ink);
+  box-shadow: 0 2px 0 var(--peach-divider);
+}
+
+html[data-obo-skin="peach"] .bg-header-bg .text-white {
+  color: var(--peach-ink);
+}
+
+html[data-obo-skin="peach"] header.bg-header-bg [aria-label="Профилно меню"] > span {
+  background-color: var(--peach-selected);
+}
+
+html[data-obo-skin="peach"] header.bg-header-bg [data-slot="brand-logo"] {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-obo-skin="peach"] [data-slot="brand-logo"]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -3px -5px;
+  border-radius: 39% 61% 55% 45% / 52% 42% 58% 48%;
+  background-color: var(--peach-butter);
+  transform: rotate(-9deg);
+  pointer-events: none;
+}
+
+html[data-obo-skin="peach"] [data-slot="brand-mark"] {
+  display: block;
+}
+
+html[data-obo-skin="peach"] nav.bg-nav-bg,
+html[data-obo-skin="peach"] main [class~="@container"] {
+  background-color: var(--peach-background);
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    var(--peach-dot) 0.8px,
+    transparent 1px
+  );
+  background-size: 16px 16px;
+}
+
+html[data-obo-skin="peach"] :is(button, a).bg-primary:not([data-slot="filter-tab"]) {
+  border: 1px solid var(--peach-ink);
+  border-radius: 6px 8px 7px 5px;
+  background-color: var(--peach-accent);
+  color: var(--peach-ink);
+  box-shadow: 2px 2px 0 var(--peach-ink);
+  transition:
+    background-color 140ms ease-out,
+    box-shadow 140ms ease-out,
+    border-color 140ms ease-out;
+}
+
+html[data-obo-skin="peach"] :is(button, a).bg-neutral-light.text-neutral {
+  border: 1px solid var(--peach-secondary-border);
+  border-radius: 6px;
+  background-color: var(--peach-secondary);
+  color: var(--peach-ink);
+  transition:
+    background-color 140ms ease-out,
+    border-color 140ms ease-out;
+}
+
+html[data-obo-skin="peach"] :is(button, a).bg-neutral-light.text-neutral:active:not(:disabled) {
+  background-color: var(--peach-secondary-pressed);
+}
+
+html[data-obo-skin="peach"] .border-warning-border {
+  border-color: var(--peach-warning-ink);
+}
+
+html[data-obo-skin="peach"] :is(button, a).bg-primary .text-white {
+  color: var(--peach-ink);
+}
+
+html[data-obo-skin="peach"] :is(button, a).bg-primary:not([data-slot="filter-tab"]):active:not(:disabled):not([aria-disabled="true"]) {
+  background-color: var(--peach-pressed);
+  box-shadow: 1px 1px 0 var(--peach-ink);
+}
+
+/* Theme helper sizes identify action controls without resizing whole cards. */
+html[data-obo-skin="peach"] :is(button, a):is(
+  [class~="px-4"][class~="py-2"][class~="text-sm"],
+  [class~="px-3"][class~="py-1.5"][class~="text-sm"],
+  [class~="px-6"][class~="py-4"][class~="text-base"]
+) {
+  min-height: 32px;
+  padding-block: 5px;
+  padding-inline: 10px;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+html[data-obo-skin="peach"] :is(button, a)[class~="px-6"][class~="py-4"][class~="text-base"] svg {
+  width: 16px;
+  height: 16px;
+}
+
+html[data-obo-skin="peach"] :is(button, a).border-neutral-border {
+  border-color: var(--peach-border);
+}
+
+html[data-obo-skin="peach"] [data-slot="segmented-control"] {
+  --peach-segment-size: 32px;
+  border-color: var(--peach-border);
+  background-color: var(--peach-background);
+}
+
+html[data-obo-skin="peach"] [data-slot="segmented-control"] [role="radio"] {
+  min-height: var(--peach-segment-size);
+  padding-block: 4px;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+html[data-obo-skin="peach"] [data-slot="selection-indicator"] {
+  border: 1px solid var(--peach-action);
+  background-color: var(--peach-selected);
+  box-shadow: 1px 1px 0 var(--peach-divider);
+}
+
+html[data-obo-skin="peach"] [data-slot="segmented-control"] [data-active="true"] {
+  color: var(--peach-action);
+}
+
+html[data-obo-skin="peach"] [data-slot="segmented-control"] [data-active="true"] > [data-slot="home-action-slot"] {
+  width: var(--peach-segment-size);
+}
+
+html[data-obo-skin="peach"] [data-slot="home-action-slot"] > button {
+  width: var(--peach-segment-size);
+  height: var(--peach-segment-size);
+}
+
+html[data-obo-skin="peach"] [data-slot="home-action-slot"] > button > svg {
+  width: 16px;
+  height: 16px;
+}
+
+html[data-obo-skin="peach"] [data-slot="home-action-slot"] > button:enabled:is(:hover, :focus-visible, :active) {
+  color: var(--peach-action);
+}
+
+/* Existing card surfaces share their paper, outline and offset shadow. */
+html[data-obo-skin="peach"] [data-surface="card"] {
+  border-color: var(--peach-border);
+  border-radius: 9px 11px 10px 8px;
+  background-color: var(--peach-panel);
+  box-shadow: 2px 2px 0 var(--peach-divider);
+}
+
+html[data-obo-skin="peach"] :is(button, a)[data-surface="card"] {
+  transition:
+    background-color 160ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    border-color 160ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+html[data-obo-skin="peach"] div[data-surface="card"] > button[aria-expanded="true"] {
+  background-color: var(--peach-selected);
+}
+
+html[data-obo-skin="peach"] a[href^="/?messageId="][class~="!bg-info-light"] {
+  --color-info-light: var(--peach-selected);
+}
+
+/* The sheet and its index tab cast one continuous paper silhouette. */
+html[data-obo-skin="peach"] [data-slot="filter-assembly"] {
+  left: -4px;
+  width: min(320px, calc(100vw - 56px));
+  overflow: visible;
+  filter: drop-shadow(2px 3px 0 var(--peach-ink));
+}
+
+html[data-obo-skin="peach"] [data-slot="filter-sheet"] {
+  width: 100%;
+  overflow: hidden;
+  border: 2px solid var(--peach-ink);
+  border-radius: 0 10px 10px 0;
+  background-color: var(--peach-panel);
+  box-shadow: none;
+}
+
+html[data-obo-skin="peach"] [data-slot="filter-tab"] {
+  display: grid;
+  place-items: center;
+  left: calc(100% - 2px);
+  right: auto;
+  width: 46px;
+  height: 48px;
+  padding: 0 8px 0 16px;
+  border: 2px solid var(--peach-ink);
+  border-left-width: 0;
+  border-radius: 0 8px 8px 0;
+  background-color: var(--peach-accent);
+  color: var(--peach-ink);
+  box-shadow: none;
+  translate: 0 -50%;
+  transition: background-color 140ms ease-out;
+}
+
+html[data-obo-skin="peach"] [data-slot="filter-tab"]:active {
+  background-color: var(--peach-pressed);
+}
+
+html[data-obo-skin="peach"] [data-slot="filter-tab"]:focus-visible {
+  outline-offset: -4px;
+  box-shadow: none;
+}
+
+/* Match the stacked map's height, leaving room for the sheet's vertical margins. */
+@media (width < 1280px), (aspect-ratio < 4/3) {
+  html[data-obo-skin="peach"] [data-slot="filter-sheet"] {
+    max-height: calc(66vh - 96px);
+  }
+}
+
+/* Category identity stays familiar; tones and paper match the palette. */
+html[data-obo-skin="peach"] :is([data-category="water"], [data-category="weather"]) {
+  --category-ink: var(--peach-category-water-ink);
+  --category-paper: var(--peach-category-water-paper);
+}
+
+html[data-obo-skin="peach"] [data-category="electricity"] {
+  --category-ink: var(--peach-category-electricity-ink);
+  --category-paper: var(--peach-category-electricity-paper);
+}
+
+html[data-obo-skin="peach"] :is([data-category="heating"], [data-category="traffic"], [data-category="health"]) {
+  --category-ink: var(--peach-category-heating-ink);
+  --category-paper: var(--peach-category-heating-paper);
+}
+
+html[data-obo-skin="peach"] :is([data-category="road-block"], [data-category="construction-and-repairs"]) {
+  --category-ink: var(--peach-category-construction-ink);
+  --category-paper: var(--peach-category-construction-paper);
+}
+
+html[data-obo-skin="peach"] :is([data-category="public-transport"], [data-category="vehicles"]) {
+  --category-ink: var(--peach-category-transport-ink);
+  --category-paper: var(--peach-category-transport-paper);
+}
+
+html[data-obo-skin="peach"] [data-category="parking"] {
+  --category-ink: var(--peach-category-parking-ink);
+  --category-paper: var(--peach-category-parking-paper);
+}
+
+html[data-obo-skin="peach"] :is([data-category="waste"], [data-category="bicycles"], [data-category="sports"]) {
+  --category-ink: var(--peach-category-waste-ink);
+  --category-paper: var(--peach-category-waste-paper);
+}
+
+html[data-obo-skin="peach"] [data-category="air-quality"] {
+  --category-ink: var(--peach-category-air-ink);
+  --category-paper: var(--peach-category-air-paper);
+}
+
+html[data-obo-skin="peach"] :is([data-category="culture"], [data-category="art"]) {
+  --category-ink: var(--peach-category-culture-ink);
+  --category-paper: var(--peach-category-culture-paper);
+}
+
+html[data-obo-skin="peach"] [data-category="uncategorized"] {
+  --category-ink: var(--peach-category-neutral-ink);
+  --category-paper: var(--peach-category-neutral-paper);
+}
+
+html[data-obo-skin="peach"] [data-category-filter][aria-pressed="true"] {
+  background-color: var(--category-paper);
+}
+
+/* A visible paper tint and ink underline reinforce each filter's hit area. */
+html[data-obo-skin="peach"] [data-slot="filter-sheet"] :is(
+  [data-slot="filter-row"],
+  [data-slot="filter-section-trigger"]
+) {
+  --filter-row-ink: var(--category-ink, var(--peach-action));
+  transition: background-color 140ms ease-out;
+}
+
+html[data-obo-skin="peach"] [data-slot="filter-sheet"] [data-slot="filter-label"] {
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 140ms ease-out;
+}
+
+html[data-obo-skin="peach"] [data-slot="filter-sheet"] [data-slot="filter-row"][aria-pressed="true"]:not([data-category]) {
+  background-color: var(--peach-selected);
+}
+
+html[data-obo-skin="peach"] [data-slot="filter-sheet"] :is(
+  [data-slot="filter-row"],
+  [data-slot="filter-section-trigger"]
+):focus-visible {
+  outline-offset: -3px;
+  box-shadow: none;
+}
+
+html[data-obo-skin="peach"] [data-slot="filter-sheet"] :is(
+  [data-slot="filter-row"],
+  [data-slot="filter-section-trigger"]
+):is(:focus-visible, :active) [data-slot="filter-label"] {
+  text-decoration-color: var(--filter-row-ink);
+}
+
+html[data-obo-skin="peach"] [data-slot="filter-sheet"] :is(
+  [data-slot="filter-row"],
+  [data-slot="filter-section-trigger"]
+):active {
+  background-color: var(--peach-accent);
+}
+
+html[data-obo-skin="peach"] [data-category-icon] > svg {
+  stroke-width: 2.15px;
+}
+
+/* Vary the highlight, keeping labels, icons, focus and hit areas level. */
+html[data-obo-skin="peach"] [data-category-chip] {
+  --category-chip-border: transparent;
+  --category-icon-paper: transparent;
+  --category-tilt: -0.65deg;
+  --category-shape: 5px 9px 4px 8px;
+  position: relative;
+  isolation: isolate;
+  border-radius: 5px;
+  background-color: transparent;
+}
+
+html[data-obo-skin="peach"] [data-category-chip]:nth-child(3n + 2) {
+  --category-tilt: 0.7deg;
+  --category-shape: 8px 4px 9px 5px;
+}
+
+html[data-obo-skin="peach"] [data-category-chip]:nth-child(3n) {
+  --category-tilt: -0.3deg;
+  --category-shape: 4px 8px 6px 10px;
+}
+
+html[data-obo-skin="peach"] [data-category-chip]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 2px 0;
+  border-radius: var(--category-shape);
+  background-color: var(--category-paper);
+  box-shadow: 0 1px 0 var(--category-ink);
+  transform: rotate(var(--category-tilt));
+  pointer-events: none;
+}
+
+html[data-obo-skin="peach"] [data-category-chip]:focus-visible {
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
+html[data-obo-skin="peach"] :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--peach-action);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--peach-panel);
+}
+
+html[data-obo-skin="peach"] :is(button, a)[data-surface="card"]:focus-visible {
+  border-color: var(--peach-action);
+  box-shadow: 0 0 0 2px var(--peach-panel), 3px 3px 0 var(--peach-action);
+}
+
+html[data-obo-skin="peach"] div[data-surface="card"] > button[aria-expanded]:focus-visible {
+  outline-offset: -4px;
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  html[data-obo-skin="peach"] [data-slot="filter-sheet"] :is(
+    [data-slot="filter-row"],
+    [data-slot="filter-section-trigger"]
+  ):hover:not(:active):not([aria-pressed="true"]) {
+    background-color: var(--peach-filter-hover);
+  }
+
+  html[data-obo-skin="peach"] [data-slot="filter-sheet"] :is(
+    [data-slot="filter-row"],
+    [data-slot="filter-section-trigger"]
+  ):hover [data-slot="filter-label"] {
+    text-decoration-color: var(--filter-row-ink);
+  }
+
+  html[data-obo-skin="peach"] :is(button, a).bg-neutral-light.text-neutral:hover:not(:active):not(:disabled) {
+    background-color: var(--peach-secondary-hover);
+  }
+
+  html[data-obo-skin="peach"] :is(button, a).bg-primary:not([data-slot="filter-tab"]):hover:not(:active):not(:disabled):not([aria-disabled="true"]) {
+    background-color: var(--peach-hover);
+    box-shadow: 3px 3px 0 var(--peach-ink);
+  }
+
+  html[data-obo-skin="peach"] [data-slot="filter-tab"]:hover:not(:active) {
+    background-color: var(--peach-hover);
+  }
+
+  html[data-obo-skin="peach"] :is(button, a)[data-surface="card"]:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--peach-action);
+    background-color: var(--peach-card-hover);
+    box-shadow: 2px 2px 0 var(--peach-divider);
+  }
+
+  html[data-obo-skin="peach"] div[data-surface="card"] > button[aria-expanded]:hover {
+    background-color: var(--peach-selected);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-obo-skin="peach"] :is(button, a).bg-primary,
+  html[data-obo-skin="peach"] :is(button, a).bg-neutral-light.text-neutral,
+  html[data-obo-skin="peach"] [data-slot="filter-assembly"],
+  html[data-obo-skin="peach"] [data-slot="filter-tab"],
+  html[data-obo-skin="peach"] [data-slot="filter-sheet"] :is(
+    [data-slot="filter-row"],
+    [data-slot="filter-section-trigger"],
+    [data-slot="filter-label"]
+  ),
+  html[data-obo-skin="peach"] :is(button, a)[data-surface="card"] {
+    transition: none;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  html[data-obo-skin="peach"] :is(button, a):is(
+    [class~="px-4"][class~="py-2"][class~="text-sm"],
+    [class~="px-3"][class~="py-1.5"][class~="text-sm"],
+    [class~="px-6"][class~="py-4"][class~="text-base"]
+  ) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  html[data-obo-skin="peach"] [data-slot="segmented-control"] {
+    --peach-segment-size: 44px;
+  }
+
+  html[data-obo-skin="peach"] [data-slot="filter-tab"] {
+    width: 50px;
+  }
+}
+
+@media (forced-colors: active) {
+  html[data-obo-skin="peach"] :is(button, a).bg-primary,
+  html[data-obo-skin="peach"] [data-surface="card"] {
+    border-color: ButtonText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+  }
+
+  html[data-obo-skin="peach"] nav.bg-nav-bg,
+  html[data-obo-skin="peach"] main [class~="@container"] {
+    background-image: none;
+  }
+
+  html[data-obo-skin="peach"] :is(button, a, input, select, textarea, summary):focus-visible {
+    outline-color: Highlight;
+    box-shadow: none;
+  }
+
+  html[data-obo-skin="peach"] [data-category] {
+    --category-ink: CanvasText;
+    --category-paper: Canvas;
+  }
+
+  html[data-obo-skin="peach"] [data-category-chip]::before {
+    border: 1px solid ButtonText;
+    box-shadow: none;
+  }
+
+  html[data-obo-skin="peach"] [data-slot="filter-assembly"] {
+    filter: none;
+  }
+
+  html[data-obo-skin="peach"] :is([data-slot="filter-sheet"], [data-slot="filter-tab"]) {
+    border-color: ButtonText;
+    background-color: Canvas;
+    color: CanvasText;
+  }
+
+  html[data-obo-skin="peach"] [data-slot="brand-logo"]::before {
+    background: Canvas;
+  }
+
+  html[data-obo-skin="peach"] [data-slot="filter-sheet"] :is(
+    [data-slot="filter-row"],
+    [data-slot="filter-section-trigger"]
+  ) {
+    --filter-row-ink: ButtonText;
+  }
+}

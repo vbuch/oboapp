@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import Script from "next/script";
 import "./globals.css";
+import "./peach.css";
 import ClientLayout from "@/components/ClientLayout";
+import { peachColors } from "@/lib/colors";
 import {
   APP_NAME,
   METADATA_ICON_LINKS,
@@ -14,10 +17,11 @@ import { hasReportPagesEnabled } from "@/lib/report-pages";
 const description = getConfiguredLocalityDescription();
 
 const rawBaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-if (!rawBaseUrl)
+if (!rawBaseUrl) {
   throw new Error(
-    "NEXT_PUBLIC_BASE_URL is required — set an absolute http/https URL (e.g. https://example.com) in web/.env.local",
+    "NEXT_PUBLIC_BASE_URL is required. Set an absolute http/https URL (e.g. https://example.com) in web/.env.local",
   );
+}
 
 export const metadata: Metadata = {
   title: APP_NAME,
@@ -58,9 +62,19 @@ export default function RootLayout({
 }>) {
   const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
   const showHistoryReportLink = hasReportPagesEnabled();
+  const themeStyle: CSSProperties &
+    Record<`--peach-${string}`, string> = {};
+
+  for (const [token, value] of Object.entries(peachColors)) {
+    themeStyle[`--peach-${token}`] = value;
+  }
 
   return (
-    <html lang="bg">
+    <html
+      lang="bg"
+      data-obo-skin="peach"
+      style={themeStyle}
+    >
       <head>
         {/* Preconnect to Google Maps domains for faster LCP */}
         <link rel="preconnect" href="https://maps.googleapis.com" />

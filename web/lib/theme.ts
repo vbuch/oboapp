@@ -8,10 +8,9 @@ import { borderRadius } from "./colors";
 /**
  * Button style variants using Tailwind theme colors
  *
- * Colors are defined in globals.css @theme inline and sourced from colors.ts:
- * - Primary buttons: colors.primary.blueDark (#2C3E50) - consistent with header background
- * - Destructive buttons: colors.primary.red (#E74C3C) and redDark - for destructive actions
- * - Secondary/Warning: Standard Tailwind grays and yellows for neutral states
+ * Tailwind color utilities are defined in globals.css. The peach skin binds
+ * those semantic tokens to the palette in colors.ts and styles filled actions,
+ * focus rings and interaction states consistently across existing controls.
  */
 export const buttonStyles = {
   /** Primary action button - uses theme primary color */

@@ -141,7 +141,10 @@ export default function EventAccordion({ event }: EventAccordionProps) {
   const timespan = formatTimespan(event.timespanStart, event.timespanEnd);
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-neutral-border overflow-hidden">
+    <div
+      data-surface="card"
+      className="bg-white rounded-lg shadow-md border border-neutral-border overflow-hidden"
+    >
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

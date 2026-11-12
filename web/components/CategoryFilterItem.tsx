@@ -32,6 +32,9 @@ export default function CategoryFilterItem({
     <button
       type="button"
       onClick={onChange}
+      data-category={category}
+      data-category-filter
+      data-slot="filter-row"
       aria-pressed={checked}
       className={`w-full flex items-center gap-3 py-2 px-3 rounded-md cursor-pointer transition-colors ${
         checked ? "bg-neutral-light hover:bg-neutral-border" : "bg-transparent hover:bg-neutral-light"
@@ -39,11 +42,18 @@ export default function CategoryFilterItem({
       style={{
         borderWidth: "1px",
         borderStyle: "solid",
-        borderColor: checked ? style.color : "transparent",
+        borderColor: checked
+          ? `var(--category-ink, ${style.color})`
+          : "transparent",
       }}
     >
       <CategoryIcon category={category} size={20} showBackground={checked} />
-      <span className="flex-1 text-left text-sm text-foreground">{label}</span>
+      <span
+        data-slot="filter-label"
+        className="flex-1 text-left text-sm text-foreground"
+      >
+        {label}
+      </span>
       {count !== undefined && (
         <span
           className={`text-xs px-2 py-0.5 rounded-full ${
@@ -56,7 +66,11 @@ export default function CategoryFilterItem({
         </span>
       )}
       {checked && (
-        <Check size={18} strokeWidth={2.5} style={{ color: style.color }} />
+        <Check
+          size={18}
+          strokeWidth={2.5}
+          style={{ color: `var(--category-ink, ${style.color})` }}
+        />
       )}
     </button>
   );
