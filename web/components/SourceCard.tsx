@@ -17,6 +17,7 @@ export default function SourceCard({ source }: SourceCardProps) {
   return (
     <Link
       href={`/sources/${source.id}`}
+      data-surface="card"
       className="block bg-white rounded-lg shadow-md p-6 border border-neutral-border hover:shadow-lg transition-shadow"
       onClick={() => {
         trackEvent({
@@ -35,7 +36,7 @@ export default function SourceCard({ source }: SourceCardProps) {
           {logoError ? (
             <div className="w-32 h-32 bg-neutral-light rounded-lg flex items-center justify-center">
               <svg
-                className="w-16 h-16 text-gray-400"
+                className="w-16 h-16 text-neutral"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

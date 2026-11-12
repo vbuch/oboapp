@@ -29,13 +29,18 @@ export default function Accordion({
     <div className="border-b border-neutral-border last:border-b-0">
       <button
         type="button"
+        data-slot="filter-section-trigger"
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full flex items-center justify-between py-3 px-4 hover:bg-neutral-light/50 transition-colors cursor-pointer ${borderRadius.md}`}
         aria-expanded={isOpen}
         aria-controls={contentId}
       >
         <div className="flex items-center gap-2">
-          <span id={titleId} className="text-sm font-medium text-neutral-dark">
+          <span
+            id={titleId}
+            data-slot="filter-label"
+            className="text-sm font-medium text-neutral-dark"
+          >
             {title}
           </span>
           {/* Red dot indicator when accordion is closed and has active filters */}

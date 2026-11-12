@@ -18,7 +18,10 @@ export default function MDXLayout({ children }: MDXLayoutProps) {
             <span>Начало</span>
           </Link>
         </div>
-        <article className="bg-white rounded-lg shadow-md p-6 md:p-8 border border-neutral-border prose prose-gray max-w-none">
+        <article
+          data-surface="card"
+          className="bg-white rounded-lg shadow-md p-6 md:p-8 border border-neutral-border prose prose-gray max-w-none"
+        >
           {children}
         </article>
       </div>

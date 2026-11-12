@@ -8,21 +8,23 @@ export default function SplashScreen() {
   const [logoError, setLogoError] = useState(false);
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-header-bg">
+    <div className="flex-1 flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         {!logoError && (
-          <div className="animate-pulse">
+          <div className="motion-safe:animate-pulse">
             <Image
-              src="/logo.png"
+              src="/logo.svg"
               alt={APP_NAME}
               width={120}
               height={120}
-              onError={() => setLogoError(true)}
+              onError={() => {
+                setLogoError(true);
+              }}
               priority
             />
           </div>
         )}
-        <p className="text-white text-lg">Зареждане...</p>
+        <p className="text-foreground text-lg">Зареждане...</p>
       </div>
     </div>
   );

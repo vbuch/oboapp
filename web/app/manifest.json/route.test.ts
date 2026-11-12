@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GET } from "./route";
-import { colors } from "@/lib/colors";
+import { peachColors } from "@/lib/colors";
 import { LOCALITY_ENV_ERROR_MESSAGE } from "@/lib/locality-metadata";
 
 vi.mock("@oboapp/shared", () => ({
@@ -37,8 +37,8 @@ describe("GET /manifest.json", () => {
     expect(data.description).toBe("Следи събитията в София");
     expect(data.start_url).toBe("/");
     expect(data.display).toBe("standalone");
-    expect(data.theme_color).toBe(colors.primary.blueDark);
-    expect(data.background_color).toBe(colors.ui.footerBg);
+    expect(data.theme_color).toBe(peachColors.panel);
+    expect(data.background_color).toBe(peachColors.background);
     expect(Array.isArray(data.icons)).toBe(true);
     expect(data.icons.length).toBeGreaterThan(0);
   });

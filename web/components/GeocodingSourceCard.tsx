@@ -15,7 +15,10 @@ export default function GeocodingSourceCard({
   const displayUrl = extractHostname(source.url);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-neutral-border hover:shadow-lg transition-shadow">
+    <div
+      data-surface="card"
+      className="bg-white rounded-lg shadow-md p-6 border border-neutral-border"
+    >
       <div className="flex flex-col items-center text-center space-y-4">
         {/* Name */}
         <h3 className="text-lg font-semibold text-foreground">{source.name}</h3>

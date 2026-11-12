@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useId, useRef, useMemo } from "react";
 import FilterIcon from "@/components/icons/FilterIcon";
 import CategoryFilterItem from "@/components/CategoryFilterItem";
 import SourceFilterItem from "@/components/SourceFilterItem";
@@ -92,6 +92,7 @@ export default function FilterBox({
   onClearAllFilters,
 }: FilterBoxProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const panelId = useId();
 
   // Horizontal drag to open/close functionality
   const { isActuallyDragging, dragOffset, handlers } = useDragPanel({
@@ -142,12 +143,17 @@ export default function FilterBox({
 
       {/* Filter Container - Box and Handle together */}
       <div
+        data-slot="filter-assembly"
+        data-open={isOpen}
+        data-dragging={isActuallyDragging}
         className={`absolute left-0 top-1/2 ${zIndex.overlayContent} transition-transform duration-300`}
         style={transformStyle}
       >
         {/* Filter Panel */}
         <div
+          id={panelId}
           ref={panelRef}
+          data-slot="filter-sheet"
           className="relative w-[320px] max-h-[calc(100vh-80px-2rem)] [@media(min-width:1280px)_and_(min-aspect-ratio:4/3)]:max-h-[450px] my-4 bg-white shadow-2xl rounded-r-lg flex flex-col"
         >
           {/* Filter Lists - Only show when loaded */}
@@ -248,6 +254,9 @@ export default function FilterBox({
         {/* Handle */}
         <button
           type="button"
+          data-slot="filter-tab"
+          aria-controls={panelId}
+          aria-expanded={isOpen}
           onClick={onTogglePanel}
           {...handlers}
           className={[

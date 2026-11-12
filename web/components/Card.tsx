@@ -29,6 +29,7 @@ export default function Card({
   if (onClick) {
     return (
       <button
+        data-surface="card"
         onClick={onClick}
         className={`${combinedClasses} w-full text-left`}
         type="button"
@@ -38,5 +39,9 @@ export default function Card({
     );
   }
 
-  return <div className={combinedClasses}>{children}</div>;
+  return (
+    <div data-surface="card" className={combinedClasses}>
+      {children}
+    </div>
+  );
 }

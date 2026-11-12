@@ -27,42 +27,44 @@ export default function Header() {
 
   return (
     <>
-      {/* Top Header - Dark Blue */}
+      {/* Top Header */}
       <header
         className={`bg-header-bg text-white relative ${zIndex.nav} shadow-md`}
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           {/* Main Header with Logo */}
           <div className="flex items-center justify-between py-2 sm:py-1">
-            {/* Left side - Logo and Title */}
-            <div className="flex items-center gap-2 sm:gap-4">
-              {/* Logo - overlapping content below */}
-              <Link
-                href="/"
-                className="flex-shrink-0 relative sm:-mb-10 md:-mb-12 cursor-pointer hover:opacity-90 transition-opacity"
+            <Link
+              href="/"
+              aria-label={`${APP_NAME}, начална страница`}
+              className="flex items-center gap-2 sm:gap-4 cursor-pointer hover:opacity-90 transition-opacity"
+            >
+              {!logoError && (
+                <div
+                  data-slot="brand-logo"
+                  className="relative isolate inline-flex h-9 w-9 shrink-0 items-center justify-center sm:h-10 sm:w-10"
+                >
+                  <Image
+                    data-slot="brand-mark"
+                    src="/logo.svg"
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="relative h-9 w-9 object-contain sm:h-10 sm:w-10"
+                    onError={() => {
+                      setLogoError(true);
+                    }}
+                    priority
+                  />
+                </div>
+              )}
+              <h1
+                className="text-sm sm:text-base md:text-lg font-bold"
+                translate="no"
               >
-                {logoError ? null : (
-                  <div
-                    className={`inline-block bg-white rounded-lg p-1 shadow-md relative ${zIndex.overlay}`}
-                  >
-                    <Image
-                      src="/logo.png"
-                      alt={APP_NAME}
-                      width={96}
-                      height={96}
-                      className="h-9 sm:h-16 md:h-20 w-auto object-contain"
-                      onError={() => setLogoError(true)}
-                      priority
-                    />
-                  </div>
-                )}
-              </Link>
-              <div>
-                <h1 className="text-sm sm:text-base md:text-lg font-bold" translate="no">
-                  {APP_NAME}
-                </h1>
-              </div>
-            </div>
+                {APP_NAME}
+              </h1>
+            </Link>
 
             {/* Right side - User Info */}
             <div className="flex items-center gap-4">
@@ -96,7 +98,7 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Navigation Bar - Light Blue */}
+      {/* Navigation Bar */}
       <nav className="bg-nav-bg hidden sm:block">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex gap-6 py-3 items-center">

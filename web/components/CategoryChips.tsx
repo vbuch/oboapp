@@ -25,7 +25,9 @@ export default function CategoryChips({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     const updateScrollState = () => {
       const nextOverflow = container.scrollWidth > container.clientWidth;
@@ -73,15 +75,19 @@ export default function CategoryChips({
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {categories.map((category) => {
-          if (!isCategory(category)) return null;
+          if (!isCategory(category)) {
+            return null;
+          }
 
           return (
             <button
               type="button"
               key={category}
+              data-category={category}
+              data-category-chip
               className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-normal rounded-full border bg-white whitespace-nowrap"
               style={{
-                borderColor: getCategoryColor(category),
+                borderColor: `var(--category-chip-border, ${getCategoryColor(category)})`,
                 color: "inherit",
               }}
               onClick={(event) => {

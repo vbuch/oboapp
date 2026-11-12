@@ -25,7 +25,10 @@ export default function ReportPageUnavailable({
             <span>{backLabel}</span>
           </Link>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-6 border border-neutral-border">
+        <div
+          data-surface="card"
+          className="bg-white rounded-lg shadow-md p-6 border border-neutral-border"
+        >
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
             {title}
           </h1>

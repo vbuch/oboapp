@@ -23,12 +23,20 @@ export default function CategoryIcon({
 
   return (
     <div
+      data-category={category}
+      data-category-icon
       className={`inline-flex items-center justify-center rounded-full p-1 ${className}`}
       style={{
-        backgroundColor: showBackground ? style.bgColor : "transparent",
+        backgroundColor: showBackground
+          ? `var(--category-icon-paper, var(--category-paper, ${style.bgColor}))`
+          : "transparent",
       }}
     >
-      <Icon size={size} strokeWidth={2} style={{ color: style.color }} />
+      <Icon
+        size={size}
+        strokeWidth={2}
+        style={{ color: `var(--category-ink, ${style.color})` }}
+      />
     </div>
   );
 }

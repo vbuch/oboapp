@@ -119,7 +119,10 @@ function SourcePageContent() {
         </div>
 
         {/* Source header */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-neutral-border">
+        <div
+          data-surface="card"
+          className="bg-white rounded-lg shadow-md p-6 mb-8 border border-neutral-border"
+        >
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Logo */}
             <div className="flex-shrink-0">
