@@ -213,15 +213,36 @@ function buildOpenApiSpec(): OpenAPIObject {
   registry.registerPath({
     method: "get",
     path: "/v1/sources/{sourceId}/incidents",
-    description: "Complete current Toplo listing, including accidents and repairs, with first recorded estimates. Listing presence does not confirm uninterrupted disruption. Missing dates and first observations are null. Legacy count-only snapshots return 503 until a complete capture is available.",
+    description: [
+      "Complete Toplo listing, including accidents and repairs, with separate first-record baselines.",
+      "Without date, returns the latest listing in its recorded order.",
+      "With date, returns the last successful complete capture from that Europe/Sofia calendar day, preserving its actual observedAt and all recorded incident fields.",
+      "Dated listings are ordered by reportedStart ascending across both types, missing starts last, then Bulgarian name (Intl.Collator with locale bg and default options), then stable id in binary lexicographic order. Consumers can calculate one-based positions from this complete array.",
+      "Today's selected capture can change after later successful checks. Daily samples can omit intraday revisions; full observations remain retained until explicitly deleted.",
+      "The deployed Sofia instance's earliest retained detailed capture is 2026-11-11T15:55:42.543Z (Sofia date 2026-11-11), verified on 2026-11-13. Other deployments start at their own first successful detailed capture. Imported aggregate daily counts and earlier first-record baselines do not provide detailed captures.",
+      "Missing detailed history and legacy count-only captures return a 503 gap without falling back to another day. Verified empty detailed captures return count 0 and incidents [].",
+      "Listing presence does not confirm continuous loss of service, and disappearance does not confirm restoration. Missing dates and first observations are null.",
+    ].join(" "),
     security: [{ ApiKeyAuth: [] }],
     request: {
       params: z.object({ sourceId: z.string().min(1) }),
+      query: z.object({
+        date: z.iso.date().optional().openapi({
+          description:
+            "One real Gregorian calendar date in YYYY-MM-DD format, from 0001-01-01 through today's Europe/Sofia date inclusive. Future dates, year 0000, invalid dates and repeated date parameters return 400. Omit for the latest listing.",
+          example: "2026-11-12",
+        }),
+      }),
     },
     responses: {
       200: {
-        description: "Latest complete incident listing, including a verified empty list",
+        description:
+          "Selected complete incident listing with count and actual observedAt from the same capture, including a verified empty list",
         content: { "application/json": { schema: sourceIncidentsResponse } },
+      },
+      400: {
+        description: "Invalid, out-of-bounds or repeated date query parameter",
+        content: { "application/json": { schema: errorResponse } },
       },
       401: {
         description: "Invalid or missing API key",
@@ -237,7 +258,8 @@ function buildOpenApiSpec(): OpenAPIObject {
         headers: { "Retry-After": retryAfterHeader },
       },
       503: {
-        description: "No complete incident listing has been captured yet",
+        description:
+          "Detailed-history gap: no capture exists for the requested day, or the selected capture has only a legacy count. Without date, no complete latest listing is available.",
         content: { "application/json": { schema: errorResponse } },
       },
       500: {

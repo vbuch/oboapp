@@ -31,7 +31,7 @@ If `PUBLIC_API_HOST` is not set, web still starts, but `/api/v1/*` requests fail
 | `GET`  | `/v1/sources`                   | List all data sources                                               |
 | `GET`  | `/v1/sources/:sourceId/snapshot` | Latest successful complete listing count for a source                |
 | `GET`  | `/v1/sources/:sourceId/timeline` | Current count, daily closing history, and yesterday comparison       |
-| `GET`  | `/v1/sources/:sourceId/incidents` | Complete current Toplo listing and first recorded estimates         |
+| `GET`  | `/v1/sources/:sourceId/incidents` | Complete latest or dated Toplo listing and first recorded estimates  |
 | `GET`  | `/v1/messages`                  | Fetch messages filtered by geographic bounds and optional categories |
 | `GET`  | `/v1/messages/by-id`            | Fetch a single message by ID                                         |
 | `GET`  | `/v1/openapi`                   | OpenAPI 3.0 specification (no key required)                           |
@@ -92,13 +92,25 @@ Use each point's `observedAt` for the actual source-check time. It can be earlie
 
 The endpoint requires the same API key as the other data endpoints. Keep that key in server configuration or a GitHub Actions secret. For a counter hosted on GitHub Pages, a workflow can fetch the snapshot and publish a public `snapshot.json` alongside the HTML. The page reads that file and displays the original `observedAt` time. The API response uses `Cache-Control: private, max-age=60`.
 
-## Current Incident List
+## Incident Listings and Daily Samples
 
 `GET /v1/sources/toplo-bg/incidents` returns every accident and repair from the
 latest complete listing capture. Its `count` and `observedAt` belong to the same
 capture as the returned `incidents` array. The source check runs before geometry
 validation and message deduplication, so existing entries and entries without
 usable map data remain in the list.
+
+Add `?date=2026-11-12` to select the last successful complete capture from that
+`Europe/Sofia` calendar day. The day runs from local midnight inclusive to the
+next local midnight exclusive, including daylight-saving changes. The original
+`observedAt` remains the actual check time. Today's selected capture can change
+as later successful checks arrive.
+
+`date` accepts exactly one real Gregorian calendar date in `YYYY-MM-DD` format,
+from `0001-01-01` through today's Sofia date inclusive. Invalid dates, year
+`0000`, future dates, empty values and repeated `date` parameters return `400`.
+Valid dates with no detailed capture return the gap response described below.
+Omitting `date` preserves the latest-listing response and its recorded order.
 
 ```json
 {
@@ -138,18 +150,43 @@ where the crawler substituted the start date. These fields describe the first
 estimate OboApp captured, which may be later than the original announcement.
 They support a net deadline-extension comparison; they cannot reconstruct
 intermediate revisions made before per-incident snapshots were enabled.
+The same baseline fields accompany dated listings. They remain separate from
+the selected capture and can refer to a different observation date.
+
+Dated listings use oldest `reportedStart` first across accidents and repairs,
+with missing starts last. Equal starts are ordered by Bulgarian name using
+`Intl.Collator("bg")` with default options, then by stable `id` in binary
+lexicographic order. Consumers can calculate one-based positions from the full
+array and use `count` as the total. This order describes published list age;
+the provider's repair priority is unknown.
 
 Age is based on the reported start. Start dates and affected addresses can
 change under the same source ID. Listing presence therefore identifies a
 currently published record and does not establish continuous loss of service.
 Passing an estimated end does not remove an entry from this endpoint.
+Disappearance from a later complete listing does not confirm restoration.
 
-A verified empty listing returns `count: 0` and `incidents: []`. No detailed
-capture, including a legacy count-only snapshot, returns `503`. Unsupported
-sources and localities return `404`; corrupt data and storage failures return
-`500`. Authentication, rate limits, usage tracking, and the private 60-second
-cache policy match the other source endpoints. Existing snapshot and timeline
-responses continue to return counts only.
+For the deployed Sofia instance, the earliest retained detailed capture is
+`2026-11-11T15:55:42.543Z`, on 11 November 2026 in Sofia. This was verified on
+13 November 2026. Other deployments begin with their own first successful
+capture that includes incident details; older `first*` baselines do not extend
+that coverage. The imported closing counts for 11 October through 9 November
+2026 contain aggregate totals only and cannot supply historical incident lists.
+Detailed captures remain stored until explicitly deleted, and missing dates
+remain gaps. This endpoint selects one daily sample. All successful observations
+remain retained, including intraday deadline revisions that daily samples can
+omit; those full observations are outside this endpoint's daily response.
+
+A verified empty detailed capture returns `200`, `count: 0` and `incidents: []`.
+A missing capture or a legacy count-only capture returns `503` with
+`{"error":"No complete incident listing is available for the requested date"}`
+when `date` is supplied. The endpoint never fills that gap from another day or
+from aggregate counts. Without `date`, unavailable details retain the existing
+`503` response with `No complete incident listing is available yet`.
+Unsupported sources and localities return `404`; corrupt data and storage
+failures return `500`. Authentication, rate limits, usage tracking, and the
+private 60-second cache policy match the other source endpoints. Existing
+snapshot and timeline responses continue to return counts only.
 
 ## Authentication
 
