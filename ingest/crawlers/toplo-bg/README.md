@@ -18,11 +18,14 @@ identity when the source provides no name. Every successful crawl captures
 changed fields even when the create-only source record has already been saved.
 The captures are kept independently of the historical ingestion documents.
 
-The incident API at `GET /v1/sources/toplo-bg/incidents` joins current entries to
-their first saved source records by URL. It exposes first captured estimates
-for deadline comparisons. Legacy count-only observations remain readable; the
-incident API returns unavailable until the first detailed capture. The nightly
-daily records and the existing count APIs retain their compact count-only shape.
+The incident API at `GET /v1/sources/toplo-bg/incidents` returns the latest
+listing, or a selected Sofia day's last complete capture with `?date=YYYY-MM-DD`.
+It joins entries to their first saved source records by URL for separate
+baseline estimates. Legacy count-only observations remain readable by the
+count APIs and produce gaps in detailed history. See the
+[public API contract](../../../docs/features/public-api.md#incident-listings-and-daily-samples)
+for date bounds, ordering, coverage, and gap responses. The nightly daily
+records and the existing count APIs retain their compact count-only shape.
 
 Before publishing a count, the crawler checks the expected page structure and
 verifies that embedded incident metadata matches the visible list. A complete

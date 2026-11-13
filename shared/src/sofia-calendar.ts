@@ -20,6 +20,7 @@ export function validateCalendarDate(value: string): string {
   const date = new Date(`${value}T00:00:00.000Z`);
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+    value.startsWith("0000-") ||
     Number.isNaN(date.getTime()) ||
     date.toISOString().slice(0, 10) !== value
   ) {
@@ -30,8 +31,11 @@ export function validateCalendarDate(value: string): string {
 
 export function getSofiaDateKey(date: Date): string {
   const parts = dateFormatter.formatToParts(date);
-  const fields = new Map(parts.map((part) => [part.type, part.value]));
-  return `${fields.get("year")}-${fields.get("month")}-${fields.get("day")}`;
+  const fields = new Map(parts.map((part) => {
+    return [part.type, part.value];
+  }));
+  const year = fields.get("year")?.padStart(4, "0");
+  return `${year}-${fields.get("month")}-${fields.get("day")}`;
 }
 
 export function shiftCalendarDate(date: string, days: number): string {
@@ -51,15 +55,19 @@ function sofiaMidnight(date: string): string {
         return [part.type, part.value];
       }),
     );
-    const represented = Date.UTC(
+    const represented = new Date(0);
+    represented.setUTCFullYear(
       Number(fields.get("year")),
       Number(fields.get("month")) - 1,
       Number(fields.get("day")),
+    );
+    represented.setUTCHours(
       Number(fields.get("hour")),
       Number(fields.get("minute")),
       Number(fields.get("second")),
+      0,
     );
-    candidate += target - represented;
+    candidate += target - represented.getTime();
   }
 
   return new Date(candidate).toISOString();

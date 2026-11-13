@@ -1,5 +1,10 @@
 import { Hono } from "hono";
-import { SOURCES, type SourceIncident } from "@oboapp/shared";
+import {
+  SOURCES,
+  getSofiaDateKey,
+  validateCalendarDate,
+  type SourceIncident,
+} from "@oboapp/shared";
 import { getDb } from "../lib/db";
 import { getRequiredLocality, LOCALITY_ENV_ERROR_MESSAGE } from "../lib/locality";
 import { apiKeyAuth } from "../middleware/api-key";
@@ -8,6 +13,39 @@ import { usageMetrics } from "../middleware/usage-metrics";
 import { SourceIncidentsResponseSchema } from "../schema/response";
 
 export const sourceIncidentsRoute = new Hono();
+
+const incidentNameCollator = new Intl.Collator("bg");
+const invalidDateMessage =
+  "date must be a single valid calendar date in YYYY-MM-DD format between 0001-01-01 and today in Europe/Sofia";
+
+function isSupportedDate(date: string): boolean {
+  try {
+    validateCalendarDate(date);
+    return date <= getSofiaDateKey(new Date());
+  } catch {
+    return false;
+  }
+}
+
+function compareIncidents(first: SourceIncident, second: SourceIncident): number {
+  const firstStart = first.reportedStart
+    ? Date.parse(first.reportedStart)
+    : Number.POSITIVE_INFINITY;
+  const secondStart = second.reportedStart
+    ? Date.parse(second.reportedStart)
+    : Number.POSITIVE_INFINITY;
+  if (firstStart !== secondStart) {
+    return firstStart - secondStart;
+  }
+  const nameOrder = incidentNameCollator.compare(first.name, second.name);
+  if (nameOrder !== 0) {
+    return nameOrder;
+  }
+  if (first.id < second.id) {
+    return -1;
+  }
+  return first.id > second.id ? 1 : 0;
+}
 
 function dateOrNull(value: unknown): string | null {
   if (!(typeof value === "string" || value instanceof Date)) {
@@ -62,6 +100,12 @@ sourceIncidentsRoute.get(
   rateLimit,
   usageMetrics,
   async (c) => {
+    const dates = c.req.queries("date") ?? [];
+    const date = dates[0];
+    if (dates.length > 1 || (date !== undefined && !isSupportedDate(date))) {
+      return c.json({ error: invalidDateMessage }, 400);
+    }
+
     let locality: string;
     try {
       locality = getRequiredLocality();
@@ -76,10 +120,18 @@ sourceIncidentsRoute.get(
     }
     try {
       const db = await getDb();
-      const snapshot = await db.sourceSnapshots.findLatest(source.id, locality);
+      const snapshot = date === undefined
+        ? await db.sourceSnapshots.findLatest(source.id, locality)
+        : await db.sourceSnapshots.findLatestForDate(source.id, locality, date);
       if (!snapshot?.incidents) {
-        return c.json({ error: "No complete incident listing is available yet" }, 503);
+        const error = date === undefined
+          ? "No complete incident listing is available yet"
+          : "No complete incident listing is available for the requested date";
+        return c.json({ error }, 503);
       }
+      const incidents = date === undefined
+        ? snapshot.incidents
+        : [...snapshot.incidents].sort(compareIncidents);
       const records = await db.sources.findByUrls(snapshot.incidents.map((incident) => {
         return sourceUrl(incident.id);
       }));
@@ -90,7 +142,7 @@ sourceIncidentsRoute.get(
         sourceUrl: source.url,
         observedAt: snapshot.observedAt,
         count: snapshot.count,
-        incidents: snapshot.incidents.map((incident) => {
+        incidents: incidents.map((incident) => {
           return addFirstObservation(incident, firstByUrl.get(sourceUrl(incident.id)));
         }),
       });
