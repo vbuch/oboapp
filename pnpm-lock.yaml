@@ -200,6 +200,9 @@ importers:
       '@oboapp/source-so-slatina-org':
         specifier: 0.1.0
         version: 0.1.0
+      '@oboapp/source-sofiyska-voda':
+        specifier: 0.1.0
+        version: 0.1.0
       '@oboapp/source-sredec-sofia-org':
         specifier: 0.1.0
         version: 0.1.0
@@ -247,7 +250,7 @@ importers:
         version: 2.6.0
       js-yaml:
         specifier: ^4.1.1
-        version: 4.3.2
+        version: 4.1.1
       playwright:
         specifier: 1.61.1
         version: 1.61.1
@@ -2934,6 +2937,10 @@ packages:
   '@oboapp/source-so-slatina-org@0.1.0':
     resolution: {integrity: sha512-b8EyGZ1LeuHNbPPwa5O+vleojMWwL7qkro+ak1XVEsiBn9nw09YsNF2QnWpRKqXAQh4MlJcHWyYSBM5RhN/duw==}
     engines: {node: '>=20'}
+
+  '@oboapp/source-sofiyska-voda@0.1.0':
+    resolution: {integrity: sha512-BNKxX8xNPMcH3azEs4tQUd37900wLTW+iLRSEwnv46Ns1EaLlx7IKWv/OhFRvua6Q0y3QYxqR5oQSMoB6Ajm/g==}
+    engines: {node: '>=20.3.0'}
 
   '@oboapp/source-sredec-sofia-org@0.1.0':
     resolution: {integrity: sha512-FvmGkobqgEGTBl3mJKr2SS5UGk+eZgPAihOaoRXWfviYFm43cIMFzf03tlsRtwP9+zpeA2jLEaPpYv4haf/kBw==}
@@ -7873,6 +7880,10 @@ packages:
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
+  js-yaml@4.1.1:
+    resolution: {integrity: sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==}
+    hasBin: true
+
   js-yaml@4.3.2:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
     hasBin: true
@@ -11327,7 +11338,7 @@ snapshots:
       '@jsdevtools/ono': 7.1.3
       '@types/json-schema': 7.0.15
       call-me-maybe: 1.0.2
-      js-yaml: 4.3.2
+      js-yaml: 4.1.1
 
   '@asamuzakjp/css-color@5.0.1':
     dependencies:
@@ -14270,6 +14281,10 @@ snapshots:
       html-entities: 2.6.0
       playwright: 1.61.1
       turndown: 7.2.2
+
+  '@oboapp/source-sofiyska-voda@0.1.0':
+    dependencies:
+      '@oboapp/source-sdk': 0.1.1
 
   '@oboapp/source-sredec-sofia-org@0.1.0':
     dependencies:
@@ -18340,7 +18355,7 @@ snapshots:
     dependencies:
       env-paths: 2.2.1
       import-fresh: 3.3.1
-      js-yaml: 4.3.2
+      js-yaml: 4.1.1
       parse-json: 5.2.0
     optionalDependencies:
       typescript: 5.9.3
@@ -20801,6 +20816,10 @@ snapshots:
 
   js-tokens@4.0.0: {}
 
+  js-yaml@4.1.1:
+    dependencies:
+      argparse: 2.0.1
+
   js-yaml@4.3.2:
     dependencies:
       argparse: 2.0.1
@@ -22607,7 +22626,7 @@ snapshots:
       istextorbinary: 9.5.0
       jks-js: 1.1.5
       js-rouge: 3.2.0
-      js-yaml: 4.3.2
+      js-yaml: 4.1.1
       jsdom: 28.1.0
       keyv: 5.6.0
       keyv-file: 5.3.3
