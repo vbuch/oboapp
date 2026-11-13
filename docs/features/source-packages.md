@@ -2,6 +2,8 @@
 
 Tracking: [#586](https://github.com/oboapp/oboapp/issues/586). Published collectors and their provider documentation live in [oboapp/sources](https://github.com/oboapp/sources).
 
+Work on #586 starts in [vbuch/oboapp](https://github.com/vbuch/oboapp). Validate changes against this fork's selected sources, CI and production deployment before backporting generic changes to `oboapp/oboapp`. Preserve this instance's catalog, jobs and deployment settings during both steps.
+
 ## Current transition
 
 Each selected source uses either a published package or a remaining legacy crawler. Both collection paths save complete raw records for the same ingestion, event-matching and notification pipeline. Sources that supply GeoJSON keep their existing processing path.
@@ -42,7 +44,7 @@ The `crawl` and `pipeline` commands share a [runtime registry](../../ingest/sour
 
 The upstream demo selects a small source set. `ingest/source-package-policy.json` explicitly lists unselected packages retained in the development workspace for integration tests during the transition. Retained packages still require isolated valid metadata, exact versions and unique source IDs. Unexpected unselected dependencies and stale policy entries fail validation. Remove a package's retention entry when selecting its source or removing its dependency. An absent or empty policy enables strict selection for all installed source packages. Docker omits retained packages and their policy from both the builder installation and production workspace.
 
-The default Sofia job file matches the demo. The full Sofia template under `ingest/terraform/examples/` is inactive. Existing deployments must retain their own catalog and job selection when rebasing. See the [instance setup guide](../setup/new-locality-instance.md) for translating the full template and updating the retention policy before deployment.
+Upstream's default Sofia job file matches its three-source demo. This fork selects 22 sources and all 12 installed provider packages, with no development retention policy. The full Sofia template under `ingest/terraform/examples/` is inactive. Existing deployments must retain their own catalog and job selection when rebasing. See the [instance setup guide](../setup/new-locality-instance.md) for translating the full template and updating the retention policy before deployment.
 
 Check configuration without provider or database access:
 
