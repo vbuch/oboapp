@@ -44,7 +44,7 @@ The `crawl` and `pipeline` commands share a [runtime registry](../../ingest/sour
 
 The upstream demo selects a small source set. `ingest/source-package-policy.json` explicitly lists unselected packages retained in the development workspace for integration tests during the transition. Retained packages still require isolated valid metadata, exact versions and unique source IDs. Unexpected unselected dependencies and stale policy entries fail validation. Remove a package's retention entry when selecting its source or removing its dependency. An absent or empty policy enables strict selection for all installed source packages. Docker omits retained packages and their policy from both the builder installation and production workspace.
 
-Upstream's default Sofia job file matches its three-source demo. This fork selects 22 sources and all 12 installed provider packages, with no development retention policy. The full Sofia template under `ingest/terraform/examples/` is inactive. Existing deployments must retain their own catalog and job selection when rebasing. See the [instance setup guide](../setup/new-locality-instance.md) for translating the full template and updating the retention policy before deployment.
+Upstream's default Sofia job file matches its three-source demo. This fork selects 22 sources and all 13 installed provider packages, with no development retention policy. Nine selected collectors still use legacy implementations. The full Sofia template under `ingest/terraform/examples/` is inactive. Existing deployments must retain their own catalog and job selection when rebasing. See the [instance setup guide](../setup/new-locality-instance.md) for translating the full template and updating the retention policy before deployment.
 
 Check configuration without provider or database access:
 
@@ -96,7 +96,7 @@ Deployment of a minimal instance remains in [#610](https://github.com/oboapp/obo
 
 ## Verifying a minimal image
 
-The independent `Test Minimal Source Image` CI job creates a Docker context containing Triaditsa's packaged HTTP source, Sofiyska Voda's legacy HTTP source and shared helpers. Other crawler directories are absent. The context retains the development provider dependencies and records unselected packages in its retention policy, so the ordinary Dockerfile must remove them before the builder installation.
+The independent `Test Minimal Source Image` CI job creates a Docker context containing the packaged HTTP sources for Triaditsa and Sofiyska Voda, alongside shared helpers. Other crawler directories are absent. The context retains the development provider dependencies and records unselected packages in its retention policy, so the ordinary Dockerfile must remove them before the builder installation.
 
 To run the same check locally after workspace installation, use a new or empty fixture directory:
 
@@ -109,7 +109,7 @@ docker build --progress=plain -t oboapp-source-image:local -f tmp/source-image/i
 node ingest/dist/scripts/check-source-image.js oboapp-source-image:local
 ```
 
-The [fixture preparation command](../../ingest/scripts/prepare-source-image-fixture.ts) changes the copied catalog and deployment jobs while preserving the working checkout. The [builder verifier](../../ingest/scripts/check-source-builder-image.ts) checks the builder's manifests, physical pnpm store, selected implementations and absence of the retention policy. The [production image verifier](../../ingest/scripts/check-source-image.ts) checks that the final pnpm store contains only the source SDK and Triaditsa provider package, and that compiled crawler directories contain the two selected sources and shared helpers. It also checks `USER node`, offline startup through the default command, pinned pnpm availability, selected CLI help and rejection of an unselected source.
+The [fixture preparation command](../../ingest/scripts/prepare-source-image-fixture.ts) changes the copied catalog and deployment jobs while preserving the working checkout. The [builder verifier](../../ingest/scripts/check-source-builder-image.ts) checks the builder's manifests, physical pnpm store, selected implementations and absence of the retention policy. The [production image verifier](../../ingest/scripts/check-source-image.ts) checks that the final pnpm store contains only the source SDK, Triaditsa and Sofiyska Voda packages, and that compiled crawler directories contain the two selected sources and shared helpers. It also checks `USER node`, offline startup through the default command, pinned pnpm availability, selected CLI help and rejection of an unselected source.
 
 Runtime checks use containers with networking disabled. They load selected entrypoints and run the HTTP-only browser check, verifying that database initialization and browser runtimes stay unloaded. Source collection is never invoked. The two-source Linux image has passed these checks locally. A minimal cloud deployment remains separate work.
 
