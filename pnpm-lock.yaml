@@ -174,6 +174,9 @@ importers:
       '@oboapp/shared':
         specifier: workspace:*
         version: link:../shared
+      '@oboapp/source-inspectorat-so-org':
+        specifier: 0.1.0
+        version: 0.1.0
       '@oboapp/source-lozenets-sofia-bg':
         specifier: 0.1.0
         version: 0.1.0
@@ -192,9 +195,15 @@ importers:
       '@oboapp/source-rayon-oborishte-bg':
         specifier: 0.1.0
         version: 0.1.0
+      '@oboapp/source-rayon-pancharevo-bg':
+        specifier: 0.1.0
+        version: 0.1.0
       '@oboapp/source-sdk':
         specifier: 0.1.1
         version: 0.1.1
+      '@oboapp/source-sdvr-mvr-bg':
+        specifier: 0.1.0
+        version: 0.1.0
       '@oboapp/source-so-slatina-org':
         specifier: 0.1.0
         version: 0.1.0
@@ -2615,6 +2624,10 @@ packages:
     resolution: {integrity: sha512-s9SgS+p3a9Eohe68cSI3fi+hpcZUmXq5P7w0kMlAsWVtR7XbK3ptkZqKT2cK1zLDObJ3sR+8P59sJE0w/KTL1g==}
     engines: {node: ^12.13.0 || ^14.15.0 || >=16.0.0}
 
+  '@oboapp/source-inspectorat-so-org@0.1.0':
+    resolution: {integrity: sha512-4bZK50GTEihsuQRhn+69zSGDwaeVZRwFn0YJ/qHDH8MiUVZcaCC47yBrn6Aj/SduUduL1WUBxsiKAy0oacHHbg==}
+    engines: {node: '>=20.3'}
+
   '@oboapp/source-lozenets-sofia-bg@0.1.0':
     resolution: {integrity: sha512-hTTnBAM+iWOAnVp+/yXd0jOEV2Y1+lZVvNWV8gJd55S9sC5bymp6wZAVDSfWHKS+zGius9zPCYaPau0szSgoOQ==}
     engines: {node: '>=20.3'}
@@ -2639,9 +2652,17 @@ packages:
     resolution: {integrity: sha512-lRzFHzpD6eWU7TfPfp+6BfKU+oOn0sUESxaUSDHY+aTScgrHKA1A0kbUfBcRYD8qJXM9ricMLqfxDGHdnXs99A==}
     engines: {node: '>=20'}
 
+  '@oboapp/source-rayon-pancharevo-bg@0.1.0':
+    resolution: {integrity: sha512-OVjTtrhZPbfb2Z0qYC5zf8TSHjppl+JvGMMGNw0djK3srFH1Wu+HDbrAOCzjbzlepCVYF5anmst742TPBCDSkw==}
+    engines: {node: '>=20.3'}
+
   '@oboapp/source-sdk@0.1.1':
     resolution: {integrity: sha512-kCSJ04z+/yDvD2CikBLTGNjLAIdg/d91CuCMMHIzzwkffhXDqnPii1eM+SdlRmel54x7Eux1TTVqApVwGwWlVQ==}
     engines: {node: '>=20'}
+
+  '@oboapp/source-sdvr-mvr-bg@0.1.0':
+    resolution: {integrity: sha512-AN204UEd+OUBFZkcWlanUBzYxiK5DHEA2mjAyw3KGGB7D7cSNe8ZBj+feJ0ZxxTxpjc95xnAH+VvcrJe+LpMIg==}
+    engines: {node: '>=20.3'}
 
   '@oboapp/source-so-slatina-org@0.1.0':
     resolution: {integrity: sha512-b8EyGZ1LeuHNbPPwa5O+vleojMWwL7qkro+ak1XVEsiBn9nw09YsNF2QnWpRKqXAQh4MlJcHWyYSBM5RhN/duw==}
@@ -2685,6 +2706,10 @@ packages:
 
   '@oboapp/source-web-utils@0.3.1':
     resolution: {integrity: sha512-JFnAiw2cp+hYbTC0UShe1c2xjctL8nJAO3cSIn40GS3VZppJaWrjwBrnCtwEGaEPDNNi6e2hhllC9l/b3dD6dg==}
+    engines: {node: '>=20.3'}
+
+  '@oboapp/source-web-utils@0.4.0':
+    resolution: {integrity: sha512-KK+FJsRp6SEKlZAK8Ks1RBAnqvMC8WYatl9x+TFwHSqdlfX7p89UaRKlpsYJH2SMB7mO+y8QLwC/QXrnI1+1wg==}
     engines: {node: '>=20.3'}
 
   '@open-draft/deferred-promise@2.2.0':
@@ -13669,6 +13694,11 @@ snapshots:
     dependencies:
       infer-owner: 1.0.4
 
+  '@oboapp/source-inspectorat-so-org@0.1.0':
+    dependencies:
+      '@oboapp/source-sdk': 0.1.1
+      '@oboapp/source-web-utils': 0.4.0
+
   '@oboapp/source-lozenets-sofia-bg@0.1.0':
     dependencies:
       '@oboapp/source-sdk': 0.1.1
@@ -13701,7 +13731,17 @@ snapshots:
       playwright: 1.61.1
       turndown: 7.2.2
 
+  '@oboapp/source-rayon-pancharevo-bg@0.1.0':
+    dependencies:
+      '@oboapp/source-sdk': 0.1.1
+      '@oboapp/source-web-utils': 0.4.0
+
   '@oboapp/source-sdk@0.1.1': {}
+
+  '@oboapp/source-sdvr-mvr-bg@0.1.0':
+    dependencies:
+      '@oboapp/source-sdk': 0.1.1
+      '@oboapp/source-web-utils': 0.4.0
 
   '@oboapp/source-so-slatina-org@0.1.0':
     dependencies:
@@ -13761,6 +13801,13 @@ snapshots:
       turndown: 7.2.2
 
   '@oboapp/source-web-utils@0.3.1':
+    dependencies:
+      '@oboapp/source-sdk': 0.1.1
+      html-entities: 2.6.0
+      playwright: 1.61.1
+      turndown: 7.2.2
+
+  '@oboapp/source-web-utils@0.4.0':
     dependencies:
       '@oboapp/source-sdk': 0.1.1
       html-entities: 2.6.0

@@ -44,7 +44,7 @@ The `crawl` and `pipeline` commands share a [runtime registry](../../ingest/sour
 
 The upstream demo selects a small source set. `ingest/source-package-policy.json` explicitly lists unselected packages retained in the development workspace for integration tests during the transition. Retained packages still require isolated valid metadata, exact versions and unique source IDs. Unexpected unselected dependencies and stale policy entries fail validation. Remove a package's retention entry when selecting its source or removing its dependency. An absent or empty policy enables strict selection for all installed source packages. Docker omits retained packages and their policy from both the builder installation and production workspace.
 
-Upstream's default Sofia job file matches its three-source demo. This fork selects 22 sources and all 13 installed provider packages, with no development retention policy. Nine selected collectors still use legacy implementations. The full Sofia template under `ingest/terraform/examples/` is inactive. Existing deployments must retain their own catalog and job selection when rebasing. See the [instance setup guide](../setup/new-locality-instance.md) for translating the full template and updating the retention policy before deployment.
+Upstream's default Sofia job file matches its three-source demo. This fork selects 22 sources and all 16 installed provider packages, with no development retention policy. Inspectorat, Pancharevo and SDVR now use package adapters alongside the previously migrated sources. Six selected collectors still use legacy implementations: Sofia BG, ERM Zapad, NIMH, Krasna Polyana, Sofia Capital of Sport and Serdika. The full Sofia template under `ingest/terraform/examples/` is inactive. Existing deployments must retain their own catalog and job selection when rebasing. See the [instance setup guide](../setup/new-locality-instance.md) for translating the full template and updating the retention policy before deployment.
 
 Check configuration without provider or database access:
 
@@ -116,7 +116,7 @@ Runtime checks use containers with networking disabled. They load selected entry
 ## Moving a source
 
 1. Capture contracts for literal identifiers, historical lookups, content, dates, locality and scheduling. Include fixes already deployed by an instance.
-2. Publish and review the independent package. Preserve provider parsing tests and source-mapped coverage in the sources repository.
+2. Review and publish the independent package. Preserve provider parsing tests and source-mapped coverage in the sources repository.
 3. Install the exact version with `pnpm --dir ingest add --save-exact <package>@<version>`. Connect the existing command entrypoint to Obo's runner, remove the replaced provider code, and update selection or retention configuration.
 4. Test the actual package through raw persistence and ingestion. Cover historical skips, repeated scans, failed-item continuation, later retry and session cleanup. Run the repository's required quality checks and inspect the actual Sonar quality gate.
 5. Deploy using the existing job identity. Inspect saved/skipped/failed totals, verify complete raw records reach ingestion, and confirm a later scan skips known identifiers. Record deployment evidence in the migration issue.
