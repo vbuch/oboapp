@@ -37,6 +37,9 @@ RUN pnpm build
 # Check installed package metadata, compiled entrypoints and deployment selection.
 RUN node dist/scripts/check-source-config.js
 
+# Prepare frozen installation inputs for the selected production source packages.
+RUN node dist/scripts/prepare-production-workspace.js /app/production-workspace
+
 WORKDIR /app
 
 # Production stage
@@ -68,16 +71,8 @@ RUN apt-get update && apt-get install -y \
     libxshmfence1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy workspace root config files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
-
-# Copy shared and db packages
-COPY shared ./shared
-COPY db ./db
-
-# Copy ingest package files
-COPY ingest/package.json ./ingest/
+# Copy projected manifests, the lockfile and configured patches.
+COPY --from=builder /app/production-workspace ./
 
 # Install only production dependencies (skip postinstall since shared is already built)
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
@@ -93,7 +88,6 @@ COPY --from=builder /app/db/dist ./db/dist
 
 # Copy only the built JavaScript files and necessary runtime files
 COPY --from=builder /app/ingest/dist ./ingest/dist
-COPY --from=builder /app/ingest/package*.json ./ingest/
 COPY --from=builder /app/ingest/prompts ./ingest/prompts
 COPY --from=builder /app/ingest/localities ./ingest/localities
 
