@@ -13,6 +13,13 @@ describe("historical incident OpenAPI contract", () => {
       security: [{ ApiKeyAuth: [] }],
       parameters: expect.arrayContaining([
         expect.objectContaining({
+          name: "sourceId",
+          in: "path",
+          required: true,
+          schema: expect.objectContaining({ type: "string", enum: ["toplo-bg"] }),
+          description: expect.stringContaining("Currently only toplo-bg is supported"),
+        }),
+        expect.objectContaining({
           name: "date",
           in: "query",
           required: false,
@@ -30,12 +37,15 @@ describe("historical incident OpenAPI contract", () => {
         },
         "400": expect.any(Object),
         "401": expect.any(Object),
+        "404": expect.any(Object),
         "500": expect.any(Object),
         "503": {
           description: expect.stringContaining("Detailed-history gap"),
         },
       },
     });
+    expect(operation?.description).toContain("Complete incident listing for the selected source");
+    expect(operation?.description).toContain("currently support only toplo-bg in bg.sofia");
     expect(operation?.description).toContain("reportedStart ascending across both types");
     expect(operation?.description).toContain("actual observedAt");
     expect(operation?.description).toContain("Daily samples can omit intraday revisions");

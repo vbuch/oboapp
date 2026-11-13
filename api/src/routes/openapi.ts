@@ -214,7 +214,8 @@ function buildOpenApiSpec(): OpenAPIObject {
     method: "get",
     path: "/v1/sources/{sourceId}/incidents",
     description: [
-      "Complete Toplo listing, including accidents and repairs, with separate first-record baselines.",
+      "Complete incident listing for the selected source, including accidents and repairs, with separate first-record baselines.",
+      "Detailed incident listings currently support only toplo-bg in bg.sofia. Other source and locality combinations return 404.",
       "Without date, returns the latest listing in its recorded order.",
       "With date, returns the last successful complete capture from that Europe/Sofia calendar day, preserving its actual observedAt and all recorded incident fields.",
       "Dated listings are ordered by reportedStart ascending across both types, missing starts last, then Bulgarian name (Intl.Collator with locale bg and default options), then stable id in binary lexicographic order. Consumers can calculate one-based positions from this complete array.",
@@ -225,7 +226,12 @@ function buildOpenApiSpec(): OpenAPIObject {
     ].join(" "),
     security: [{ ApiKeyAuth: [] }],
     request: {
-      params: z.object({ sourceId: z.string().min(1) }),
+      params: z.object({
+        sourceId: z.literal("toplo-bg").openapi({
+          description: "Source with detailed incident listing support. Currently only toplo-bg is supported.",
+          example: "toplo-bg",
+        }),
+      }),
       query: z.object({
         date: z.iso.date().optional().openapi({
           description:

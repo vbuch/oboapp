@@ -31,7 +31,7 @@ If `PUBLIC_API_HOST` is not set, web still starts, but `/api/v1/*` requests fail
 | `GET`  | `/v1/sources`                   | List all data sources                                               |
 | `GET`  | `/v1/sources/:sourceId/snapshot` | Latest successful complete listing count for a source                |
 | `GET`  | `/v1/sources/:sourceId/timeline` | Current count, daily closing history, and yesterday comparison       |
-| `GET`  | `/v1/sources/:sourceId/incidents` | Complete latest or dated Toplo listing and first recorded estimates  |
+| `GET`  | `/v1/sources/:sourceId/incidents` | Complete latest or dated incident listing for a supported source     |
 | `GET`  | `/v1/messages`                  | Fetch messages filtered by geographic bounds and optional categories |
 | `GET`  | `/v1/messages/by-id`            | Fetch a single message by ID                                         |
 | `GET`  | `/v1/openapi`                   | OpenAPI 3.0 specification (no key required)                           |
@@ -93,6 +93,9 @@ Use each point's `observedAt` for the actual source-check time. It can be earlie
 The endpoint requires the same API key as the other data endpoints. Keep that key in server configuration or a GitHub Actions secret. For a counter hosted on GitHub Pages, a workflow can fetch the snapshot and publish a public `snapshot.json` alongside the HTML. The page reads that file and displays the original `observedAt` time. The API response uses `Cache-Control: private, max-age=60`.
 
 ## Incident Listings and Daily Samples
+
+Detailed incident listings currently support `toplo-bg` in `bg.sofia`. Other
+source and locality combinations return `404`.
 
 `GET /v1/sources/toplo-bg/incidents` returns every accident and repair from the
 latest complete listing capture. Its `count` and `observedAt` belong to the same
