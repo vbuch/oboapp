@@ -1,0 +1,25 @@
+{
+  "organization": "oboapp",
+  "projects": ["ingest", "oboapp-web", "public-api"],
+  "environment": "production",
+  "lookbackHours": 30,
+  "issueRepositories": ["oboapp/oboapp", "vbuch/oboapp"],
+  "knownSources": {
+    "mladost-bg": {
+      "issues": ["https://github.com/oboapp/oboapp/issues/677"],
+      "investigate": false,
+      "reason": "A separate agent is researching provider access. Keep that work in issue #677."
+    },
+    "rayon-pancharevo-bg": {
+      "issues": ["https://github.com/oboapp/oboapp/issues/687"],
+      "investigate": true
+    },
+    "lozenets-sofia-bg": {
+      "issues": [
+        "https://github.com/oboapp/oboapp/issues/688",
+        "https://github.com/oboapp/oboapp/issues/451"
+      ],
+      "investigate": true
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "findings", "fix"],
+  "properties": {
+    "summary": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["incidentId", "classification", "diagnosis", "nextSteps"],
+        "properties": {
+          "incidentId": { "type": "string" },
+          "classification": {
+            "type": "string",
+            "enum": ["actionable", "recovered", "known", "needs-investigation"]
+          },
+          "diagnosis": { "type": "string" },
+          "nextSteps": { "type": "string" }
+        }
+      }
+    },
+    "fix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["propose", "title", "body", "incidentIds"],
+      "properties": {
+        "propose": { "type": "boolean" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "incidentIds": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
