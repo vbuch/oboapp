@@ -1,6 +1,6 @@
 # Crawlers
 
-This directory contains the crawler entrypoints: the functions called by the collection commands. During the [source-package transition](../../docs/features/source-packages.md), each directory holds either a legacy crawler or an adapter to a published source package. Triaditsa, Oborishte, Slatina, Toplo, Sofiyska Voda, Lozenets, Studentski, Sredets, Ilinden, Nadezhda, Iskar, Mladost, Vrabnitsa, Inspectorat, Pancharevo and SDVR call their published npm packages through Obo's runner. Both paths save raw records through `@oboapp/db`.
+This directory contains the crawler entrypoints: the functions called by the collection commands. During the [source-package transition](../../docs/features/source-packages.md), each directory holds either a legacy crawler or an adapter to a published source package. Triaditsa, Oborishte, Slatina, Toplo, Sofiyska Voda, Lozenets, Studentski, Sredets, Ilinden, Nadezhda, Iskar, Mladost, Vrabnitsa, Inspectorat, Pancharevo, SDVR and NIMH call their published npm packages through Obo's runner. Both paths save raw records through `@oboapp/db`.
 
 ## How They Work
 
@@ -21,6 +21,7 @@ The contract baseline from [#579](https://github.com/oboapp/oboapp/issues/579) p
 pnpm --dir shared build
 pnpm --dir db build
 pnpm --dir ingest test:run crawlers
+pnpm --dir ingest test:run crawlers/nimh-severe-weather/index.contract.test.ts
 pnpm --dir ingest test:run messageIngest/source-handoff.test.ts
 pnpm --dir ingest test:run messageIngest/packaged-hybrid-handoff.test.ts
 pnpm --dir ingest test:run messageIngest/packaged-toplo-handoff.test.ts
@@ -38,7 +39,8 @@ All source directories, including currently unselected sources, have crawl-entry
 | Each source's `index.contract.test.ts` (Sofia uses `index.test.ts`) | Identity/locality wiring, output or shared-helper delegation, and source-specific failure behavior |
 | `shared/persistence-contract.test.ts` | Legacy base64 and MD5 lookups, sequential idempotency, no overwrites, validation, categories, processing state |
 | `shared/orchestration-contract.test.ts` | Website/full-feed/hybrid deduplication, persistence, failure continuation and browser ownership |
-| `messageIngest/source-handoff.test.ts` | Actual full-feed and NIMH crawler output through persistence and `from-sources.ingest()` |
+| `nimh-severe-weather/index.contract.test.ts` | Published NIMH package through persistence and ingestion, city-wide content, literal warning hashes, historical lookups, failures and retry |
+| `messageIngest/source-handoff.test.ts` | Actual Triaditsa full-feed crawler output through persistence and `from-sources.ingest()` |
 | `messageIngest/packaged-hybrid-handoff.test.ts` | Oborishte and Slatina packages through persistence and ingestion, historical lookups and retry |
 | `messageIngest/packaged-toplo-handoff.test.ts` | Toplo package through persistence and ingestion, literal synthetic identifiers, legacy fields and historical lookups |
 | `messageIngest/packaged-sofiyska-voda-handoff.test.ts` | Sofiyska Voda package through persistence and ingestion, synthetic identifiers, geometry, timespans, historical lookups, failures and retry |
