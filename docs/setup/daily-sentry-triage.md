@@ -78,9 +78,10 @@ The canonical prompt is
 
 ## Local checks
 
-Run `python -m unittest discover -s .github/scripts -p 'test_*.py'` for the
-collector and publication boundary regressions. The workflow uses Python's
-standard library and needs no extra Python packages.
+Run `node --test .github/scripts/sentry-triage.test.mjs` for the collector and
+publication boundary regressions. The workflow uses Node.js 20 and its built-in
+`fetch`, filesystem, crypto, process, and test APIs. Collection and publication
+need no package installation.
 
 References: [Codex GitHub Action](https://learn.chatgpt.com/docs/github-action),
 [patch generation and PR publication](https://learn.chatgpt.com/docs/non-interactive-mode).

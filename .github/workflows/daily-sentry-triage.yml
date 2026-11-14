@@ -43,6 +43,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          package-manager-cache: false
+
       - name: Authenticate for read-only Cloud Run evidence
         if: vars.SENTRY_TRIAGE_GCP_SERVICE_ACCOUNT != ''
         uses: google-github-actions/auth@v2
@@ -61,7 +66,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           TRIAGE_CLOUD_LOGS: ${{ vars.SENTRY_TRIAGE_GCP_SERVICE_ACCOUNT != '' }}
-        run: python .github/scripts/sentry_triage.py
+        run: node .github/scripts/run-sentry-triage.mjs
 
       - uses: actions/upload-artifact@v4
         with:
@@ -95,7 +100,9 @@ jobs:
       - run: pnpm --dir ingest exec playwright install --with-deps chromium
 
       - name: Keep the artifact serializer outside the editable checkout
-        run: cp .github/scripts/sentry_triage.py "$RUNNER_TEMP/sentry_triage.py"
+        run: |
+          mkdir -p "$RUNNER_TEMP/sentry-triage-tools"
+          cp .github/scripts/sentry-triage.mjs .github/scripts/run-sentry-triage.mjs "$RUNNER_TEMP/sentry-triage-tools/"
 
       - name: Investigate and prepare a supported fix
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
@@ -113,7 +120,7 @@ jobs:
       - name: Serialize the proposed patch
         env:
           TRIAGE_PHASE: bundle
-        run: python "$RUNNER_TEMP/sentry_triage.py"
+        run: node "$RUNNER_TEMP/sentry-triage-tools/run-sentry-triage.mjs"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -132,6 +139,10 @@ jobs:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          package-manager-cache: false
       - uses: actions/download-artifact@v4
         with:
           name: sentry-investigation
@@ -141,15 +152,10 @@ jobs:
         id: patch
         env:
           TRIAGE_PHASE: validate
-        run: python .github/scripts/sentry_triage.py
+        run: node .github/scripts/run-sentry-triage.mjs
 
       - uses: pnpm/action-setup@v5
         if: steps.patch.outputs.has_patch == 'true'
-      - uses: actions/setup-node@v5
-        if: steps.patch.outputs.has_patch == 'true'
-        with:
-          node-version: "20"
-          cache: pnpm
       - name: Validate the proposed application fix
         if: steps.patch.outputs.has_patch == 'true'
         run: |
@@ -173,6 +179,10 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          package-manager-cache: false
       - uses: actions/download-artifact@v4
         with:
           name: sentry-investigation
@@ -181,4 +191,4 @@ jobs:
         env:
           TRIAGE_PHASE: publish
           GH_TOKEN: ${{ github.token }}
-        run: python .github/scripts/sentry_triage.py
+        run: node .github/scripts/run-sentry-triage.mjs
