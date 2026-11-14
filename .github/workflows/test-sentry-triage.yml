@@ -1,0 +1,33 @@
+name: Test Sentry investigation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/scripts/**
+      - .github/sentry-triage*
+      - .github/workflows/*sentry-triage.yml
+      - agent-context/.apm/prompts/daily-sentry-triage.prompt.md
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/scripts/**
+      - .github/sentry-triage*
+      - .github/workflows/*sentry-triage.yml
+      - agent-context/.apm/prompts/daily-sentry-triage.prompt.md
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          package-manager-cache: false
+      - run: node --test .github/scripts/sentry-triage.test.mjs

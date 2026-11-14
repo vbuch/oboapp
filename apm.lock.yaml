@@ -1,11 +1,12 @@
 lockfile_version: '1'
-generated_at: '2026-04-17T15:55:46.779163+00:00'
+generated_at: '2026-11-14T09:30:38.790135+00:00'
 apm_version: 0.8.11
 dependencies:
 - repo_url: _local/agent-context
   package_type: apm_package
   deployed_files:
   - .claude/agents/ci-fix.md
+  - .claude/commands/daily-sentry-triage.md
   - .claude/commands/long-flow-crawler.md
   - .claude/commands/weekly-meeting.md
   - .claude/rules/bulgarian-language.md
@@ -18,6 +19,7 @@ dependencies:
   - .github/agents/ci-fix.agent.md
   - .github/instructions/bulgarian-language.instructions.md
   - .github/instructions/documentation-guidelines.instructions.md
+  - .github/prompts/daily-sentry-triage.prompt.md
   - .github/prompts/long-flow-crawler.prompt.md
   - .github/prompts/weekly-meeting.prompt.md
   - .github/skills/cli-scripts
