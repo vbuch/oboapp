@@ -32,6 +32,7 @@ If `PUBLIC_API_HOST` is not set, web still starts, but `/api/v1/*` requests fail
 | `GET`  | `/v1/sources/:sourceId/snapshot` | Latest successful complete listing count for a source                |
 | `GET`  | `/v1/sources/:sourceId/timeline` | Current count, daily closing history, and yesterday comparison       |
 | `GET`  | `/v1/sources/:sourceId/incidents` | Complete latest or dated incident listing for a supported source     |
+| `GET`  | `/v1/sources/:sourceId/incident-changes` | Observed additions and removals across retained captures for one Sofia day |
 | `GET`  | `/v1/messages`                  | Fetch messages filtered by geographic bounds and optional categories |
 | `GET`  | `/v1/messages/by-id`            | Fetch a single message by ID                                         |
 | `GET`  | `/v1/openapi`                   | OpenAPI 3.0 specification (no key required)                           |
@@ -91,6 +92,114 @@ The nightly job runs at 23:00 in `Europe/Sofia`. It records the latest successfu
 Use each point's `observedAt` for the actual source-check time. It can be earlier than the nightly recording time. The endpoint uses the normal API key authentication, rate limits, and usage tracking.
 
 The endpoint requires the same API key as the other data endpoints. Keep that key in server configuration or a GitHub Actions secret. For a counter hosted on GitHub Pages, a workflow can fetch the snapshot and publish a public `snapshot.json` alongside the HTML. The page reads that file and displays the original `observedAt` time. The API response uses `Cache-Control: private, max-age=60`.
+
+## Incident Additions and Removals
+
+`GET /v1/sources/toplo-bg/incident-changes` returns transition totals for today
+in `Europe/Sofia`. Add `?date=2026-11-15` for a historical daily interval. The
+query supports `toplo-bg` in the configured `bg.sofia` locality and uses normal
+API key authentication, shared rate limits, usage tracking, and
+`Cache-Control: private, max-age=60`.
+
+The baseline is the last successful capture on the calendar day before `date`.
+The end is the last successful capture on `date`. Both use Sofia midnight
+boundaries, including daylight-saving changes. Their counts and exact
+`observedAt` values come from those captures. Today's end can change after a
+later successful check. A missing day stays missing, with no fallback to an
+earlier day. This also applies when today's latest available observation belongs
+to yesterday.
+
+The query accepts exactly one real `YYYY-MM-DD` date from `0001-01-02` through
+today in Sofia. The lower bound leaves room for the preceding baseline day.
+Invalid, future, empty, or repeated dates return `400`. Unsupported sources or
+localities return `404`; database errors or invalid stored records return `500`.
+
+```json
+{
+  "sourceType": "toplo-bg",
+  "locality": "bg.sofia",
+  "sourceUrl": "https://toplo.bg/accidents-and-maintenance",
+  "date": "2026-11-15",
+  "baselineDate": "2026-11-14",
+  "baseline": { "count": 20, "observedAt": "2026-11-14T20:30:00.000Z" },
+  "end": { "count": 25, "observedAt": "2026-11-15T11:30:00.000Z" },
+  "netChange": 5,
+  "totals": { "added": 10, "removed": 5 },
+  "coverage": {
+    "status": "observed",
+    "reasons": [],
+    "retainedCaptureCount": 15,
+    "detailedCaptureCount": 15,
+    "gapThresholdMinutes": 45,
+    "gaps": [{
+      "fromObservedAt": "2026-11-14T20:30:00.000Z",
+      "toObservedAt": "2026-11-15T05:00:00.000Z",
+      "minutes": 510
+    }],
+    "failedChecks": "not_recorded",
+    "continuity": "unknown",
+    "latestObservedAt": "2026-11-15T11:30:00.000Z",
+    "stale": false,
+    "staleAfterMinutes": 60
+  }
+}
+```
+
+For each consecutive complete listing, the API compares stable Toplo
+`ContentItemId` values exposed as `id`, scoped to source and locality. Changes to
+`accidentId`, status, estimates, or other fields contribute no transitions. An
+entry added and then removed within the interval contributes one addition and
+one removal. An entry removed and later reappearing contributes another
+addition. These are observed transition counts. They can exceed distinct entry
+counts. For available totals, `totals.added - totals.removed` always equals
+`netChange`, which is `end.count - baseline.count`.
+
+Verified empty captures participate normally, including as a baseline. Failed
+requests and incomplete listings save no capture. Comparisons bridge directly
+from the preceding successful complete listing to the next one. A failed check
+cannot create an empty listing or a removal. If the successful captures around
+a failed check have the same IDs, the observed transition totals can be zero;
+coverage still remains unknown between those observations.
+
+Coverage fields have these meanings:
+
+- `status: "observed"` means all loaded retained captures have detailed IDs and
+  the selected endpoints were available. `continuity: "unknown"` always remains
+  explicit because check failures and deletion history are not recorded.
+- `gaps` lists every consecutive observation interval longer than 45 minutes,
+  including normal overnight pauses. The repository's default schedule runs
+  every 30 minutes from 07:00 through 22:30 Sofia time. Deployment overrides,
+  failures, and delays can change this cadence. Use the actual timestamps.
+- `latestObservedAt` is the latest retained check for requests for today, even
+  when today's `end` is missing. `stale` is true once that check is more than 60
+  minutes old, including overnight. Both fields are null for historical queries;
+  `stale` is also null if no latest observation exists.
+- `retainedCaptureCount` counts loaded interval captures, including available
+  endpoints; `detailedCaptureCount` counts those with incident arrays. These
+  describe only loaded data when history is unavailable or bounded.
+
+An unavailable breakdown returns `200` with `totals: null`,
+`coverage.status: "unavailable"`, and one or more `coverage.reasons`:
+
+| Reason | Meaning |
+| ------ | ------- |
+| `missing_baseline` | No capture exists on the preceding Sofia day |
+| `missing_end` | No capture exists on the requested Sofia day |
+| `missing_incident_details` | A selected or intermediate capture has only an aggregate count |
+| `capture_limit_exceeded` | The interval contains more than 256 captures after the baseline |
+| `missing_history` | The history read does not reach the selected end timestamp and count |
+
+Missing endpoints are null. `netChange` remains available when both endpoint
+counts exist, even if detailed totals are unavailable. Imported daily aggregates
+cannot supply missing incident identities. The interval query reads at most 257
+records after the baseline to detect the 256-capture limit and returns no partial
+transition totals. Existing snapshot indexes support this query.
+
+Consumers should retain coverage information and original check times in public
+artifacts. Keep API keys in server configuration or workflow secrets. A removal
+describes disappearance from Toplo's listing and does not confirm restored
+service. Even comparisons across all retained captures cannot detect records
+that appear and disappear between checks.
 
 ## Incident Listings and Daily Samples
 
