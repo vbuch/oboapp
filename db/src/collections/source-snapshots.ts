@@ -2,9 +2,36 @@ import { SourceSnapshotSchema, getSofiaDayRange, type SourceSnapshot } from "@ob
 import type { DbClient } from "../types";
 
 export const SOURCE_SNAPSHOTS_COLLECTION = "sourceSnapshots";
+const RANGE_CAPTURE_LIMIT = 256;
 
 export class SourceSnapshotsRepository {
   constructor(private readonly db: DbClient) {}
+
+  /** Captures in (after, through], oldest first. Never silently truncate history. */
+  async findRange(
+    sourceType: string,
+    locality: string,
+    after: string,
+    through: string,
+  ): Promise<{ snapshots: SourceSnapshot[]; truncated: boolean }> {
+    const records = await this.db.findMany(SOURCE_SNAPSHOTS_COLLECTION, {
+      where: [
+        { field: "locality", op: "==", value: locality },
+        { field: "sourceType", op: "==", value: sourceType },
+        { field: "observedAt", op: ">", value: after },
+        { field: "observedAt", op: "<=", value: through },
+      ],
+      // Reuse the existing descending observation index on both databases.
+      orderBy: [{ field: "observedAt", direction: "desc" }],
+      limit: RANGE_CAPTURE_LIMIT + 1,
+    });
+    return {
+      snapshots: records.slice(0, RANGE_CAPTURE_LIMIT).reverse().map((record) => {
+        return SourceSnapshotSchema.parse(record);
+      }),
+      truncated: records.length > RANGE_CAPTURE_LIMIT,
+    };
+  }
 
   async findLatestForDate(
     sourceType: string,

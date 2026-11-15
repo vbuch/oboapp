@@ -27,6 +27,15 @@ count APIs and produce gaps in detailed history. See the
 for date bounds, ordering, coverage, and gap responses. The nightly daily
 records and the existing count APIs retain their compact count-only shape.
 
+`GET /v1/sources/toplo-bg/incident-changes?date=YYYY-MM-DD` compares every
+retained detailed capture from the preceding day's closing capture through the
+selected day's last capture. It counts additions and removals by stable `id`,
+including temporary appearances and reappearances. Failed or incomplete checks
+save no capture; comparisons bridge the next complete listing and expose elapsed
+gaps and unknown continuity. See the
+[transition contract](../../../docs/features/public-api.md#incident-additions-and-removals)
+for coverage, null totals, freshness, and the bounded history query.
+
 Before publishing a count, the crawler checks the expected page structure and
 verifies that embedded incident metadata matches the visible list. A complete
 empty listing records zero. Failed requests, malformed metadata, and incomplete

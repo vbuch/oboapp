@@ -42,6 +42,12 @@ function mockStoredSnapshots(db: DbClient, records: SourceSnapshot[]): void {
         if (op === "<") {
           return actual < value;
         }
+        if (op === ">") {
+          return actual > value;
+        }
+        if (op === "<=") {
+          return actual <= value;
+        }
         throw new Error(`Unsupported fixture filter: ${op}`);
       }) ?? true;
     });
@@ -76,6 +82,55 @@ describe("SourceSnapshotsRepository", () => {
   beforeEach(() => {
     db = createMockClient();
     repository = new SourceSnapshotsRepository(db);
+  });
+
+  it("reads a scoped bounded interval in chronological order with exact endpoint bounds", async () => {
+    const baseline = { ...snapshot, observedAt: "2026-03-28T20:30:00.000Z" };
+    const first = { ...snapshot, observedAt: "2026-03-28T22:00:00.000Z" };
+    const last = { ...snapshot, observedAt: "2026-03-29T19:30:00.000Z" };
+    mockStoredSnapshots(db, [
+      baseline,
+      last,
+      first,
+      { ...first, sourceType: "another-source" },
+      { ...first, locality: "bg.plovdiv" },
+      { ...last, observedAt: "2026-03-29T20:00:00.000Z" },
+    ]);
+    expect(await repository.findRange("toplo-bg", "bg.sofia", baseline.observedAt, last.observedAt)).toEqual({
+      snapshots: [first, last], truncated: false,
+    });
+    expect(db.findMany).toHaveBeenCalledWith(SOURCE_SNAPSHOTS_COLLECTION, {
+      where: [
+        { field: "locality", op: "==", value: "bg.sofia" },
+        { field: "sourceType", op: "==", value: "toplo-bg" },
+        { field: "observedAt", op: ">", value: baseline.observedAt },
+        { field: "observedAt", op: "<=", value: last.observedAt },
+      ],
+      orderBy: [{ field: "observedAt", direction: "desc" }],
+      limit: 257,
+    });
+  });
+
+  it("signals truncated history instead of silently claiming all captures were read", async () => {
+    const records = Array.from({ length: 257 }, (_, index) => {
+      return { ...snapshot, observedAt: new Date(Date.UTC(2026, 10, 9, 0, index)).toISOString() };
+    });
+    mockStoredSnapshots(db, records);
+    const result = await repository.findRange("toplo-bg", "bg.sofia", "2026-11-08T22:00:00.000Z", "2026-11-09T22:00:00.000Z");
+    expect(result.truncated).toBe(true);
+    expect(result.snapshots).toEqual(records.slice(1));
+  });
+
+  it("returns complete history at the exact limit and permits empty ranges", async () => {
+    vi.mocked(db.findMany).mockResolvedValue(Array.from({ length: 256 }, () => ({ ...snapshot })));
+    expect((await repository.findRange("toplo-bg", "bg.sofia", snapshot.observedAt, snapshot.observedAt)).truncated).toBe(false);
+    vi.mocked(db.findMany).mockResolvedValue([]);
+    expect(await repository.findRange("toplo-bg", "bg.sofia", snapshot.observedAt, snapshot.observedAt)).toEqual({ snapshots: [], truncated: false });
+  });
+
+  it("rejects invalid detailed records in range reads", async () => {
+    vi.mocked(db.findMany).mockResolvedValue([{ ...snapshot, incidents: [] }]);
+    await expect(repository.findRange("toplo-bg", "bg.sofia", snapshot.observedAt, snapshot.observedAt)).rejects.toThrow();
   });
 
   it("retains a separate history record for each observation", async () => {
