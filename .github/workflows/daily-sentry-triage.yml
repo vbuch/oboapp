@@ -77,7 +77,8 @@ jobs:
   investigate:
     needs: collect
     if: needs.collect.outputs.has_work == 'true'
-    runs-on: ubuntu-latest
+    # drop-sudo socket restrictions fail on Ubuntu 26.04: openai/codex-action#188.
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read
