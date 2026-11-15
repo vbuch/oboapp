@@ -55,6 +55,10 @@ zero. Version 0.2.0 replaces the temporary provider-package patch. See the
 [Toplo integration guide](../../ingest/crawlers/toplo-bg/README.md#packaged-source-integration)
 for snapshot persistence, failure handling and the incident APIs.
 
+ERM Zapad uses `@oboapp/source-erm-zapad@0.1.0` for HTTP municipality discovery and incident collection. It collects every municipality before choosing the lowest event ID for matching pins, then groups the remaining points by event ID. Two-second request spacing and literal synthetic identifiers stay compatible with the legacy collector. Discovery returns identifiers while the source instance keeps the complete snapshot for fetching.
+
+ERM content preserves the original first pin's text and dates, valid center points from mixed-geometry incidents and omitted optional fields. Dates keep the legacy host-local timezone behavior. Obo repairs swapped coordinates during validation and retains historical base64/MD5 lookups. The adapter fails the job when every discovered incident fails to process; empty scans succeed. Package-to-ingestion contracts cover these rules, complete raw records, no overwrites, failures and retries. The existing emergent job keeps its thirty-minute schedule.
+
 NIMH uses `@oboapp/source-nimh-severe-weather@0.1.1` with SDK 0.2.0. Chromium
 waits for `domcontentloaded` before reading the server-rendered warning text and
 tables, so discovery can finish while background requests remain active.
@@ -84,7 +88,7 @@ The `crawl` and `pipeline` commands share a [runtime registry](../../ingest/sour
 
 The upstream demo selects a small source set. `ingest/source-package-policy.json` explicitly lists unselected packages retained in the development workspace for integration tests during the transition. Retained packages still require isolated valid metadata, exact versions and unique source IDs. Unexpected unselected dependencies and stale policy entries fail validation. Remove a package's retention entry when selecting its source or removing its dependency. An absent or empty policy enables strict selection for all installed source packages. Docker omits retained packages and their policy from both the builder installation and production workspace.
 
-Upstream's default Sofia job file matches its three-source demo. This fork selects 22 sources and all 16 installed provider packages, with no development retention policy. Inspectorat, Pancharevo and SDVR now use package adapters alongside the previously migrated sources. Six selected collectors still use legacy implementations: Sofia BG, ERM Zapad, NIMH, Krasna Polyana, Sofia Capital of Sport and Serdika. The full Sofia template under `ingest/terraform/examples/` is inactive. Existing deployments must retain their own catalog and job selection when rebasing. See the [instance setup guide](../setup/new-locality-instance.md) for translating the full template and updating the retention policy before deployment.
+Upstream's default Sofia job file matches its three-source demo. This fork selects 22 sources and all 18 installed provider packages, with no development retention policy. Four selected collectors still use legacy implementations: Sofia BG, Krasna Polyana, Sofia Capital of Sport and Serdika. The full Sofia template under `ingest/terraform/examples/` is inactive. Existing deployments must retain their own catalog and job selection when rebasing. See the [instance setup guide](../setup/new-locality-instance.md) for translating the full template and updating the retention policy before deployment.
 
 Check configuration without provider or database access:
 
