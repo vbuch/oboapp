@@ -3,6 +3,34 @@ import type { OpenAPIObject } from "openapi3-ts/oas30";
 import { openapiRoute } from "./openapi";
 
 describe("historical incident OpenAPI contract", () => {
+  it("publishes authenticated transition queries and explicit coverage fields", async () => {
+    const response = await openapiRoute.request("/openapi");
+    const document = await response.json() as OpenAPIObject;
+    const operation = document.paths?.["/v1/sources/{sourceId}/incident-changes"]?.get;
+    expect(operation).toMatchObject({
+      security: [{ ApiKeyAuth: [] }],
+      parameters: expect.arrayContaining([
+        expect.objectContaining({ name: "date", in: "query", required: false }),
+      ]),
+      responses: {
+        "200": { content: { "application/json": { schema: { $ref: "#/components/schemas/V1SourceIncidentChangesResponse" } } } },
+        "400": expect.any(Object),
+        "401": expect.any(Object),
+        "404": expect.any(Object),
+        "429": expect.any(Object),
+        "500": expect.any(Object),
+      },
+    });
+    expect(operation?.description).toContain("more than 256 captures");
+    expect(operation?.description).toContain("continuity remains unknown");
+    expect(document.components?.schemas?.V1SourceIncidentChangesResponse).toMatchObject({
+      properties: {
+        totals: { nullable: true },
+        coverage: { properties: { gaps: { type: "array" }, stale: { nullable: true } } },
+      },
+    });
+  });
+
   it("documents the optional bounded calendar date and gap response", async () => {
     const response = await openapiRoute.request("/openapi");
     const document = await response.json() as OpenAPIObject;

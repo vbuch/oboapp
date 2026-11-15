@@ -15,6 +15,7 @@ import {
   SourceSnapshotResponseSchema,
   SourceTimelineResponseSchema,
   SourceIncidentsResponseSchema,
+  SourceIncidentChangesResponseSchema,
   MessagesResponseSchema,
   MessageResponseSchema,
   ErrorResponseSchema,
@@ -102,6 +103,10 @@ function buildOpenApiSpec(): OpenAPIObject {
   const sourceIncidentsResponse = registry.register(
     "V1SourceIncidentsResponse",
     SourceIncidentsResponseSchema,
+  );
+  const sourceIncidentChangesResponse = registry.register(
+    "V1SourceIncidentChangesResponse",
+    SourceIncidentChangesResponseSchema,
   );
   const messagesResponse = registry.register(
     "V1MessagesResponse",
@@ -272,6 +277,38 @@ function buildOpenApiSpec(): OpenAPIObject {
         description: "Server error or invalid stored listing",
         content: { "application/json": { schema: errorResponse } },
       },
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/v1/sources/{sourceId}/incident-changes",
+    description: [
+      "Observed listing transition counts across every retained detailed capture between the previous Sofia day's closing capture and the selected day's last capture. Omit date for today.",
+      "Stable ContentItemId (id), scoped to source and locality, determines additions and removals. Field revisions do not count. Reappearances and temporary entries count on each transition; totals are not distinct incident counts.",
+      "baseline and end preserve the selected count and actual observedAt. netChange is end.count minus baseline.count; when totals are available it equals added minus removed.",
+      "Missing endpoints, count-only captures, missing end history, or more than 256 captures after baseline make totals null with coverage reasons. Verified empty captures are valid. Missing dates never fall back to another day.",
+      "Failed/incomplete checks write no capture. Comparisons bridge to the next complete capture. coverage.gaps lists every elapsed interval longer than 45 minutes, including scheduled overnight pauses. Failed checks and deletion history are not recorded, so continuity remains unknown even with no gaps.",
+      "The default schedule is every 30 minutes from 07:00 through 22:30 Europe/Sofia; deployment overrides, failures and delays can change actual cadence. Capture timestamps show actual observations. Records appearing and disappearing between checks remain unobserved.",
+      "For today, coverage.latestObservedAt shows the latest retained observation even if today's end is missing; stale is true when it is older than 60 minutes, including overnight. Historical requests have null latestObservedAt and stale.",
+      "Removal from the source listing does not confirm restored service. Unknown coverage must remain visible to consumers.",
+    ].join(" "),
+    security: [{ ApiKeyAuth: [] }],
+    request: {
+      params: z.object({ sourceId: z.literal("toplo-bg") }),
+      query: z.object({
+        date: z.iso.date().optional().openapi({
+          description: "One valid Sofia calendar date from 0001-01-02 through today inclusive. Repeated dates return 400. Defaults to today in Europe/Sofia.",
+        }),
+      }),
+    },
+    responses: {
+      200: { description: "Observed transitions or explicit unavailable coverage with null totals", content: { "application/json": { schema: sourceIncidentChangesResponse } } },
+      400: { description: "Invalid or repeated date", content: { "application/json": { schema: errorResponse } } },
+      401: { description: "Invalid or missing API key", content: { "application/json": { schema: errorResponse } } },
+      404: { description: "Incident changes are not configured for this source and locality", content: { "application/json": { schema: errorResponse } } },
+      429: { description: "Rate limit exceeded", content: { "application/json": { schema: errorResponse } }, headers: { "Retry-After": retryAfterHeader } },
+      500: { description: "Database error or invalid stored capture", content: { "application/json": { schema: errorResponse } } },
     },
   });
 
