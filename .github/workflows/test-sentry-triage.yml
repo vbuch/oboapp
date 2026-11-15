@@ -30,4 +30,4 @@ jobs:
         with:
           node-version: "20"
           package-manager-cache: false
-      - run: node --test .github/scripts/sentry-triage.test.mjs
+      - run: node --test .github/scripts/sentry-triage.test.mjs .github/scripts/sentry-investigation.test.mjs

@@ -77,7 +77,6 @@ jobs:
   investigate:
     needs: collect
     if: needs.collect.outputs.has_work == 'true'
-    # drop-sudo socket restrictions fail on Ubuntu 26.04: openai/codex-action#188.
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -92,43 +91,23 @@ jobs:
           name: sentry-evidence
           path: ${{ env.TRIAGE_DIRECTORY }}
 
-      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v5
         with:
           node-version: "20"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --dir ingest exec playwright install --with-deps chromium
+          package-manager-cache: false
 
       - name: Keep the artifact serializer outside the editable checkout
         run: |
           mkdir -p "$RUNNER_TEMP/sentry-triage-tools"
           cp .github/scripts/sentry-triage.mjs .github/scripts/run-sentry-triage.mjs "$RUNNER_TEMP/sentry-triage-tools/"
 
-      # Sandbox policy must use trusted configuration with the protected strategy.
-      - name: Configure Codex research access
-        run: |
-          mkdir -p "$RUNNER_TEMP/sentry-triage-codex"
-          cat > "$RUNNER_TEMP/sentry-triage-codex/config.toml" <<'EOF'
-          web_search = "live"
-
-          [sandbox_workspace_write]
-          network_access = true
-          EOF
-
       - name: Investigate and prepare a supported fix
-        uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt-file: agent-context/.apm/prompts/daily-sentry-triage.prompt.md
-          output-schema-file: .github/sentry-triage.schema.json
-          output-file: ${{ env.TRIAGE_DIRECTORY }}/report.json
-          sandbox: workspace-write
-          safety-strategy: drop-sudo
-          codex-home: ${{ runner.temp }}/sentry-triage-codex
-          model: ${{ vars.SENTRY_TRIAGE_MODEL }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SENTRY_TRIAGE_MODEL: ${{ vars.SENTRY_TRIAGE_MODEL }}
+        run: node .github/scripts/sentry-investigation.mjs
 
-      # Only serialize the result after Codex. Validation and publication use fresh runners.
+      # Validation and execution of proposed code use fresh runners without the API key.
       - name: Serialize the proposed patch
         env:
           TRIAGE_PHASE: bundle

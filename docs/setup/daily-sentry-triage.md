@@ -16,18 +16,24 @@ Configure these repository settings in `vbuch/oboapp`:
 
 | Setting | Type | Purpose |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | Secret | OpenAI API access for the Codex action. A Copilot subscription is not required. |
+| `OPENAI_API_KEY` | Secret | OpenAI Responses API access for the investigation agent. |
 | `SENTRY_TRIAGE_TOKEN` | Secret | Dedicated Sentry token with project, event, and organization read access for all three projects. The existing source-map upload token may have different scopes. |
 | `SENTRY_TRIAGE_ENABLED` | Variable | Set to `true` after configuring the credentials. Scheduled runs otherwise skip the pilot. |
-| `SENTRY_TRIAGE_MODEL` | Optional variable | An available OpenAI model ID. Empty uses the Codex CLI default. |
+| `SENTRY_TRIAGE_MODEL` | Optional variable | A general Responses API model supporting web search, function tools, and structured output. Empty uses `gpt-5.4`. |
 | `SENTRY_TRIAGE_GCP_SERVICE_ACCOUNT` | Optional variable | A dedicated service account with Cloud Logging viewer and Cloud Run viewer roles. |
 
 The optional cloud identity uses the existing `GCP_WORKLOAD_IDENTITY_PROVIDER`
 and `GCP_PROJECT_ID` secrets. Grant the GitHub workload identity principal access
 to impersonate the dedicated read-only service account. Keep deployment
 credentials separate. The job reads logs and describes existing executions.
-Without this identity, recovery is explicitly unknown; Codex cannot classify a
+Without this identity, recovery is explicitly unknown; the agent cannot classify a
 failure as recovered from local HTTP success or the absence of another alert.
+
+The investigation calls the Responses API directly. The ChatGPT API credits
+benefit covers standard Responses API requests and built-in tools. That benefit
+excludes Codex usage through API keys, so this workflow uses no Codex CLI or
+Codex GitHub Action. Check the API organization's credits and model access before
+enabling the schedule.
 
 Allow GitHub Actions to create pull requests in repository settings. The default
 workflow token can create the draft PR, but its branch push does not start another
@@ -57,11 +63,19 @@ excluded from investigation while a separate agent handles #677. Pancharevo
 links #687; Lozenets links #688 and potentially related #451. Update the config
 when ownership changes.
 
-Codex researches public sources and prepares at most one focused application
-patch. It has no Sentry, cloud, database, or repository write credentials. Source
-provider code belongs in `oboapp/sources`; this pilot reports proposed provider
-repairs with upstream issue links and opens draft PRs only in `vbuch/oboapp`.
-It never publishes source packages or changes production infrastructure.
+The Responses API agent researches public sources and proposes at most one
+focused application patch. Its tools read and search tracked repository files,
+fetch public GitHub content, search the web, and stage complete file changes in
+memory. File changes are applied after the final report passes validation. The
+agent has no command-execution tool, and generated code runs only in the separate
+validation job, which has no OpenAI key. Dependency updates remain recommendations
+for a separate change through pnpm.
+
+The investigation has no Sentry, cloud, database, or repository write
+credentials. Source provider code belongs in `oboapp/sources`; this pilot reports
+proposed provider repairs with upstream issue links and opens draft PRs only in
+`vbuch/oboapp`. It never publishes source packages or changes production
+infrastructure.
 
 A fresh runner validates the structured report, patch paths, size, and ownership.
 For a patch it installs locked dependencies, builds shared/db, runs ingest/web
@@ -78,10 +92,12 @@ The canonical prompt is
 
 ## Local checks
 
-Run `node --test .github/scripts/sentry-triage.test.mjs` for the collector and
-publication boundary regressions. The workflow uses Node.js 20 and its built-in
-`fetch`, filesystem, crypto, process, and test APIs. Collection and publication
-need no package installation.
+Run `node --test .github/scripts/sentry-triage.test.mjs .github/scripts/sentry-investigation.test.mjs`
+for the collector, investigation, and publication boundary regressions. The
+workflow uses Node.js 20 and its built-in `fetch`, filesystem, crypto, process,
+and test APIs. Collection, investigation, and publication need no package
+installation.
 
-References: [Codex GitHub Action](https://learn.chatgpt.com/docs/github-action),
-[patch generation and PR publication](https://learn.chatgpt.com/docs/non-interactive-mode).
+References: [Responses API function calling](https://developers.openai.com/api/docs/guides/function-calling),
+[web search](https://developers.openai.com/api/docs/guides/tools-web-search), and
+[ChatGPT API credits benefit](https://help.openai.com/en/articles/20001626-api-credits-benefit-for-eligible-chatgpt-subscriptions).
