@@ -104,6 +104,17 @@ jobs:
           mkdir -p "$RUNNER_TEMP/sentry-triage-tools"
           cp .github/scripts/sentry-triage.mjs .github/scripts/run-sentry-triage.mjs "$RUNNER_TEMP/sentry-triage-tools/"
 
+      # Sandbox policy must use trusted configuration with the protected strategy.
+      - name: Configure Codex research access
+        run: |
+          mkdir -p "$RUNNER_TEMP/sentry-triage-codex"
+          cat > "$RUNNER_TEMP/sentry-triage-codex/config.toml" <<'EOF'
+          web_search = "live"
+
+          [sandbox_workspace_write]
+          network_access = true
+          EOF
+
       - name: Investigate and prepare a supported fix
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
         with:
@@ -113,8 +124,8 @@ jobs:
           output-file: ${{ env.TRIAGE_DIRECTORY }}/report.json
           sandbox: workspace-write
           safety-strategy: drop-sudo
+          codex-home: ${{ runner.temp }}/sentry-triage-codex
           model: ${{ vars.SENTRY_TRIAGE_MODEL }}
-          codex-args: '["--config", "sandbox_workspace_write.network_access=true", "--config", "web_search=\"live\""]'
 
       # Only serialize the result after Codex. Validation and publication use fresh runners.
       - name: Serialize the proposed patch
