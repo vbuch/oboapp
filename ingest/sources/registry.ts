@@ -1,4 +1,5 @@
 import { SOURCES } from "@oboapp/shared";
+import { logger } from "@/lib/logger";
 
 /** Runtime selection follows the same instance assembly as the web catalog. */
 export function getSelectedSourceIds(): string[] {
@@ -17,5 +18,14 @@ export async function runSelectedSource(sourceId: string): Promise<void> {
 
   const entrypoint = `../crawlers/${sourceId}/index.js`;
   const source: { crawl: () => Promise<void> } = await import(entrypoint);
-  await source.crawl();
+
+  try {
+    await source.crawl();
+  } catch (error) {
+    logger.error("Selected source crawl failed", {
+      source: sourceId,
+      error,
+    });
+    throw error;
+  }
 }

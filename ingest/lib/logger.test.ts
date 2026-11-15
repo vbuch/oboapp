@@ -67,6 +67,21 @@ describe("logger", () => {
       expect(reporter).toHaveBeenCalledWith("boom", { step: "test" });
     });
 
+    it("should preserve the original Error for the reporter", async () => {
+      process.env.NODE_ENV = "test";
+      const { logger, setErrorReporter } = await import("./logger");
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const reporter = vi.fn();
+      const error = Object.assign(new TypeError("fetch failed"), {
+        cause: { code: "ECONNRESET", message: "read ECONNRESET" },
+      });
+      setErrorReporter(reporter);
+
+      logger.error("boom", { error });
+
+      expect(reporter).toHaveBeenCalledWith("boom", { error });
+    });
+
     it("should not invoke the reporter for info, warn, or debug", async () => {
       process.env.NODE_ENV = "test";
       process.env.LOG_LEVEL = "debug";
@@ -82,6 +97,63 @@ describe("logger", () => {
       logger.debug("debug");
 
       expect(reporter).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("serialized error metadata", () => {
+    it("should serialize nested Error details in local console output", async () => {
+      process.env.NODE_ENV = "test";
+      const logger = await importLogger();
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const error = Object.assign(new TypeError("fetch failed"), {
+        cause: { code: "ECONNRESET", message: "read ECONNRESET" },
+      });
+
+      logger.error("error msg", { step: "crawl", error });
+
+      expect(spy).toHaveBeenCalledWith(
+        "error msg",
+        expect.objectContaining({
+          step: "crawl",
+          error: expect.objectContaining({
+            name: "TypeError",
+            message: "fetch failed",
+            cause: expect.objectContaining({
+              code: "ECONNRESET",
+              message: "read ECONNRESET",
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("should serialize nested Error details in production JSON output", async () => {
+      process.env.NODE_ENV = "production";
+      vi.resetModules();
+      const logger = await importLogger();
+      const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+      const error = Object.assign(new TypeError("fetch failed"), {
+        cause: { code: "ECONNRESET", message: "read ECONNRESET" },
+      });
+
+      logger.error("error msg", { source: "lozenets-sofia-bg", error });
+
+      expect(spy).toHaveBeenCalledOnce();
+      const [payload] = spy.mock.calls[0] ?? [];
+      expect(typeof payload).toBe("string");
+      expect(JSON.parse(String(payload))).toMatchObject({
+        severity: "ERROR",
+        message: "error msg",
+        source: "lozenets-sofia-bg",
+        error: {
+          name: "TypeError",
+          message: "fetch failed",
+          cause: {
+            code: "ECONNRESET",
+            message: "read ECONNRESET",
+          },
+        },
+      });
     });
   });
 

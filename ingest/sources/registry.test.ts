@@ -8,13 +8,15 @@ import {
   runSelectedSource,
 } from "./registry";
 
-const { sources, crawl, load } = vi.hoisted(() => ({
+const { sources, crawl, load, loggerError } = vi.hoisted(() => ({
   sources: [] as SourceDefinition[],
   crawl: vi.fn(),
   load: vi.fn(),
+  loggerError: vi.fn(),
 }));
 
 vi.mock("@oboapp/shared", () => ({ SOURCES: sources }));
+vi.mock("@/lib/logger", () => ({ logger: { error: loggerError } }));
 vi.mock("../crawlers/triaditsa-org/index.js", () => {
   load();
   return { crawl };
@@ -74,11 +76,21 @@ describe("selected source runtime registry", () => {
     expect(crawl).toHaveBeenCalledOnce();
   });
 
-  it("passes source failures to the caller for reporting", async () => {
-    const error = new Error("Provider is unavailable");
+  it("logs the original source failure and rethrows it", async () => {
+    const error = Object.assign(new TypeError("fetch failed"), {
+      cause: { code: "ECONNRESET", message: "read ECONNRESET" },
+    });
     crawl.mockRejectedValue(error);
 
     await expect(runSelectedSource("triaditsa-org")).rejects.toBe(error);
+
+    expect(loggerError).toHaveBeenCalledExactlyOnceWith(
+      "Selected source crawl failed",
+      expect.objectContaining({
+        source: "triaditsa-org",
+        error,
+      }),
+    );
   });
 
   it("supports an empty instance selection", async () => {

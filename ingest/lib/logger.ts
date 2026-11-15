@@ -32,6 +32,62 @@ interface LogEntry {
   [key: string]: unknown;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function serializeLogValue(value: unknown): unknown {
+  if (value instanceof Error) {
+    const serialized: Record<string, unknown> = {
+      name: value.name,
+      message: value.message,
+    };
+
+    if (value.stack) {
+      serialized.stack = value.stack;
+    }
+
+    for (const key of ["cause", "code", "errno", "status", "type"] as const) {
+      const property = Reflect.get(value, key);
+      if (property !== undefined) {
+        serialized[key] = serializeLogValue(property);
+      }
+    }
+
+    return serialized;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => serializeLogValue(item));
+  }
+
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => {
+        return [key, serializeLogValue(nestedValue)];
+      }),
+    );
+  }
+
+  return value;
+}
+
+function serializeExtra(extra?: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (!extra) {
+    return undefined;
+  }
+
+  return Object.fromEntries(
+    Object.entries(extra).map(([key, value]) => {
+      return [key, serializeLogValue(value)];
+    }),
+  );
+}
+
 function write(entry: LogEntry) {
   if (!isProduction) {
     // Locally: use console for colored, readable output
@@ -57,17 +113,17 @@ function write(entry: LogEntry) {
 export const logger = {
   debug(message: string, extra?: Record<string, unknown>) {
     if (showDebug) {
-      write({ severity: "DEBUG", message, ...extra });
+      write({ severity: "DEBUG", message, ...serializeExtra(extra) });
     }
   },
   info(message: string, extra?: Record<string, unknown>) {
-    write({ severity: "INFO", message, ...extra });
+    write({ severity: "INFO", message, ...serializeExtra(extra) });
   },
   warn(message: string, extra?: Record<string, unknown>) {
-    write({ severity: "WARNING", message, ...extra });
+    write({ severity: "WARNING", message, ...serializeExtra(extra) });
   },
   error(message: string, extra?: Record<string, unknown>) {
-    write({ severity: "ERROR", message, ...extra });
+    write({ severity: "ERROR", message, ...serializeExtra(extra) });
     try {
       errorReporter?.(message, extra);
     } catch {
