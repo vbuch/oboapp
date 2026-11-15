@@ -1,6 +1,6 @@
 # Crawlers
 
-This directory contains the crawler entrypoints: the functions called by the collection commands. During the [source-package transition](../../docs/features/source-packages.md), each directory holds either a legacy crawler or an adapter to a published source package. Triaditsa, Oborishte, Slatina, Toplo, Sofiyska Voda, Lozenets, Studentski, Sredets, Ilinden, Nadezhda, Iskar, Mladost, Vrabnitsa, Inspectorat, Pancharevo, SDVR and NIMH call their published npm packages through Obo's runner. Both paths save raw records through `@oboapp/db`.
+This directory contains the crawler entrypoints: the functions called by the collection commands. During the [source-package transition](../../docs/features/source-packages.md), each directory holds either a legacy crawler or an adapter to a published source package. This fork selects 22 sources: 18 use published packages through Obo's runner, and four remain legacy collectors: Sofia BG, Krasna Polyana, Sofia Capital of Sport and Serdika. Both paths save raw records through `@oboapp/db`.
 
 ## How They Work
 
@@ -11,7 +11,7 @@ Each legacy crawler:
 3. Stores documents in the sources collection through `@oboapp/db` with a `sourceType` identifier
 4. Tracks processed URLs to avoid duplicates
 
-For packaged sources, maintain the parser and source-content tests in [oboapp/sources](https://github.com/oboapp/sources). Maintain the runner, deduplication rules, persistence tests, and job entrypoints in this repository. Existing directory names and `crawl --source` commands remain for compatibility during migration.
+For packaged sources, maintain provider parsing, source-content and provider-specific deduplication tests in [oboapp/sources](https://github.com/oboapp/sources). Maintain the runner, historical-record lookup, persistence tests and job entrypoints in this repository. Existing directory names and `crawl --source` commands remain for compatibility during migration.
 
 ## Crawler and package contract tests
 
@@ -21,6 +21,7 @@ The contract baseline from [#579](https://github.com/oboapp/oboapp/issues/579) p
 pnpm --dir shared build
 pnpm --dir db build
 pnpm --dir ingest test:run crawlers
+pnpm --dir ingest test:run crawlers/erm-zapad/index.contract.test.ts
 pnpm --dir ingest test:run crawlers/nimh-severe-weather/index.contract.test.ts
 pnpm --dir ingest test:run messageIngest/source-handoff.test.ts
 pnpm --dir ingest test:run messageIngest/packaged-hybrid-handoff.test.ts
@@ -39,6 +40,7 @@ All source directories, including currently unselected sources, have crawl-entry
 | Each source's `index.contract.test.ts` (Sofia uses `index.test.ts`) | Identity/locality wiring, output or shared-helper delegation, and source-specific failure behavior |
 | `shared/persistence-contract.test.ts` | Legacy base64 and MD5 lookups, sequential idempotency, no overwrites, validation, categories, processing state |
 | `shared/orchestration-contract.test.ts` | Website/full-feed/hybrid deduplication, persistence, failure continuation and browser ownership |
+| `erm-zapad/index.contract.test.ts` | Published ERM package through persistence and ingestion, global lowest-ID deduplication, grouped center points, geometry repair, dates, optional fields, historical lookups, failures and retry |
 | `nimh-severe-weather/index.contract.test.ts` | Published NIMH package through persistence and ingestion, city-wide content, literal warning hashes, historical lookups, failures and retry |
 | `messageIngest/source-handoff.test.ts` | Actual Triaditsa full-feed crawler output through persistence and `from-sources.ingest()` |
 | `messageIngest/packaged-hybrid-handoff.test.ts` | Oborishte and Slatina packages through persistence and ingestion, historical lookups and retry |
@@ -57,7 +59,7 @@ Preserve literal identifiers byte-for-byte. Do not derive expected identifiers u
 
 During #586, keep historical lookup/no-overwrite tests in Obo and reuse identifier/content fixtures for `discoverItems`/`fetchItem`. Replace obsolete wrapper call assertions as entrypoints change. Triaditsa's handoff test runs the actual package with simulated HTTP responses and storage. Runner tests cover later retries and scans that run at the same time. The legacy helper checks for an existing record before writing. It guarantees sequential idempotency: repeated scans avoid duplicates when they run one at a time. Queues and saved discovery checkpoints are deferred.
 
-Known boundaries: this baseline does not assert universal failure behavior. Some legacy sources abort on a lookup/provider failure, while shared RSS skips unreadable items. Legacy browser cleanup is not certified on every exceptional path. Packaged sources close their source instance through the runner's `finally` block; Toplo uses HTTP. Review remaining legacy cleanup changes separately.
+Known boundaries: this baseline does not assert universal failure behavior. Some legacy sources abort on a lookup/provider failure, while shared RSS skips unreadable items. Legacy browser cleanup is not certified on every exceptional path. Packaged sources close their source instance through the runner's `finally` block. Review remaining legacy cleanup changes separately.
 
 Before migrating Sofia, preserve its URL aliases, exact historical-title fallback, and lookup-failure handling. A failed URL lookup skips the item. Its contract suite protects these rules, feed/query failure propagation, and detail-failure continuation. The ingestion tests also protect the empty-message completion guard in `from-sources`.
 
@@ -79,6 +81,8 @@ Tip: full-page capture tools such as GoFullPage can speed up baseline creation.
 Legacy district crawlers use the shared WordPress helpers in `ingest/crawlers/shared/` for browser sessions, listing and detail extraction, duplicate checks and raw persistence. Packaged district sources use helpers in the sources repository for provider collection, while Obo's runner owns duplicate checks and persistence.
 
 API sources use provider-specific request and parsing logic.
+
+ERM Zapad's entrypoint calls the published HTTP factory through the runner. Its package collects every municipality before global pin deduplication selects historical incident identifiers, with a two-second delay between municipality requests. Obo keeps historical lookups, geometry validation, complete raw persistence and ingestion. The entrypoint fails when all discovered incidents fail; empty scans succeed. Its existing emergent classification and thirty-minute job schedule remain unchanged.
 
 ### Markdown Text Handling
 
