@@ -1,0 +1,194 @@
+name: Daily Sentry investigation
+
+on:
+  schedule:
+    # After the regular afternoon scans: 19:17 Sofia in winter, 20:17 in summer.
+    - cron: "17 17 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: daily-sentry-triage
+  cancel-in-progress: false
+
+env:
+  TRIAGE_DIRECTORY: /tmp/sentry-triage
+
+jobs:
+  collect:
+    if: >-
+      github.repository == 'vbuch/oboapp' && github.ref == 'refs/heads/main' &&
+      (vars.SENTRY_TRIAGE_ENABLED == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+      id-token: write
+    outputs:
+      has_work: ${{ steps.evidence.outputs.has_work }}
+    steps:
+      - name: Check OpenAI configuration
+        env:
+          OPENAI_KEY_CONFIGURED: ${{ secrets.OPENAI_API_KEY != '' }}
+        run: |
+          if [ "$OPENAI_KEY_CONFIGURED" != "true" ]; then
+            echo "::error::Configure OPENAI_API_KEY before enabling the daily pilot."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          package-manager-cache: false
+
+      - name: Authenticate for read-only Cloud Run evidence
+        if: vars.SENTRY_TRIAGE_GCP_SERVICE_ACCOUNT != ''
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.SENTRY_TRIAGE_GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+        if: vars.SENTRY_TRIAGE_GCP_SERVICE_ACCOUNT != ''
+
+      - name: Collect recent failures and existing issue context
+        id: evidence
+        env:
+          TRIAGE_PHASE: collect
+          SENTRY_TRIAGE_TOKEN: ${{ secrets.SENTRY_TRIAGE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          TRIAGE_CLOUD_LOGS: ${{ vars.SENTRY_TRIAGE_GCP_SERVICE_ACCOUNT != '' }}
+        run: node .github/scripts/run-sentry-triage.mjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sentry-evidence
+          path: ${{ env.TRIAGE_DIRECTORY }}/evidence.json
+          retention-days: 7
+
+  investigate:
+    needs: collect
+    if: needs.collect.outputs.has_work == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sentry-evidence
+          path: ${{ env.TRIAGE_DIRECTORY }}
+
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir ingest exec playwright install --with-deps chromium
+
+      - name: Keep the artifact serializer outside the editable checkout
+        run: |
+          mkdir -p "$RUNNER_TEMP/sentry-triage-tools"
+          cp .github/scripts/sentry-triage.mjs .github/scripts/run-sentry-triage.mjs "$RUNNER_TEMP/sentry-triage-tools/"
+
+      - name: Investigate and prepare a supported fix
+        uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: agent-context/.apm/prompts/daily-sentry-triage.prompt.md
+          output-schema-file: .github/sentry-triage.schema.json
+          output-file: ${{ env.TRIAGE_DIRECTORY }}/report.json
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          model: ${{ vars.SENTRY_TRIAGE_MODEL }}
+          codex-args: '["--config", "sandbox_workspace_write.network_access=true", "--config", "web_search=\"live\""]'
+
+      # Only serialize the result after Codex. Validation and publication use fresh runners.
+      - name: Serialize the proposed patch
+        env:
+          TRIAGE_PHASE: bundle
+        run: node "$RUNNER_TEMP/sentry-triage-tools/run-sentry-triage.mjs"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sentry-investigation
+          path: ${{ env.TRIAGE_DIRECTORY }}
+          retention-days: 7
+          if-no-files-found: error
+
+  validate:
+    needs: investigate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          package-manager-cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: sentry-investigation
+          path: ${{ env.TRIAGE_DIRECTORY }}
+
+      - name: Validate the report and patch boundaries
+        id: patch
+        env:
+          TRIAGE_PHASE: validate
+        run: node .github/scripts/run-sentry-triage.mjs
+
+      - uses: pnpm/action-setup@v5
+        if: steps.patch.outputs.has_patch == 'true'
+      - name: Validate the proposed application fix
+        if: steps.patch.outputs.has_patch == 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --dir shared build
+          pnpm --dir db build
+          pnpm --dir ingest lint
+          pnpm --dir web lint
+          pnpm --dir web exec next typegen
+          pnpm --dir ingest exec tsc --noEmit
+          pnpm --dir web exec tsc --noEmit
+          pnpm -r --workspace-concurrency=1 --if-present run test:run
+
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          package-manager-cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: sentry-investigation
+          path: ${{ env.TRIAGE_DIRECTORY }}
+      - name: Update the daily investigation and open a draft PR when validated
+        env:
+          TRIAGE_PHASE: publish
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/run-sentry-triage.mjs
