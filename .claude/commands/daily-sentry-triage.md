@@ -1,6 +1,5 @@
 ---
-description: Investigate recent production failures and prepare one supported application
-  fix for review.
+description: Investigate production failures and prepare detailed implementation issues.
 ---
 
 Use the supplied repository instructions and evidence to produce a daily
@@ -38,42 +37,40 @@ API before proposing browser scraping. Keep each investigation bounded and cite
 useful source URLs. Record observations, uncertainties, and concrete next steps.
 
 Source provider implementations live in `oboapp/sources`. Inspect their published
-code or public repository when useful. This pilot publishes PRs only in
-`vbuch/oboapp`. Report source-package repairs in the existing upstream issue
-context, including a proposed change and verification steps. Do not copy provider
-implementations back into the application or edit installed dependencies.
+code or public repository when useful. Identify the correct repository and files
+for each proposed repair. Keep source-package repairs linked to their existing
+upstream issue context, with a proposed change and verification steps.
 
 Do not run production crawlers, database operations, cloud jobs, deployments,
 package publication, or authenticated provider requests. Do not change Sentry
-state, send messages, or create issues or PRs yourself. The workflow publishes
-your report and validated patch in separate jobs.
+state, send messages, or create issues or PRs yourself. The workflow validates
+your report and publishes its issues in a separate job.
 
-## Proposed patch
+## Implementation handoff
 
-Prepare at most one focused application fix when the evidence supports a
-reproducible code defect. Include a meaningful regression test in the proposed
-files. Use `propose_file` to stage complete file contents, or null to delete a
-file. You cannot execute commands or run tests. The workflow runs the required
-checks on a fresh runner after your report is validated. Describe tests as
-proposed until those checks run. Follow the code style in AGENTS.md, use
-descriptive branch conventions, and avoid em dashes and emoji in prose.
-Use braces and multiline bodies for control flow and callbacks with statements.
+Return up to five focused `followUps` when evidence supports actionable work.
+These become GitHub issues for the user to hand to an implementation agent.
+You have no file-editing or command-execution tools. Describe a proposed repair
+and its verification plan without implementing it or claiming tests have run.
 
-Check `openPullRequests` before proposing a patch. If an open PR already covers
-the incident, link it and leave the existing branch for review. If a fix needs
-provider access, another repository, infrastructure, or missing evidence, report
-the next action and set `fix.propose` to false.
+Each follow-up needs a stable lowercase hyphenated `key`, a clear `title`, a
+detailed Markdown `body`, and the actionable Sentry `incidentIds` it addresses.
+Group incidents that share one repair into one issue. Include:
 
-Allowed patch areas are application source and tests under `api/src`, `db/src`,
-`shared/src`, `web/app`, `web/components`, `web/lib`, `web/hooks`, `ingest/lib`,
-`ingest/sources`, `ingest/crawlers`, `ingest/messageIngest`, and `ingest/geocoding`.
-Package and lockfile updates require a separate change through pnpm. Keep the
-patch under 20 files and 500 KB. Workflow, agent instruction, infrastructure,
-secret, symlink, and submodule changes require a separate human-led change.
+- The failure trigger, observed behavior, and expected behavior.
+- Evidence, source URLs, relevant Sentry incidents, and existing issue links.
+- The intended repository, affected files, and proposed implementation steps.
+- Acceptance criteria, meaningful regression tests, and commands to verify them.
+- Any missing evidence, external dependency, or production verification needed.
 
-Set `fix.propose` true only when `propose_file` has staged the proposed fix, and
-list its actionable Sentry incident IDs. The runner applies staged files only
-after validating your final report. Give the PR a clear title and a body
-explaining the trigger, resulting behavior, evidence, related issues, proposed
-tests, and any production verification still needed. Otherwise discard staged
-changes and set `fix.propose` false. Never claim that proposed tests have passed.
+Keep all proposed repairs for the same incident set in one follow-up issue.
+
+Read `existingFollowUps` and `openPullRequests` before proposing new work. Reuse
+the key of an existing follow-up for the same task. Preserve human ownership and
+link closed tasks without asking to reopen them. If an upstream issue or open PR
+already covers the needed work, link it in the finding instead of creating a
+duplicate task. Known, recovered, and unresolved research-only findings belong
+in the daily report and do not need implementation issues.
+
+Use an empty `followUps` array when there is no new actionable work. Keep the
+report focused, cite uncertainties, and avoid em dashes and emoji in prose.

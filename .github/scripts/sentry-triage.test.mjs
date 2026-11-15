@@ -1,19 +1,36 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
-import { allowedPatchPath, redact, REPOSITORY, REPORT_MARKER, run, SentryTriage, sourceFromEvent, validateReport } from "./sentry-triage.mjs";
+import { redact, REPOSITORY, REPORT_MARKER, SentryTriage, sourceFromEvent, validateReport } from "./sentry-triage.mjs";
 
 function fixture() {
   return {
-    evidence: { incidents: [{ id: "123", investigate: true, cloud: { status: "failed" } }] },
+    evidence: {
+      generatedAt: "2026-11-15T12:00:00Z",
+      incidents: [{
+        id: "123", shortId: "INGEST-123", url: "https://sentry.io/issues/123/", investigate: true,
+        cloud: { status: "failed" }, relatedIssues: [{
+          title: "Existing source investigation", url: "https://github.com/oboapp/oboapp/issues/687", state: "open",
+        }],
+      }],
+    },
     report: {
       summary: "One source failed.",
       findings: [{ incidentId: "123", classification: "actionable", diagnosis: "The page changed.", nextSteps: "Update discovery." }],
-      fix: { propose: false, title: "", body: "", incidentIds: [] },
+      followUps: [],
     },
+  };
+}
+
+function followUp(overrides = {}) {
+  return {
+    key: "repair-source-discovery",
+    title: "Repair source discovery",
+    body: "## Evidence\n\nThe documented feed changed.\n\n## Implementation\n\nUpdate discovery and add regression coverage.",
+    incidentIds: ["123"],
+    ...overrides,
   };
 }
 
@@ -93,7 +110,7 @@ test("unknown recovery cannot be reported as success", () => {
   validateReport(report, evidence);
 });
 
-test("externally owned incidents cannot be investigated or fixed", () => {
+test("externally owned incidents stay known and cannot receive implementation follow-ups", () => {
   const { evidence, report } = fixture();
   evidence.incidents[0].investigate = false;
   assert.throws(() => {
@@ -101,7 +118,7 @@ test("externally owned incidents cannot be investigated or fixed", () => {
   }, /externally owned/);
   report.findings[0].classification = "known";
   validateReport(report, evidence);
-  report.fix = { propose: true, title: "Change", body: "Details", incidentIds: ["123"] };
+  report.followUps = [followUp()];
   assert.throws(() => {
     validateReport(report, evidence);
   }, /externally owned/);
@@ -116,24 +133,54 @@ test("missing, duplicate, and fabricated findings are rejected", () => {
   }
 });
 
-test("a recovered incident cannot justify a patch", () => {
+test("implementation follow-ups require actionable findings", () => {
   const { evidence, report } = fixture();
   evidence.incidents[0].cloud.status = "recovered";
   report.findings[0].classification = "recovered";
-  report.fix = { propose: true, title: "Change", body: "Details", incidentIds: ["123"] };
-  assert.throws(() => {
-    validateReport(report, evidence);
-  }, /actionable/);
+  report.followUps = [followUp()];
+  for (const classification of ["recovered", "known", "needs-investigation"]) {
+    report.findings[0].classification = classification;
+    assert.throws(() => {
+      validateReport(report, evidence);
+    }, /actionable/);
+  }
 });
 
-test("protected paths and Mladost changes are rejected", () => {
-  for (const path of [".github/workflows/deploy.yml", "AGENTS.md", "web/.env.local", "ingest/terraform/main.tf",
-    "../web/lib/api.ts", "web/lib/../secret", "web\\lib\\api.ts", "/web/lib/api.ts",
-    "web//lib/api.ts", "web/lib/.env", "ingest/crawlers/mladost-bg/index.ts"]) {
-    assert.equal(allowedPatchPath(path), false, path);
+test("malformed, duplicate, oversized, and unknown follow-up tasks are rejected", () => {
+  const { evidence, report } = fixture();
+  const malformed = [
+    null,
+    {},
+    followUp({ key: "Uppercase-Key" }),
+    followUp({ key: "a".repeat(81) }),
+    followUp({ title: " " }),
+    followUp({ title: "a".repeat(201) }),
+    followUp({ body: "" }),
+    followUp({ body: "a".repeat(15_001) }),
+    followUp({ incidentIds: [] }),
+    followUp({ incidentIds: ["123", "123"] }),
+    followUp({ incidentIds: ["unknown"] }),
+    followUp({ incidentIds: [123] }),
+  ];
+  for (const task of malformed) {
+    assert.throws(() => {
+      validateReport({ ...report, followUps: [task] }, evidence);
+    });
   }
-  assert.equal(allowedPatchPath("ingest/crawlers/lozenets-sofia-bg/index.contract.test.ts"), true);
-  assert.equal(allowedPatchPath("web/lib/error-reporting.ts"), true);
+  for (const followUps of [null, {}, Array.from({ length: 6 }, () => {
+    return followUp();
+  }), [followUp(), followUp()], [followUp(), followUp({ key: "another-name" })]]) {
+    assert.throws(() => {
+      validateReport({ ...report, followUps }, evidence);
+    });
+  }
+  assert.throws(() => {
+    validateReport({ ...report, summary: "a".repeat(45_001) }, evidence);
+  }, /too large/);
+  assert.throws(() => {
+    validateReport({ ...report, fix: { propose: true } }, evidence);
+  }, /structure/);
+  validateReport({ ...report, followUps: [followUp()] }, evidence);
 });
 
 test("redaction removes identity and URL credentials", () => {
@@ -204,64 +251,246 @@ test("recovery is correlated to the failing execution", () => {
   assert.ok(calls[1].includes("crawl-lozenets-original"));
 });
 
-test("bundle and validation preserve a new regression test", (t) => {
-  const directory = temporaryDirectory(t);
-  const checkout = join(directory, "repo");
-  mkdirSync(checkout);
-  const originalCwd = process.cwd();
-  const { evidence, report } = fixture();
-  report.fix = { propose: true, title: "Fix", body: "Details", incidentIds: ["123"] };
-  try {
-    process.chdir(checkout);
-    run("git", "init", "-q");
-    run("git", "config", "core.autocrlf", "false");
-    mkdirSync("web/lib", { recursive: true });
-    writeFileSync("web/lib/example.ts", "export const value = 1;\n");
-    run("git", "add", ".");
-    run("git", "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "Base");
-    const regression = "web/lib/example.test.ts";
-    writeFileSync(regression, "// New regression\n");
-    const triage = new SentryTriage({ output: join(directory, "artifacts"), env: { GITHUB_OUTPUT: join(directory, "outputs") } });
-    triage.bundle();
-    assert.match(readFileSync(join(triage.output, "fix.patch"), "utf8"), /example\.test\.ts/);
-    unlinkSync(regression);
-    run("git", "reset", "--quiet", "HEAD");
-    triage.writeJson(join(triage.output, "report.json"), report);
-    triage.writeJson(join(triage.output, "evidence.json"), evidence);
-    triage.validate();
-    assert.equal(readFileSync(regression, "utf8"), "// New regression\n");
-  } finally {
-    process.chdir(originalCwd);
-  }
-});
+function implementationIssue(overrides = {}) {
+  return {
+    number: 20,
+    title: "Human-maintained implementation title",
+    state: "open",
+    html_url: `https://github.com/${REPOSITORY}/issues/20`,
+    body: "Human notes before.\n<!-- sentry-follow-up:repair-source-discovery -->\n\n"
+      + "<!-- sentry-follow-up-managed:start -->\n<!-- sentry-follow-up-incidents:123 -->\nOld investigation.\n"
+      + "<!-- sentry-follow-up-managed:end -->\nHuman notes after.",
+    ...overrides,
+  };
+}
 
-test("an existing fix PR is reused without modifying its branch", async (t) => {
+function publicationFixture(t, existing = []) {
   const directory = temporaryDirectory(t);
   const { evidence, report } = fixture();
-  report.fix = { propose: true, title: "Fix", body: "Details", incidentIds: ["123"] };
-  const key = createHash("sha256").update("123").digest("hex").slice(0, 12);
-  const responses = [
-    [{ html_url: `https://github.com/${REPOSITORY}/pull/999`, body: `<!-- sentry-fix:${key} -->` }],
-    { items: [{ number: 10, body: REPORT_MARKER }] },
-    { html_url: "report" },
-  ];
+  report.followUps = [followUp()];
+  const issues = structuredClone(existing);
   const calls = [];
   const triage = new SentryTriage({
     output: directory,
-    env: { GITHUB_REPOSITORY: REPOSITORY },
+    env: { GITHUB_REPOSITORY: REPOSITORY, GITHUB_RUN_ID: "456" },
     runCommand: () => {
-      assert.fail("Existing PR branches must not be changed");
+      assert.fail("Report validation and issue publication must not execute commands");
     },
   });
   triage.writeJson(join(directory, "report.json"), report);
   triage.writeJson(join(directory, "evidence.json"), evidence);
-  triage.github = async (...args) => {
-    calls.push(args);
-    return responses.shift();
+  triage.github = async (path, method = "GET", body) => {
+    calls.push({ path, method, body });
+    assert.doesNotMatch(path, /\/pulls|\/git\/|\/contents/);
+    if (method === "GET" && path.startsWith(`repos/${REPOSITORY}/issues?`)) {
+      return issues;
+    }
+    if (method === "POST" && path === `repos/${REPOSITORY}/issues`) {
+      const number = 1000 + issues.length;
+      const issue = { number, state: "open", html_url: `https://github.com/${REPOSITORY}/issues/${number}`, ...body };
+      issues.push(issue);
+      return issue;
+    }
+    if (method === "PATCH" && path.startsWith(`repos/${REPOSITORY}/issues/`)) {
+      const issue = issues.find((item) => {
+        return path === `repos/${REPOSITORY}/issues/${item.number}`;
+      });
+      assert.ok(issue, path);
+      assert.deepEqual(Object.keys(body), ["body"]);
+      Object.assign(issue, body);
+      return issue;
+    }
+    assert.fail(`Unexpected API call ${method} ${path}`);
   };
-  triage.renderReport = () => {
-    return "Updated report";
-  };
+  return { triage, directory, evidence, report, issues, calls };
+}
+
+test("report validation needs no patch artifact or command execution", (t) => {
+  const { triage, directory } = publicationFixture(t);
+  const reportPath = join(directory, "report.json");
+  const original = readFileSync(reportPath, "utf8");
+  triage.validate();
+  assert.equal(readFileSync(reportPath, "utf8"), original);
+  assert.equal(existsSync(join(directory, "fix.patch")), false);
+  assert.equal(typeof triage.bundle, "undefined");
+});
+
+test("publication creates implementation issues and links them from the daily report", async (t) => {
+  const { triage, issues, calls } = publicationFixture(t);
   await triage.publish();
-  assert.deepEqual(calls.at(-1), [`repos/${REPOSITORY}/issues/10`, "PATCH", { body: "Updated report" }]);
+  const task = issues.find((issue) => {
+    return issue.body.includes("<!-- sentry-follow-up:repair-source-discovery -->");
+  });
+  const daily = issues.find((issue) => {
+    return issue.body.includes(REPORT_MARKER);
+  });
+  assert.ok(task);
+  assert.match(task.body, /sentry-follow-up-incidents:123/);
+  assert.match(task.body, /## Implementation/);
+  assert.ok(daily.body.includes(task.html_url));
+  assert.match(daily.body, /oboapp\/oboapp\/issues\/687/);
+  assert.equal(calls.filter((call) => {
+    return call.method === "POST";
+  }).length, 2);
+});
+
+test("existing implementation issues keep their title and human text outside the managed section", async (t) => {
+  const original = implementationIssue();
+  const { triage, issues, calls } = publicationFixture(t, [original]);
+  await triage.publish();
+  const issue = issues[0];
+  assert.equal(issue.title, original.title);
+  assert.ok(issue.body.startsWith("Human notes before.\n"));
+  assert.ok(issue.body.endsWith("\nHuman notes after."));
+  assert.doesNotMatch(issue.body, /Old investigation/);
+  assert.match(issue.body, /Update discovery and add regression coverage/);
+  assert.equal(calls.filter((call) => {
+    return call.method === "POST";
+  }).length, 1);
+});
+
+test("a changed model slug reuses the issue with the same exact incident set", async (t) => {
+  const { triage, directory, report, issues } = publicationFixture(t, [implementationIssue()]);
+  report.followUps[0].key = "different-model-description";
+  triage.writeJson(join(directory, "report.json"), report);
+  await triage.publish();
+  assert.equal(issues.filter((issue) => {
+    return issue.body.includes("<!-- sentry-follow-up:");
+  }).length, 1);
+  assert.match(issues[0].body, /sentry-follow-up:repair-source-discovery/);
+  assert.doesNotMatch(issues[0].body, /sentry-follow-up:different-model-description/);
+});
+
+test("an exact task key takes precedence over an earlier incident-set match", async (t) => {
+  const incidental = implementationIssue({
+    number: 19,
+    body: implementationIssue().body.replace("repair-source-discovery", "another-task"),
+  });
+  const exact = implementationIssue({
+    body: implementationIssue().body.replace("sentry-follow-up-incidents:123", "sentry-follow-up-incidents:999"),
+  });
+  const { triage, calls } = publicationFixture(t, [incidental, exact]);
+  await triage.publish();
+  assert.equal(calls.some((call) => {
+    return call.method === "PATCH" && call.path.endsWith("/19");
+  }), false);
+  assert.equal(calls.some((call) => {
+    return call.method === "PATCH" && call.path.endsWith("/20");
+  }), true);
+});
+
+test("closed implementation issues are linked without reopening, updating, or duplicating them", async (t) => {
+  const closed = implementationIssue({ state: "closed" });
+  const { triage, directory, report, issues, calls } = publicationFixture(t, [closed]);
+  report.followUps[0].key = "new-model-slug";
+  triage.writeJson(join(directory, "report.json"), report);
+  await triage.publish();
+  assert.deepEqual(issues[0], closed);
+  assert.equal(calls.some((call) => {
+    return call.method === "PATCH";
+  }), false);
+  assert.equal(calls.filter((call) => {
+    return call.method === "POST";
+  }).length, 1);
+  assert.ok(issues[1].body.includes(closed.html_url));
+  assert.match(issues[1].body, /\(closed\)/);
+});
+
+test("legacy task bodies without managed boundaries are preserved before appending the new section", async (t) => {
+  const original = implementationIssue({ body: "<!-- sentry-follow-up:repair-source-discovery -->\nAll of this text belongs to a human." });
+  const { triage, issues } = publicationFixture(t, [original]);
+  await triage.publish();
+  assert.ok(issues[0].body.startsWith(original.body));
+  assert.match(issues[0].body, /sentry-follow-up-managed:start/);
+});
+
+test("ambiguous task section boundaries stop publication without overwriting human notes", async (t) => {
+  const original = implementationIssue({ body: `${implementationIssue().body}\n<!-- sentry-follow-up-managed:start -->` });
+  const { triage, issues, calls } = publicationFixture(t, [original]);
+  await assert.rejects(triage.publish(), /ambiguous/);
+  assert.deepEqual(issues[0], original);
+  assert.equal(calls.some((call) => {
+    return call.method !== "GET";
+  }), false);
+});
+
+test("the daily report also preserves human notes outside its managed section", async (t) => {
+  const daily = {
+    number: 10, title: "[Sentry] Daily investigation", state: "open", html_url: "daily-report",
+    body: `${REPORT_MARKER}\nHuman introduction.\n<!-- daily-sentry-triage-managed:start -->\nOld report\n`
+      + "<!-- daily-sentry-triage-managed:end -->\nHuman conclusion.",
+  };
+  const { triage, issues } = publicationFixture(t, [implementationIssue(), daily]);
+  await triage.publish();
+  assert.ok(issues[1].body.startsWith(`${REPORT_MARKER}\nHuman introduction.\n`));
+  assert.ok(issues[1].body.endsWith("\nHuman conclusion."));
+  assert.doesNotMatch(issues[1].body, /Old report/);
+});
+
+test("invalid report data is rejected before any GitHub publication", async (t) => {
+  const { triage, directory, report, calls } = publicationFixture(t);
+  report.followUps[0].incidentIds = ["unknown"];
+  triage.writeJson(join(directory, "report.json"), report);
+  await assert.rejects(triage.publish(), /unknown/);
+  assert.equal(calls.length, 0);
+});
+
+test("GitHub mutations are restricted to implementation issues in the configured fork", async () => {
+  let requests = 0;
+  const triage = new SentryTriage({
+    fetchImpl: async () => {
+      requests++;
+      return Response.json({ html_url: "created-issue" });
+    },
+  });
+  for (const [path, method] of [
+    [`repos/${REPOSITORY}/pulls`, "POST"], [`repos/${REPOSITORY}/git/refs`, "POST"],
+    ["repos/oboapp/oboapp/issues", "POST"], [`repos/${REPOSITORY}/issues/1`, "DELETE"],
+  ]) {
+    await assert.rejects(triage.github(path, method, {}), /limited to issues/);
+  }
+  assert.equal(requests, 0);
+  await triage.github(`repos/${REPOSITORY}/issues`, "POST", { title: "Task", body: "Details" });
+  assert.equal(requests, 1);
+});
+
+test("existing open and closed task keys and incident sets are collected as evidence", async (t) => {
+  const directory = temporaryDirectory(t);
+  const triage = new SentryTriage({
+    output: directory,
+    env: { SENTRY_TRIAGE_TOKEN: "read-only", GITHUB_OUTPUT: join(directory, "outputs") },
+    runCommand: () => {
+      assert.fail("No command execution is needed without cloud evidence");
+    },
+  });
+  triage.pagedSentry = async () => {
+    return [];
+  };
+  triage.github = async (path) => {
+    if (path.includes("/pulls?")) {
+      return [{ title: "Existing fix PR", html_url: "read-only-pr", body: "Existing review" }];
+    }
+    return [implementationIssue({ state: "closed" }), implementationIssue({ pull_request: {} })];
+  };
+  await triage.collect();
+  const evidence = triage.readJson(join(directory, "evidence.json"));
+  assert.equal(evidence.existingFollowUps.length, 1);
+  assert.equal(evidence.existingFollowUps[0].state, "closed");
+  assert.equal(evidence.existingFollowUps[0].key, "repair-source-discovery");
+  assert.deepEqual(evidence.existingFollowUps[0].incidentIds, ["123"]);
+  assert.equal(evidence.openPullRequests[0].url, "read-only-pr");
+});
+
+test("task deduplication follows repository issue pagination", async () => {
+  const triage = new SentryTriage();
+  const pages = [];
+  triage.github = async (path) => {
+    pages.push(path);
+    return pages.length === 1 ? Array.from({ length: 100 }, (_, number) => {
+      return { number, body: "ordinary issue" };
+    }) : [implementationIssue()];
+  };
+  const issues = await triage.repositoryIssues();
+  assert.equal(issues.length, 101);
+  assert.match(pages[1], /page=2/);
 });

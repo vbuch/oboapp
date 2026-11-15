@@ -96,22 +96,11 @@ jobs:
           node-version: "20"
           package-manager-cache: false
 
-      - name: Keep the artifact serializer outside the editable checkout
-        run: |
-          mkdir -p "$RUNNER_TEMP/sentry-triage-tools"
-          cp .github/scripts/sentry-triage.mjs .github/scripts/run-sentry-triage.mjs "$RUNNER_TEMP/sentry-triage-tools/"
-
-      - name: Investigate and prepare a supported fix
+      - name: Investigate and prepare implementation issues
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SENTRY_TRIAGE_MODEL: ${{ vars.SENTRY_TRIAGE_MODEL }}
         run: node .github/scripts/sentry-investigation.mjs
-
-      # Validation and execution of proposed code use fresh runners without the API key.
-      - name: Serialize the proposed patch
-        env:
-          TRIAGE_PHASE: bundle
-        run: node "$RUNNER_TEMP/sentry-triage-tools/run-sentry-triage.mjs"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -123,7 +112,7 @@ jobs:
   validate:
     needs: investigate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
     permissions:
       contents: read
     steps:
@@ -139,37 +128,22 @@ jobs:
           name: sentry-investigation
           path: ${{ env.TRIAGE_DIRECTORY }}
 
-      - name: Validate the report and patch boundaries
-        id: patch
+      - name: Validate the investigation report
         env:
           TRIAGE_PHASE: validate
         run: node .github/scripts/run-sentry-triage.mjs
-
-      - uses: pnpm/action-setup@v5
-        if: steps.patch.outputs.has_patch == 'true'
-      - name: Validate the proposed application fix
-        if: steps.patch.outputs.has_patch == 'true'
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm --dir shared build
-          pnpm --dir db build
-          pnpm --dir ingest lint
-          pnpm --dir web lint
-          pnpm --dir web exec next typegen
-          pnpm --dir ingest exec tsc --noEmit
-          pnpm --dir web exec tsc --noEmit
-          pnpm -r --workspace-concurrency=1 --if-present run test:run
 
   publish:
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write
+      contents: read
       issues: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: "20"
@@ -178,7 +152,7 @@ jobs:
         with:
           name: sentry-investigation
           path: ${{ env.TRIAGE_DIRECTORY }}
-      - name: Update the daily investigation and open a draft PR when validated
+      - name: Publish the daily report and implementation issues
         env:
           TRIAGE_PHASE: publish
           GH_TOKEN: ${{ github.token }}

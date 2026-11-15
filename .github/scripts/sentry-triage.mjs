@@ -1,6 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
@@ -8,6 +7,12 @@ export const REPOSITORY = "vbuch/oboapp";
 export const REPORT_MARKER = "<!-- daily-sentry-triage -->";
 const CLASSIFICATIONS = new Set(["actionable", "recovered", "known", "needs-investigation"]);
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+const FOLLOW_UP_KEY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const FOLLOW_UP_MARKER = /<!-- sentry-follow-up:([a-z0-9]+(?:-[a-z0-9]+)*) -->/;
+const FOLLOW_UP_START = "<!-- sentry-follow-up-managed:start -->";
+const FOLLOW_UP_END = "<!-- sentry-follow-up-managed:end -->";
+const REPORT_START = "<!-- daily-sentry-triage-managed:start -->";
+const REPORT_END = "<!-- daily-sentry-triage-managed:end -->";
 
 export function redact(value) {
   if (Array.isArray(value)) {
@@ -58,28 +63,6 @@ export function sourceFromEvent(title, context) {
   return /^(?:Source|Crawler) ([a-z0-9-]+) failed/.exec(title)?.[1] ?? null;
 }
 
-export function allowedPatchPath(path) {
-  const parts = path.split("/");
-  if (path.startsWith("/") || path.includes("\\") || parts.some((part) => {
-    return part === "" || part.startsWith(".");
-  })) {
-    return false;
-  }
-  if (path.includes("/mladost-bg/")) {
-    return false;
-  }
-  if (["pnpm-lock.yaml", "ingest/package.json", "ingest/source-package-policy.json"].includes(path)) {
-    return true;
-  }
-  return [
-    "api/src/", "db/src/", "shared/src/", "web/app/", "web/components/", "web/lib/",
-    "web/hooks/", "ingest/lib/", "ingest/sources/", "ingest/crawlers/",
-    "ingest/messageIngest/", "ingest/geocoding/",
-  ].some((prefix) => {
-    return path.startsWith(prefix);
-  });
-}
-
 function hasKeys(value, keys) {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     && Object.keys(value).length === keys.length && keys.every((key) => {
@@ -88,7 +71,7 @@ function hasKeys(value, keys) {
 }
 
 export function validateReport(report, evidence) {
-  if (!hasKeys(report, ["summary", "findings", "fix"]) || typeof report.summary !== "string") {
+  if (!hasKeys(report, ["summary", "findings", "followUps"]) || typeof report.summary !== "string") {
     throw new Error("Invalid report structure");
   }
   if (!Array.isArray(report.findings) || report.findings.length > 100) {
@@ -121,36 +104,88 @@ export function validateReport(report, evidence) {
   if (report.findings.length !== incidents.size || identifiers.size !== incidents.size) {
     throw new Error("Report must cover every incident exactly once");
   }
-  const fix = report.fix;
-  if (!hasKeys(fix, ["propose", "title", "body", "incidentIds"]) || typeof fix.propose !== "boolean") {
-    throw new Error("Invalid fix structure");
+  if (!Array.isArray(report.followUps) || report.followUps.length > 5) {
+    throw new Error("A report may contain at most five follow-up tasks");
   }
-  if (typeof fix.title !== "string" || typeof fix.body !== "string") {
-    throw new Error("Invalid fix text");
-  }
-  if (!Array.isArray(fix.incidentIds) || !fix.incidentIds.every((id) => {
-    return typeof id === "string";
-  })) {
-    throw new Error("Invalid fix incident IDs");
-  }
-  if (fix.propose) {
-    if (!fix.title.trim() || !fix.body.trim() || fix.incidentIds.length === 0) {
-      throw new Error("A proposed fix needs a title, evidence, and incident IDs");
+  const taskKeys = new Set();
+  const taskIncidents = new Set();
+  for (const task of report.followUps) {
+    if (!hasKeys(task, ["key", "title", "body", "incidentIds"])) {
+      throw new Error("Invalid follow-up task structure");
     }
-    for (const id of fix.incidentIds) {
+    if (typeof task.key !== "string" || task.key.length > 80 || !FOLLOW_UP_KEY.test(task.key) || taskKeys.has(task.key)) {
+      throw new Error("Follow-up tasks require unique lowercase slug keys of at most 80 characters");
+    }
+    taskKeys.add(task.key);
+    if (typeof task.title !== "string" || !task.title.trim() || task.title.length > 200
+        || typeof task.body !== "string" || !task.body.trim() || task.body.length > 15_000) {
+      throw new Error("Follow-up tasks require a title of at most 200 characters and a body of at most 15000 characters");
+    }
+    if (!Array.isArray(task.incidentIds) || task.incidentIds.length === 0
+        || new Set(task.incidentIds).size !== task.incidentIds.length
+        || !task.incidentIds.every((id) => {
+          return typeof id === "string";
+        })) {
+      throw new Error("Follow-up tasks require unique incident IDs");
+    }
+    const incidentKey = incidentSet(task.incidentIds);
+    if (taskIncidents.has(incidentKey)) {
+      throw new Error("Group follow-up work for the same incident set into one task");
+    }
+    taskIncidents.add(incidentKey);
+    for (const id of task.incidentIds) {
       if (!incidents.get(id)?.investigate) {
-        throw new Error("Fix targets an unknown or externally owned incident");
+        throw new Error("Follow-up targets an unknown or externally owned incident");
       }
     }
     if (report.findings.some((finding) => {
-      return fix.incidentIds.includes(finding.incidentId) && finding.classification !== "actionable";
+      return task.incidentIds.includes(finding.incidentId) && finding.classification !== "actionable";
     })) {
-      throw new Error("A fix requires actionable findings");
+      throw new Error("Follow-up tasks require actionable findings");
     }
   }
   if (JSON.stringify(report).length > 45_000) {
     throw new Error("Report is too large");
   }
+}
+
+function followUpMetadata(issue) {
+  const key = FOLLOW_UP_MARKER.exec(issue.body || "")?.[1];
+  if (!key || key.length > 80 || issue.pull_request) {
+    return null;
+  }
+  const encodedIds = /<!-- sentry-follow-up-incidents:([^\r\n]*?) -->/.exec(issue.body || "")?.[1];
+  let incidentIds = [];
+  if (encodedIds) {
+    try {
+      incidentIds = encodedIds.split(",").map((id) => {
+        return decodeURIComponent(id);
+      });
+    } catch {
+      incidentIds = [];
+    }
+  }
+  return { key, incidentIds, title: issue.title, body: issue.body || "", url: issue.html_url, state: issue.state };
+}
+
+function incidentSet(incidentIds) {
+  return JSON.stringify([...new Set(incidentIds)].sort());
+}
+
+function managedBody(existing, marker, start, end, content) {
+  const section = `${start}\n${content}\n${end}`;
+  const startIndex = existing.indexOf(start);
+  const endIndex = existing.indexOf(end);
+  if (startIndex === -1 && endIndex === -1) {
+    const prefix = existing || marker;
+    return `${prefix}\n\n${section}`;
+  }
+  if (startIndex === -1 || endIndex < startIndex
+      || existing.indexOf(start, startIndex + start.length) !== -1
+      || existing.indexOf(end, endIndex + end.length) !== -1) {
+    throw new Error("Managed issue section is ambiguous; preserving the existing issue body");
+  }
+  return existing.slice(0, startIndex) + section + existing.slice(endIndex + end.length);
 }
 
 export class SentryTriage {
@@ -230,7 +265,27 @@ export class SentryTriage {
   }
 
   async github(path, method = "GET", body) {
+    const issueCollection = `repos/${REPOSITORY}/issues`;
+    const allowedWrite = method === "POST" && path === issueCollection
+      || method === "PATCH" && new RegExp(`^${issueCollection}/[0-9]+$`).test(path);
+    if (method !== "GET" && !allowedWrite) {
+      throw new Error("Publication writes are limited to issues in vbuch/oboapp");
+    }
     return (await this.requestJson(`https://api.github.com/${path}`, this.env.GH_TOKEN, method, body)).data;
+  }
+
+  async repositoryIssues() {
+    const issues = [];
+    for (let page = 1; page <= 10; page += 1) {
+      const batch = await this.github(`repos/${REPOSITORY}/issues?state=all&per_page=100&page=${page}`);
+      issues.push(...batch);
+      if (batch.length < 100) {
+        return issues.filter((issue) => {
+          return !issue.pull_request;
+        });
+      }
+    }
+    throw new Error("Repository issue pagination limit reached; refusing incomplete task deduplication");
   }
 
   readJson(path) {
@@ -366,8 +421,9 @@ export class SentryTriage {
       }
     }
     const openPrs = await this.github(`repos/${REPOSITORY}/pulls?state=open&per_page=100`);
+    const existingFollowUps = (await this.repositoryIssues()).map(followUpMetadata).filter(Boolean);
     this.writeJson(join(this.output, "evidence.json"), {
-      generatedAt: now.toISOString(), since, incidents,
+      generatedAt: now.toISOString(), since, incidents, existingFollowUps,
       openPullRequests: openPrs.map((pr) => {
         return { url: pr.html_url, title: pr.title, body: (pr.body || "").slice(0, 8000) };
       }),
@@ -378,45 +434,14 @@ export class SentryTriage {
     console.log(`Collected ${incidents.length} recent Sentry issues`);
   }
 
-  bundle() {
-    this.run("git", "add", "--intent-to-add", "--all");
-    const patch = this.run("git", "diff", "--binary", "HEAD");
-    mkdirSync(this.output, { recursive: true });
-    writeFileSync(join(this.output, "fix.patch"), patch);
-    writeFileSync(join(this.output, "base-sha"), this.run("git", "rev-parse", "HEAD").trim());
-  }
-
   validate() {
     const report = this.readJson(join(this.output, "report.json"));
     const evidence = this.readJson(join(this.output, "evidence.json"));
     validateReport(report, evidence);
-    const patch = join(this.output, "fix.patch");
-    const size = statSync(patch).size;
-    const hasPatch = size > 0;
-    if (hasPatch !== report.fix.propose) {
-      throw new Error("Patch and proposed-fix status disagree");
-    }
-    if (hasPatch) {
-      if (size > 500_000) {
-        throw new Error("Patch exceeds the pilot's 500 KB limit");
-      }
-      this.run("git", "apply", "--check", patch);
-      this.run("git", "apply", "--index", patch);
-      const paths = this.run("git", "diff", "--cached", "--name-only", "-z").replace(/\0$/, "").split("\0");
-      if (paths.length > 20 || !paths.every(allowedPatchPath)) {
-        throw new Error("Patch modifies a protected path or exceeds 20 files");
-      }
-      for (const line of this.run("git", "ls-files", "--stage").trim().split("\n")) {
-        if (["120000", "160000"].includes(line.split(" ")[0]) && paths.includes(line.split("\t")[1])) {
-          throw new Error("Symlinks and submodules are not allowed in generated patches");
-        }
-      }
-    }
-    appendFileSync(this.env.GITHUB_OUTPUT, `has_patch=${hasPatch}\n`);
   }
 
-  renderReport(report, evidence, prUrl) {
-    const lines = [REPORT_MARKER, "## Latest daily investigation", "", report.summary, "",
+  renderReport(report, evidence, followUps) {
+    const lines = ["## Latest daily investigation", "", report.summary, "",
       `Evidence collected: ${evidence.generatedAt} (UTC).`, ""];
     const incidents = new Map(evidence.incidents.map((item) => {
       return [item.id, item];
@@ -430,11 +455,16 @@ export class SentryTriage {
       }
       lines.push("");
     }
-    if (prUrl) {
-      lines.push(`Proposed fix: ${prUrl}`, "");
+    if (followUps.length > 0) {
+      lines.push("## Implementation follow-ups", "");
+      for (const issue of followUps) {
+        lines.push(`- [${issue.title}](${issue.url}) (${issue.state}).`);
+      }
+      lines.push("");
     }
     lines.push(`Workflow: https://github.com/${REPOSITORY}/actions/runs/${this.env.GITHUB_RUN_ID}`);
-    return redact(lines.join("\n"));
+    // Render model text as data so it cannot introduce managed section boundaries.
+    return redact(lines.join("\n")).replaceAll("<!--", "&lt;!--");
   }
 
   async publish() {
@@ -444,41 +474,43 @@ export class SentryTriage {
     const report = this.readJson(join(this.output, "report.json"));
     const evidence = this.readJson(join(this.output, "evidence.json"));
     validateReport(report, evidence);
-    let prUrl;
-    if (report.fix.propose) {
-      const fix = report.fix;
-      const key = createHash("sha256").update([...fix.incidentIds].sort().join(",")).digest("hex").slice(0, 12);
-      const marker = `<!-- sentry-fix:${key} -->`;
-      const existing = await this.github(`repos/${REPOSITORY}/pulls?state=open&per_page=100`);
-      const match = existing.find((pr) => {
-        return (pr.body || "").includes(marker);
+    const issues = await this.repositoryIssues();
+    const followUps = [];
+    for (const task of report.followUps) {
+      const match = issues.find((issue) => {
+        const metadata = followUpMetadata(issue);
+        return metadata?.key === task.key;
+      }) || issues.find((issue) => {
+        const metadata = followUpMetadata(issue);
+        return metadata && metadata.incidentIds.length > 0
+          && incidentSet(metadata.incidentIds) === incidentSet(task.incidentIds);
       });
-      if (match) {
-        prUrl = match.html_url;
-      } else {
-        const branch = `automation/sentry-fix-${key}-${this.env.GITHUB_RUN_ID}`;
-        this.run("git", "switch", "-c", branch);
-        this.run("git", "apply", "--index", join(this.output, "fix.patch"));
-        this.run("git", "-c", "user.name=github-actions[bot]", "-c",
-          "user.email=41898282+github-actions[bot]@users.noreply.github.com",
-          "commit", "-m", "fix: propose correction from daily Sentry investigation");
-        this.run("git", "push", "origin", `HEAD:refs/heads/${branch}`);
-        const pr = await this.github(`repos/${REPOSITORY}/pulls`, "POST", {
-          head: branch, base: "main", title: fix.title.slice(0, 200), draft: true,
-          body: redact(`${marker}\n\n${fix.body}\n\nValidated with the required builds, lint, TypeScript checks, and workspace tests.\n\n`
-            + "This draft requires review and post-deployment verification."),
-        });
-        prUrl = pr.html_url;
+      if (match?.state === "closed") {
+        followUps.push(followUpMetadata(match));
+        continue;
       }
+      const key = match ? followUpMetadata(match).key : task.key;
+      const marker = `<!-- sentry-follow-up:${key} -->`;
+      const encodedIds = [...task.incidentIds].sort().map((id) => {
+        return encodeURIComponent(id);
+      }).join(",");
+      const content = `<!-- sentry-follow-up-incidents:${encodedIds} -->\n\n${redact(task.body).replaceAll("<!--", "&lt;!--")}`;
+      const body = managedBody(match?.body || "", marker, FOLLOW_UP_START, FOLLOW_UP_END, content);
+      const issue = match
+        ? await this.github(`repos/${REPOSITORY}/issues/${match.number}`, "PATCH", { body })
+        : await this.github(`repos/${REPOSITORY}/issues`, "POST", { title: redact(task.title), body });
+      if (!match) {
+        issues.push(issue);
+      } else {
+        Object.assign(match, issue);
+      }
+      followUps.push(followUpMetadata(issue));
     }
-    const body = this.renderReport(report, evidence, prUrl);
-    const query = new URLSearchParams({
-      q: `repo:${REPOSITORY} is:issue is:open "[Sentry] Daily investigation" in:title`, per_page: "30",
+    const reportContent = this.renderReport(report, evidence, followUps);
+    const existing = issues.find((issue) => {
+      return issue.state === "open" && (issue.body || "").includes(REPORT_MARKER);
     });
-    const { items } = await this.github(`search/issues?${query}`);
-    const existing = items.find((issue) => {
-      return (issue.body || "").includes(REPORT_MARKER);
-    });
+    const body = managedBody(existing?.body || "", REPORT_MARKER, REPORT_START, REPORT_END, reportContent);
     const issue = existing
       ? await this.github(`repos/${REPOSITORY}/issues/${existing.number}`, "PATCH", { body })
       : await this.github(`repos/${REPOSITORY}/issues`, "POST", { title: "[Sentry] Daily investigation", body });

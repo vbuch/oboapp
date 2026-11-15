@@ -8,7 +8,8 @@ The pilot collects production issues seen in the preceding 30 hours from the
 `ingest`, `oboapp-web`, and `public-api` Sentry projects. The overlap accommodates
 normal schedule delays. A single rolling `[Sentry] Daily investigation` GitHub
 issue holds the latest report and links the relevant existing upstream issues.
-Actions artifacts retain each run's evidence, report, and patch for seven days.
+Focused implementation issues describe new actionable work. Actions artifacts
+retain each run's evidence, report, and token usage for seven days.
 
 ## Enable the pilot
 
@@ -35,17 +36,16 @@ excludes Codex usage through API keys, so this workflow uses no Codex CLI or
 Codex GitHub Action. Check the API organization's credits and model access before
 enabling the schedule.
 
-Allow GitHub Actions to create pull requests in repository settings. The default
-workflow token can create the draft PR, but its branch push does not start another
-GitHub Actions workflow. The separate validation job runs the required checks
-before publication. Run normal PR CI manually when reviewing the draft, or add a
-separately reviewed GitHub App integration if automatic PR CI is needed.
+Publication uses the workflow token with `contents: read` and `issues: write`.
+It creates or updates GitHub issues. Implementation starts when you hand one of
+those issues to an agent. The repository's Actions PR-creation setting can stay
+disabled.
 
 Set `SENTRY_TRIAGE_ENABLED` to `false` to stop scheduled investigations. Manual
 runs still require the credentials. The workflow is restricted to this fork and
 the `main` branch, so upstream or other forks do not inherit an active schedule.
 
-## Investigation and draft PRs
+## Investigation and implementation issues
 
 The evidence collector reads related issues in `oboapp/oboapp` and
 `vbuch/oboapp`, including closed matches. It preserves the original Sentry group
@@ -63,28 +63,33 @@ excluded from investigation while a separate agent handles #677. Pancharevo
 links #687; Lozenets links #688 and potentially related #451. Update the config
 when ownership changes.
 
-The Responses API agent researches public sources and proposes at most one
-focused application patch. Its tools read and search tracked repository files,
-fetch public GitHub content, search the web, and stage complete file changes in
-memory. File changes are applied after the final report passes validation. The
-agent has no command-execution tool, and generated code runs only in the separate
-validation job, which has no OpenAI key. Dependency updates remain recommendations
-for a separate change through pnpm.
+The Responses API agent researches public sources and prepares up to five
+focused implementation issues. Its tools read and search tracked repository
+files, fetch public GitHub content, and search the web. The investigation leaves
+the checkout unchanged and cannot execute commands.
 
 The investigation has no Sentry, cloud, database, or repository write
 credentials. Source provider code belongs in `oboapp/sources`; this pilot reports
-proposed provider repairs with upstream issue links and opens draft PRs only in
-`vbuch/oboapp`. It never publishes source packages or changes production
-infrastructure.
+proposed provider repairs with upstream issue links and publishes issues only in
+`vbuch/oboapp`. Provider-package tasks identify `oboapp/sources` as their intended
+implementation repository.
 
-A fresh runner validates the structured report, patch paths, size, and ownership.
-For a patch it installs locked dependencies, builds shared/db, runs ingest/web
-lint and TypeScript checks, and runs all workspace tests. Publication runs on a
-third fresh runner with repository write permissions and no OpenAI key. It opens
-a draft PR on a descriptive `automation/sentry-fix-*` branch and leaves merging
-to review. An existing open PR for the same incident set is reused without
-changing its branch. Validation failure leaves artifacts available in Actions
-and stops publication.
+A fresh runner validates the report's structure, incident coverage, and task
+ownership. Only actionable incidents that this pilot owns can receive follow-up
+issues. Publication runs on another fresh runner with issue-write permission and
+no OpenAI key.
+
+Each follow-up includes the failure trigger, observed and expected behavior,
+evidence and related links, intended repository and files, proposed steps,
+acceptance criteria, regression-test suggestions, verification commands, and
+remaining blockers. Existing upstream issues and open PRs remain linked context;
+the agent avoids creating duplicate implementation tasks for work already owned.
+
+Follow-up issues use stable keys and Sentry incident IDs for deduplication.
+Existing follow-ups are included in the next investigation's evidence. Human
+text outside the issue's managed investigation section is preserved, and closed
+issues stay closed. The rolling daily report links the resulting tasks.
+Validation failure retains the artifacts and stops publication.
 
 The canonical prompt is
 `agent-context/.apm/prompts/daily-sentry-triage.prompt.md`. After changing it, run
