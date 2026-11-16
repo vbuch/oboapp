@@ -202,8 +202,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0
       '@oboapp/source-rayon-pancharevo-bg':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.1.1
+        version: 0.1.1
       '@oboapp/source-sdk':
         specifier: 0.2.0
         version: 0.2.0
@@ -2666,8 +2666,8 @@ packages:
     resolution: {integrity: sha512-lRzFHzpD6eWU7TfPfp+6BfKU+oOn0sUESxaUSDHY+aTScgrHKA1A0kbUfBcRYD8qJXM9ricMLqfxDGHdnXs99A==}
     engines: {node: '>=20'}
 
-  '@oboapp/source-rayon-pancharevo-bg@0.1.0':
-    resolution: {integrity: sha512-OVjTtrhZPbfb2Z0qYC5zf8TSHjppl+JvGMMGNw0djK3srFH1Wu+HDbrAOCzjbzlepCVYF5anmst742TPBCDSkw==}
+  '@oboapp/source-rayon-pancharevo-bg@0.1.1':
+    resolution: {integrity: sha512-QwqeOrI3v8yxOJETjzPn40ljc5J4g/7HNoynHUPWc/emmhXHSjuGf183mUMmwqbshyW1Wdwj3jYj1+677gcqzA==}
     engines: {node: '>=20.3'}
 
   '@oboapp/source-sdk@0.1.1':
@@ -13816,7 +13816,7 @@ snapshots:
       playwright: 1.61.1
       turndown: 7.2.2
 
-  '@oboapp/source-rayon-pancharevo-bg@0.1.0':
+  '@oboapp/source-rayon-pancharevo-bg@0.1.1':
     dependencies:
       '@oboapp/source-sdk': 0.1.1
       '@oboapp/source-web-utils': 0.4.0
