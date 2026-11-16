@@ -61,13 +61,14 @@ endpoint.
 
 ## Packaged Source Integration
 
-The existing job uses `@oboapp/source-toplo-bg@0.1.0` through `runSource`.
-The tracked pnpm patch adds an optional `onListing` observer to the package's
-public factory in both ESM and CommonJS builds. The observer receives the HTML
-and check time from the package's single HTTP request, before geometry parsing.
-It validates the complete listing, saves the snapshot, and returns its count.
-The package accepts empty discovery only when that verified count is zero.
-Without an observer, the package keeps its existing empty-list rejection.
+The existing job uses `@oboapp/source-toplo-bg@0.2.0` through `runSource`.
+The published package exposes the optional `onListing` observer in both ESM and
+CommonJS builds. The observer receives the HTML and UTC check time from the
+package's single HTTP request, before geometry parsing. Obo's observer validates
+the complete listing, saves the snapshot, and returns its count as a nonnegative
+safe integer. The package accepts empty discovery only when that verified count
+is zero. Without an observer, the package keeps its existing empty-list
+rejection.
 
 The runner continues to own locality checks, historical lookups, atomic
 create-only message writes, retries, and source cleanup. A snapshot write or
@@ -75,12 +76,15 @@ listing validation failure stops discovery before message persistence. A later
 geometry or message failure preserves an already verified listing snapshot.
 The package retains its request timeout and cancellation handling.
 
-The patch is temporary. Add the listing observation API to
-[`oboapp/sources`](https://github.com/oboapp/sources/tree/main/packages/source-toplo-bg),
-publish a reviewed package version, pin it here, and remove the patch and its
-`patchedDependencies` entry together. Keep the package observer and crawler
-contract tests when upgrading. They cover both module formats, one request per
-scan, verified zero, malformed listings, and snapshot persistence failures.
+The listing observer is maintained in
+[`oboapp/sources`](https://github.com/oboapp/sources/tree/main/packages/source-toplo-bg).
+The [0.2.0 release](https://github.com/oboapp/sources/releases/tag/source-toplo-bg-v0.2.0),
+prepared in [sources#44](https://github.com/oboapp/sources/pull/44), replaces the
+temporary pnpm patch. The published npm archive matches the inspected GitHub
+release archive, and its registry README and repository metadata are verified.
+Keep the package observer and crawler contract tests when upgrading. They cover
+both module formats, one request per scan, verified zero, malformed listings,
+and snapshot persistence failures.
 
 ## Nightly Daily Timeline
 
