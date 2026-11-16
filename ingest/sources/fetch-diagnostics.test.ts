@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import type { Command } from "commander";
+import type { CreateSource, SourceContext } from "@oboapp/source-sdk";
 import { chromium } from "playwright";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSourceStore } from "@/__mocks__/source-contract";
@@ -16,6 +17,10 @@ const mocks = vi.hoisted(() => ({
   setTag: vi.fn(),
   captureException: vi.fn(),
   captureMessage: vi.fn(),
+  createOborishteSource: vi.fn<(
+    context: SourceContext,
+    options?: { onRssFailure?: (error: unknown) => void },
+  ) => ReturnType<CreateSource>>(),
 }));
 
 vi.mock("commander", async (importOriginal) => {
@@ -37,9 +42,17 @@ vi.mock("commander", async (importOriginal) => {
 vi.mock("dotenv", () => ({ default: { config: vi.fn() } }));
 vi.mock("@/lib/verify-env", () => ({ verifyDbEnv: vi.fn() }));
 vi.mock("@/lib/db", () => ({ getDb: mocks.getDb }));
+vi.mock("@oboapp/source-rayon-oborishte-bg", () => ({
+  createSource: mocks.createOborishteSource,
+}));
 vi.mock("@/sources/registry", () => ({
-  getSelectedSourceIds: () => ["lozenets-sofia-bg"],
-  runSelectedSource: async () => {
+  getSelectedSourceIds: () => ["lozenets-sofia-bg", "rayon-oborishte-bg"],
+  runSelectedSource: async (sourceType: string) => {
+    if (sourceType === "rayon-oborishte-bg") {
+      const { crawl } = await import("@/crawlers/rayon-oborishte-bg/index");
+      await crawl();
+      return;
+    }
     const { crawl } = await import("@/crawlers/lozenets-sofia-bg/index");
     await crawl();
   },
@@ -187,5 +200,89 @@ describe("published RSS source failure diagnostics", () => {
     );
     expect(launch).not.toHaveBeenCalled();
     expect(store.client.createOne).not.toHaveBeenCalled();
+  });
+
+  it("reports recovered Oborishte discovery once as a warning while known items exit successfully", async () => {
+    vi.stubEnv("CLOUD_RUN_JOB", "crawl-oborishte");
+    vi.stubEnv("CLOUD_RUN_EXECUTION", "crawl-oborishte-recovery");
+    const store = createSourceStore();
+    const identifier = "https://rayon-oborishte.bg/%d1%80%d0%b5%d0%bc%d0%be%d0%bd%d1%82/?id=1";
+    const historical = { url: identifier, title: "Historical content", processed: true };
+    store.records.set("6513b033c4e69800675d8c7c11ab1f2f", historical);
+    mocks.getDb.mockResolvedValue(store.db);
+    const privateUrl = "https://reader:password@rayon-oborishte.bg/feed/?token=private#fragment";
+    const failure = new TypeError("fetch failed", {
+      cause: Object.assign(new Error(`Connection reset for ${privateUrl}`), {
+        code: "ECONNRESET",
+        authorization: "private-error-property",
+      }),
+    });
+    const fetchItem = vi.fn();
+    mocks.createOborishteSource.mockImplementation((_context, options) => ({
+      async discoverItems() {
+        options?.onRssFailure?.(failure);
+        return { items: [{ identifier }] };
+      },
+      fetchItem,
+    }));
+    const launch = vi.spyOn(chromium, "launch");
+    const output: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      output.push(String(chunk));
+      return true;
+    });
+    await import("@/crawl");
+    const program = mocks.program;
+    if (!program) {
+      throw new Error("The crawl command was not created");
+    }
+
+    await program.parseAsync(["node", "crawl", "--source", "rayon-oborishte-bg"]);
+
+    const logs = output.map((line) => {
+      return JSON.parse(line) as Record<string, unknown>;
+    });
+    expect(logs.filter((entry) => entry.severity === "WARNING")).toEqual([
+      expect.objectContaining({
+        message: "RSS discovery failed; trying WordPress posts API",
+        sourceType: "rayon-oborishte-bg",
+        diagnosticCode: "rss-discovery-failure",
+        feedUrl: "https://rayon-oborishte.bg/feed/",
+        fallback: "wordpress-posts-api",
+        cloudRunExecution: "crawl-oborishte-recovery",
+        cloudRunTaskAttempt: "0",
+        error: expect.objectContaining({
+          message: "fetch failed",
+          cause: expect.objectContaining({ code: "ECONNRESET" }),
+        }),
+      }),
+    ]);
+    expect(logs.some((entry) => entry.severity === "ERROR")).toBe(false);
+    expect(logs).toContainEqual(expect.objectContaining({
+      message: "Crawl complete",
+      saved: 0,
+      skipped: 1,
+      failed: 0,
+    }));
+    expect(mocks.captureException).toHaveBeenCalledOnce();
+    expect(mocks.captureMessage).not.toHaveBeenCalled();
+    expect(mocks.setLevel).toHaveBeenCalledExactlyOnceWith("warning");
+    expect(mocks.setTag.mock.calls).toEqual([
+      ["sourceType", "rayon-oborishte-bg"],
+      ["diagnosticCode", "rss-discovery-failure"],
+    ]);
+    expect(mocks.setExtra).toHaveBeenCalledWith("cloudRunExecution", "crawl-oborishte-recovery");
+    const captured: Error = mocks.captureException.mock.calls[0][0];
+    const diagnostics = output.join("") + JSON.stringify(mocks.setExtra.mock.calls)
+      + captured.stack + (captured.cause as Error).stack;
+    for (const secret of ["reader:", "password", "token=private", "#fragment", "private-error-property"]) {
+      expect(diagnostics).not.toContain(secret);
+    }
+    expect(store.records.get("6513b033c4e69800675d8c7c11ab1f2f")).toBe(historical);
+    expect(store.client.createOne).not.toHaveBeenCalled();
+    expect(fetchItem).not.toHaveBeenCalled();
+    expect(launch).not.toHaveBeenCalled();
+    expect(process.exit).toHaveBeenCalledExactlyOnceWith(0);
+    expect(mocks.flush).toHaveBeenCalledExactlyOnceWith(5000);
   });
 });
