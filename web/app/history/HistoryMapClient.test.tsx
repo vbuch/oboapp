@@ -16,6 +16,7 @@ vi.mock("leaflet", () => ({
     map: mocks.map,
     tileLayer: mocks.tileLayer,
     heatLayer: mocks.heatLayer,
+    latLng: (lat: number, lng: number) => ({ lat, lng }),
   },
 }));
 vi.mock("leaflet.heat", () => ({}));
