@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSource } from "@oboapp/source-rayon-pancharevo-bg";
 import { metadata } from "@oboapp/source-rayon-pancharevo-bg/metadata";
+import sourceDefinition from "../../../shared/src/sources/rayon-pancharevo-bg";
 import { crawl } from "./index";
 
 const mocks = vi.hoisted(() => {
-  return { db: {}, getDb: vi.fn(), runSource: vi.fn(), info: vi.fn() };
+  return {
+    db: {},
+    getDb: vi.fn(),
+    runSource: vi.fn(),
+    info: vi.fn(),
+  };
 });
 vi.mock("@/lib/db", () => {
   return { getDb: mocks.getDb };
@@ -27,9 +33,13 @@ describe("rayon-pancharevo-bg package entrypoint", () => {
     await crawl();
     expect(metadata.id).toBe("rayon-pancharevo-bg");
     expect(metadata.localities).toEqual(["bg.sofia"]);
+    expect(metadata).toEqual(sourceDefinition);
     expect(mocks.runSource).toHaveBeenCalledExactlyOnceWith(mocks.db, metadata, createSource);
     expect(mocks.info).toHaveBeenCalledWith("Crawl complete", {
-      sourceType: "rayon-pancharevo-bg", saved: 1, skipped: 2, failed: 0,
+      sourceType: "rayon-pancharevo-bg",
+      saved: 1,
+      skipped: 2,
+      failed: 0,
     });
   });
 
