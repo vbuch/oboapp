@@ -46,7 +46,16 @@ ERM Zapad uses `@oboapp/source-erm-zapad@0.1.0` for HTTP municipality discovery 
 
 ERM content preserves the original first pin's text and dates, valid center points from mixed-geometry incidents and omitted optional fields. Dates keep the legacy host-local timezone behavior. Obo repairs swapped coordinates during validation and retains historical base64/MD5 lookups. The adapter fails the job when every discovered incident fails to process; empty scans succeed. Package-to-ingestion contracts cover these rules, complete raw records, no overwrites, failures and retries. The existing emergent job keeps its thirty-minute schedule.
 
-NIMH uses `@oboapp/source-nimh-severe-weather@0.1.0` with SDK 0.2.0. Discovery keeps complete warning data in the source instance, and fetching returns that cached content for the historical synthetic identifier. The package preserves browser-serialized warning hashes, city-wide scope, empty GeoJSON and fixed `+02:00` forecast timespans. The adapter fails the job when every discovered warning fails to process. Warning-free scans succeed. Provider parsing tests live in the sources repository; Obo tests the published package through persistence and ingestion.
+NIMH uses `@oboapp/source-nimh-severe-weather@0.1.1` with SDK 0.2.0. Chromium
+waits for `domcontentloaded` before reading the server-rendered warning text and
+tables, so discovery can finish while background requests remain active.
+Discovery keeps complete warning data in the source instance, and fetching
+returns that cached content for the historical synthetic identifier. The package
+preserves browser-serialized warning hashes, city-wide scope, empty GeoJSON and
+fixed `+02:00` forecast timespans. The adapter fails the job when every discovered
+warning fails to process. Warning-free scans succeed. Provider parsing tests live
+in the sources repository; Obo tests the published package through persistence
+and ingestion.
 
 ### Pancharevo
 
