@@ -51,12 +51,12 @@ function readListedIds(html: string): Set<string> {
   const listedIds = new Set<string>();
 
   for (const [tag] of html.matchAll(/<li\b[^>]*>/gi)) {
-    const classes = /\bclass\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
+    const classes = /\sclass\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
     if (!classes?.split(/\s+/).includes("accident-container")) {
       continue;
     }
 
-    const id = /\bdata-accidentid\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
+    const id = /\sdata-accidentid\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
     if (!id?.trim()) {
       throw new Error("Toplo listing contains a row without an incident ID");
     }
@@ -77,7 +77,7 @@ export function parseListingIncidents(html: string): SourceIncident[] {
   if (
     !incidentScript ||
     !html.includes("accident-list-homepage") ||
-    !/\bid\s*=\s*["']accidentMap["']/i.test(html) ||
+    !/\sid\s*=\s*["']accidentMap["']/i.test(html) ||
     !/<\/html\s*>/i.test(html)
   ) {
     throw new Error("Toplo response does not contain a complete incident listing");

@@ -76,6 +76,7 @@ describe("countListingIncidents", () => {
   it.each([
     "<html><body>Service unavailable</body></html>",
     toploHtml([]).replace('id="accidentMap"', 'id="other"'),
+    toploHtml([]).replace('id="accidentMap"', 'data-id="accidentMap"'),
     toploHtml([]).replace("function parseAll()", "function other()"),
     toploHtml([]).replace("accident-list-homepage", "other"),
     toploHtml([]).replace("</html>", ""),
@@ -120,5 +121,16 @@ describe("countListingIncidents", () => {
     const html = toploHtml(["one"]).replace('data-accidentId="one"', "");
 
     expect(() => countListingIncidents(html)).toThrow();
+  });
+
+  it("rejects attributes whose names only end with a required attribute name", () => {
+    const html = toploHtml(["one"]);
+
+    expect(() => {
+      countListingIncidents(html.replace('class="accident-container"', 'data-class="accident-container"'));
+    }).toThrow("does not match");
+    expect(() => {
+      countListingIncidents(html.replace('data-accidentId="one"', 'other-data-accidentId="one"'));
+    }).toThrow("without an incident ID");
   });
 });
