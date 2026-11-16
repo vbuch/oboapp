@@ -80,6 +80,14 @@ The adapter records `RSS feed retry scheduled` as a warning and `RSS feed recove
 
 Literal article URLs, RSS dates, article extraction, two-second detail pacing, source ID `lozenets-sofia-bg` and locality `bg.sofia` remain compatible. Historical base64/MD5 lookups and create-only persistence preserve stored records. The native RSS investigation in [#688](https://github.com/oboapp/oboapp/issues/688) and the older browser-navigation issue [#451](https://github.com/oboapp/oboapp/issues/451) concern different collection stages; article navigation uses `domcontentloaded`. Deployment and subsequent scheduled scans still need to confirm production recovery before closing #688.
 
+### Pancharevo
+
+Pancharevo uses [`@oboapp/source-rayon-pancharevo-bg@0.1.1`](https://www.npmjs.com/package/@oboapp/source-rayon-pancharevo-bg/v/0.1.1), prepared in [sources#39](https://github.com/oboapp/sources/pull/39). The published npm archive matches the inspected [GitHub release assets](https://github.com/oboapp/sources/releases/tag/source-rayon-pancharevo-bg-v0.1.1), and the registry README and repository metadata are verified.
+
+Discovery reads the first page of the [planned-repairs RSS feed](https://www.pancharevo.org/gradska-i-okolna-sreda/planovi-remonti?format=feed&type=rss) advertised by the [current listing](https://www.pancharevo.org/gradska-i-okolna-sreda/planovi-remonti). It preserves literal article URLs and title-based Bulgarian event-date filtering. Current articles use the scoped `.article-body` content and their authoritative `time[datetime]` publication timestamp. Historical Joomla articles retain their existing content extraction and date fallbacks. Feed and article attempts keep two-second pacing.
+
+The provider changed historical paths and some numeric IDs. Before production collection, compare discovered candidates with historical records and review deduplication while preserving source ID `rayon-pancharevo-bg`, locality `bg.sofia` and create-only persistence. Cloud Run access remains blocked by the recorded HTTP 403 responses in [#687](https://github.com/oboapp/oboapp/issues/687). Supported provider access and a healthy production discovery and deduplication scan remain required; keep historical backfill separate.
+
 ## Instance selection and deployment
 
 Keep the selected catalog in `shared/src/sources.ts` aligned with `ingest/terraform/source-jobs.<locality>.json`. Job keys identify deployed resources, so preserve them when translating existing configuration. Terraform selects locality maps through `var.localities`. A non-empty `var.crawlers` is an explicit manual override outside the checked selection.

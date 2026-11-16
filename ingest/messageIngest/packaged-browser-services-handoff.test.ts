@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRequire } from "node:module";
 import { createBrowserMock, createSourceStore, contractDate } from "@/__mocks__/source-contract";
 import { crawl as crawlInspectorat } from "@/crawlers/inspectorat-so-org/index";
-import { crawl as crawlPancharevo } from "@/crawlers/rayon-pancharevo-bg/index";
 import { crawl as crawlSdvr } from "@/crawlers/sdvr-mvr-bg/index";
 import { getDb } from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -35,21 +34,6 @@ const cases = [
     detailDate: "04.10.2026",
     publicationDate: () => {
       return "2026-10-03T22:00:00.000Z";
-    },
-  },
-  {
-    sourceType: "rayon-pancharevo-bg",
-    crawl: crawlPancharevo,
-    indexUrl: "https://www.pancharevo.org/%D1%80%D0%B5%D0%BC%D0%BE%D0%BD%D1%82%D0%B8-%D0%B8-%D0%B8%D0%BD%D1%84%D1%80%D0%B0%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D0%B0",
-    identifier: "https://www.pancharevo.org/%D1%80%D0%B5%D0%BC%D0%BE%D0%BD%D1%82%D0%B8-%D0%B8-%D0%B8%D0%BD%D1%84%D1%80%D0%B0%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D0%B0/2300-%D1%80%D0%B5%D0%BC%D0%BE%D0%BD%D1%82?x=1&y=2#notice",
-    secondIdentifier: "https://www.pancharevo.org/%D1%80%D0%B5%D0%BC%D0%BE%D0%BD%D1%82%D0%B8-%D0%B8-%D0%B8%D0%BD%D1%84%D1%80%D0%B0%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D0%B0/2301-repair",
-    itemId: "1e23f217ab37761f809533824b52dada",
-    legacyId: "aHR0cHM6Ly93d3cucGFuY2hhcmV2by5vcmcvJUQxJTgwJUQwJUI1JUQwJUJDJUQwJUJFJUQwJUJEJUQxJTgyJUQwJUI4LSVEMCVCOC0lRDAlQjglRDAlQkQlRDElODQlRDElODAlRDAlQjAlRDElODElRDElODIlRDElODAlRDElODMlRDAlQkElRDElODIlRDElODMlRDElODAlRDAlQjAvMjMwMC0lRDElODAlRDAlQjUlRDAlQkMlRDAlQkUlRDAlQkQlRDElODI_eD0xJnk9MiNub3RpY2U_",
-    listingCard: '<article class="item"><h2 itemprop="name"><a href="IDENTIFIER">Listing title</a></h2><p>04.10.2026</p></article>',
-    article: '<time>DETAIL_DATE</time><h1>Detail title</h1><div itemprop="articleBody"><p>Repair <a href="https://example.com/plan.pdf">Plan</a></p><nav>noise</nav><footer>noise</footer><div class="share-buttons">noise</div></div>',
-    detailDate: "04.10.2026",
-    publicationDate: () => {
-      return new Date(2026, 9, 4).toISOString();
     },
   },
   {
@@ -251,14 +235,6 @@ describe.each(cases)("$sourceType published browser-service handoff", (source) =
       article = source.article.replace("DETAIL_DATE", "");
       await scan();
       expect(store.records.get(source.itemId)?.datePublished).toBe("2026-10-03T22:00:00.000Z");
-    });
-  }
-
-  if (source.sourceType === "rayon-pancharevo-bg") {
-    it("uses the dated detail title when the detail date is empty", async () => {
-      article = source.article.replace("DETAIL_DATE", "").replace("Detail title", "Repair 04.10.2026");
-      await scan();
-      expect(store.records.get(source.itemId)?.datePublished).toBe(source.publicationDate());
     });
   }
 });
