@@ -2,6 +2,37 @@
 
 Critical patterns and non-obvious rules for AI agents working on `oboapp`. For detailed domain docs, see the referenced READMEs.
 
+## Fork Backport Decisions
+
+These decisions apply to `vbuch/oboapp` and were agreed on 16 November 2026.
+Keep this section in the fork.
+
+The following work remains in `vbuch/oboapp`:
+
+- Geocoding, including manual tools, street synonyms, cache reporting and provider configuration.
+- Interest coverage, including the public heatmap and its reporting infrastructure.
+- Billing, including cost exports, reports and related pages.
+
+Do not propose or prepare upstream backports for these areas unless the maintainer
+explicitly changes this decision.
+
+The agreed priority order for upstream work is:
+
+1. Adjust the Toplo incident history and transition work before backporting it.
+2. Backport the NIMH readiness update.
+3. Backport the Lozenets retry and recovery changes.
+4. Backport the Oborishte RSS-to-API recovery changes.
+
+For Toplo, replace the temporary provider-package patch with a published release
+and settle the public schema and calendar scope. Keep Toplo and Sofia assumptions
+explicit, preserve upstream source assemblies, and split the work into reviewable
+changes. Include required diagnostics with the later recovery backports.
+
+Follow the [fork and upstream PR workflow](docs/setup/fork-upstream-pr-workflow.md)
+when preparing an upstream change.
+
+---
+
 ## 0. Editing Agent Primitives (Skills, Instructions, Prompts)
 
 **NEVER edit AI primitive files directly in `.github/skills/`, `.github/instructions/`, `.github/prompts/`, `.github/agents/`, or `.claude/`.** Those are generated outputs [managed by APM](./docs/setup/apm-agent-resources.md). `.github/workflows/` is edited directly as normal.
