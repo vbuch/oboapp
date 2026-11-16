@@ -9,8 +9,11 @@ const mocks = vi.hoisted(() => ({
   program: undefined as Command | undefined,
   getDb: vi.fn(),
   init: vi.fn(),
+  isInitialized: vi.fn(),
   flush: vi.fn(),
   setExtra: vi.fn(),
+  setLevel: vi.fn(),
+  setTag: vi.fn(),
   captureException: vi.fn(),
   captureMessage: vi.fn(),
 }));
@@ -43,11 +46,20 @@ vi.mock("@/sources/registry", () => ({
 }));
 vi.mock("@sentry/node", () => ({
   init: mocks.init,
+  isInitialized: mocks.isInitialized,
   flush: mocks.flush,
   captureException: mocks.captureException,
   captureMessage: mocks.captureMessage,
-  withScope: (callback: (scope: { setExtra: typeof mocks.setExtra }) => void) => {
-    callback({ setExtra: mocks.setExtra });
+  withScope: (callback: (scope: {
+    setExtra: typeof mocks.setExtra;
+    setLevel: typeof mocks.setLevel;
+    setTag: typeof mocks.setTag;
+  }) => void) => {
+    callback({
+      setExtra: mocks.setExtra,
+      setLevel: mocks.setLevel,
+      setTag: mocks.setTag,
+    });
   },
 }));
 
@@ -56,6 +68,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.program = undefined;
   mocks.flush.mockResolvedValue(true);
+  mocks.isInitialized.mockReturnValue(true);
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("LOCALITY", "bg.sofia");
   vi.stubEnv("SENTRY_DSN", "https://public@example.test/1");
