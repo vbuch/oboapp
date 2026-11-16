@@ -33,7 +33,7 @@ During the [source-package transition](../docs/features/source-packages.md), the
 
 The `crawl` and `pipeline` commands share a [runtime registry](sources/registry.ts) derived from `SOURCES` in `shared/src/sources.ts`. Help lists selected sources, and `crawl --source` rejects unselected IDs even when their implementation directories exist. `pipeline --all` runs all selected sources; `pipeline --emergent` runs selected sources marked `emergent: true`.
 
-The production build clears `dist` and compiles selected source entrypoints and their imports alongside common application code. The image omits the raw crawler source tree. Docker prepares separate production manifests and matching lockfile importer entries, then installs selected provider dependencies into a fresh layer with a frozen production install. Source-package browser checks follow those selected packages and their declared Playwright dependencies. The builder still installs the full development workspace. See the [production dependency guidance](../docs/features/source-packages.md#preparing-production-dependencies) for the staging process and remaining verification work.
+The production build clears `dist` and compiles selected source entrypoints and their imports alongside common application code. The image omits the raw crawler source tree. Docker removes unselected provider packages from the builder's manifests and matching lockfile entries before installing dependencies. The builder installs selected provider packages and development build tools. Separate production manifests support a frozen runtime installation, and browser checks follow selected packages and their declared Playwright dependencies. See the [build workspace guidance](../docs/features/source-packages.md#building-selected-sources) and [production dependency guidance](../docs/features/source-packages.md#preparing-production-dependencies) for the staging process.
 
 ## Components
 
@@ -99,7 +99,7 @@ Terraform also schedules the notification heartbeat and configured reports. Repo
 
 Dockerized for Google Cloud Run Jobs. See `Dockerfile` and `terraform/` directory.
 
-The independent `Test Minimal Source Image` CI job builds the ordinary Dockerfile with only Triaditsa, Sofiyska Voda and shared crawler helpers in its context. It checks selected production packages and compiled sources, `USER node`, offline default startup and pinned pnpm availability. Runtime checks load entrypoints without invoking collection or initializing the database. See the [minimal-image instructions](../docs/features/source-packages.md#verifying-a-minimal-image) for local commands. The builder still installs development dependencies, and a minimal cloud deployment remains separate work.
+The independent `Test Minimal Source Image` CI job builds the ordinary Dockerfile with only Triaditsa, Sofiyska Voda and shared crawler helpers in its context. It checks selected packages in both the builder and production image, compiled sources, `USER node`, offline default startup and pinned pnpm availability. Runtime checks load entrypoints without invoking collection or initializing the database. See the [minimal-image instructions](../docs/features/source-packages.md#verifying-a-minimal-image) for local commands. A minimal cloud deployment remains separate work.
 
 ## Testing Toolchain Note
 
