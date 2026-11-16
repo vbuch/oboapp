@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import type { Command } from "commander";
-import type { CreateSource, SourceContext } from "@oboapp/source-sdk";
+import type { createSource } from "@oboapp/source-rayon-oborishte-bg";
 import { chromium } from "playwright";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSourceStore } from "@/__mocks__/source-contract";
@@ -17,10 +17,7 @@ const mocks = vi.hoisted(() => ({
   setTag: vi.fn(),
   captureException: vi.fn(),
   captureMessage: vi.fn(),
-  createOborishteSource: vi.fn<(
-    context: SourceContext,
-    options?: { onRssFailure?: (error: unknown) => void },
-  ) => ReturnType<CreateSource>>(),
+  createOborishteSource: vi.fn<typeof createSource>(),
 }));
 
 vi.mock("commander", async (importOriginal) => {
@@ -220,7 +217,7 @@ describe("published RSS source failure diagnostics", () => {
     const fetchItem = vi.fn();
     mocks.createOborishteSource.mockImplementation((_context, options) => ({
       async discoverItems() {
-        options?.onRssFailure?.(failure);
+        await options?.onRssFailure?.(failure);
         return { items: [{ identifier }] };
       },
       fetchItem,

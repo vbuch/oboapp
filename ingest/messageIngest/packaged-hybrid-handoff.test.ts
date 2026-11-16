@@ -8,6 +8,7 @@ import {
 import { crawl as crawlOborishte } from "@/crawlers/rayon-oborishte-bg/index";
 import { crawl as crawlSlatina } from "@/crawlers/so-slatina-org/index";
 import { getDb } from "@/lib/db";
+import { reportSourceWarning } from "@/lib/sentry";
 import { ingest } from "./from-sources";
 import { messageIngest } from "./index";
 
@@ -23,6 +24,9 @@ vi.mock("@/messageIngest/index", () => ({
 }));
 vi.mock("dotenv", () => ({
   default: { config: vi.fn() },
+}));
+vi.mock("@/lib/sentry", () => ({
+  reportSourceWarning: vi.fn(),
 }));
 
 const cases = [
@@ -43,6 +47,42 @@ const cases = [
     itemId: "367a4c14091b4d0cf63fcd7f777ec4c4",
     legacyId: "aHR0cHM6Ly9zby1zbGF0aW5hLm9yZy9yZXBhaXIvP2lkPTE_",
     article: '<div id="content"><article><div class="item-content"><p>Road repair <a href="https://example.com/plan.pdf">Plan</a></p><div class="post-views">Views</div></div></article></div>',
+  },
+];
+
+const oborishtePostsUrl = "https://rayon-oborishte.bg/wp-json/wp/v2/posts?per_page=10&orderby=date&order=desc";
+const oborishteRecoveryCases = [
+  {
+    failure: "HTTP 503",
+    readRss() {
+      return new Response("Service unavailable", { status: 503 });
+    },
+    historicalId: cases[0].legacyId,
+    processed: false,
+  },
+  {
+    failure: "a transport error",
+    readRss() {
+      throw new TypeError("RSS connection reset");
+    },
+    historicalId: cases[0].itemId,
+    processed: false,
+  },
+  {
+    failure: "a timeout",
+    readRss() {
+      throw new DOMException("RSS request timed out", "TimeoutError");
+    },
+    historicalId: cases[0].legacyId,
+    processed: true,
+  },
+  {
+    failure: "a non-RSS response",
+    readRss() {
+      return new Response("<html><body>Temporarily unavailable</body></html>");
+    },
+    historicalId: cases[0].itemId,
+    processed: true,
   },
 ];
 
@@ -168,17 +208,19 @@ describe.each(cases)("$sourceType package handoff", ({
     expect(chromium.launch).not.toHaveBeenCalled();
   });
 
-  it("propagates a first-page HTTP 415 without fetching details or writing records", async () => {
-    fetchFeed.mockResolvedValueOnce(new Response("Unsupported Media Type", { status: 415 }));
+  if (sourceType === "so-slatina-org") {
+    it("propagates a first-page HTTP 415 without fetching details or writing records", async () => {
+      fetchFeed.mockResolvedValueOnce(new Response("Unsupported Media Type", { status: 415 }));
 
-    await expect(crawl()).rejects.toThrow(`RSS feed returned 415 for ${feedUrl}`);
+      await expect(crawl()).rejects.toThrow(`RSS feed returned 415 for ${feedUrl}`);
 
-    expect(fetchFeed).toHaveBeenCalledOnce();
-    expect(store.records.size).toBe(0);
-    expect(store.client.createOne).not.toHaveBeenCalled();
-    expect(store.sources.setOne).not.toHaveBeenCalled();
-    expect(chromium.launch).not.toHaveBeenCalled();
-  });
+      expect(fetchFeed).toHaveBeenCalledOnce();
+      expect(store.records.size).toBe(0);
+      expect(store.client.createOne).not.toHaveBeenCalled();
+      expect(store.sources.setOne).not.toHaveBeenCalled();
+      expect(chromium.launch).not.toHaveBeenCalled();
+    });
+  }
 
   it("leaves a failed page eligible for the next scan", async () => {
     browser.page.goto.mockRejectedValueOnce(new Error("Page unavailable"));
@@ -191,8 +233,11 @@ describe.each(cases)("$sourceType package handoff", ({
   });
 });
 
-describe("Oborishte root-feed coverage", () => {
-  it("preserves an auction alongside a repair through ingestion and repeat scans", async () => {
+describe("Oborishte discovery coverage", () => {
+  it.each([
+    { discovery: "root RSS", rssFails: false },
+    { discovery: "WordPress API after RSS HTTP 415", rssFails: true },
+  ])("preserves an auction and a repair through $discovery ingestion and repeat scans", async ({ rssFails }) => {
     const scanDate = new Date("2026-11-16T10:00:00.000Z");
     vi.setSystemTime(scanDate);
     const repair = cases[0];
@@ -201,19 +246,38 @@ describe("Oborishte root-feed coverage", () => {
     const auctionTitle = "Обявление на публично оповестен конкурс";
     const auctionMessage = "Условия на публично оповестения конкурс.";
     fetchFeed = vi.fn<typeof globalThis.fetch>(async (input) => {
-      if (input !== repair.feedUrl) {
-        return new Response("Unexpected discovery endpoint", { status: 404 });
+      if (input === oborishtePostsUrl && rssFails) {
+        return new Response(JSON.stringify([
+          {
+            link: auctionUrl,
+            title: { rendered: auctionTitle },
+            date_gmt: "2026-11-10T12:34:07",
+            categories: [21],
+          },
+          {
+            link: repair.url,
+            title: { rendered: "Feed title" },
+            date_gmt: "2026-10-04T08:00:00",
+            categories: [54],
+          },
+        ]));
       }
-      return new Response(`<rss><channel>
-        <item><title>${auctionTitle}</title><link>${auctionUrl}</link>
-          <pubDate>Tue, 10 Nov 2026 12:34:07 +0000</pubDate>
-          <category><![CDATA[Търгове и конкурси]]></category>
-        </item>
-        <item><title>Feed title</title><link>${repair.url}</link>
-          <pubDate>Sun, 04 Oct 2026 08:00:00 GMT</pubDate>
-          <category><![CDATA[Уведомления за ремонти и СМР]]></category>
-        </item>
-      </channel></rss>`);
+      if (input === repair.feedUrl) {
+        if (rssFails) {
+          return new Response("Unsupported Media Type", { status: 415 });
+        }
+        return new Response(`<rss><channel>
+          <item><title>${auctionTitle}</title><link>${auctionUrl}</link>
+            <pubDate>Tue, 10 Nov 2026 12:34:07 +0000</pubDate>
+            <category><![CDATA[Търгове и конкурси]]></category>
+          </item>
+          <item><title>Feed title</title><link>${repair.url}</link>
+            <pubDate>Sun, 04 Oct 2026 08:00:00 GMT</pubDate>
+            <category><![CDATA[Уведомления за ремонти и СМР]]></category>
+          </item>
+        </channel></rss>`);
+      }
+      return new Response("Unexpected discovery endpoint", { status: 404 });
     });
     vi.stubGlobal("fetch", fetchFeed);
     browser.page.goto.mockImplementation(async (url: string) => {
@@ -225,7 +289,21 @@ describe("Oborishte root-feed coverage", () => {
 
     await crawlOborishte();
 
-    expect(fetchFeed).toHaveBeenCalledExactlyOnceWith(repair.feedUrl, expect.any(Object));
+    expect(fetchFeed).toHaveBeenNthCalledWith(1, repair.feedUrl, expect.objectContaining({
+      headers: expect.objectContaining({ Accept: "application/rss+xml, application/xml, text/xml, */*" }),
+      signal: expect.any(AbortSignal),
+    }));
+    if (rssFails) {
+      expect(fetchFeed).toHaveBeenCalledTimes(2);
+      expect(fetchFeed).toHaveBeenNthCalledWith(2, oborishtePostsUrl, expect.objectContaining({
+        headers: expect.objectContaining({ Accept: "application/json" }),
+        signal: expect.any(AbortSignal),
+      }));
+      expect(reportSourceWarning).toHaveBeenCalledOnce();
+    } else {
+      expect(fetchFeed).toHaveBeenCalledOnce();
+      expect(reportSourceWarning).not.toHaveBeenCalled();
+    }
     expect(store.records.size).toBe(2);
     expect(store.records.get(auctionId)).toEqual({
       url: auctionUrl,
@@ -278,5 +356,92 @@ describe("Oborishte root-feed coverage", () => {
     expect(store.sources.setOne).not.toHaveBeenCalled();
     expect(browser.page.goto).toHaveBeenCalledTimes(2);
     expect(chromium.launch).toHaveBeenCalledOnce();
+    expect(reportSourceWarning).toHaveBeenCalledTimes(rssFails ? 2 : 0);
+    expect(fetchFeed.mock.calls.map(([input]) => input)).toEqual(rssFails
+      ? [repair.feedUrl, oborishtePostsUrl, repair.feedUrl, oborishtePostsUrl]
+      : [repair.feedUrl, repair.feedUrl]);
+  });
+
+  it.each(oborishteRecoveryCases)("recovers from $failure and preserves historical records", async ({
+    readRss,
+    historicalId,
+    processed,
+  }) => {
+    const source = cases[0];
+    const historical = { url: source.url, title: "Historical content", processed };
+    store.records.set(historicalId, historical);
+    fetchFeed = vi.fn<typeof globalThis.fetch>(async (input) => {
+      if (input === source.feedUrl) {
+        return readRss();
+      }
+      if (input === oborishtePostsUrl) {
+        return new Response(JSON.stringify([{
+          link: source.url,
+          title: { rendered: "Updated upstream title" },
+          date_gmt: "2026-10-04T08:00:00",
+        }]));
+      }
+      return new Response("Unexpected discovery endpoint", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchFeed);
+
+    await crawlOborishte();
+
+    expect(fetchFeed).toHaveBeenCalledTimes(2);
+    expect(fetchFeed).toHaveBeenNthCalledWith(1, source.feedUrl, expect.any(Object));
+    expect(fetchFeed).toHaveBeenNthCalledWith(2, oborishtePostsUrl, expect.objectContaining({
+      headers: expect.objectContaining({ Accept: "application/json" }),
+      signal: expect.any(AbortSignal),
+    }));
+    expect(reportSourceWarning).toHaveBeenCalledExactlyOnceWith(
+      "RSS discovery failed; trying WordPress posts API",
+      expect.objectContaining({
+        sourceType: "rayon-oborishte-bg",
+        diagnosticCode: "rss-discovery-failure",
+        feedUrl: source.feedUrl,
+        fallback: "wordpress-posts-api",
+        error: expect.anything(),
+      }),
+    );
+    expect(store.records.size).toBe(1);
+    expect(store.records.get(historicalId)).toBe(historical);
+    expect(store.client.createOne).not.toHaveBeenCalled();
+    expect(store.sources.setOne).not.toHaveBeenCalled();
+    expect(browser.page.goto).not.toHaveBeenCalled();
+    expect(chromium.launch).not.toHaveBeenCalled();
+  });
+
+  it("reports both discovery failures before fetching details or writing records", async () => {
+    const feedUrl = cases[0].feedUrl;
+    fetchFeed = vi.fn<typeof globalThis.fetch>(async () => {
+      return new Response("Service unavailable", { status: 503 });
+    });
+    vi.stubGlobal("fetch", fetchFeed);
+
+    await expect(crawlOborishte()).rejects.toThrow(
+      `RSS discovery failed for ${feedUrl}: RSS feed returned 503 for ${feedUrl}; WordPress fallback failed: WordPress posts API returned 503 for ${oborishtePostsUrl}`,
+    );
+
+    expect(fetchFeed.mock.calls.map(([input]) => input)).toEqual([feedUrl, oborishtePostsUrl]);
+    expect(reportSourceWarning).toHaveBeenCalledOnce();
+    expect(store.records.size).toBe(0);
+    expect(store.client.createOne).not.toHaveBeenCalled();
+    expect(store.sources.setOne).not.toHaveBeenCalled();
+    expect(chromium.launch).not.toHaveBeenCalled();
+  });
+
+  it("keeps an empty successful RSS scan complete without API recovery", async () => {
+    fetchFeed = vi.fn<typeof globalThis.fetch>(async () => {
+      return new Response("<rss><channel></channel></rss>");
+    });
+    vi.stubGlobal("fetch", fetchFeed);
+
+    await crawlOborishte();
+
+    expect(fetchFeed).toHaveBeenCalledExactlyOnceWith(cases[0].feedUrl, expect.any(Object));
+    expect(reportSourceWarning).not.toHaveBeenCalled();
+    expect(store.records.size).toBe(0);
+    expect(store.client.createOne).not.toHaveBeenCalled();
+    expect(chromium.launch).not.toHaveBeenCalled();
   });
 });

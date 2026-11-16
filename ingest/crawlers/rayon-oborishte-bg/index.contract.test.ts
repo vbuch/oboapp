@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CreateSource, SourceContext } from "@oboapp/source-sdk";
+import type { CreateSource } from "@oboapp/source-sdk";
+import type { createSource } from "@oboapp/source-rayon-oborishte-bg";
 import { metadata } from "@oboapp/source-rayon-oborishte-bg/metadata";
 import { crawl } from "./index";
 
@@ -9,10 +10,7 @@ const mocks = vi.hoisted(() => ({
   runSource: vi.fn(),
   info: vi.fn(),
   reportSourceWarning: vi.fn(),
-  createSource: vi.fn<(
-    context: SourceContext,
-    options?: { onRssFailure?: (error: unknown) => void },
-  ) => ReturnType<CreateSource>>(),
+  createSource: vi.fn<typeof createSource>(),
 }));
 vi.mock("@oboapp/source-rayon-oborishte-bg", () => ({
   createSource: mocks.createSource,
@@ -72,7 +70,7 @@ describe("Oborishte package entrypoint", () => {
     }
     const error = new Error("RSS response contains an error page");
 
-    onRssFailure(error);
+    await onRssFailure(error);
 
     expect(mocks.reportSourceWarning).toHaveBeenCalledExactlyOnceWith(
       "RSS discovery failed; trying WordPress posts API",
