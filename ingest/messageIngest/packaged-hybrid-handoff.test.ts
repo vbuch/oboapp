@@ -190,3 +190,93 @@ describe.each(cases)("$sourceType package handoff", ({
     expect(store.records.get(itemId)?.processed).toBe(false);
   });
 });
+
+describe("Oborishte root-feed coverage", () => {
+  it("preserves an auction alongside a repair through ingestion and repeat scans", async () => {
+    const scanDate = new Date("2026-11-16T10:00:00.000Z");
+    vi.setSystemTime(scanDate);
+    const repair = cases[0];
+    const auctionUrl = "https://rayon-oborishte.bg/%d0%be%d0%b1%d1%8f%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5-%d0%bd%d0%b0-%d0%bf%d1%83%d0%b1%d0%bb%d0%b8%d1%87%d0%bd%d0%be-%d0%be%d0%bf%d0%be%d0%b2%d0%b5%d1%81%d1%82%d0%b5%d0%bd-%d0%ba%d0%be%d0%bd%d0%ba/";
+    const auctionId = "a61a32f5b45719367e6f4535d41b76d8";
+    const auctionTitle = "Обявление на публично оповестен конкурс";
+    const auctionMessage = "Условия на публично оповестения конкурс.";
+    fetchFeed = vi.fn<typeof globalThis.fetch>(async (input) => {
+      if (input !== repair.feedUrl) {
+        return new Response("Unexpected discovery endpoint", { status: 404 });
+      }
+      return new Response(`<rss><channel>
+        <item><title>${auctionTitle}</title><link>${auctionUrl}</link>
+          <pubDate>Tue, 10 Nov 2026 12:34:07 +0000</pubDate>
+          <category><![CDATA[Търгове и конкурси]]></category>
+        </item>
+        <item><title>Feed title</title><link>${repair.url}</link>
+          <pubDate>Sun, 04 Oct 2026 08:00:00 GMT</pubDate>
+          <category><![CDATA[Уведомления за ремонти и СМР]]></category>
+        </item>
+      </channel></rss>`);
+    });
+    vi.stubGlobal("fetch", fetchFeed);
+    browser.page.goto.mockImplementation(async (url: string) => {
+      document.body.innerHTML = url === auctionUrl
+        ? `<article><p>${auctionMessage}</p></article>`
+        : repair.article;
+      return null;
+    });
+
+    await crawlOborishte();
+
+    expect(fetchFeed).toHaveBeenCalledExactlyOnceWith(repair.feedUrl, expect.any(Object));
+    expect(store.records.size).toBe(2);
+    expect(store.records.get(auctionId)).toEqual({
+      url: auctionUrl,
+      sourceType: "rayon-oborishte-bg",
+      locality: "bg.sofia",
+      title: auctionTitle,
+      datePublished: "2026-11-10T12:34:07.000Z",
+      message: auctionMessage,
+      crawledAt: scanDate,
+      processed: false,
+    });
+    expect(store.records.get(repair.itemId)).toEqual({
+      url: repair.url,
+      sourceType: "rayon-oborishte-bg",
+      locality: "bg.sofia",
+      title: "Feed title",
+      datePublished: "2026-10-04T08:00:00.000Z",
+      message: "Road repair [Plan](https://example.com/plan.pdf)",
+      crawledAt: scanDate,
+      processed: false,
+    });
+    expect(browser.page.goto).toHaveBeenCalledTimes(2);
+    expect(await ingest({ sourceType: "rayon-oborishte-bg" })).toMatchObject({
+      total: 2,
+      ingested: 2,
+      failed: 0,
+    });
+    expect(messageIngest).toHaveBeenCalledWith(
+      auctionMessage,
+      "rayon-oborishte-bg",
+      expect.objectContaining({
+        sourceUrl: auctionUrl,
+        sourceDocumentId: auctionId,
+        datePublished: "2026-11-10T12:34:07.000Z",
+      }),
+    );
+
+    for (const id of [auctionId, repair.itemId]) {
+      await store.sources.updateOne(id, { processed: true });
+    }
+    const historicalAuction = store.records.get(auctionId);
+    const historicalRepair = store.records.get(repair.itemId);
+
+    await crawlOborishte();
+
+    expect(store.records.size).toBe(2);
+    expect(store.records.get(auctionId)).toBe(historicalAuction);
+    expect(store.records.get(repair.itemId)).toBe(historicalRepair);
+    expect(store.client.createOne).toHaveBeenCalledTimes(2);
+    expect(store.sources.setOne).not.toHaveBeenCalled();
+    expect(browser.page.goto).toHaveBeenCalledTimes(2);
+    expect(chromium.launch).toHaveBeenCalledOnce();
+  });
+});
