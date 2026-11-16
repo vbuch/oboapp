@@ -37,7 +37,7 @@ function sourceWithObserver(onListing: ToploListingObserver): DataSource {
   return source;
 }
 
-describe("Toplo package listing observer patch", () => {
+describe("Toplo package listing observer", () => {
   it.each([
     { format: "ESM", factory: createSource },
     { format: "CommonJS", factory: commonJs.createSource },
@@ -73,14 +73,22 @@ describe("Toplo package listing observer patch", () => {
     await expect(source.discoverItems()).resolves.toEqual({ items: [] });
   });
 
-  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+  it.each([
+    -1,
+    1.5,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.MAX_SAFE_INTEGER + 1,
+  ])(
     "rejects an invalid observer count: %s",
     async (count) => {
       const source = sourceWithObserver(async () => {
         return { count };
       });
 
-      await expect(source.discoverItems()).rejects.toThrow("nonnegative integer count");
+      await expect(source.discoverItems()).rejects.toThrow(
+        "nonnegative safe integer count",
+      );
     },
   );
 
