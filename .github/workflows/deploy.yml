@@ -68,6 +68,8 @@ jobs:
           cat > /tmp/cloudbuild.yaml << 'EOF'
           steps:
             - name: 'gcr.io/cloud-builders/docker'
+              env:
+                - 'DOCKER_BUILDKIT=1'
               args: 
                 - 'build'
                 - '-f'
