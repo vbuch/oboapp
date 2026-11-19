@@ -2,6 +2,8 @@
 
 Tracking: [#586](https://github.com/oboapp/oboapp/issues/586). Published collectors and their provider documentation live in [oboapp/sources](https://github.com/oboapp/sources).
 
+Migration work starts in [vbuch/oboapp](https://github.com/vbuch/oboapp). Validate changes against this fork's selected sources, CI and production deployment before backporting shared changes to `oboapp/oboapp`. Preserve this instance's catalog, jobs and deployment settings throughout.
+
 ## Current transition
 
 Each selected source uses either a published package or a remaining legacy crawler. Both collection paths save complete raw records for the same ingestion, event-matching and notification pipeline. Sources that supply GeoJSON keep their existing processing path.
@@ -53,6 +55,10 @@ zero. Version 0.2.0 replaces the temporary provider-package patch. See the
 [Toplo integration guide](../../ingest/crawlers/toplo-bg/README.md#packaged-source-integration)
 for snapshot persistence, failure handling and the incident APIs.
 
+ERM Zapad uses `@oboapp/source-erm-zapad@0.1.0` for HTTP municipality discovery and incident collection. It collects every municipality before choosing the lowest event ID for matching pins, then groups the remaining points by event ID. Discovery returns identifiers and keeps the complete snapshot in the source instance for fetching. Literal synthetic identifiers and two-second request spacing match the legacy collector.
+
+ERM content preserves the original first pin's text and dates and valid center points from incidents with mixed geometry. Optional fields stay absent when the provider omits them. Dates use the process host's local timezone. Obo repairs swapped coordinates during validation and retains historical base64/MD5 lookups. The adapter fails the job when every discovered incident fails to process; empty scans succeed. Package-to-ingestion tests cover complete raw records, preservation of existing records, failures and retries. This fork keeps the existing thirty-minute emergent job.
+
 NIMH uses `@oboapp/source-nimh-severe-weather@0.1.1` with SDK 0.2.0. Chromium
 waits for `domcontentloaded` before reading the server-rendered warning text and
 tables, so discovery can finish while background requests remain active.
@@ -82,7 +88,7 @@ The `crawl` and `pipeline` commands share a [runtime registry](../../ingest/sour
 
 The upstream demo selects a small source set. `ingest/source-package-policy.json` explicitly lists unselected packages retained in the development workspace for integration tests during the transition. Retained packages still require isolated valid metadata, exact versions and unique source IDs. Unexpected unselected dependencies and stale policy entries fail validation. Remove a package's retention entry when selecting its source or removing its dependency. An absent or empty policy enables strict selection for all installed source packages. Docker omits retained packages and their policy from both the builder installation and production workspace.
 
-The default Sofia job file matches the demo. The full Sofia template under `ingest/terraform/examples/` is inactive. Existing deployments must retain their own catalog and job selection when rebasing. See the [instance setup guide](../setup/new-locality-instance.md) for translating the full template and updating the retention policy before deployment.
+This fork selects its production Sofia sources and every installed provider package, with no development retention policy. Its active Sofia job file matches that selection, while upstream's matches its demo. The full Sofia template under `ingest/terraform/examples/` is inactive. Existing deployments must retain their own catalog and job selection when rebasing. See the [instance setup guide](../setup/new-locality-instance.md) for translating the full template and updating the retention policy before deployment.
 
 Check configuration without provider or database access:
 
@@ -167,7 +173,11 @@ To roll back, revert the source integration and deploy the previous image. Exist
 
 ### Pancharevo
 
-Pancharevo uses the published `0.1.1` package for the current planned-repairs RSS feed and article structure. Feed failures fail discovery before saving records. Cloud Run still receives HTTP 403 responses, tracked in [#687](https://github.com/oboapp/oboapp/issues/687). Provider changes to historical paths and numeric IDs also require a deduplication review before collection resumes. Keep historical backfill separate.
+Pancharevo uses [`@oboapp/source-rayon-pancharevo-bg@0.1.1`](https://www.npmjs.com/package/@oboapp/source-rayon-pancharevo-bg/v/0.1.1), prepared in [sources#39](https://github.com/oboapp/sources/pull/39). Release verification matched the published npm archive to the inspected [GitHub release assets](https://github.com/oboapp/sources/releases/tag/source-rayon-pancharevo-bg-v0.1.1) and checked the registry README and repository metadata.
+
+Discovery reads the first page of the [planned-repairs RSS feed](https://www.pancharevo.org/gradska-i-okolna-sreda/planovi-remonti?format=feed&type=rss) advertised by the [current listing](https://www.pancharevo.org/gradska-i-okolna-sreda/planovi-remonti). It preserves literal article URLs and title-based Bulgarian event-date filtering. Current articles use `.article-body` content and the authoritative `time[datetime]` publication timestamp. Historical Joomla articles keep their content extraction and date fallbacks. Feed and article attempts keep two-second pacing.
+
+Feed failures fail discovery before saving records. The recorded Cloud Run HTTP 403 responses remain open in [#687](https://github.com/oboapp/oboapp/issues/687). Supported provider access and a healthy production discovery and deduplication scan are still required. Provider changes to historical paths and numeric IDs also require a deduplication review before collection resumes. Preserve source ID `rayon-pancharevo-bg`, locality `bg.sofia` and create-only persistence. Keep historical backfill separate.
 
 ### Other sources
 
