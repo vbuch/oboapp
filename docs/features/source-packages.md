@@ -10,7 +10,7 @@ All 23 source integrations use published npm packages. To change how a provider 
 | Obo adapter | Exports `crawl` from `ingest/crawlers/<source-id>/index.ts` and connects the package factory to the runner. It supplies instance services when a provider needs them. For example, Sofia BG checks historical article titles and Sensor.Community reads stored measurements. [Sofia BG adapter](../../ingest/crawlers/sofia-bg/index.ts) · [Sensor.Community adapter](../../ingest/crawlers/sensor-community/index.ts) |
 | Obo runner | Supplies the configured locality, checks known identifiers, validates returned content and saves new raw records through `@oboapp/db`. Obo then processes those records for the map, API and notifications. [Source runner](../../ingest/sources/run-source.ts) |
 
-The upstream demo selects Sofia BG, Sofiyska Voda and Sensor.Community. Its development workspace retains the other 20 packages for integration tests. The Sofia production fork selects 22 sources and retains Sensor.Community for development. The selected catalog controls the CLI and build. The locality job file controls what Terraform deploys. [Instance catalog](../../shared/src/sources.ts) · [Sofia jobs](../../ingest/terraform/source-jobs.bg.sofia.json) · [Development retention policy](../../ingest/source-package-policy.json)
+The Sofia production fork selects 22 sources. Its development workspace also retains Sensor.Community for integration tests. The upstream demo selects Sofia BG, Sofiyska Voda and Sensor.Community and retains the other 20 packages for development. The selected catalog controls the CLI and build. The locality job file controls what Terraform deploys. [Instance catalog](../../shared/src/sources.ts) · [Sofia jobs](../../ingest/terraform/source-jobs.bg.sofia.json) · [Development retention policy](../../ingest/source-package-policy.json)
 
 ## Scheduled scan behavior
 
@@ -56,6 +56,10 @@ known incidents whose estimates have changed. A verified empty listing records
 zero. Version 0.2.0 replaces the temporary provider-package patch. See the
 [Toplo integration guide](../../ingest/crawlers/toplo-bg/README.md#packaged-source-integration)
 for snapshot persistence, failure handling and the incident APIs.
+
+ERM Zapad uses `@oboapp/source-erm-zapad@0.1.0` for HTTP municipality discovery and incident collection. It collects every municipality before choosing the lowest event ID for matching pins, then groups the remaining points by event ID. Discovery returns identifiers and keeps the complete snapshot in the source instance for fetching. Literal synthetic identifiers and two-second request spacing match the legacy collector.
+
+ERM content preserves the original first pin's text and dates and valid center points from incidents with mixed geometry. Optional fields stay absent when the provider omits them. Dates use the process host's local timezone. Obo repairs swapped coordinates during validation and retains historical base64/MD5 lookups. The adapter fails the job when every discovered incident fails to process; empty scans succeed. Package-to-ingestion tests cover complete raw records, preservation of existing records, failures and retries. This fork keeps the existing thirty-minute emergent job.
 
 NIMH uses `@oboapp/source-nimh-severe-weather@0.1.1` with SDK 0.2.0. Chromium
 waits for `domcontentloaded` before reading the server-rendered warning text and
@@ -155,7 +159,7 @@ The fixture command changes copied configuration while preserving the working ch
 
 Offline runtime checks load the selected entrypoints and run the HTTP-only browser check. They verify that database initialization and browser runtimes stay unloaded.
 
-On 19 November 2026, Cloud Build built the two-source fixture from fork revision `c6175377`. Two isolated Cloud Run jobs executed image `sha256:3051fcaf165412558ff7894a32a1466e2b5abb0b8f041265ff5b0a0592befa9a`. Each checked the runtime registry, compiled source directories, non-root user and installed provider packages. The package store contained the SDK, Triaditsa and Sofiyska Voda.
+On 19 November 2026, Cloud Build built the two-source fixture from fork revision `c6175377`. Two isolated Cloud Run jobs executed image `sha256:3051fcaf165412558ff7894a32a1466e2b5abb0b8f041265ff5b0a0592befa9a`. Each checked the runtime registry, compiled source directories, non-root user and installed provider packages. The package store contained the SDK, Triaditsa and Sofiyska Voda. [Cloud Build record](https://console.cloud.google.com/cloud-build/builds/1b6964c3-0e4b-480a-8f7c-f081292de007?project=oborishte-map)
 
 The jobs ran the source runner in database-free preview mode against the live providers. Execution `proof586-triaditsa-c617-plhkm` validated 20 notices. Execution `proof586-voda-c617-mk7rg` validated four. Both completed with zero item failures. [Deployment tracker](https://github.com/oboapp/oboapp/issues/610)
 
@@ -174,7 +178,11 @@ In the final Sofia rollout, Sofia BG, Sofia Capital of Sport and Krasna Polyana 
 
 ### Pancharevo
 
-Pancharevo uses the published `0.1.1` package for the current planned-repairs RSS feed and article structure. Feed failures fail discovery before saving records. Cloud Run still receives HTTP 403 responses, tracked in [#687](https://github.com/oboapp/oboapp/issues/687). Provider changes to historical paths and numeric IDs also require a deduplication review before collection resumes. Keep historical backfill separate.
+Pancharevo uses [`@oboapp/source-rayon-pancharevo-bg@0.1.1`](https://www.npmjs.com/package/@oboapp/source-rayon-pancharevo-bg/v/0.1.1), prepared in [sources#39](https://github.com/oboapp/sources/pull/39). Release verification matched the published npm archive to the inspected [GitHub release assets](https://github.com/oboapp/sources/releases/tag/source-rayon-pancharevo-bg-v0.1.1) and checked the registry README and repository metadata.
+
+Discovery reads the first page of the [planned-repairs RSS feed](https://www.pancharevo.org/gradska-i-okolna-sreda/planovi-remonti?format=feed&type=rss) advertised by the [current listing](https://www.pancharevo.org/gradska-i-okolna-sreda/planovi-remonti). It preserves literal article URLs and title-based Bulgarian event-date filtering. Current articles use `.article-body` content and the authoritative `time[datetime]` publication timestamp. Historical Joomla articles keep their content extraction and date fallbacks. Feed and article attempts keep two-second pacing.
+
+Feed failures fail discovery before saving records. The recorded Cloud Run HTTP 403 responses remain open in [#687](https://github.com/oboapp/oboapp/issues/687). Supported provider access and a healthy production discovery and deduplication scan are still required. Provider changes to historical paths and numeric IDs also require a deduplication review before collection resumes. Preserve source ID `rayon-pancharevo-bg`, locality `bg.sofia` and create-only persistence. Keep historical backfill separate.
 
 ### Other sources
 

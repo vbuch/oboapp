@@ -4,7 +4,7 @@
 
 Sensor.Community readings can produce `air-quality` alerts with a grid-cell polygon for the map. Obo samples outdoor PM2.5 and PM10 readings. The published `@oboapp/source-sensor-community` package evaluates stored readings for each locality. [Sensor.Community](https://sensor.community/) · [Provider package](https://github.com/oboapp/sources/tree/source-sensor-community-v0.1.0/packages/source-sensor-community)
 
-The upstream demo selects the Sensor.Community evaluator as an emergent source. Terraform also creates the separate sampling job when `gcs_generic_bucket` is configured. [Demo job selection](../../ingest/terraform/source-jobs.bg.sofia.json) · [Terraform resources](../../ingest/terraform/main.tf)
+The Sofia production fork retains the published evaluator for integration tests. Its Terraform configuration schedules neither air-quality job. [Development retention policy](../../ingest/source-package-policy.json) · [Sofia job selection](../../ingest/terraform/source-jobs.bg.sofia.json)
 
 ## How it works
 
@@ -45,10 +45,6 @@ The package uses the following historical EAQI concentration bands and Bulgarian
 | 4    | Лошо (Poor)                        | 25–50         | 50–100       |
 | 5    | Много лошо (Very Poor)             | 50–75         | 100–150      |
 | 6    | Изключително лошо (Extremely Poor) | ≥75           | ≥150         |
-
-## Scheduling
-
-The default sampling schedule is every 15 minutes. The evaluator follows the selected emergent workflow, which runs every 30 minutes from 07:00 through 22:30 in `Europe/Sofia` by default. It also runs in the full workflow. [Workflow schedules](cloud-workflows.md)
 
 ## Configuration
 
